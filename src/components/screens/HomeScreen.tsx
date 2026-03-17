@@ -1,7 +1,6 @@
 import React from 'react';
 import { TopBar, Header, Navigation, BottomBar, SummaryCard, ContentCard, SimpleSparkline } from '../ada';
 import { SparkIcon } from '../ada/SparkIcon';
-import imgVideoThumb from 'figma:asset/f2dddff10fce8c5cc0468d3c13d16d6eeadcbdb7.png';
 
 interface HomeScreenProps {
   onChatHistoryClick?: () => void;

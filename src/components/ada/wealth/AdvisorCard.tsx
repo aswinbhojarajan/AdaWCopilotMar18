@@ -1,7 +1,7 @@
 import React from 'react';
 import { Mail, Phone, Calendar } from 'lucide-react';
 import { ImageWithFallback } from '../../figma/ImageWithFallback';
-import advisorPhotoDefault from 'figma:asset/c54e79017cfbcd431ed13642ec859ace3fc150c0.png';
+import advisorPhotoDefault from '../../../assets/advisor-photo.png';
 
 interface AdvisorCardProps {
   advisorName?: string;

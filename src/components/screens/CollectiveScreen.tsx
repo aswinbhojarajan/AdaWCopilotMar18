@@ -10,10 +10,10 @@ import {
   SummaryCard,
   ContentCard
 } from '../ada';
-import { Sparkles, TrendingUp, Clock } from 'lucide-react';
-import svgPaths from '../../imports/svg-njo1xhaulo';
+import { Clock } from 'lucide-react';
+import { pollResults } from '../../data/collective';
 
-interface LoungeScreenProps {
+interface CollectiveScreenProps {
   onChatHistoryClick?: () => void;
   onNotificationsClick?: () => void;
   onChatSubmit?: (message: string, context?: { category: string; categoryType: string; title: string; sourceScreen?: string }) => void;
@@ -25,16 +25,7 @@ interface LoungeScreenProps {
   onClose?: () => void;
 }
 
-// Mock poll results data
-const POLL_RESULTS = {
-  'north-america': 32,
-  'europe': 18,
-  'asia-pacific': 24,
-  'emerging-markets': 12,
-  'global-diversified': 14
-};
-
-export function LoungeScreen({ onChatHistoryClick, onNotificationsClick, onChatSubmit, hasActiveChatToday, onResumeChat, onOpenChat, onPollVote, onNavigateToWealth, onClose }: LoungeScreenProps = {}) {
+export function CollectiveScreen({ onChatHistoryClick, onNotificationsClick, onChatSubmit, hasActiveChatToday, onResumeChat, onOpenChat, onPollVote, onNavigateToWealth, onClose }: CollectiveScreenProps = {}) {
   const [selectedRegion, setSelectedRegion] = React.useState<string | null>(null);
   const [hasVoted, setHasVoted] = React.useState(false);
   const [showNotification, setShowNotification] = React.useState(false);
@@ -66,7 +57,7 @@ export function LoungeScreen({ onChatHistoryClick, onNotificationsClick, onChatS
       <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-0 px-0 w-full z-10">
         <TopBar />
         <Header onNotificationsClick={onNotificationsClick} onClose={onClose} />
-        <Navigation activeTab="lounge" onTabChange={() => {}} />
+        <Navigation activeTab="collective" onTabChange={() => {}} />
       </div>
 
       {/* Scrollable Content - starts after header */}
@@ -279,7 +270,7 @@ export function LoungeScreen({ onChatHistoryClick, onNotificationsClick, onChatS
                             onChange={handleVote}
                             checked={selectedRegion === 'north-america'}
                             showResults={hasVoted}
-                            percentage={POLL_RESULTS['north-america']}
+                            percentage={pollResults['north-america']}
                             isUserSelection={selectedRegion === 'north-america'}
                           />
                           <PollOption 
@@ -289,7 +280,7 @@ export function LoungeScreen({ onChatHistoryClick, onNotificationsClick, onChatS
                             onChange={handleVote}
                             checked={selectedRegion === 'europe'}
                             showResults={hasVoted}
-                            percentage={POLL_RESULTS['europe']}
+                            percentage={pollResults['europe']}
                             isUserSelection={selectedRegion === 'europe'}
                           />
                           <PollOption 
@@ -299,7 +290,7 @@ export function LoungeScreen({ onChatHistoryClick, onNotificationsClick, onChatS
                             onChange={handleVote}
                             checked={selectedRegion === 'asia-pacific'}
                             showResults={hasVoted}
-                            percentage={POLL_RESULTS['asia-pacific']}
+                            percentage={pollResults['asia-pacific']}
                             isUserSelection={selectedRegion === 'asia-pacific'}
                           />
                           <PollOption 
@@ -309,7 +300,7 @@ export function LoungeScreen({ onChatHistoryClick, onNotificationsClick, onChatS
                             onChange={handleVote}
                             checked={selectedRegion === 'emerging-markets'}
                             showResults={hasVoted}
-                            percentage={POLL_RESULTS['emerging-markets']}
+                            percentage={pollResults['emerging-markets']}
                             isUserSelection={selectedRegion === 'emerging-markets'}
                           />
                           <PollOption 
@@ -319,7 +310,7 @@ export function LoungeScreen({ onChatHistoryClick, onNotificationsClick, onChatS
                             onChange={handleVote}
                             checked={selectedRegion === 'global-diversified'}
                             showResults={hasVoted}
-                            percentage={POLL_RESULTS['global-diversified']}
+                            percentage={pollResults['global-diversified']}
                             isUserSelection={selectedRegion === 'global-diversified'}
                           />
                         </div>
@@ -333,7 +324,7 @@ export function LoungeScreen({ onChatHistoryClick, onNotificationsClick, onChatS
                           onChange={handleVote}
                           checked={selectedRegion === 'north-america'}
                           showResults={hasVoted}
-                          percentage={POLL_RESULTS['north-america']}
+                          percentage={pollResults['north-america']}
                           isUserSelection={selectedRegion === 'north-america'}
                         />
                         <PollOption 
@@ -343,7 +334,7 @@ export function LoungeScreen({ onChatHistoryClick, onNotificationsClick, onChatS
                           onChange={handleVote}
                           checked={selectedRegion === 'europe'}
                           showResults={hasVoted}
-                          percentage={POLL_RESULTS['europe']}
+                          percentage={pollResults['europe']}
                           isUserSelection={selectedRegion === 'europe'}
                         />
                         <PollOption 
@@ -353,7 +344,7 @@ export function LoungeScreen({ onChatHistoryClick, onNotificationsClick, onChatS
                           onChange={handleVote}
                           checked={selectedRegion === 'asia-pacific'}
                           showResults={hasVoted}
-                          percentage={POLL_RESULTS['asia-pacific']}
+                          percentage={pollResults['asia-pacific']}
                           isUserSelection={selectedRegion === 'asia-pacific'}
                         />
                         <PollOption 
@@ -363,7 +354,7 @@ export function LoungeScreen({ onChatHistoryClick, onNotificationsClick, onChatS
                           onChange={handleVote}
                           checked={selectedRegion === 'emerging-markets'}
                           showResults={hasVoted}
-                          percentage={POLL_RESULTS['emerging-markets']}
+                          percentage={pollResults['emerging-markets']}
                           isUserSelection={selectedRegion === 'emerging-markets'}
                         />
                         <PollOption 
@@ -373,7 +364,7 @@ export function LoungeScreen({ onChatHistoryClick, onNotificationsClick, onChatS
                           onChange={handleVote}
                           checked={selectedRegion === 'global-diversified'}
                           showResults={hasVoted}
-                          percentage={POLL_RESULTS['global-diversified']}
+                          percentage={pollResults['global-diversified']}
                           isUserSelection={selectedRegion === 'global-diversified'}
                         />
                       </div>

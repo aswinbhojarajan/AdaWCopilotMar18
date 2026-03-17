@@ -35,7 +35,7 @@ export function HomeEmptyScreen({ onChatHistoryClick }: HomeEmptyScreenProps = {
           DISCOVER
         </p>
         <p className="font-['DM_Sans:Regular',sans-serif] h-[10px] leading-[1.3] not-italic opacity-60 relative shrink-0 text-[#441316] text-[10px] text-center tracking-[1.2px] uppercase w-[46px]">
-          LOUNGE
+          COLLECTIVE
         </p>
         <p className="font-['DM_Sans:Regular',sans-serif] h-[10px] leading-[1.3] not-italic opacity-40 relative shrink-0 text-[#441316] text-[10px] text-center tracking-[1.2px] uppercase w-[46px]">
           PROFILE

@@ -1,8 +1,9 @@
 import React from 'react';
+import type { TabType } from '../../types';
 
 interface NavigationProps {
-  activeTab: 'home' | 'wealth' | 'discover' | 'lounge';
-  onTabChange: (tab: 'home' | 'wealth' | 'discover' | 'lounge') => void;
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
 }
 
 export function Navigation({ activeTab = 'home', onTabChange }: NavigationProps) {
@@ -28,8 +29,8 @@ export function Navigation({ activeTab = 'home', onTabChange }: NavigationProps)
         </p>
       </button>
 
-      <button onClick={() => onTabChange('lounge')}>
-        <p className={`font-['DM_Sans:${activeTab === 'lounge' ? 'SemiBold' : 'Regular'}',sans-serif] h-[10px] leading-[1.3] not-italic ${activeTab === 'lounge' ? '' : 'opacity-60'} relative shrink-0 text-[#441316] text-[10px] text-center tracking-[1.2px] uppercase w-[46px]`}>
+      <button onClick={() => onTabChange('collective')}>
+        <p className={`font-['DM_Sans:${activeTab === 'collective' ? 'SemiBold' : 'Regular'}',sans-serif] h-[10px] leading-[1.3] not-italic ${activeTab === 'collective' ? '' : 'opacity-60'} relative shrink-0 text-[#441316] text-[10px] text-center tracking-[1.2px] uppercase w-[46px]`}>
           COLLECTIVE
         </p>
       </button>
