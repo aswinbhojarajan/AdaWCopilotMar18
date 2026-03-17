@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
 import { Modal } from '../Modal';
 import { Button } from '../Button';
-import { Search, ChevronRight, Building2, Landmark, Wallet, TrendingUp, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import {
+  Search,
+  ChevronRight,
+  Building2,
+  Landmark,
+  Wallet,
+  TrendingUp,
+  ArrowLeft,
+  Loader2,
+  CheckCircle2,
+} from 'lucide-react';
 
 interface FinancialInstitution {
   id: string;
@@ -24,11 +34,13 @@ const institutions: FinancialInstitution[] = [
     type: 'bank',
     logo: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect width="24" height="24" rx="4" fill="#D32027"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="7" fontWeight="bold">ENBD</text>
+        <rect width="24" height="24" rx="4" fill="#D32027" />
+        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="7" fontWeight="bold">
+          ENBD
+        </text>
       </svg>
     ),
-    popular: true
+    popular: true,
   },
   {
     id: 'adcb',
@@ -36,11 +48,13 @@ const institutions: FinancialInstitution[] = [
     type: 'bank',
     logo: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect width="24" height="24" rx="4" fill="#0066B2"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">ADCB</text>
+        <rect width="24" height="24" rx="4" fill="#0066B2" />
+        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">
+          ADCB
+        </text>
       </svg>
     ),
-    popular: true
+    popular: true,
   },
   {
     id: 'mashreq',
@@ -48,10 +62,12 @@ const institutions: FinancialInstitution[] = [
     type: 'bank',
     logo: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect width="24" height="24" rx="4" fill="#E20714"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">M</text>
+        <rect width="24" height="24" rx="4" fill="#E20714" />
+        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">
+          M
+        </text>
       </svg>
-    )
+    ),
   },
   {
     id: 'fab',
@@ -59,10 +75,12 @@ const institutions: FinancialInstitution[] = [
     type: 'bank',
     logo: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect width="24" height="24" rx="4" fill="#00558C"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">FAB</text>
+        <rect width="24" height="24" rx="4" fill="#00558C" />
+        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">
+          FAB
+        </text>
       </svg>
-    )
+    ),
   },
   {
     id: 'interactive-brokers',
@@ -70,11 +88,13 @@ const institutions: FinancialInstitution[] = [
     type: 'broker',
     logo: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect width="24" height="24" rx="4" fill="#DA1F26"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">IB</text>
+        <rect width="24" height="24" rx="4" fill="#DA1F26" />
+        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">
+          IB
+        </text>
       </svg>
     ),
-    popular: true
+    popular: true,
   },
   {
     id: 'saxo-bank',
@@ -82,10 +102,12 @@ const institutions: FinancialInstitution[] = [
     type: 'broker',
     logo: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect width="24" height="24" rx="4" fill="#003366"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">SAXO</text>
+        <rect width="24" height="24" rx="4" fill="#003366" />
+        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">
+          SAXO
+        </text>
       </svg>
-    )
+    ),
   },
   {
     id: 'binance',
@@ -93,13 +115,13 @@ const institutions: FinancialInstitution[] = [
     type: 'crypto',
     logo: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect width="24" height="24" rx="4" fill="#F0B90B"/>
-        <path d="M12 8L14.5 10.5L12 13L9.5 10.5L12 8Z" fill="white"/>
-        <path d="M8 12L10.5 14.5L8 17L5.5 14.5L8 12Z" fill="white"/>
-        <path d="M16 12L18.5 14.5L16 17L13.5 14.5L16 12Z" fill="white"/>
+        <rect width="24" height="24" rx="4" fill="#F0B90B" />
+        <path d="M12 8L14.5 10.5L12 13L9.5 10.5L12 8Z" fill="white" />
+        <path d="M8 12L10.5 14.5L8 17L5.5 14.5L8 12Z" fill="white" />
+        <path d="M16 12L18.5 14.5L16 17L13.5 14.5L16 12Z" fill="white" />
       </svg>
     ),
-    popular: true
+    popular: true,
   },
   {
     id: 'coinbase',
@@ -107,10 +129,10 @@ const institutions: FinancialInstitution[] = [
     type: 'crypto',
     logo: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect width="24" height="24" rx="4" fill="#0052FF"/>
-        <circle cx="12" cy="12" r="5" stroke="white" strokeWidth="2" fill="none"/>
+        <rect width="24" height="24" rx="4" fill="#0052FF" />
+        <circle cx="12" cy="12" r="5" stroke="white" strokeWidth="2" fill="none" />
       </svg>
-    )
+    ),
   },
   {
     id: 'kraken',
@@ -118,10 +140,12 @@ const institutions: FinancialInstitution[] = [
     type: 'crypto',
     logo: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect width="24" height="24" rx="4" fill="#5741D9"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">K</text>
+        <rect width="24" height="24" rx="4" fill="#5741D9" />
+        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">
+          K
+        </text>
       </svg>
-    )
+    ),
   },
   {
     id: 'sarwa',
@@ -129,10 +153,12 @@ const institutions: FinancialInstitution[] = [
     type: 'investment',
     logo: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect width="24" height="24" rx="4" fill="#7B61FF"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">S</text>
+        <rect width="24" height="24" rx="4" fill="#7B61FF" />
+        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">
+          S
+        </text>
       </svg>
-    )
+    ),
   },
   {
     id: 'stashaway',
@@ -140,11 +166,13 @@ const institutions: FinancialInstitution[] = [
     type: 'investment',
     logo: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect width="24" height="24" rx="4" fill="#00D09C"/>
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">SA</text>
+        <rect width="24" height="24" rx="4" fill="#00D09C" />
+        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">
+          SA
+        </text>
       </svg>
-    )
-  }
+    ),
+  },
 ];
 
 type ConnectionStep = 'select' | 'credentials' | 'connecting' | 'success';
@@ -170,14 +198,14 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
 
   const handleConnect = async () => {
     if (!selectedInstitution) return;
-    
+
     setStep('connecting');
-    
+
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     setStep('success');
-    
+
     // Close modal and notify parent after showing success
     setTimeout(() => {
       onAccountAdded(selectedInstitution);
@@ -191,20 +219,25 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
     setCredentials({ username: '', password: '' });
   };
 
-  const filteredInstitutions = institutions.filter(inst =>
-    inst.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredInstitutions = institutions.filter((inst) =>
+    inst.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const popularInstitutions = filteredInstitutions.filter(inst => inst.popular);
-  const otherInstitutions = filteredInstitutions.filter(inst => !inst.popular);
+  const popularInstitutions = filteredInstitutions.filter((inst) => inst.popular);
+  const otherInstitutions = filteredInstitutions.filter((inst) => !inst.popular);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'bank': return <Landmark className="size-[14px] text-[#555555]" strokeWidth={1.5} />;
-      case 'broker': return <TrendingUp className="size-[14px] text-[#555555]" strokeWidth={1.5} />;
-      case 'crypto': return <Wallet className="size-[14px] text-[#555555]" strokeWidth={1.5} />;
-      case 'investment': return <Building2 className="size-[14px] text-[#555555]" strokeWidth={1.5} />;
-      default: return null;
+      case 'bank':
+        return <Landmark className="size-[14px] text-[#555555]" strokeWidth={1.5} />;
+      case 'broker':
+        return <TrendingUp className="size-[14px] text-[#555555]" strokeWidth={1.5} />;
+      case 'crypto':
+        return <Wallet className="size-[14px] text-[#555555]" strokeWidth={1.5} />;
+      case 'investment':
+        return <Building2 className="size-[14px] text-[#555555]" strokeWidth={1.5} />;
+      default:
+        return null;
     }
   };
 
@@ -219,7 +252,10 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
         <div className="px-[24px] py-[16px]">
           {/* Search */}
           <div className="relative mb-[20px]">
-            <Search className="absolute left-[12px] top-1/2 -translate-y-1/2 size-[16px] text-[#555555] opacity-40" strokeWidth={1.5} />
+            <Search
+              className="absolute left-[12px] top-1/2 -translate-y-1/2 size-[16px] text-[#555555] opacity-40"
+              strokeWidth={1.5}
+            />
             <input
               type="text"
               placeholder="Search institutions..."
@@ -258,7 +294,10 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
                         </div>
                       </div>
                     </div>
-                    <ChevronRight className="size-[18px] text-[#555555] opacity-40" strokeWidth={1.5} />
+                    <ChevronRight
+                      className="size-[18px] text-[#555555] opacity-40"
+                      strokeWidth={1.5}
+                    />
                   </button>
                 ))}
               </div>
@@ -294,7 +333,10 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
                         </div>
                       </div>
                     </div>
-                    <ChevronRight className="size-[18px] text-[#555555] opacity-40" strokeWidth={1.5} />
+                    <ChevronRight
+                      className="size-[18px] text-[#555555] opacity-40"
+                      strokeWidth={1.5}
+                    />
                   </button>
                 ))}
               </div>
@@ -364,14 +406,15 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
 
           <div className="bg-[#fff5e6] border border-[#f59e0b] rounded-[12px] p-[12px] mb-[24px]">
             <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[12px]">
-              🔒 Your credentials are encrypted and securely stored. Ada uses bank-level security to protect your data.
+              🔒 Your credentials are encrypted and securely stored. Ada uses bank-level security to
+              protect your data.
             </p>
           </div>
 
           <Button
             variant="primary"
             onClick={handleConnect}
-            className={`w-full ${(!credentials.username || !credentials.password) ? 'opacity-40 cursor-not-allowed' : ''}`}
+            className={`w-full ${!credentials.username || !credentials.password ? 'opacity-40 cursor-not-allowed' : ''}`}
           >
             Connect Account
           </Button>
@@ -380,7 +423,10 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
 
       {step === 'connecting' && (
         <div className="px-[24px] py-[60px] flex flex-col items-center justify-center">
-          <Loader2 className="size-[48px] text-[#a0e622] animate-spin mb-[16px]" strokeWidth={1.5} />
+          <Loader2
+            className="size-[48px] text-[#a0e622] animate-spin mb-[16px]"
+            strokeWidth={1.5}
+          />
           <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] text-[20px] mb-[8px]">
             Connecting...
           </p>

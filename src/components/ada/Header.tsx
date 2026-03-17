@@ -19,11 +19,11 @@ export function Header({ onNotificationsClick, onClose }: HeaderProps = {}) {
                 <AdaLogo className="w-[65px] h-[26px]" />
               </div>
             </div>
-            
+
             {/* Notification & Settings Icons */}
             <div className="h-[24px] relative shrink-0 w-[64px]">
               {/* Clickable Notification Bell Area */}
-              <button 
+              <button
                 onClick={onNotificationsClick}
                 className="absolute left-0 top-0 w-[24px] h-[24px] -m-[2px] cursor-pointer hover:opacity-70 transition-opacity z-10"
                 aria-label="Notifications"
@@ -38,13 +38,28 @@ export function Header({ onNotificationsClick, onClose }: HeaderProps = {}) {
                 aria-label="Close"
               />
               <div className="absolute inset-0 pointer-events-none">
-                <svg className="block w-full h-full" fill="none" preserveAspectRatio="xMaxYMid meet" viewBox="0 0 65 21">
+                <svg
+                  className="block w-full h-full"
+                  fill="none"
+                  preserveAspectRatio="xMaxYMid meet"
+                  viewBox="0 0 65 21"
+                >
                   <g>
                     <g>
-                      <path d={svgPaths.p19b3ea40} stroke="#4C4C4C" strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d={svgPaths.p19b3ea40}
+                        stroke="#4C4C4C"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                       <path d="M8.27781 20.5H12.7223" stroke="#4C4C4C" strokeLinecap="round" />
                     </g>
-                    <path d={svgPaths.p24739000} stroke="#4C4C4C" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d={svgPaths.p24739000}
+                      stroke="#4C4C4C"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </g>
                 </svg>
               </div>

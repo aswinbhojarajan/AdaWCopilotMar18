@@ -2,22 +2,22 @@ import React from 'react';
 
 /**
  * PollOption Component
- * 
+ *
  * A radio button option for polls with grey outline styling that changes to burgundy when selected.
  * After voting, displays percentage results with visual bar indicators.
  * Follows the Ada design system typography and color patterns.
- * 
+ *
  * @component
  * @example
  * ```tsx
  * // Before voting
  * <PollOption name="region-poll" value="north-america" label="North America" />
- * 
+ *
  * // After voting (showing results)
- * <PollOption 
- *   name="region-poll" 
- *   value="north-america" 
- *   label="North America" 
+ * <PollOption
+ *   name="region-poll"
+ *   value="north-america"
+ *   label="North America"
  *   showResults={true}
  *   percentage={32}
  *   isUserSelection={true}
@@ -44,7 +44,16 @@ export interface PollOptionProps {
   isUserSelection?: boolean;
 }
 
-export function PollOption({ name, value, label, onChange, checked, showResults = false, percentage = 0, isUserSelection = false }: PollOptionProps) {
+export function PollOption({
+  name,
+  value,
+  label,
+  onChange,
+  checked,
+  showResults = false,
+  percentage = 0,
+  isUserSelection = false,
+}: PollOptionProps) {
   // Results view
   if (showResults) {
     return (
@@ -53,12 +62,14 @@ export function PollOption({ name, value, label, onChange, checked, showResults 
           <p className="font-['Crimson_Pro:ExtraLight',sans-serif] text-[12px] text-[#555555]">
             {label}
           </p>
-          <p className={`font-['DM_Sans:Medium',sans-serif] text-[12px] ${isUserSelection ? 'text-[#992929]' : 'text-[#555555] opacity-60'}`}>
+          <p
+            className={`font-['DM_Sans:Medium',sans-serif] text-[12px] ${isUserSelection ? 'text-[#992929]' : 'text-[#555555] opacity-60'}`}
+          >
             {percentage}%
           </p>
         </div>
         <div className="flex gap-[2px] h-[24px]">
-          <div 
+          <div
             className={`${isUserSelection ? 'bg-[#992929]' : 'bg-[#d9b3b5]'} rounded-[2px] transition-all duration-500 ease-out`}
             style={{ width: `${percentage}%` }}
           />
@@ -71,9 +82,9 @@ export function PollOption({ name, value, label, onChange, checked, showResults 
   // Voting view
   return (
     <label className="content-stretch flex gap-[12px] items-center relative shrink-0 w-full cursor-pointer group">
-      <input 
-        type="radio" 
-        name={name} 
+      <input
+        type="radio"
+        name={name}
         value={value}
         checked={checked}
         onChange={(e) => onChange?.(e.target.value)}

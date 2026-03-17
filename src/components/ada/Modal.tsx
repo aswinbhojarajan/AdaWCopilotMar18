@@ -27,11 +27,8 @@ export function Modal({ isOpen, onClose, title, subtitle, children }: ModalProps
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+
       {/* Modal */}
       <div className="relative bg-white rounded-[30px] w-full max-w-[400px] mx-[20px] max-h-[80vh] overflow-hidden flex flex-col">
         {/* Header */}
@@ -58,9 +55,7 @@ export function Modal({ isOpen, onClose, title, subtitle, children }: ModalProps
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto flex-1">
-          {children}
-        </div>
+        <div className="overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   );

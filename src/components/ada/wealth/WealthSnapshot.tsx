@@ -41,7 +41,7 @@ export function WealthSnapshot({
   defaultTimeFrame = '1M',
   primaryInsight,
   onViewDetails,
-  insightDetails
+  insightDetails,
 }: WealthSnapshotProps) {
   const isPositive = dailyChange >= 0;
   const [hoveredData, setHoveredData] = useState<{ value: number; label: string } | null>(null);
@@ -50,9 +50,9 @@ export function WealthSnapshot({
   const [expandedInsights, setExpandedInsights] = useState<{ [key: number]: boolean }>({});
 
   const toggleInsight = (index: number) => {
-    setExpandedInsights(prev => ({
+    setExpandedInsights((prev) => ({
       ...prev,
-      [index]: !prev[index]
+      [index]: !prev[index],
     }));
   };
 
@@ -69,15 +69,26 @@ export function WealthSnapshot({
             {/* Main Value and Change */}
             <div className="content-stretch flex items-end justify-between relative shrink-0 w-full">
               <p className="font-['Crimson_Pro:ExtraLight',sans-serif] font-extralight leading-[28px] relative shrink-0 text-[#555555] text-[36px] text-nowrap tracking-[-1.2px]">
-                ${displayValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                $
+                {displayValue.toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </p>
-              
+
               {/* Daily Change Badge */}
-              <div className={`content-stretch flex gap-[6px] h-[24px] items-center justify-center px-[8px] py-[10px] relative rounded-[50px] shrink-0 ${
-                isPositive ? 'bg-[#c6ff6a]' : 'bg-[#ff7e7e]'
-              }`}>
+              <div
+                className={`content-stretch flex gap-[6px] h-[24px] items-center justify-center px-[8px] py-[10px] relative rounded-[50px] shrink-0 ${
+                  isPositive ? 'bg-[#c6ff6a]' : 'bg-[#ff7e7e]'
+                }`}
+              >
                 <div className="relative shrink-0 size-[8px]">
-                  <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 8 8">
+                  <svg
+                    className="block size-full"
+                    fill="none"
+                    preserveAspectRatio="none"
+                    viewBox="0 0 8 8"
+                  >
                     {isPositive ? (
                       <path d="M4 0 L8 8 L0 8 Z" fill="#03561A" />
                     ) : (
@@ -85,10 +96,18 @@ export function WealthSnapshot({
                     )}
                   </svg>
                 </div>
-                <p className={`font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-nowrap whitespace-pre ${
-                  isPositive ? 'text-[#03561a]' : 'text-[#560303]'
-                }`}>
-                  ${Math.abs(dailyChange).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ({isPositive ? '+' : ''}{dailyChangePercent.toFixed(2)}%)
+                <p
+                  className={`font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-nowrap whitespace-pre ${
+                    isPositive ? 'text-[#03561a]' : 'text-[#560303]'
+                  }`}
+                >
+                  $
+                  {Math.abs(dailyChange).toLocaleString('en-US', {
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1,
+                  })}{' '}
+                  ({isPositive ? '+' : ''}
+                  {dailyChangePercent.toFixed(2)}%)
                 </p>
               </div>
             </div>
@@ -96,14 +115,14 @@ export function WealthSnapshot({
             {/* Performance Chart */}
             {performanceData && (
               <div className="mt-[12px] w-full">
-                <WealthPerformanceChart 
+                <WealthPerformanceChart
                   data={performanceData}
                   defaultTimeFrame={defaultTimeFrame}
                   height={160}
                   color="#441316"
                   fillGradient={{
                     startColor: 'rgba(217, 179, 181, 0.25)',
-                    endColor: 'rgba(168, 113, 116, 0.05)'
+                    endColor: 'rgba(168, 113, 116, 0.05)',
                   }}
                   benchmarkComparison="+0.8% vs S&P 500"
                   onHoverData={setHoveredData}
@@ -120,7 +139,7 @@ export function WealthSnapshot({
 
             {/* View Details Link */}
             {!insightDetails && (
-              <button 
+              <button
                 onClick={onViewDetails}
                 className="content-stretch flex gap-[4px] items-center relative shrink-0 group mt-[4px]"
               >
@@ -152,7 +171,7 @@ export function WealthSnapshot({
                       <div className="shrink-0 size-[24px] flex items-center justify-center text-[#992929]">
                         {detail.icon}
                       </div>
-                      
+
                       <div className="flex-1 flex flex-col gap-[2px]">
                         <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic text-[#555555] text-[14px]">
                           {detail.title}
@@ -185,10 +204,10 @@ export function WealthSnapshot({
                             detail.fullContent
                           )}
                         </div>
-                        
+
                         {detail.cta && (
-                          <Button 
-                            variant="ai-primary" 
+                          <Button
+                            variant="ai-primary"
                             size="md"
                             onClick={detail.cta.onClick}
                             className="w-full"

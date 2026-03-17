@@ -1,6 +1,5 @@
 import React from 'react';
-import { TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
-import { Button } from '../Button';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 import { SparkIcon } from '../SparkIcon';
 
 interface PortfolioHealthCardProps {
@@ -14,7 +13,7 @@ export function PortfolioHealthCard({
   diversificationScore,
   riskLevel,
   suggestions = [],
-  onChatSubmit
+  onChatSubmit,
 }: PortfolioHealthCardProps) {
   const getRiskConfig = () => {
     switch (riskLevel) {
@@ -23,36 +22,36 @@ export function PortfolioHealthCard({
           color: '#a0e622',
           textColor: '#2d3a0a',
           label: 'Low Risk',
-          icon: CheckCircle
+          icon: CheckCircle,
         };
       case 'low-medium':
         return {
           color: '#a0e622',
           textColor: '#2d3a0a',
           label: 'Low-Medium',
-          icon: CheckCircle
+          icon: CheckCircle,
         };
       case 'moderate':
         return {
           color: '#f59e0b',
           textColor: '#78350f',
           label: 'Moderate Risk',
-          icon: AlertCircle
+          icon: AlertCircle,
         };
       case 'high':
         return {
           color: '#992929',
           textColor: '#ffffff',
           label: 'High Risk',
-          icon: AlertCircle
+          icon: AlertCircle,
         };
     }
   };
 
   const riskConfig = getRiskConfig();
-  const RiskIcon = riskConfig.icon;
+  const _RiskIcon = riskConfig.icon;
 
-  const getScoreColor = () => {
+  const _getScoreColor = () => {
     if (diversificationScore >= 75) return '#a87174';
     if (diversificationScore >= 50) return '#6d3f42';
     return '#441316';
@@ -67,7 +66,7 @@ export function PortfolioHealthCard({
             <p className="font-['DM_Sans:SemiBold',sans-serif] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
               PORTFOLIO HEALTH
             </p>
-            
+
             <p className="font-['Crimson_Pro:Regular',sans-serif] relative shrink-0 text-[#555555] text-[24px] tracking-[-0.48px] w-full">
               Diversification & Risk
             </p>
@@ -80,7 +79,7 @@ export function PortfolioHealthCard({
               <p className="font-['DM_Sans:Medium',sans-serif] text-[#555555] text-[12px]">
                 Diversification Score
               </p>
-              <p 
+              <p
                 className="tracking-[-0.4px] text-[24px] text-[rgb(85,85,85)]"
                 style={{ fontFamily: 'Crimson Pro', fontWeight: 200 }}
               >
@@ -96,7 +95,7 @@ export function PortfolioHealthCard({
               <p className="font-['DM_Sans:Medium',sans-serif] text-[#555555] text-[12px]">
                 Risk Level
               </p>
-              <p 
+              <p
                 className="tracking-[-0.4px] text-[24px] text-[rgb(85,85,85)]"
                 style={{ fontFamily: 'Crimson Pro', fontWeight: 200 }}
               >
@@ -113,7 +112,7 @@ export function PortfolioHealthCard({
             <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] text-[11px] uppercase tracking-[0.8px]">
               Suggested Actions
             </p>
-            
+
             {/* Render suggestions from props */}
             {suggestions.length > 0 && (
               <>
@@ -124,7 +123,7 @@ export function PortfolioHealthCard({
                     {suggestions[0]}
                   </p>
                 </div>
-                
+
                 {/* Secondary Suggestions (remaining suggestions) */}
                 {suggestions.length > 1 && (
                   <div className="flex flex-col gap-[6px] w-full">
@@ -144,18 +143,25 @@ export function PortfolioHealthCard({
 
           {/* Call to Action Buttons */}
           <div className="flex gap-[8px] w-full">
-            <button 
+            <button
               onClick={() => onChatSubmit?.('View my risk breakdown')}
               className="bg-[#441316] content-stretch flex gap-[6px] h-[44px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0 flex-1"
             >
               <div className="relative shrink-0 size-[24px] flex items-center justify-center">
                 <SparkIcon />
               </div>
-              <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-white text-[12px] text-nowrap whitespace-pre">View risk breakdown</p>
+              <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-white text-[12px] text-nowrap whitespace-pre">
+                View risk breakdown
+              </p>
             </button>
             <button className="content-stretch flex h-[44px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0 flex-1">
-              <div aria-hidden="true" className="absolute border-[#d8d8d8] border-[0.75px] border-solid inset-0 pointer-events-none rounded-[50px]" />
-              <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">Contact advisor</p>
+              <div
+                aria-hidden="true"
+                className="absolute border-[#d8d8d8] border-[0.75px] border-solid inset-0 pointer-events-none rounded-[50px]"
+              />
+              <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
+                Contact advisor
+              </p>
             </button>
           </div>
         </div>

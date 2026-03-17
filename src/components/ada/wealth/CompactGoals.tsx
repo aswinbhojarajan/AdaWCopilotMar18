@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Target, Home, GraduationCap } from 'lucide-react';
+import { ChevronDown, ChevronUp, Target } from 'lucide-react';
 import { GoalCard } from './GoalCard';
 
 interface Goal {
@@ -22,9 +22,14 @@ interface CompactGoalsProps {
   houseDepositGoalRef?: React.RefObject<HTMLDivElement>;
 }
 
-export function CompactGoals({ goals, isExpanded: controlledIsExpanded, onExpandChange, houseDepositGoalRef }: CompactGoalsProps) {
+export function CompactGoals({
+  goals,
+  isExpanded: controlledIsExpanded,
+  onExpandChange,
+  houseDepositGoalRef,
+}: CompactGoalsProps) {
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
-  
+
   // Use controlled state if provided, otherwise use internal state
   const isExpanded = controlledIsExpanded !== undefined ? controlledIsExpanded : internalIsExpanded;
   const setIsExpanded = (value: boolean) => {
@@ -34,8 +39,8 @@ export function CompactGoals({ goals, isExpanded: controlledIsExpanded, onExpand
       setInternalIsExpanded(value);
     }
   };
-  
-  const needsAttentionCount = goals.filter(g => g.healthStatus !== 'on-track').length;
+
+  const needsAttentionCount = goals.filter((g) => g.healthStatus !== 'on-track').length;
 
   return (
     <div className="bg-white relative rounded-[30px] shrink-0 w-full">
@@ -49,7 +54,7 @@ export function CompactGoals({ goals, isExpanded: controlledIsExpanded, onExpand
             <div className="shrink-0 size-[24px] flex items-center justify-center text-[#992929]">
               <Target className="size-[20px]" strokeWidth={1.5} />
             </div>
-            
+
             <div className="flex-1 flex flex-col gap-[2px]">
               <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic text-[#555555] text-[14px]">
                 Your Goals
@@ -85,7 +90,7 @@ export function CompactGoals({ goals, isExpanded: controlledIsExpanded, onExpand
               <div className="px-[24px] w-full">
                 <div className="h-[1px] bg-[#555555] opacity-20" />
               </div>
-              
+
               <div className="content-stretch flex flex-col items-start px-[24px] pb-[16px] w-full">
                 <div className="mt-[12px] w-full flex flex-col gap-[4px]">
                   <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#992929] text-[10px] tracking-[0.8px] uppercase">
@@ -96,15 +101,18 @@ export function CompactGoals({ goals, isExpanded: controlledIsExpanded, onExpand
                   </p>
                   {needsAttentionCount > 0 && (
                     <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[13px] opacity-60 mb-[8px]">
-                      {needsAttentionCount === goals.length ? 'Both goals' : `${needsAttentionCount} goal${needsAttentionCount === 1 ? '' : 's'}`} need attention. Small adjustments today can get you back on track.
+                      {needsAttentionCount === goals.length
+                        ? 'Both goals'
+                        : `${needsAttentionCount} goal${needsAttentionCount === 1 ? '' : 's'}`}{' '}
+                      need attention. Small adjustments today can get you back on track.
                     </p>
                   )}
-                  
+
                   <div className="content-stretch flex flex-col items-start relative shrink-0 w-full mt-[8px]">
                     {goals.map((goal, index) => (
                       <React.Fragment key={index}>
-                        <GoalCard 
-                          {...goal} 
+                        <GoalCard
+                          {...goal}
                           goalRef={index === 0 ? houseDepositGoalRef : undefined}
                         />
                         {index < goals.length - 1 && (

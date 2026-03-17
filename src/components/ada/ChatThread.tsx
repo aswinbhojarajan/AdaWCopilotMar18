@@ -11,7 +11,7 @@ interface ChatThreadProps {
 
 export function ChatThread({ title, preview, timestamp, onClick, onMenuClick }: ChatThreadProps) {
   return (
-    <div 
+    <div
       onClick={onClick}
       className="bg-white relative rounded-[20px] shrink-0 w-full text-left cursor-pointer"
     >
@@ -22,13 +22,13 @@ export function ChatThread({ title, preview, timestamp, onClick, onMenuClick }: 
             <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#667085] text-[14px] tracking-[-0.28px]">
               {title}
             </p>
-            <p 
-              className="font-['DM_Sans:Light',sans-serif] text-[#667085] text-[14px] tracking-[-0.28px] line-clamp-2" 
+            <p
+              className="font-['DM_Sans:Light',sans-serif] text-[#667085] text-[14px] tracking-[-0.28px] line-clamp-2"
               style={{ fontVariationSettings: "'opsz' 14" }}
             >
               {preview}
             </p>
-            
+
             {/* Timestamp */}
             <div className="content-stretch flex gap-[5px] items-center relative shrink-0 w-full">
               <Clock className="size-[12px] text-[#667085]" strokeWidth={1.2} />
@@ -37,9 +37,9 @@ export function ChatThread({ title, preview, timestamp, onClick, onMenuClick }: 
               </p>
             </div>
           </div>
-          
+
           {/* Menu Button */}
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation();
               onMenuClick?.();
@@ -50,7 +50,10 @@ export function ChatThread({ title, preview, timestamp, onClick, onMenuClick }: 
           </button>
         </div>
       </div>
-      <div aria-hidden="true" className="absolute border border-[#e3e3e3] border-solid inset-0 pointer-events-none rounded-[20px]" />
+      <div
+        aria-hidden="true"
+        className="absolute border border-[#e3e3e3] border-solid inset-0 pointer-events-none rounded-[20px]"
+      />
     </div>
   );
 }

@@ -6,6 +6,8 @@ export {
   wealthSparklineData,
   allocations,
   holdings,
+  goalsData,
+  connectedAccountsData,
   generatePerformanceData,
 } from './portfolio';
 
@@ -15,4 +17,4 @@ export { pollResults, peerComparisons } from './collective';
 
 export { chatResponses, defaultResponse, findChatResponse } from './chat';
 
-export { notifications, chatThreads } from './notifications';
+export { notificationsData, chatHistoryThreads } from './notifications';

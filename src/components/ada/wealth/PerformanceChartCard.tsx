@@ -14,14 +14,14 @@ const performanceData = {
     { value: 130200, label: '9am' },
     { value: 130500, label: '12pm' },
     { value: 130800, label: '3pm' },
-    { value: 131230, label: '6pm' }
+    { value: 131230, label: '6pm' },
   ],
   '1W': [
     { value: 128500, label: 'Mon' },
     { value: 129100, label: 'Tue' },
     { value: 129800, label: 'Wed' },
     { value: 130500, label: 'Thu' },
-    { value: 131230, label: 'Fri' }
+    { value: 131230, label: 'Fri' },
   ],
   '1M': [
     { value: 125000, label: '11/12' },
@@ -29,13 +29,13 @@ const performanceData = {
     { value: 125800, label: '11/26' },
     { value: 127200, label: '12/03' },
     { value: 128500, label: '12/10' },
-    { value: 131230, label: '12/12' }
+    { value: 131230, label: '12/12' },
   ],
   '3M': [
     { value: 115000, label: 'Sep' },
     { value: 118500, label: 'Oct' },
     { value: 125000, label: 'Nov' },
-    { value: 131230, label: 'Dec' }
+    { value: 131230, label: 'Dec' },
   ],
   '1Y': [
     { value: 98000, label: 'Jan' },
@@ -43,13 +43,11 @@ const performanceData = {
     { value: 108000, label: 'May' },
     { value: 115000, label: 'Jul' },
     { value: 122000, label: 'Sep' },
-    { value: 131230, label: 'Dec' }
-  ]
+    { value: 131230, label: 'Dec' },
+  ],
 };
 
-export function PerformanceChartCard({ 
-  defaultTimeFrame = '1M'
-}: PerformanceChartCardProps) {
+export function PerformanceChartCard({ defaultTimeFrame = '1M' }: PerformanceChartCardProps) {
   const [timeFrame, setTimeFrame] = useState<TimeFrame>(defaultTimeFrame);
   const timeFrames: TimeFrame[] = ['1D', '1W', '1M', '3M', '1Y'];
 
@@ -62,7 +60,7 @@ export function PerformanceChartCard({
             <p className="font-['DM_Sans:SemiBold',sans-serif] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
               PORTFOLIO PERFORMANCE
             </p>
-            
+
             <p className="font-['Crimson_Pro:Regular',sans-serif] relative shrink-0 text-[#555555] tracking-[-0.48px] w-full">
               Track your wealth growth over time
             </p>
@@ -71,11 +69,7 @@ export function PerformanceChartCard({
           {/* Time Frame Selector */}
           <div className="content-stretch flex gap-[6px] items-center relative shrink-0 w-full flex-wrap">
             {timeFrames.map((tf) => (
-              <Tag
-                key={tf}
-                active={timeFrame === tf}
-                onClick={() => setTimeFrame(tf)}
-              >
+              <Tag key={tf} active={timeFrame === tf} onClick={() => setTimeFrame(tf)}>
                 {tf}
               </Tag>
             ))}
@@ -83,7 +77,7 @@ export function PerformanceChartCard({
 
           {/* Chart */}
           <div className="content-stretch relative shrink-0 w-full">
-            <LineChart 
+            <LineChart
               data={performanceData[timeFrame]}
               height={220}
               color="#441316"

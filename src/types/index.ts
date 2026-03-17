@@ -37,13 +37,6 @@ export interface PerformanceDataPoint {
   label: string;
 }
 
-export interface PortfolioSummary {
-  totalValue: number;
-  dailyChangeAmount: number;
-  dailyChangePercent: number;
-  sparklineData: SparklinePoint[];
-}
-
 export interface Holding {
   symbol: string;
   name: string;
@@ -61,22 +54,23 @@ export interface AssetAllocation {
   color: string;
 }
 
-export interface Goal {
+export interface GoalData {
   title: string;
   targetAmount: number;
   currentAmount: number;
   deadline: string;
-  icon: React.ReactNode;
+  iconName: string;
   color: string;
   healthStatus: 'on-track' | 'needs-attention' | 'at-risk';
   aiInsight: string;
   ctaText: string;
-  onCtaClick?: () => void;
+  chatContext: ChatContext;
 }
 
-export interface ConnectedAccount {
+export interface ConnectedAccountData {
   name: string;
-  logo: React.ReactNode;
+  logoColor: string;
+  logoText: string;
   balance: number;
   lastUpdated: string;
   status: 'synced' | 'error' | 'pending';
@@ -116,21 +110,31 @@ export interface PeerComparison {
   color: string;
 }
 
-export interface NotificationData {
+export type NotificationType =
+  | 'PORTFOLIO_ALERT'
+  | 'ADVISOR_MESSAGE'
+  | 'MARKET_UPDATE'
+  | 'DOCUMENT'
+  | 'OPPORTUNITY'
+  | 'EVENT';
+
+export type NotificationCategory = 'all' | 'alerts' | 'opportunities' | 'updates';
+
+export interface NotificationItem {
   id: string;
-  type: string;
+  type: NotificationType;
   title: string;
   message: string;
   timestamp: string;
-  read: boolean;
+  unread: boolean;
+  category: NotificationCategory;
 }
 
-export interface ChatThread {
+export interface ChatHistoryThread {
   id: string;
   title: string;
-  lastMessage: string;
+  preview: string;
   timestamp: string;
-  messageCount: number;
 }
 
 export interface ChatResponseMapping {

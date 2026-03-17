@@ -1,4 +1,11 @@
-import type { SparklinePoint, AssetAllocation, Holding, PerformanceDataPoint } from '../types';
+import type {
+  SparklinePoint,
+  AssetAllocation,
+  Holding,
+  PerformanceDataPoint,
+  GoalData,
+  ConnectedAccountData,
+} from '../types';
 
 export const portfolioValue = 94830.19;
 export const dailyChangeAmount = 758.64;
@@ -59,6 +66,74 @@ export const holdings: Holding[] = [
   },
 ];
 
+export const goalsData: GoalData[] = [
+  {
+    title: 'House deposit',
+    targetAmount: 30000,
+    currentAmount: 18966.04,
+    deadline: 'Dec 2026',
+    iconName: 'Home',
+    color: '#a87174',
+    healthStatus: 'needs-attention',
+    aiInsight:
+      "You're slightly behind pace. Increasing monthly contributions by $919 keeps you on track.",
+    ctaText: 'Why am I off track?',
+    chatContext: {
+      category: 'GOALS',
+      categoryType: 'goal-analysis',
+      title: 'House deposit - Goal Analysis',
+      sourceScreen: 'wealth',
+      adaResponse:
+        "Here's what changed.\n\nYour house deposit goal slipped off track for two reasons:\n\n1. Recent withdrawals reduced momentum\nYou withdrew $3,000 in December which slowed progress toward your target amount.\n\n2. Time to target is narrowing\nWith only 12 months remaining until your target date of December 2026, your current rate of saving means you would miss your target amount.\n\nThe good news: this isn't a structural issue. Increasing your monthly contribution by $350 per month (4.4% of your monthly salary) will put you back on track.",
+    },
+  },
+  {
+    title: 'Education fund',
+    targetAmount: 100000,
+    currentAmount: 33190.57,
+    deadline: 'Sep 2035',
+    iconName: 'GraduationCap',
+    color: '#6d3f42',
+    healthStatus: 'needs-attention',
+    aiInsight:
+      "You're behind schedule. Consistent contributions now will help you catch up over time.",
+    ctaText: 'How can I get back on track?',
+    chatContext: {
+      category: 'GOALS',
+      categoryType: 'goal-optimization',
+      title: 'Education fund Recovery',
+      sourceScreen: 'wealth',
+    },
+  },
+];
+
+export const connectedAccountsData: ConnectedAccountData[] = [
+  {
+    name: 'HSBC',
+    logoColor: '#DB0011',
+    logoText: 'HSBC',
+    balance: 18966.04,
+    lastUpdated: '2 min ago',
+    status: 'synced',
+  },
+  {
+    name: 'Interactive Brokers',
+    logoColor: '#DA1F26',
+    logoText: 'IB',
+    balance: 66381.13,
+    lastUpdated: '5 min ago',
+    status: 'synced',
+  },
+  {
+    name: 'WIO Bank',
+    logoColor: '#6C63FF',
+    logoText: 'WIO',
+    balance: 9483.02,
+    lastUpdated: 'Just now',
+    status: 'synced',
+  },
+];
+
 export function generatePerformanceData(): Record<string, PerformanceDataPoint[]> {
   const now = new Date();
 
@@ -69,7 +144,20 @@ export function generatePerformanceData(): Record<string, PerformanceDataPoint[]
   };
 
   const getMonthAbbr = (date: Date) => {
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return monthNames[date.getMonth()];
   };
 

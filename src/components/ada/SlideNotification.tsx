@@ -4,15 +4,15 @@ import svgPaths from '../../imports/svg-3k2bapmb30';
 
 /**
  * SlideNotification Component
- * 
+ *
  * A notification component with two variants:
  * - "system": Compact alert banner with Ada branding for critical, action-required alerts
  * - "default": Standard slide-down notification for general alerts
- * 
+ *
  * System Alert Pattern (variant="system"):
  * Reserved only for alerts requiring user attention. Compact design with Ada icon,
  * category label, title, and single action link. Scrolls with content.
- * 
+ *
  * @component
  * @example
  * ```tsx
@@ -27,7 +27,7 @@ import svgPaths from '../../imports/svg-3k2bapmb30';
  *   actionText="Explore"
  *   onAction={() => console.log('Action clicked')}
  * />
- * 
+ *
  * // Standard Notification
  * <SlideNotification
  *   message="'Buy a Home' goal dropped to 68% after withdrawals. See why you're off track."
@@ -76,21 +76,21 @@ export interface SlideNotificationProps {
 
 export function SlideNotification({
   variant = 'default',
-  headline,
+  headline: _headline,
   message,
   categoryLabel,
   categoryLabelColor = '#059669',
-  temporalCue,
+  temporalCue: _temporalCue,
   show,
   onDismiss,
   actionText,
   onAction,
-  secondaryActionText,
-  onSecondaryAction,
+  secondaryActionText: _secondaryActionText,
+  onSecondaryAction: _onSecondaryAction,
   autoDismiss,
   icon,
   backgroundColor,
-  textColor = '#441316'
+  textColor = '#441316',
 }: SlideNotificationProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -101,19 +101,21 @@ export function SlideNotification({
 
   useEffect(() => {
     if (show) {
-      // Trigger animation
       setIsVisible(true);
       setTimeout(() => setIsAnimating(true), 10);
 
-      // Auto-dismiss if specified
       if (autoDismiss) {
         const timer = setTimeout(() => {
-          handleDismiss();
+          setIsAnimating(false);
+          setTimeout(() => {
+            setIsVisible(false);
+            onDismiss();
+          }, 300);
         }, autoDismiss);
         return () => clearTimeout(timer);
       }
     }
-  }, [show, autoDismiss]);
+  }, [show, autoDismiss, onDismiss]);
 
   const handleDismiss = () => {
     setIsAnimating(false);
@@ -135,9 +137,9 @@ export function SlideNotification({
       >
         <div
           className="relative mx-[16px] rounded-[13.135px]"
-          style={{ 
+          style={{
             backgroundColor: bgColor,
-            boxShadow: '0px 0px 10.508px 0px rgba(0,0,0,0.1)'
+            boxShadow: '0px 0px 10.508px 0px rgba(0,0,0,0.1)',
           }}
         >
           <div className="flex items-start gap-[10px] px-[13px] py-[11px] pr-[40px]">
@@ -189,7 +191,11 @@ export function SlideNotification({
               className="absolute top-[11.49px] right-[13px] w-[16.419px] h-[16.419px] flex items-center justify-center transition-opacity hover:opacity-70"
               aria-label="Dismiss notification"
             >
-              <X className="w-[11.493px] h-[11.493px]" style={{ color: '#555555' }} strokeWidth={1} />
+              <X
+                className="w-[11.493px] h-[11.493px]"
+                style={{ color: '#555555' }}
+                strokeWidth={1}
+              />
             </button>
           </div>
         </div>
@@ -204,14 +210,17 @@ export function SlideNotification({
         isAnimating ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
       }`}
     >
-      <div
-        className="relative rounded-[16px] shadow-lg"
-        style={{ backgroundColor: bgColor }}
-      >
+      <div className="relative rounded-[16px] shadow-lg" style={{ backgroundColor: bgColor }}>
         <div className="flex items-start gap-[12px] p-[16px] pr-[40px]">
           {/* Icon */}
           <div className="shrink-0 mt-[2px]">
-            {icon || <AlertTriangle className="w-[18px] h-[18px]" style={{ color: textColor }} strokeWidth={1.5} />}
+            {icon || (
+              <AlertTriangle
+                className="w-[18px] h-[18px]"
+                style={{ color: textColor }}
+                strokeWidth={1.5}
+              />
+            )}
           </div>
 
           {/* Content */}

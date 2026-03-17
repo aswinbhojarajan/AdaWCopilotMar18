@@ -2,7 +2,7 @@ import type { PollResults, PeerComparison } from '../types';
 
 export const pollResults: PollResults = {
   'north-america': 32,
-  'europe': 18,
+  europe: 18,
   'asia-pacific': 24,
   'emerging-markets': 12,
   'global-diversified': 14,

@@ -9,11 +9,11 @@ interface SparkIconProps {
 
 export function SparkIcon({ className = '', size = 18, color = '#d8d8d8' }: SparkIconProps) {
   return (
-    <svg 
+    <svg
       className={className}
-      width={size} 
-      height={size} 
-      viewBox="0 0 34.6913 34.3456" 
+      width={size}
+      height={size}
+      viewBox="0 0 34.6913 34.3456"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >

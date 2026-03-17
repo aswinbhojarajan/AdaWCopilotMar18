@@ -24,9 +24,9 @@ export function Tag({ children, active = false, onClick }: TagProps) {
         ${!active ? 'opacity-50' : ''}
       `}
     >
-      <div 
-        aria-hidden="true" 
-        className="absolute border-[#441316] border-[0.5px] border-solid inset-0 pointer-events-none rounded-[50px]" 
+      <div
+        aria-hidden="true"
+        className="absolute border-[#441316] border-[0.5px] border-solid inset-0 pointer-events-none rounded-[50px]"
       />
       <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#441316] text-[12px] text-nowrap whitespace-pre">
         {children}

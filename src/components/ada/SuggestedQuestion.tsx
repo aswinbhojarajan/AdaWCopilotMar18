@@ -7,7 +7,7 @@ interface SuggestedQuestionProps {
 
 export function SuggestedQuestion({ question, onClick }: SuggestedQuestionProps) {
   return (
-    <button 
+    <button
       onClick={onClick}
       className="bg-[#f7f6f2] content-stretch flex flex-col h-[29.5px] items-start pb-[0.5px] pt-[6.5px] px-[12.5px] rounded-[50px] shrink-0"
     >

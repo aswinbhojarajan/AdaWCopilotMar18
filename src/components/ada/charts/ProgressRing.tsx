@@ -9,13 +9,13 @@ interface ProgressRingProps {
   showPercentage?: boolean;
 }
 
-export function ProgressRing({ 
-  progress, 
-  size = 80, 
+export function ProgressRing({
+  progress,
+  size = 80,
   strokeWidth = 8,
   color = '#a0e622',
   backgroundColor = '#efede6',
-  showPercentage = true
+  showPercentage = true,
 }: ProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -34,7 +34,7 @@ export function ProgressRing({
           stroke={backgroundColor}
           strokeWidth={strokeWidth}
         />
-        
+
         {/* Progress circle */}
         <circle
           cx={center}
@@ -51,7 +51,7 @@ export function ProgressRing({
           }}
         />
       </svg>
-      
+
       {/* Center percentage */}
       {showPercentage && (
         <div className="absolute inset-0 flex items-center justify-center">

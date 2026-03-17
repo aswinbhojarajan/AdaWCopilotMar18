@@ -9,23 +9,23 @@ interface LineChartProps {
   showLabels?: boolean;
 }
 
-export function LineChart({ 
-  data, 
-  height = 200, 
+export function LineChart({
+  data,
+  height = 200,
   color = '#441316',
   fillColor = 'rgba(68, 19, 22, 0.05)',
   showGrid = true,
-  showLabels = true
+  showLabels = true,
 }: LineChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  
+
   if (data.length < 2) return null;
 
-  const width = 100; // percentage
+  const _width = 100; // percentage
   const padding = { top: 20, right: 10, bottom: 30, left: 10 };
   const chartHeight = height - padding.top - padding.bottom;
 
-  const values = data.map(d => d.value);
+  const values = data.map((d) => d.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
@@ -37,17 +37,15 @@ export function LineChart({
     return `${x}% ${y}px`;
   });
 
-  const linePath = pathPoints.map((point, i) => 
-    i === 0 ? `M ${point}` : `L ${point}`
-  ).join(' ');
+  const linePath = pathPoints.map((point, i) => (i === 0 ? `M ${point}` : `L ${point}`)).join(' ');
 
   const areaPath = `${linePath} L 100% ${height - padding.bottom}px L 0% ${height - padding.bottom}px Z`;
 
   return (
     <div className="relative w-full" style={{ height: `${height}px` }}>
-      <svg 
-        width="100%" 
-        height="100%" 
+      <svg
+        width="100%"
+        height="100%"
         className="overflow-visible"
         style={{ position: 'absolute', top: 0, left: 0 }}
       >
@@ -57,25 +55,14 @@ export function LineChart({
             {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
               const y = padding.top + chartHeight * ratio;
               return (
-                <line
-                  key={i}
-                  x1="0%"
-                  y1={y}
-                  x2="100%"
-                  y2={y}
-                  stroke="#555555"
-                  strokeWidth="0.5"
-                />
+                <line key={i} x1="0%" y1={y} x2="100%" y2={y} stroke="#555555" strokeWidth="0.5" />
               );
             })}
           </g>
         )}
 
         {/* Area fill */}
-        <path
-          d={areaPath}
-          fill={fillColor}
-        />
+        <path d={areaPath} fill={fillColor} />
 
         {/* Line */}
         <path
@@ -92,7 +79,7 @@ export function LineChart({
           const x = (index / (data.length - 1)) * 100;
           const y = padding.top + (1 - (point.value - min) / range) * chartHeight;
           const isHovered = hoveredIndex === index;
-          
+
           return (
             <g key={index}>
               <circle
@@ -136,7 +123,10 @@ export function LineChart({
       {showLabels && (
         <div className="absolute bottom-0 left-0 right-0 flex justify-between px-[10px]">
           {[data[0], data[Math.floor(data.length / 2)], data[data.length - 1]].map((point, i) => (
-            <p key={i} className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[10px] opacity-50">
+            <p
+              key={i}
+              className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[10px] opacity-50"
+            >
               {point.label}
             </p>
           ))}

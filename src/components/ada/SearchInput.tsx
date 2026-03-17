@@ -7,10 +7,10 @@ interface SearchInputProps {
   onChange?: (value: string) => void;
 }
 
-export function SearchInput({ 
-  placeholder = "Search Threads", 
-  value = "",
-  onChange 
+export function SearchInput({
+  placeholder = 'Search Threads',
+  value = '',
+  onChange,
 }: SearchInputProps) {
   return (
     <div className="bg-white relative rounded-[30px] shrink-0 w-full">
@@ -26,7 +26,10 @@ export function SearchInput({
           />
         </div>
       </div>
-      <div aria-hidden="true" className="absolute border border-[#e3e3e3] border-solid inset-0 pointer-events-none rounded-[30px]" />
+      <div
+        aria-hidden="true"
+        className="absolute border border-[#e3e3e3] border-solid inset-0 pointer-events-none rounded-[30px]"
+      />
     </div>
   );
 }

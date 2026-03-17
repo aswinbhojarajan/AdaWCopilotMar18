@@ -11,12 +11,9 @@ interface CompactAssetAllocationProps {
   totalValue: number;
 }
 
-export function CompactAssetAllocation({ 
-  allocations,
-  totalValue
-}: CompactAssetAllocationProps) {
+export function CompactAssetAllocation({ allocations, totalValue }: CompactAssetAllocationProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   // Show only top 3 by default
   const topAllocations = allocations.slice(0, 3);
   const displayAllocations = isExpanded ? allocations : topAllocations;
@@ -35,7 +32,7 @@ export function CompactAssetAllocation({
                 Portfolio breakdown
               </p>
             </div>
-            
+
             <button
               onClick={() => setIsExpanded(!isExpanded)}
               className="flex items-center gap-[4px] text-[#992929]"
@@ -55,7 +52,7 @@ export function CompactAssetAllocation({
           <div className="content-stretch flex gap-[20px] items-center relative shrink-0 w-full">
             {/* Donut Chart - Smaller when collapsed */}
             <div className="shrink-0">
-              <DonutChart 
+              <DonutChart
                 segments={allocations}
                 size={isExpanded ? 140 : 100}
                 strokeWidth={isExpanded ? 20 : 16}
@@ -74,7 +71,7 @@ export function CompactAssetAllocation({
                 return (
                   <div key={index} className="flex items-start justify-between">
                     <div className="flex items-center gap-[8px]">
-                      <div 
+                      <div
                         className="size-[10px] rounded-[2px] shrink-0"
                         style={{ backgroundColor: allocation.color }}
                       />

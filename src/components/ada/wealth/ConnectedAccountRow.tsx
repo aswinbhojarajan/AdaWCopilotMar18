@@ -18,10 +18,12 @@ export function ConnectedAccountRow({
   lastUpdated,
   status = 'synced',
   onRefresh,
-  showBorder = true
+  showBorder = true,
 }: ConnectedAccountRowProps) {
   return (
-    <div className={`content-stretch flex items-center justify-between py-[12px] relative w-full ${showBorder ? 'border-b border-[#efede6]' : ''}`}>
+    <div
+      className={`content-stretch flex items-center justify-between py-[12px] relative w-full ${showBorder ? 'border-b border-[#efede6]' : ''}`}
+    >
       {/* Left: Logo + Name */}
       <div className="flex items-center gap-[12px]">
         <div className="bg-[#f7f6f2] rounded-[8px] size-[40px] flex items-center justify-center shrink-0">
@@ -50,10 +52,7 @@ export function ConnectedAccountRow({
           ${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
         {status === 'synced' && onRefresh && (
-          <button 
-            onClick={onRefresh}
-            className="opacity-0 hover:opacity-100 transition-opacity"
-          >
+          <button onClick={onRefresh} className="opacity-0 hover:opacity-100 transition-opacity">
             <RefreshCw className="size-[14px] text-[#555555]" strokeWidth={1.5} />
           </button>
         )}

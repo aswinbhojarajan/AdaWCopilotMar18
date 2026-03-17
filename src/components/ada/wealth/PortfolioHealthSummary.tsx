@@ -7,7 +7,7 @@ interface PortfolioHealthSummaryProps {
   riskLevel: string;
   topSuggestion: string;
   additionalSuggestions?: string[];
-  onChatSubmit?: (message: string, context?: any) => void;
+  onChatSubmit?: (message: string, context?: Record<string, string>) => void;
 }
 
 export function PortfolioHealthSummary({
@@ -15,7 +15,7 @@ export function PortfolioHealthSummary({
   riskLevel,
   topSuggestion,
   additionalSuggestions = [],
-  onChatSubmit
+  onChatSubmit,
 }: PortfolioHealthSummaryProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -37,17 +37,17 @@ export function PortfolioHealthSummary({
             <div className="shrink-0 size-[24px] flex items-center justify-center text-[#992929]">
               <Shield className="size-[20px]" strokeWidth={1.5} />
             </div>
-            
+
             <div className="flex-1 flex flex-col gap-[4px]">
               <div className="flex items-center gap-[8px]">
                 <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic text-[#555555] text-[14px]">
                   Portfolio Health
                 </p>
-                <div 
+                <div
                   className="px-[8px] py-[2px] rounded-[50px]"
                   style={{ backgroundColor: `${getRiskColor()}20` }}
                 >
-                  <p 
+                  <p
                     className="font-['DM_Sans:Regular',sans-serif] text-[10px] capitalize"
                     style={{ color: getRiskColor() }}
                   >
@@ -55,7 +55,7 @@ export function PortfolioHealthSummary({
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-[12px]">
                 <div className="flex items-center gap-[4px]">
                   <p className="font-['DM_Sans:Regular',sans-serif] text-[12px] text-[#555555] opacity-60">
@@ -65,7 +65,7 @@ export function PortfolioHealthSummary({
                     {diversificationScore}/100
                   </p>
                 </div>
-                
+
                 {!isExpanded && (
                   <p className="font-['DM_Sans:Regular',sans-serif] text-[11px] text-[#555555] opacity-60 line-clamp-1">
                     {topSuggestion}
@@ -90,19 +90,19 @@ export function PortfolioHealthSummary({
               <div className="px-[24px] w-full">
                 <div className="h-[1px] bg-[#555555] opacity-20" />
               </div>
-              
+
               <div className="content-stretch flex flex-col gap-[16px] items-start px-[24px] pb-[20px] w-full">
                 <div className="mt-[16px] flex flex-col gap-[8px]">
                   <p className="font-['DM_Sans:SemiBold',sans-serif] text-[13px] text-[#555555]">
                     Suggested Actions
                   </p>
-                  
+
                   <ul className="flex flex-col gap-[6px]">
                     <li className="font-['DM_Sans:Regular',sans-serif] text-[13px] text-[#555555] leading-[1.4] pl-[16px] relative before:content-['•'] before:absolute before:left-[4px]">
                       {topSuggestion}
                     </li>
                     {additionalSuggestions.map((suggestion, index) => (
-                      <li 
+                      <li
                         key={index}
                         className="font-['DM_Sans:Regular',sans-serif] text-[13px] text-[#555555] leading-[1.4] pl-[16px] relative before:content-['•'] before:absolute before:left-[4px]"
                       >
@@ -111,16 +111,18 @@ export function PortfolioHealthSummary({
                     ))}
                   </ul>
                 </div>
-                
-                <Button 
-                  variant="ai-chat" 
+
+                <Button
+                  variant="ai-chat"
                   size="md"
-                  onClick={() => onChatSubmit?.('Review my risk exposure', {
-                    category: 'PORTFOLIO HEALTH',
-                    categoryType: 'RISK ANALYSIS',
-                    title: 'Portfolio health assessment',
-                    sourceScreen: 'wealth'
-                  })}
+                  onClick={() =>
+                    onChatSubmit?.('Review my risk exposure', {
+                      category: 'PORTFOLIO HEALTH',
+                      categoryType: 'RISK ANALYSIS',
+                      title: 'Portfolio health assessment',
+                      sourceScreen: 'wealth',
+                    })
+                  }
                   className="w-full"
                 >
                   Review my risk exposure

@@ -33,11 +33,14 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "*",
     "cmdk": "^1.1.1",
+    "cors": "^2.8.6",
     "embla-carousel-react": "^8.6.0",
+    "express": "^5.2.1",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.487.0",
     "motion": "*",
     "next-themes": "^0.4.6",
+    "pg": "^8.20.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
@@ -50,14 +53,31 @@
     "vaul": "^1.1.2"
   },
   "devDependencies": {
+    "@eslint/js": "^9.29.0",
     "@tailwindcss/vite": "4.1.12",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^20.10.0",
+    "@types/pg": "^8.18.0",
     "@vitejs/plugin-react": "^4.7.0",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.2.0",
+    "prettier": "^3.5.3",
     "tailwindcss": "4.1.12",
+    "tsx": "^4.21.0",
+    "typescript-eslint": "^8.35.0",
     "vite": "6.3.5"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build"
+    "dev": "node -e \"const{spawn}=require('child_process');const s=spawn('npx',['tsx','server/index.ts'],{stdio:'inherit'});const v=spawn('npx',['vite'],{stdio:'inherit'});process.on('SIGTERM',()=>{s.kill();v.kill();process.exit(0)})\"",
+    "dev:server": "npx tsx server/index.ts",
+    "dev:client": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
   }
 }

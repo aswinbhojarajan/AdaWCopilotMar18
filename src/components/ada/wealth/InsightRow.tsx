@@ -20,7 +20,7 @@ export function InsightRow({
   summary,
   fullContent,
   cta,
-  defaultExpanded = false
+  defaultExpanded = false,
 }: InsightRowProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -36,7 +36,7 @@ export function InsightRow({
             <div className="shrink-0 size-[24px] flex items-center justify-center text-[#992929]">
               {icon}
             </div>
-            
+
             <div className="flex-1 flex flex-col gap-[2px]">
               <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic text-[#555555] text-[14px]">
                 {title}
@@ -64,7 +64,7 @@ export function InsightRow({
               <div className="px-[24px] w-full">
                 <div className="h-[1px] bg-[#555555] opacity-20" />
               </div>
-              
+
               <div className="content-stretch flex flex-col gap-[12px] items-start px-[24px] pb-[20px] w-full">
                 <div className="mt-[16px]">
                   {typeof fullContent === 'string' ? (
@@ -75,14 +75,9 @@ export function InsightRow({
                     fullContent
                   )}
                 </div>
-                
+
                 {cta && (
-                  <Button 
-                    variant="ai-chat" 
-                    size="md"
-                    onClick={cta.onClick}
-                    className="w-full"
-                  >
+                  <Button variant="ai-chat" size="md" onClick={cta.onClick} className="w-full">
                     {cta.text}
                   </Button>
                 )}

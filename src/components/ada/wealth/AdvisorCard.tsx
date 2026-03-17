@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Phone, Calendar } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { ImageWithFallback } from '../../figma/ImageWithFallback';
 import advisorPhotoDefault from '../../../assets/advisor-photo.png';
 
@@ -18,7 +18,7 @@ export function AdvisorCard({
   advisorPhoto = advisorPhotoDefault,
   availabilityStatus = 'Available today',
   yearsManaging = 5,
-  onContactAdvisor
+  onContactAdvisor,
 }: AdvisorCardProps) {
   const currentYear = new Date().getFullYear();
   const sinceYear = currentYear - yearsManaging;
@@ -42,7 +42,7 @@ export function AdvisorCard({
             <div className="content-stretch flex items-start gap-[16px] relative shrink-0 w-full">
               {/* Advisor Photo */}
               <div className="relative shrink-0 size-[72px] rounded-full overflow-hidden bg-[#f7f6f2]">
-                <ImageWithFallback 
+                <ImageWithFallback
                   src={advisorPhoto}
                   alt={advisorName}
                   className="size-full object-cover"
@@ -57,7 +57,7 @@ export function AdvisorCard({
                 <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic text-[#555555] text-[13px] opacity-60">
                   {advisorTitle}
                 </p>
-                
+
                 {/* Availability Badge */}
                 <div className="flex items-center gap-[6px] mt-[4px]">
                   <div className="size-[8px] rounded-full bg-[#c6ff6a]" />
@@ -117,7 +117,7 @@ export function AdvisorCard({
 
             {/* CTA Button */}
             <div className="content-stretch flex gap-[8px] items-start relative shrink-0 w-full mt-[8px]">
-              <button 
+              <button
                 onClick={onContactAdvisor}
                 className="bg-[#441316] content-stretch flex gap-[6px] h-[44px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0 w-full"
               >

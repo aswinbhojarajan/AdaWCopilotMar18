@@ -10,10 +10,7 @@ interface AssetAllocationCardProps {
   totalValue: number;
 }
 
-export function AssetAllocationCard({ 
-  allocations,
-  totalValue
-}: AssetAllocationCardProps) {
+export function AssetAllocationCard({ allocations, totalValue }: AssetAllocationCardProps) {
   return (
     <div className="bg-white relative rounded-[30px] shrink-0 w-full">
       <div className="size-full">
@@ -23,11 +20,11 @@ export function AssetAllocationCard({
             <p className="font-['DM_Sans:SemiBold',sans-serif] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
               ASSET ALLOCATION
             </p>
-            
+
             <p className="font-['Crimson_Pro:Regular',sans-serif] relative shrink-0 text-[#555555] text-[24px] tracking-[-0.48px] w-full">
               Your portfolio breakdown
             </p>
-            
+
             <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] opacity-60">
               Based on current market value
             </p>
@@ -37,7 +34,7 @@ export function AssetAllocationCard({
           <div className="content-stretch flex gap-[24px] items-center relative shrink-0 w-full">
             {/* Donut Chart */}
             <div className="shrink-0">
-              <DonutChart 
+              <DonutChart
                 segments={allocations}
                 size={140}
                 strokeWidth={20}
@@ -52,11 +49,11 @@ export function AssetAllocationCard({
             {/* Legend */}
             <div className="flex-1 flex flex-col gap-[12px]">
               {allocations.map((allocation, index) => {
-                const percentage = (allocation.value / totalValue * 100).toFixed(1);
+                const percentage = ((allocation.value / totalValue) * 100).toFixed(1);
                 return (
                   <div key={index} className="flex items-start justify-between">
                     <div className="flex items-center gap-[8px]">
-                      <div 
+                      <div
                         className="size-[12px] rounded-[2px] shrink-0"
                         style={{ backgroundColor: allocation.color }}
                       />

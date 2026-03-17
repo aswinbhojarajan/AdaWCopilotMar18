@@ -6,13 +6,13 @@ type TimeFrame = '1D' | '1W' | '1M' | '3M' | '1Y';
 interface WealthPerformanceChartProps {
   /** Chart title displayed in header */
   title?: string;
-  
+
   /** Summary metric to display in top-right of header (e.g., "+2.4%") */
   summaryMetric?: {
     value: string;
     isPositive: boolean;
   };
-  
+
   /** Performance data for each time frame */
   data: {
     '1D': { value: number; label: string }[];
@@ -21,31 +21,31 @@ interface WealthPerformanceChartProps {
     '3M': { value: number; label: string }[];
     '1Y': { value: number; label: string }[];
   };
-  
+
   /** Default time frame to show */
   defaultTimeFrame?: TimeFrame;
-  
+
   /** Chart height in pixels */
   height?: number;
-  
+
   /** Line color */
   color?: string;
-  
+
   /** Fill color (deprecated - use fillGradient instead) */
   fillColor?: string;
-  
+
   /** Fill gradient colors */
   fillGradient?: {
     startColor: string;
     endColor: string;
   };
-  
+
   /** Loading state */
   loading?: boolean;
-  
+
   /** Benchmark comparison value (e.g., "+1.2% vs S&P 500") */
   benchmarkComparison?: string;
-  
+
   /** Callback when hovering over a data point */
   onHoverData?: (data: { value: number; label: string } | null) => void;
 }
@@ -56,7 +56,7 @@ const timeFrameDescriptions: Record<TimeFrame, string> = {
   '1W': 'Showing last 7 days',
   '1M': 'Showing last month',
   '3M': 'Showing last 3 months',
-  '1Y': 'Showing last 12 months'
+  '1Y': 'Showing last 12 months',
 };
 
 export function WealthPerformanceChart({
@@ -69,18 +69,26 @@ export function WealthPerformanceChart({
   fillColor = 'rgba(68, 19, 22, 0.05)',
   fillGradient,
   loading = false,
-  benchmarkComparison,
-  onHoverData
+  benchmarkComparison: _benchmarkComparison,
+  onHoverData,
 }: WealthPerformanceChartProps) {
   const [timeFrame, setTimeFrame] = useState<TimeFrame>(defaultTimeFrame);
+  const _timeFrameDescriptions = timeFrameDescriptions;
   const timeFrames: TimeFrame[] = ['1D', '1W', '1M', '3M', '1Y'];
-  
+
   // Crosshair state
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const currentData = data[timeFrame];
-  
+
+  useEffect(() => {
+    if (onHoverData) {
+      const point = hoveredPoint !== null && currentData ? currentData[hoveredPoint] : null;
+      onHoverData(point ?? null);
+    }
+  }, [hoveredPoint, currentData, onHoverData]);
+
   // Loading state
   if (loading) {
     return (
@@ -95,7 +103,7 @@ export function WealthPerformanceChart({
             )}
           </div>
         )}
-        
+
         {/* Time Frame Selector */}
         <div className="content-stretch flex gap-[6px] items-center relative shrink-0 w-full flex-wrap">
           {timeFrames.map((tf) => (
@@ -104,10 +112,10 @@ export function WealthPerformanceChart({
             </Tag>
           ))}
         </div>
-        
+
         {/* Loading State */}
-        <div 
-          className="content-stretch relative shrink-0 w-full flex items-center justify-center bg-[rgba(68,19,22,0.02)] rounded-[8px]" 
+        <div
+          className="content-stretch relative shrink-0 w-full flex items-center justify-center bg-[rgba(68,19,22,0.02)] rounded-[8px]"
           style={{ height: `${height}px` }}
         >
           <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[12px] opacity-50">
@@ -117,7 +125,7 @@ export function WealthPerformanceChart({
       </div>
     );
   }
-  
+
   // No data or insufficient data state
   if (!currentData || currentData.length < 2) {
     return (
@@ -132,23 +140,19 @@ export function WealthPerformanceChart({
             )}
           </div>
         )}
-        
+
         {/* Time Frame Selector */}
         <div className="content-stretch flex gap-[6px] items-center relative shrink-0 w-full flex-wrap">
           {timeFrames.map((tf) => (
-            <Tag
-              key={tf}
-              active={timeFrame === tf}
-              onClick={() => setTimeFrame(tf)}
-            >
+            <Tag key={tf} active={timeFrame === tf} onClick={() => setTimeFrame(tf)}>
               {tf}
             </Tag>
           ))}
         </div>
-        
+
         {/* No Data State */}
-        <div 
-          className="content-stretch relative shrink-0 w-full flex items-center justify-center bg-[rgba(68,19,22,0.02)] rounded-[8px]" 
+        <div
+          className="content-stretch relative shrink-0 w-full flex items-center justify-center bg-[rgba(68,19,22,0.02)] rounded-[8px]"
           style={{ height: `${height}px` }}
         >
           <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[12px] opacity-50">
@@ -163,36 +167,38 @@ export function WealthPerformanceChart({
   const chartWidth = 1000; // SVG viewBox width
   const chartHeight = height - padding.top - padding.bottom;
 
-  const values = currentData.map(d => d.value);
+  const values = currentData.map((d) => d.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
-  
+
   // Add 8% padding above max and below min for visual breathing room
   const paddingPercent = 0.08;
-  const paddedMin = min - (range * paddingPercent);
-  const paddedMax = max + (range * paddingPercent);
+  const paddedMin = min - range * paddingPercent;
+  const paddedMax = max + range * paddingPercent;
   const paddedRange = paddedMax - paddedMin;
-  
+
   // Check for flat performance
-  const isFlat = range < (min * 0.001); // Less than 0.1% variation
+  const isFlat = range < min * 0.001; // Less than 0.1% variation
 
   // Generate path for sparkline - anchored to bottom-left with proper SVG coordinates
   const pathPoints = currentData.map((point, index) => {
-    const x = padding.left + (index / (currentData.length - 1)) * (chartWidth - padding.left - padding.right);
+    const x =
+      padding.left +
+      (index / (currentData.length - 1)) * (chartWidth - padding.left - padding.right);
     const y = padding.top + (1 - (point.value - paddedMin) / paddedRange) * chartHeight;
     return { x, y };
   });
 
-  const linePath = pathPoints.map((point, i) => 
-    i === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`
-  ).join(' ');
+  const linePath = pathPoints
+    .map((point, i) => (i === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`))
+    .join(' ');
 
   const areaPath = `${linePath} L ${chartWidth} ${height - padding.bottom} L ${padding.left} ${height - padding.bottom} Z`;
-  
+
   // Last point for marker
   const lastPoint = pathPoints[pathPoints.length - 1];
-  
+
   // Y-axis values
   const midValue = (min + max) / 2;
   const formatValue = (val: number) => {
@@ -200,14 +206,14 @@ export function WealthPerformanceChart({
     if (val >= 1000) return `$${(val / 1000).toFixed(0)}K`;
     return `$${val.toFixed(0)}`;
   };
-  
+
   // Calculate exact Y-axis label positions to align with grid lines
   const yAxisLabels = [
     { value: max, top: padding.top },
     { value: midValue, top: padding.top + chartHeight * 0.5 },
-    { value: min, top: padding.top + chartHeight * 1.0 }
+    { value: min, top: padding.top + chartHeight * 1.0 },
   ];
-  
+
   // X-axis labels - show all data points for accurate representation
   // For 1Y, only show first and last labels
   const xAxisLabels = currentData
@@ -216,7 +222,7 @@ export function WealthPerformanceChart({
       return {
         data: dataPoint,
         left: (pathPoints[pointIndex].x / chartWidth) * 100,
-        index
+        index,
       };
     })
     .filter((label, _, arr) => {
@@ -233,42 +239,38 @@ export function WealthPerformanceChart({
     });
 
   // Mouse/Touch event handlers for crosshair
-  const handleChartInteraction = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+  const handleChartInteraction = (
+    e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>,
+  ) => {
     if (!chartContainerRef.current) return;
-    
+
     const rect = chartContainerRef.current.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const x = clientX - rect.left;
     const xPercent = x / rect.width;
-    
+
     // Convert to SVG coordinates
     const svgX = xPercent * chartWidth;
-    
+
     // Find the closest data point
     if (svgX >= padding.left && svgX <= chartWidth - padding.right) {
       const chartXRange = chartWidth - padding.left - padding.right;
       const dataX = (svgX - padding.left) / chartXRange;
       const dataIndex = Math.round(dataX * (currentData.length - 1));
       const clampedIndex = Math.max(0, Math.min(currentData.length - 1, dataIndex));
-      
+
       setHoveredPoint(clampedIndex);
     }
   };
-  
+
   const handleChartLeave = () => {
     setHoveredPoint(null);
   };
 
   // Get the currently displayed data point (hovered or last)
-  const displayedPoint = hoveredPoint !== null ? currentData[hoveredPoint] : currentData[currentData.length - 1];
+  const displayedPoint =
+    hoveredPoint !== null ? currentData[hoveredPoint] : currentData[currentData.length - 1];
   const displayedPathPoint = hoveredPoint !== null ? pathPoints[hoveredPoint] : lastPoint;
-
-  // Call the onHoverData callback with the current data point
-  useEffect(() => {
-    if (onHoverData) {
-      onHoverData(hoveredPoint !== null ? displayedPoint : null);
-    }
-  }, [hoveredPoint, displayedPoint, onHoverData]);
 
   return (
     <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
@@ -281,32 +283,32 @@ export function WealthPerformanceChart({
             </p>
           )}
           {summaryMetric && (
-            <div className={`px-[8px] py-[4px] rounded-[50px] ${summaryMetric.isPositive ? 'bg-[#c6ff6a]' : 'bg-[#ffcccb]'}`}>
-              <p className={`font-['DM_Sans:SemiBold',sans-serif] text-[12px] ${summaryMetric.isPositive ? 'text-[#03561a]' : 'text-[#992929]'}`}>
+            <div
+              className={`px-[8px] py-[4px] rounded-[50px] ${summaryMetric.isPositive ? 'bg-[#c6ff6a]' : 'bg-[#ffcccb]'}`}
+            >
+              <p
+                className={`font-['DM_Sans:SemiBold',sans-serif] text-[12px] ${summaryMetric.isPositive ? 'text-[#03561a]' : 'text-[#992929]'}`}
+              >
                 {summaryMetric.value}
               </p>
             </div>
           )}
         </div>
       )}
-      
+
       {/* Time Frame Selector */}
       <div className="content-stretch flex gap-[6px] items-center relative shrink-0 w-full flex-wrap">
         {timeFrames.map((tf) => (
-          <Tag
-            key={tf}
-            active={timeFrame === tf}
-            onClick={() => setTimeFrame(tf)}
-          >
+          <Tag key={tf} active={timeFrame === tf} onClick={() => setTimeFrame(tf)}>
             {tf}
           </Tag>
         ))}
       </div>
 
       {/* Chart Container - Properly Bounded */}
-      <div 
+      <div
         ref={chartContainerRef}
-        className="content-stretch relative shrink-0 w-full cursor-crosshair" 
+        className="content-stretch relative shrink-0 w-full cursor-crosshair"
         style={{ height: `${height}px` }}
         onMouseMove={handleChartInteraction}
         onMouseLeave={handleChartLeave}
@@ -315,8 +317,8 @@ export function WealthPerformanceChart({
       >
         {/* Y-axis labels - Absolutely positioned to align with grid lines */}
         {yAxisLabels.map((label, i) => (
-          <p 
-            key={i} 
+          <p
+            key={i}
             className={`absolute left-0 font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[9px] opacity-30 pointer-events-none ${
               i === 0 ? '' : i === yAxisLabels.length - 1 ? '-translate-y-full' : '-translate-y-1/2'
             }`}
@@ -325,10 +327,10 @@ export function WealthPerformanceChart({
             {formatValue(label.value)}
           </p>
         ))}
-        
-        <svg 
-          width="100%" 
-          height="100%" 
+
+        <svg
+          width="100%"
+          height="100%"
           viewBox={`0 0 ${chartWidth} ${height}`}
           preserveAspectRatio="none"
           className="overflow-hidden pointer-events-none"
@@ -337,7 +339,12 @@ export function WealthPerformanceChart({
           {/* Clip path to ensure sparkline stays within bounds */}
           <defs>
             <clipPath id="chart-clip">
-              <rect x={padding.left} y={padding.top} width={chartWidth - padding.left} height={chartHeight} />
+              <rect
+                x={padding.left}
+                y={padding.top}
+                width={chartWidth - padding.left}
+                height={chartHeight}
+              />
             </clipPath>
             {/* Gradient fill */}
             {fillGradient && (
@@ -365,7 +372,7 @@ export function WealthPerformanceChart({
               );
             })}
           </g>
-          
+
           {/* Baseline indicator (start point) */}
           <line
             x1={pathPoints[0].x}
@@ -391,13 +398,13 @@ export function WealthPerformanceChart({
               d={linePath}
               fill="none"
               stroke={color}
-              strokeWidth={isFlat ? "1" : "2"}
+              strokeWidth={isFlat ? '1' : '2'}
               strokeLinecap="round"
               strokeLinejoin="round"
-              opacity={isFlat ? "0.5" : "1"}
+              opacity={isFlat ? '0.5' : '1'}
               vectorEffect="non-scaling-stroke"
             />
-            
+
             {/* Crosshair vertical line */}
             {hoveredPoint !== null && (
               <line
@@ -421,30 +428,23 @@ export function WealthPerformanceChart({
             style={{
               left: `${(displayedPathPoint.x / chartWidth) * 100}%`,
               top: `${displayedPathPoint.y}px`,
-              transform: 'translate(-50%, -50%)'
+              transform: 'translate(-50%, -50%)',
             }}
           >
             <svg width="12" height="12" viewBox="0 0 12 12" className="overflow-visible">
-              <circle
-                cx="6"
-                cy="6"
-                r="4"
-                fill="white"
-                stroke={color}
-                strokeWidth="2"
-              />
+              <circle cx="6" cy="6" r="4" fill="white" stroke={color} strokeWidth="2" />
             </svg>
           </div>
         )}
 
         {/* Tooltip - Shows value and label at hovered point */}
         {hoveredPoint !== null && (
-          <div 
+          <div
             className="absolute pointer-events-none"
             style={{
               left: `${(displayedPathPoint.x / chartWidth) * 100}%`,
               top: `${displayedPathPoint.y - 40}px`,
-              transform: 'translateX(-50%)'
+              transform: 'translateX(-50%)',
             }}
           >
             <div className="bg-[#a87174] rounded-[8px] px-[10px] py-[6px] shadow-lg">
@@ -457,11 +457,11 @@ export function WealthPerformanceChart({
             </div>
           </div>
         )}
-        
+
         {/* X-axis labels - Absolutely positioned to align with data points */}
         {xAxisLabels.map((label, i) => (
-          <p 
-            key={i} 
+          <p
+            key={i}
             className={`absolute bottom-0 font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[10px] opacity-50 pointer-events-none ${
               i === 0 ? '' : i === xAxisLabels.length - 1 ? '-translate-x-full' : '-translate-x-1/2'
             }`}
@@ -470,7 +470,7 @@ export function WealthPerformanceChart({
             {label.data.label}
           </p>
         ))}
-        
+
         {/* Flat performance indicator */}
         {isFlat && (
           <div className="absolute top-[50%] left-[50%] transform -translate-x-1/2 -translate-y-1/2">

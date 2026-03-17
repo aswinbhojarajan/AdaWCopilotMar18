@@ -20,7 +20,7 @@ interface GoalCardProps {
   aiInsight: string;
   ctaText: string;
   onCtaClick: () => void;
-  onChatSubmit?: (message: string, context?: any) => void;
+  onChatSubmit?: (message: string, context?: Record<string, string>) => void;
   showRecoveryOptions?: boolean;
   onSelectRecoveryOption?: (optionId: 'A' | 'B' | null) => void;
   selectedRecoveryOption?: 'A' | 'B' | null;
@@ -32,7 +32,7 @@ export function GoalCard({
   targetAmount,
   currentAmount,
   deadline,
-  icon,
+  icon: _icon,
   color,
   healthStatus,
   aiInsight,
@@ -42,7 +42,7 @@ export function GoalCard({
   showRecoveryOptions = false,
   onSelectRecoveryOption,
   selectedRecoveryOption,
-  goalRef
+  goalRef,
 }: GoalCardProps) {
   const progress = (currentAmount / targetAmount) * 100;
   const remaining = targetAmount - currentAmount;
@@ -53,20 +53,20 @@ export function GoalCard({
       label: 'On Track',
       bgColor: '#f7f6f2',
       textColor: '#555555',
-      dotColor: '#a87174'
+      dotColor: '#a87174',
     },
     'needs-attention': {
       label: 'Needs Attention',
       bgColor: '#fef3c7',
       textColor: '#78350f',
-      dotColor: '#f59e0b'
+      dotColor: '#f59e0b',
     },
     'at-risk': {
       label: 'At Risk',
       bgColor: '#fddcdc',
       textColor: '#992929',
-      dotColor: '#f87171'
-    }
+      dotColor: '#f87171',
+    },
   };
 
   const statusConfig = healthStatus ? healthConfig[healthStatus] : null;
@@ -76,23 +76,26 @@ export function GoalCard({
     {
       id: 'A',
       title: 'Get back on track',
-      description: 'Increase contributions by $420/month to restore probability above 75%.'
+      description: 'Increase contributions by $420/month to restore probability above 75%.',
     },
     {
       id: 'B',
       title: 'Protect the timeline',
-      description: 'Shift a small portion toward lower-volatility income to reduce drawdown risk.'
-    }
+      description: 'Shift a small portion toward lower-volatility income to reduce drawdown risk.',
+    },
   ];
 
   return (
     <div className="w-full">
-      <div ref={goalRef} className="content-stretch flex flex-col pb-[24px] pt-[16px] relative w-full">
+      <div
+        ref={goalRef}
+        className="content-stretch flex flex-col pb-[24px] pt-[16px] relative w-full"
+      >
         {/* Top Row: Progress Ring + Goal Details */}
         <div className="flex gap-[16px] items-start w-full">
           {/* Progress Ring */}
           <div className="shrink-0">
-            <ProgressRing 
+            <ProgressRing
               progress={progress}
               size={72}
               strokeWidth={8}
@@ -120,7 +123,7 @@ export function GoalCard({
                   of ${targetAmount.toLocaleString()}
                 </p>
               </div>
-              
+
               <div className="flex flex-col gap-[2px] w-full">
                 <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[13px]">
                   ${remaining.toLocaleString()} remaining
@@ -140,28 +143,40 @@ export function GoalCard({
             <div className="flex flex-col gap-[12px] w-full">
               {/* Health Status Badge */}
               {statusConfig && (
-                <motion.div 
-                  initial={healthStatus === 'needs-attention' ? { boxShadow: "0 0 0 rgba(245, 158, 11, 0)" } : false}
-                  animate={healthStatus === 'needs-attention' ? { 
-                    boxShadow: [
-                      "0 0 0px rgba(245, 158, 11, 0)", 
-                      "0 0 12px rgba(245, 158, 11, 0.4)", 
-                      "0 0 0px rgba(245, 158, 11, 0)"
-                    ] 
-                  } : false}
-                  transition={healthStatus === 'needs-attention' ? {
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  } : undefined}
+                <motion.div
+                  initial={
+                    healthStatus === 'needs-attention'
+                      ? { boxShadow: '0 0 0 rgba(245, 158, 11, 0)' }
+                      : false
+                  }
+                  animate={
+                    healthStatus === 'needs-attention'
+                      ? {
+                          boxShadow: [
+                            '0 0 0px rgba(245, 158, 11, 0)',
+                            '0 0 12px rgba(245, 158, 11, 0.4)',
+                            '0 0 0px rgba(245, 158, 11, 0)',
+                          ],
+                        }
+                      : false
+                  }
+                  transition={
+                    healthStatus === 'needs-attention'
+                      ? {
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                        }
+                      : undefined
+                  }
                   className="flex items-center gap-[4px] px-[8px] py-[4px] rounded-full self-start"
                   style={{ backgroundColor: statusConfig.bgColor }}
                 >
-                  <div 
+                  <div
                     className="size-[6px] rounded-full shrink-0"
                     style={{ backgroundColor: statusConfig.dotColor }}
                   />
-                  <span 
+                  <span
                     className="font-['DM_Sans:SemiBold',sans-serif] text-[9px] tracking-[0.6px] uppercase whitespace-nowrap"
                     style={{ color: statusConfig.textColor }}
                   >
@@ -169,12 +184,12 @@ export function GoalCard({
                   </span>
                 </motion.div>
               )}
-              
+
               {/* Ada Panel Title */}
               <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] text-[20px] tracking-[-0.48px]">
                 Here's what changed — and 2 ways to fix it.
               </p>
-              
+
               {/* Inline Copy */}
               <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] leading-[20px]">
                 Recent withdrawals increased your funding gap for Dec 2026.
@@ -184,7 +199,7 @@ export function GoalCard({
             {/* Option Tiles */}
             <div className="flex flex-col gap-[12px] w-full">
               {recoveryOptions.map((option) => (
-                <div 
+                <div
                   key={option.id}
                   className="flex flex-col gap-[12px] p-[16px] border border-[#e5e5e5] rounded-[12px] w-full"
                 >
@@ -199,7 +214,7 @@ export function GoalCard({
                       {option.description}
                     </p>
                   </div>
-                  
+
                   <div className="w-full">
                     <Button
                       variant="primary"
@@ -221,11 +236,11 @@ export function GoalCard({
                 variant="secondary"
                 size="md"
                 onClick={() => {
-                  onChatSubmit?.("What are other ways to get my Buy a Home goal back on track?", {
+                  onChatSubmit?.('What are other ways to get my Buy a Home goal back on track?', {
                     category: 'GOALS',
                     categoryType: 'goal-recovery',
                     title: 'Buy a Home Recovery Options',
-                    sourceScreen: 'wealth'
+                    sourceScreen: 'wealth',
                   });
                 }}
               >
@@ -241,7 +256,7 @@ export function GoalCard({
                     OPTION {selectedRecoveryOption} — DECISION SUPPORT
                   </p>
                   <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] text-[20px] tracking-[-0.48px]">
-                    {recoveryOptions.find(o => o.id === selectedRecoveryOption)?.title}
+                    {recoveryOptions.find((o) => o.id === selectedRecoveryOption)?.title}
                   </p>
                 </div>
 
@@ -251,9 +266,9 @@ export function GoalCard({
                       Impact
                     </p>
                     <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] leading-[20px]">
-                      {selectedRecoveryOption === 'A' 
+                      {selectedRecoveryOption === 'A'
                         ? "This brings your goal probability from 68% to 78%, putting you back in a comfortable range. You'll hit your Dec 2026 target with moderate confidence."
-                        : "This reduces your downside risk by 12% while maintaining a 71% probability of success. You trade some upside for timeline protection."}
+                        : 'This reduces your downside risk by 12% while maintaining a 71% probability of success. You trade some upside for timeline protection.'}
                     </p>
                   </div>
 
@@ -264,7 +279,7 @@ export function GoalCard({
                     <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] leading-[20px]">
                       {selectedRecoveryOption === 'A'
                         ? "You'll need to adjust your budget to accommodate the higher monthly contribution. This is the most direct path to staying on schedule."
-                        : "Your portfolio becomes more conservative, which may lower returns but gives you greater certainty around the Dec 2026 deadline."}
+                        : 'Your portfolio becomes more conservative, which may lower returns but gives you greater certainty around the Dec 2026 deadline.'}
                     </p>
                   </div>
                 </div>
@@ -274,17 +289,20 @@ export function GoalCard({
                     variant="ai-primary"
                     size="md"
                     onClick={() => {
-                      onChatSubmit?.(`Help me implement Option ${selectedRecoveryOption} for my Buy a Home goal`, {
-                        category: 'GOALS',
-                        categoryType: 'goal-implementation',
-                        title: `Implement Option ${selectedRecoveryOption}`,
-                        sourceScreen: 'wealth'
-                      });
+                      onChatSubmit?.(
+                        `Help me implement Option ${selectedRecoveryOption} for my Buy a Home goal`,
+                        {
+                          category: 'GOALS',
+                          categoryType: 'goal-implementation',
+                          title: `Implement Option ${selectedRecoveryOption}`,
+                          sourceScreen: 'wealth',
+                        },
+                      );
                     }}
                   >
                     Help me implement this
                   </Button>
-                  
+
                   <Button
                     variant="secondary"
                     size="md"
@@ -304,28 +322,40 @@ export function GoalCard({
               <div className="flex flex-col gap-[12px] w-full">
                 {/* Health Status Badge */}
                 {statusConfig && (
-                  <motion.div 
-                    initial={healthStatus === 'needs-attention' ? { boxShadow: "0 0 0 rgba(245, 158, 11, 0)" } : false}
-                    animate={healthStatus === 'needs-attention' ? { 
-                      boxShadow: [
-                        "0 0 0px rgba(245, 158, 11, 0)", 
-                        "0 0 12px rgba(245, 158, 11, 0.4)", 
-                        "0 0 0px rgba(245, 158, 11, 0)"
-                      ] 
-                    } : false}
-                    transition={healthStatus === 'needs-attention' ? {
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    } : undefined}
+                  <motion.div
+                    initial={
+                      healthStatus === 'needs-attention'
+                        ? { boxShadow: '0 0 0 rgba(245, 158, 11, 0)' }
+                        : false
+                    }
+                    animate={
+                      healthStatus === 'needs-attention'
+                        ? {
+                            boxShadow: [
+                              '0 0 0px rgba(245, 158, 11, 0)',
+                              '0 0 12px rgba(245, 158, 11, 0.4)',
+                              '0 0 0px rgba(245, 158, 11, 0)',
+                            ],
+                          }
+                        : false
+                    }
+                    transition={
+                      healthStatus === 'needs-attention'
+                        ? {
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: 'easeInOut',
+                          }
+                        : undefined
+                    }
                     className="flex items-center gap-[4px] px-[8px] py-[4px] rounded-full self-start"
                     style={{ backgroundColor: statusConfig.bgColor }}
                   >
-                    <div 
+                    <div
                       className="size-[6px] rounded-full shrink-0"
                       style={{ backgroundColor: statusConfig.dotColor }}
                     />
-                    <span 
+                    <span
                       className="font-['DM_Sans:SemiBold',sans-serif] text-[9px] tracking-[0.6px] uppercase whitespace-nowrap"
                       style={{ color: statusConfig.textColor }}
                     >
@@ -333,7 +363,7 @@ export function GoalCard({
                     </span>
                   </motion.div>
                 )}
-                
+
                 <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] leading-[20px] w-full">
                   {aiInsight}
                 </p>
@@ -342,11 +372,7 @@ export function GoalCard({
               {/* CTA Button - Left Aligned */}
               {ctaText && onCtaClick && (
                 <div className="w-full">
-                  <Button
-                    variant="ai-primary"
-                    size="md"
-                    onClick={onCtaClick}
-                  >
+                  <Button variant="ai-primary" size="md" onClick={onCtaClick}>
                     {ctaText}
                   </Button>
                 </div>

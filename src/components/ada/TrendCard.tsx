@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, TrendingUp } from 'lucide-react';
+import { Clock } from 'lucide-react';
 
 interface TrendCardProps {
   icon: React.ReactNode;
@@ -15,8 +15,8 @@ export function TrendCard({
   title,
   description,
   timestamp,
-  buttonText = "Ask Ada",
-  onButtonClick
+  buttonText = 'Ask Ada',
+  onButtonClick,
 }: TrendCardProps) {
   return (
     <div className="bg-white relative rounded-[30px] shrink-0 w-full">
@@ -31,8 +31,8 @@ export function TrendCard({
               <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] tracking-[-0.48px]">
                 {title}
               </p>
-              <p 
-                className="font-['DM_Sans:Light',sans-serif] text-[#555555]" 
+              <p
+                className="font-['DM_Sans:Light',sans-serif] text-[#555555]"
                 style={{ fontVariationSettings: "'opsz' 14" }}
               >
                 {description}
@@ -42,11 +42,14 @@ export function TrendCard({
 
           {/* Footer */}
           <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full">
-            <button 
+            <button
               onClick={onButtonClick}
               className="bg-[#f7f6f2] content-stretch flex h-[44px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0"
             >
-              <div aria-hidden="true" className="absolute border-[#d8d8d8] border-[0.75px] border-solid inset-0 pointer-events-none rounded-[50px]" />
+              <div
+                aria-hidden="true"
+                className="absolute border-[#d8d8d8] border-[0.75px] border-solid inset-0 pointer-events-none rounded-[50px]"
+              />
               <p className="font-['DM_Sans:Regular',sans-serif] not-italic relative shrink-0 text-[#555555] text-nowrap whitespace-pre">
                 {buttonText}
               </p>

@@ -7,28 +7,34 @@ interface ScenarioSimulatorProps {
 
 export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulatorProps) {
   const [values, setValues] = useState<Record<string, number>>(
-    type === 'retirement' ? {
-      monthlyContribution: initialValues.monthlyContribution || 5000,
-      years: initialValues.years || 20,
-      returnRate: initialValues.returnRate || 7,
-    } : type === 'investment' ? {
-      initialAmount: initialValues.initialAmount || 100000,
-      monthlyAddition: initialValues.monthlyAddition || 2000,
-      years: initialValues.years || 10,
-      returnRate: initialValues.returnRate || 8,
-    } : type === 'spending' ? {
-      monthlySpending: initialValues.monthlySpending || 8000,
-      inflationRate: initialValues.inflationRate || 3,
-      years: initialValues.years || 30,
-    } : {
-      income: initialValues.income || 500000,
-      deductions: initialValues.deductions || 50000,
-      taxRate: initialValues.taxRate || 35,
-    }
+    type === 'retirement'
+      ? {
+          monthlyContribution: initialValues.monthlyContribution || 5000,
+          years: initialValues.years || 20,
+          returnRate: initialValues.returnRate || 7,
+        }
+      : type === 'investment'
+        ? {
+            initialAmount: initialValues.initialAmount || 100000,
+            monthlyAddition: initialValues.monthlyAddition || 2000,
+            years: initialValues.years || 10,
+            returnRate: initialValues.returnRate || 8,
+          }
+        : type === 'spending'
+          ? {
+              monthlySpending: initialValues.monthlySpending || 8000,
+              inflationRate: initialValues.inflationRate || 3,
+              years: initialValues.years || 30,
+            }
+          : {
+              income: initialValues.income || 500000,
+              deductions: initialValues.deductions || 50000,
+              taxRate: initialValues.taxRate || 35,
+            },
   );
 
   const handleChange = (key: string, value: number) => {
-    setValues(prev => ({ ...prev, [key]: value }));
+    setValues((prev) => ({ ...prev, [key]: value }));
   };
 
   const calculateResults = () => {
@@ -40,23 +46,24 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
       return {
         total: futureValue,
         contributions: monthly * months,
-        gains: futureValue - (monthly * months),
+        gains: futureValue - monthly * months,
       };
     } else if (type === 'investment') {
       const initial = values.initialAmount;
       const monthly = values.monthlyAddition;
       const months = values.years * 12;
       const rate = values.returnRate / 100 / 12;
-      const futureValue = initial * (1 + rate) ** months + monthly * (((1 + rate) ** months - 1) / rate);
+      const futureValue =
+        initial * (1 + rate) ** months + monthly * (((1 + rate) ** months - 1) / rate);
       return {
         total: futureValue,
-        contributions: initial + (monthly * months),
+        contributions: initial + monthly * months,
         gains: futureValue - (initial + monthly * months),
       };
     } else if (type === 'spending') {
       const monthly = values.monthlySpending;
       const rate = values.inflationRate / 100;
-      const futureMonthly = monthly * ((1 + rate) ** values.years);
+      const futureMonthly = monthly * (1 + rate) ** values.years;
       const totalSpent = monthly * 12 * values.years * (1 + rate / 2); // Approximate total with avg inflation
       return {
         currentAnnual: monthly * 12,
@@ -155,15 +162,21 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
           <>
             <div className="flex justify-between items-center">
               <span className="text-[14px] text-[#555555]">Total at Retirement</span>
-              <span className="text-[18px] text-[#441316] font-medium min-w-[130px] text-right tabular-nums">{formatCurrency(results.total)}</span>
+              <span className="text-[18px] text-[#441316] font-medium min-w-[130px] text-right tabular-nums">
+                {formatCurrency(results.total)}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-[14px] text-[#555555]">Your Contributions</span>
-              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">{formatCurrency(results.contributions)}</span>
+              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
+                {formatCurrency(results.contributions)}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-[14px] text-[#555555]">Investment Gains</span>
-              <span className="text-[14px] text-[#0F6F4E] min-w-[130px] text-right tabular-nums">{formatCurrency(results.gains)}</span>
+              <span className="text-[14px] text-[#0F6F4E] min-w-[130px] text-right tabular-nums">
+                {formatCurrency(results.gains)}
+              </span>
             </div>
           </>
         )}
@@ -171,15 +184,21 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
           <>
             <div className="flex justify-between items-center">
               <span className="text-[14px] text-[#555555]">Future Value</span>
-              <span className="text-[18px] text-[#441316] font-medium min-w-[130px] text-right tabular-nums">{formatCurrency(results.total)}</span>
+              <span className="text-[18px] text-[#441316] font-medium min-w-[130px] text-right tabular-nums">
+                {formatCurrency(results.total)}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-[12px] text-[#555555]">Total Invested</span>
-              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">{formatCurrency(results.contributions)}</span>
+              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
+                {formatCurrency(results.contributions)}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-[12px] text-[#555555]">Expected Gains</span>
-              <span className="text-[14px] text-[#0F6F4E] min-w-[130px] text-right tabular-nums">{formatCurrency(results.gains)}</span>
+              <span className="text-[14px] text-[#0F6F4E] min-w-[130px] text-right tabular-nums">
+                {formatCurrency(results.gains)}
+              </span>
             </div>
           </>
         )}
@@ -187,15 +206,23 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
           <>
             <div className="flex justify-between items-center">
               <span className="text-[14px] text-[#555555]">Current Annual</span>
-              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">{formatCurrency(results.currentAnnual)}</span>
+              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
+                {formatCurrency(results.currentAnnual)}
+              </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-[#555555]">Future Annual (Year {values.years})</span>
-              <span className="text-[18px] text-[#441316] font-medium min-w-[130px] text-right tabular-nums">{formatCurrency(results.futureAnnual)}</span>
+              <span className="text-[14px] text-[#555555]">
+                Future Annual (Year {values.years})
+              </span>
+              <span className="text-[18px] text-[#441316] font-medium min-w-[130px] text-right tabular-nums">
+                {formatCurrency(results.futureAnnual)}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-[14px] text-[#555555]">Total Spent ({values.years} years)</span>
-              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">{formatCurrency(results.totalSpent)}</span>
+              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
+                {formatCurrency(results.totalSpent)}
+              </span>
             </div>
           </>
         )}
@@ -203,15 +230,21 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
           <>
             <div className="flex justify-between items-center">
               <span className="text-[14px] text-[#555555]">Taxable Income</span>
-              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">{formatCurrency(results.taxableIncome)}</span>
+              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
+                {formatCurrency(results.taxableIncome)}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-[14px] text-[#555555]">Estimated Tax</span>
-              <span className="text-[18px] text-[#C1464F] font-medium min-w-[130px] text-right tabular-nums">{formatCurrency(results.estimatedTax)}</span>
+              <span className="text-[18px] text-[#C1464F] font-medium min-w-[130px] text-right tabular-nums">
+                {formatCurrency(results.estimatedTax)}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-[14px] text-[#555555]">After-Tax Income</span>
-              <span className="text-[14px] text-[#0F6F4E] min-w-[130px] text-right tabular-nums">{formatCurrency(results.afterTax)}</span>
+              <span className="text-[14px] text-[#0F6F4E] min-w-[130px] text-right tabular-nums">
+                {formatCurrency(results.afterTax)}
+              </span>
             </div>
           </>
         )}

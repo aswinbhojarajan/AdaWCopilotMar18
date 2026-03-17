@@ -29,7 +29,15 @@ export function TopBar() {
       <div className="absolute h-[11.333px] right-[14.67px] top-[17.33px] w-[24.328px]">
         <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 25 12">
           <g>
-            <rect height="10.3333" opacity="0.35" rx="2.16667" stroke="#3A3A3A" width="21" x="0.5" y="0.5" />
+            <rect
+              height="10.3333"
+              opacity="0.35"
+              rx="2.16667"
+              stroke="#3A3A3A"
+              width="21"
+              x="0.5"
+              y="0.5"
+            />
             <path d={svgPaths.p9ed9280} fill="#3A3A3A" opacity="0.4" />
             <rect fill="#3A3A3A" height="7.33333" rx="1.33333" width="18" x="2" y="2" />
           </g>

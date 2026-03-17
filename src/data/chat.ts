@@ -9,7 +9,7 @@ export const chatResponses: ChatResponseMapping[] = [
   {
     keywords: ['why does this affect my portfolio'],
     message:
-      "Because growth stocks make up 33% of your total portfolio allocation, this shift in rate expectations has a larger impact on your returns than it would in a more balanced allocation.\n\nWould you like to review your portfolio concentration or keep monitoring this for now?",
+      'Because growth stocks make up 33% of your total portfolio allocation, this shift in rate expectations has a larger impact on your returns than it would in a more balanced allocation.\n\nWould you like to review your portfolio concentration or keep monitoring this for now?',
   },
   {
     keywords: ['review tech allocation', 'tech allocation'],
@@ -28,7 +28,7 @@ export const chatResponses: ChatResponseMapping[] = [
   {
     keywords: ['explore bond options', 'bond options'],
     message:
-      "Given your current 15% bond allocation\u2014below your 25% target\u2014here are three high-quality options aligned with your objectives:\n\nGCC Sovereign Bonds: 4.8-5.2% yield, AAA rated\nEM Corporate Debt: 6.1% yield, BBB+ rated\nGlobal Aggregate Fund: 4.5% yield, diversified exposure\n\nWith recent institutional inflows of $4.2B into GCC bonds, confidence in the region remains strong. Allocating an additional 10% to bonds could reduce portfolio volatility by 3-4% while generating stable income.\n\nWhich option resonates with your goals, or would you like to compare them in detail?",
+      'Given your current 15% bond allocation\u2014below your 25% target\u2014here are three high-quality options aligned with your objectives:\n\nGCC Sovereign Bonds: 4.8-5.2% yield, AAA rated\nEM Corporate Debt: 6.1% yield, BBB+ rated\nGlobal Aggregate Fund: 4.5% yield, diversified exposure\n\nWith recent institutional inflows of $4.2B into GCC bonds, confidence in the region remains strong. Allocating an additional 10% to bonds could reduce portfolio volatility by 3-4% while generating stable income.\n\nWhich option resonates with your goals, or would you like to compare them in detail?',
   },
   {
     keywords: ['compare scenarios'],
@@ -42,7 +42,7 @@ export const chatResponses: ChatResponseMapping[] = [
   {
     keywords: ['what does this mean for my returns', 'mean for my returns'],
     message:
-      "Your lower growth allocation (58% versus the 73% market average) means market surges typically produce 15-20% smaller gains for your portfolio. In the recent year-end rally:\n\nMarket average gain: +3.8%\nYour estimated gain: +3.1%\n\nHowever, this defensive positioning also means 12-18% smaller losses during downturns. This trade-off aligns with your balanced risk approach, and your year-to-date performance of +2.44% remains solid given your conservative stance.\n\nWould you like to explore adjusting your growth exposure, or review how this positioning serves your long-term goals?",
+      'Your lower growth allocation (58% versus the 73% market average) means market surges typically produce 15-20% smaller gains for your portfolio. In the recent year-end rally:\n\nMarket average gain: +3.8%\nYour estimated gain: +3.1%\n\nHowever, this defensive positioning also means 12-18% smaller losses during downturns. This trade-off aligns with your balanced risk approach, and your year-to-date performance of +2.44% remains solid given your conservative stance.\n\nWould you like to explore adjusting your growth exposure, or review how this positioning serves your long-term goals?',
   },
   {
     keywords: ['more growth exposure', 'growth exposure'],
@@ -70,7 +70,7 @@ export const chatResponses: ChatResponseMapping[] = [
   {
     keywords: ['mean over time', 'what does this mean over time'],
     message:
-      "Use the simulator below to model your portfolio over different time horizons.\n\nOver a 5-10 year horizon, your higher growth allocation suggests:\n\nProjected outcomes:\n\u2022 Your 10-year projected return: 7.8% annually\n\u2022 Peer average projection: 6.4% annually\n\u2022 Your advantage: Approximately +$45,000 over 10 years\n\nConsiderations:\n\u2022 Expect 2-3 larger drawdowns during corrections\n\u2022 Higher year-to-year volatility\n\u2022 Requires sustained discipline through market cycles\n\nWould you like to discuss downside protection strategies, or review your long-term targets?",
+      'Use the simulator below to model your portfolio over different time horizons.\n\nOver a 5-10 year horizon, your higher growth allocation suggests:\n\nProjected outcomes:\n\u2022 Your 10-year projected return: 7.8% annually\n\u2022 Peer average projection: 6.4% annually\n\u2022 Your advantage: Approximately +$45,000 over 10 years\n\nConsiderations:\n\u2022 Expect 2-3 larger drawdowns during corrections\n\u2022 Higher year-to-year volatility\n\u2022 Requires sustained discipline through market cycles\n\nWould you like to discuss downside protection strategies, or review your long-term targets?',
     simulator: {
       type: 'investment',
       initialValues: { initialAmount: 90000, monthlyAddition: 3000, years: 10, returnRate: 7.8 },
@@ -97,7 +97,7 @@ export const chatResponses: ChatResponseMapping[] = [
   {
     keywords: ['tax', 'optimize tax'],
     message:
-      "Use the tax optimization simulator below to see how different deduction strategies impact your after-tax income.\n\nTax-efficient portfolio management can significantly enhance your net returns. I can help identify opportunities for tax-loss harvesting, strategic withdrawals, and optimal account placement.\n\nWould you like to explore specific tax optimization strategies for your situation?",
+      'Use the tax optimization simulator below to see how different deduction strategies impact your after-tax income.\n\nTax-efficient portfolio management can significantly enhance your net returns. I can help identify opportunities for tax-loss harvesting, strategic withdrawals, and optimal account placement.\n\nWould you like to explore specific tax optimization strategies for your situation?',
     simulator: {
       type: 'tax',
       initialValues: { income: 500000, deductions: 50000, taxRate: 35 },
@@ -116,12 +116,12 @@ export const chatResponses: ChatResponseMapping[] = [
   {
     keywords: ['tech', 'allocation'],
     message:
-      "I can help you review your technology allocation. Currently, you hold 48% in tech stocks (AAPL, MSFT, AMZN). Given the recent Fed rate-cut expectations, growth multiples are expanding, though this also introduces concentration risk.\n\nWould you like me to model different allocation scenarios, or review specific positions within your tech holdings?",
+      'I can help you review your technology allocation. Currently, you hold 48% in tech stocks (AAPL, MSFT, AMZN). Given the recent Fed rate-cut expectations, growth multiples are expanding, though this also introduces concentration risk.\n\nWould you like me to model different allocation scenarios, or review specific positions within your tech holdings?',
   },
   {
     keywords: ['bond', 'fixed income'],
     message:
-      'Your current bond allocation stands at 15%, which is below your 25% target. With recent institutional inflows of $4.2B into GCC bonds, there\'s heightened interest in high-yielding regional debt.\n\nWould you like to see specific bond opportunities that align with your goals, or shall we discuss the optimal pace for increasing your allocation?',
+      "Your current bond allocation stands at 15%, which is below your 25% target. With recent institutional inflows of $4.2B into GCC bonds, there's heightened interest in high-yielding regional debt.\n\nWould you like to see specific bond opportunities that align with your goals, or shall we discuss the optimal pace for increasing your allocation?",
   },
   {
     keywords: ['portfolio', 'risk'],
@@ -131,7 +131,7 @@ export const chatResponses: ChatResponseMapping[] = [
   {
     keywords: ['return', 'growth'],
     message:
-      'Given your current allocation, your portfolio maintains a balanced risk-return profile. Year-to-date you\'re up $2,210.1 (+2.44%). Your lower growth exposure provides stability, though it may limit gains during strong market surges.\n\nWould you like me to model how adjusting your growth exposure could impact returns, or review how this aligns with your long-term objectives?',
+      "Given your current allocation, your portfolio maintains a balanced risk-return profile. Year-to-date you're up $2,210.1 (+2.44%). Your lower growth exposure provides stability, though it may limit gains during strong market surges.\n\nWould you like me to model how adjusting your growth exposure could impact returns, or review how this aligns with your long-term objectives?",
   },
 ];
 

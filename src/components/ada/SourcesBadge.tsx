@@ -2,28 +2,28 @@ import React from 'react';
 
 /**
  * SourcesBadge Component
- * 
+ *
  * Displays credible sources indicator with overlapping source logos and count.
  * Used in news cards to show aggregated source information.
- * 
+ *
  * Design Tokens:
  * - Background: #f5f5f5 (light grey badge background)
  * - Border radius: 6px
  * - Padding: 8px horizontal, 4px vertical
  * - Gap between elements: 6px
- * 
+ *
  * Source Logo Styling:
  * - Size: 18px circular
  * - Border: 1.5px white
  * - Overlap: -6px (negative space)
  * - Bloomberg: #0E9CFF background, "B" text at 9px
  * - Financial Times: #FF6B9D background, "FT" text at 6px
- * 
+ *
  * Typography:
  * - Font: DM Sans Regular
  * - Size: 11px
  * - Color: #999999 (medium grey)
- * 
+ *
  * @param sourcesCount - Number of credible sources (e.g., 54, 82)
  */
 
@@ -38,11 +38,15 @@ export function SourcesBadge({ sourcesCount }: SourcesBadgeProps) {
       <div className="flex items-center -space-x-[6px]">
         {/* Bloomberg logo */}
         <div className="size-[18px] rounded-full bg-[#0E9CFF] flex items-center justify-center border-[1.5px] border-white relative z-10">
-          <span className="font-['DM_Sans:Bold',sans-serif] text-white text-[9px] leading-none">B</span>
+          <span className="font-['DM_Sans:Bold',sans-serif] text-white text-[9px] leading-none">
+            B
+          </span>
         </div>
         {/* Financial Times logo */}
         <div className="size-[18px] rounded-full bg-[#FF6B9D] flex items-center justify-center border-[1.5px] border-white relative z-0">
-          <span className="font-['DM_Sans:Bold',sans-serif] text-white text-[6px] leading-none">FT</span>
+          <span className="font-['DM_Sans:Bold',sans-serif] text-white text-[6px] leading-none">
+            FT
+          </span>
         </div>
       </div>
       {/* Sources count text */}
