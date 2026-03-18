@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "5LJEjqjL0oMF6Cciq6Enc"
+uri = "file://CHANGELOG.md"
+type = "text"
+title = "Ada AI Wealth Copilot — Comprehensive Changelog"
