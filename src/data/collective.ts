@@ -1,5 +1,18 @@
 import type { PollResults, PeerComparison } from '../types';
 
+export interface PollOptionData {
+  value: string;
+  label: string;
+}
+
+export const pollOptions: PollOptionData[] = [
+  { value: 'north-america', label: 'North America' },
+  { value: 'europe', label: 'Europe' },
+  { value: 'asia-pacific', label: 'Asia Pacific' },
+  { value: 'emerging-markets', label: 'Emerging Markets' },
+  { value: 'global-diversified', label: 'Global/Diversified' },
+];
+
 export const pollResults: PollResults = {
   'north-america': 32,
   europe: 18,

@@ -152,3 +152,46 @@ export interface ScreenProps {
   onOpenChat?: () => void;
   onClose?: () => void;
 }
+
+export interface HomeSummaryResponse {
+  greeting: string;
+  date: string;
+  attentionCount: number;
+  summary: string;
+  portfolioValue: number;
+  dailyChangeAmount: number;
+  dailyChangePercent: number;
+  sparklineData: SparklinePoint[];
+  contentCards: (ContentItem & { id: string })[];
+}
+
+export interface WealthOverviewResponse {
+  totalValue: number;
+  dailyChangeAmount: number;
+  dailyChangePercent: number;
+  performanceData: Record<string, PerformanceDataPoint[]>;
+}
+
+export interface AccountResponse {
+  id: string;
+  institutionName: string;
+  logoColor: string;
+  logoText: string;
+  accountType: string;
+  balance: number;
+  lastSynced: string;
+  status: 'synced' | 'error' | 'pending';
+}
+
+export interface GoalResponse {
+  id: string;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+  deadline: string;
+  iconName: string;
+  color: string;
+  healthStatus: 'on-track' | 'needs-attention' | 'at-risk';
+  aiInsight: string;
+  ctaText: string;
+}

@@ -11,7 +11,7 @@ import {
   ContentCard,
 } from '../ada';
 import { Clock } from 'lucide-react';
-import { pollResults } from '../../data/collective';
+import { pollResults, peerComparisons, pollOptions } from '../../data/collective';
 
 interface CollectiveScreenProps {
   onChatHistoryClick?: () => void;
@@ -145,130 +145,34 @@ export function CollectiveScreen({
                     {/* Asset Allocation Comparison Chart */}
                     <div className="bg-[#f7f6f2] overflow-clip relative rounded-[8px] shrink-0 w-full p-4">
                       <div className="flex flex-col gap-[16px]">
-                        {/* Stocks */}
-                        <div className="flex flex-col gap-[4px]">
-                          <div className="flex items-center justify-between">
-                            <p className="font-['Crimson_Pro:ExtraLight',sans-serif] text-[12px] text-[#555555]">
-                              Stocks
-                            </p>
-                            <div className="flex gap-[12px]">
-                              <p className="font-['DM_Sans:Medium',sans-serif] text-[12px] text-[#992929]">
-                                You: 55%
+                        {peerComparisons.map((item) => (
+                          <div key={item.assetClass} className="flex flex-col gap-[4px]">
+                            <div className="flex items-center justify-between">
+                              <p className="font-['Crimson_Pro:ExtraLight',sans-serif] text-[12px] text-[#555555]">
+                                {item.assetClass}
                               </p>
-                              <p className="font-['DM_Sans:Regular',sans-serif] text-[12px] text-[#555555] opacity-60">
-                                Peers: 45%
-                              </p>
+                              <div className="flex gap-[12px]">
+                                <p className="font-['DM_Sans:Medium',sans-serif] text-[12px] text-[#992929]">
+                                  You: {item.userPercent}%
+                                </p>
+                                <p className="font-['DM_Sans:Regular',sans-serif] text-[12px] text-[#555555] opacity-60">
+                                  Peers: {item.peerPercent}%
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-[2px] h-[24px]">
+                              <div
+                                className="rounded-[2px]"
+                                style={{ width: `${item.userPercent}%`, backgroundColor: item.color }}
+                              />
+                              <div
+                                className="bg-[#441316] opacity-30 rounded-[2px]"
+                                style={{ width: `${item.peerPercent}%` }}
+                              />
+                              <div className="flex-1" />
                             </div>
                           </div>
-                          <div className="flex gap-[2px] h-[24px]">
-                            <div className="bg-[#d9b3b5] rounded-[2px]" style={{ width: '55%' }} />
-                            <div
-                              className="bg-[#441316] opacity-30 rounded-[2px]"
-                              style={{ width: '45%' }}
-                            />
-                            <div className="flex-1" />
-                          </div>
-                        </div>
-
-                        {/* Crypto */}
-                        <div className="flex flex-col gap-[4px]">
-                          <div className="flex items-center justify-between">
-                            <p className="font-['Crimson_Pro:ExtraLight',sans-serif] text-[12px] text-[#555555]">
-                              Crypto
-                            </p>
-                            <div className="flex gap-[12px]">
-                              <p className="font-['DM_Sans:Medium',sans-serif] text-[12px] text-[#992929]">
-                                You: 6%
-                              </p>
-                              <p className="font-['DM_Sans:Regular',sans-serif] text-[12px] text-[#555555] opacity-60">
-                                Peers: 8%
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-[2px] h-[24px]">
-                            <div className="bg-[#a87174] rounded-[2px]" style={{ width: '6%' }} />
-                            <div
-                              className="bg-[#441316] opacity-30 rounded-[2px]"
-                              style={{ width: '8%' }}
-                            />
-                            <div className="flex-1" />
-                          </div>
-                        </div>
-
-                        {/* Bonds */}
-                        <div className="flex flex-col gap-[4px]">
-                          <div className="flex items-center justify-between">
-                            <p className="font-['Crimson_Pro:ExtraLight',sans-serif] text-[12px] text-[#555555]">
-                              Bonds
-                            </p>
-                            <div className="flex gap-[12px]">
-                              <p className="font-['DM_Sans:Medium',sans-serif] text-[12px] text-[#992929]">
-                                You: 15%
-                              </p>
-                              <p className="font-['DM_Sans:Regular',sans-serif] text-[12px] text-[#555555] opacity-60">
-                                Peers: 22%
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-[2px] h-[24px]">
-                            <div className="bg-[#6d3f42] rounded-[2px]" style={{ width: '15%' }} />
-                            <div
-                              className="bg-[#441316] opacity-30 rounded-[2px]"
-                              style={{ width: '22%' }}
-                            />
-                            <div className="flex-1" />
-                          </div>
-                        </div>
-
-                        {/* Cash */}
-                        <div className="flex flex-col gap-[4px]">
-                          <div className="flex items-center justify-between">
-                            <p className="font-['Crimson_Pro:ExtraLight',sans-serif] text-[12px] text-[#555555]">
-                              Cash
-                            </p>
-                            <div className="flex gap-[12px]">
-                              <p className="font-['DM_Sans:Medium',sans-serif] text-[12px] text-[#992929]">
-                                You: 20%
-                              </p>
-                              <p className="font-['DM_Sans:Regular',sans-serif] text-[12px] text-[#555555] opacity-60">
-                                Peers: 15%
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-[2px] h-[24px]">
-                            <div className="bg-[#441316] rounded-[2px]" style={{ width: '20%' }} />
-                            <div
-                              className="bg-[#441316] opacity-30 rounded-[2px]"
-                              style={{ width: '15%' }}
-                            />
-                            <div className="flex-1" />
-                          </div>
-                        </div>
-
-                        {/* Commodities */}
-                        <div className="flex flex-col gap-[4px]">
-                          <div className="flex items-center justify-between">
-                            <p className="font-['Crimson_Pro:ExtraLight',sans-serif] text-[12px] text-[#555555]">
-                              Commodities
-                            </p>
-                            <div className="flex gap-[12px]">
-                              <p className="font-['DM_Sans:Medium',sans-serif] text-[12px] text-[#992929]">
-                                You: 4%
-                              </p>
-                              <p className="font-['DM_Sans:Regular',sans-serif] text-[12px] text-[#555555] opacity-60">
-                                Peers: 10%
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-[2px] h-[24px]">
-                            <div className="bg-[#8b5a5e] rounded-[2px]" style={{ width: '4%' }} />
-                            <div
-                              className="bg-[#441316] opacity-30 rounded-[2px]"
-                              style={{ width: '10%' }}
-                            />
-                            <div className="flex-1" />
-                          </div>
-                        </div>
+                        ))}
 
                         {/* Legend */}
                         <div className="flex gap-[16px] items-center justify-center pt-[8px] border-t border-[#555555] border-opacity-20">
@@ -364,110 +268,36 @@ export function CollectiveScreen({
                     {hasVoted ? (
                       <div className="bg-[#f7f6f2] overflow-clip relative rounded-[8px] shrink-0 w-full p-4">
                         <div className="flex flex-col gap-[16px]">
-                          <PollOption
-                            name="region-poll"
-                            value="north-america"
-                            label="North America"
-                            onChange={handleVote}
-                            checked={selectedRegion === 'north-america'}
-                            showResults={hasVoted}
-                            percentage={pollResults['north-america']}
-                            isUserSelection={selectedRegion === 'north-america'}
-                          />
-                          <PollOption
-                            name="region-poll"
-                            value="europe"
-                            label="Europe"
-                            onChange={handleVote}
-                            checked={selectedRegion === 'europe'}
-                            showResults={hasVoted}
-                            percentage={pollResults['europe']}
-                            isUserSelection={selectedRegion === 'europe'}
-                          />
-                          <PollOption
-                            name="region-poll"
-                            value="asia-pacific"
-                            label="Asia Pacific"
-                            onChange={handleVote}
-                            checked={selectedRegion === 'asia-pacific'}
-                            showResults={hasVoted}
-                            percentage={pollResults['asia-pacific']}
-                            isUserSelection={selectedRegion === 'asia-pacific'}
-                          />
-                          <PollOption
-                            name="region-poll"
-                            value="emerging-markets"
-                            label="Emerging Markets"
-                            onChange={handleVote}
-                            checked={selectedRegion === 'emerging-markets'}
-                            showResults={hasVoted}
-                            percentage={pollResults['emerging-markets']}
-                            isUserSelection={selectedRegion === 'emerging-markets'}
-                          />
-                          <PollOption
-                            name="region-poll"
-                            value="global-diversified"
-                            label="Global/Diversified"
-                            onChange={handleVote}
-                            checked={selectedRegion === 'global-diversified'}
-                            showResults={hasVoted}
-                            percentage={pollResults['global-diversified']}
-                            isUserSelection={selectedRegion === 'global-diversified'}
-                          />
+                          {pollOptions.map((option) => (
+                            <PollOption
+                              key={option.value}
+                              name="region-poll"
+                              value={option.value}
+                              label={option.label}
+                              onChange={handleVote}
+                              checked={selectedRegion === option.value}
+                              showResults={hasVoted}
+                              percentage={pollResults[option.value]}
+                              isUserSelection={selectedRegion === option.value}
+                            />
+                          ))}
                         </div>
                       </div>
                     ) : (
                       <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
-                        <PollOption
-                          name="region-poll"
-                          value="north-america"
-                          label="North America"
-                          onChange={handleVote}
-                          checked={selectedRegion === 'north-america'}
-                          showResults={hasVoted}
-                          percentage={pollResults['north-america']}
-                          isUserSelection={selectedRegion === 'north-america'}
-                        />
-                        <PollOption
-                          name="region-poll"
-                          value="europe"
-                          label="Europe"
-                          onChange={handleVote}
-                          checked={selectedRegion === 'europe'}
-                          showResults={hasVoted}
-                          percentage={pollResults['europe']}
-                          isUserSelection={selectedRegion === 'europe'}
-                        />
-                        <PollOption
-                          name="region-poll"
-                          value="asia-pacific"
-                          label="Asia Pacific"
-                          onChange={handleVote}
-                          checked={selectedRegion === 'asia-pacific'}
-                          showResults={hasVoted}
-                          percentage={pollResults['asia-pacific']}
-                          isUserSelection={selectedRegion === 'asia-pacific'}
-                        />
-                        <PollOption
-                          name="region-poll"
-                          value="emerging-markets"
-                          label="Emerging Markets"
-                          onChange={handleVote}
-                          checked={selectedRegion === 'emerging-markets'}
-                          showResults={hasVoted}
-                          percentage={pollResults['emerging-markets']}
-                          isUserSelection={selectedRegion === 'emerging-markets'}
-                        />
-                        <PollOption
-                          name="region-poll"
-                          value="global-diversified"
-                          label="Global/Diversified"
-                          onChange={handleVote}
-                          checked={selectedRegion === 'global-diversified'}
-                          showResults={hasVoted}
-                          percentage={pollResults['global-diversified']}
-                          isUserSelection={selectedRegion === 'global-diversified'}
-                        />
+                        {pollOptions.map((option) => (
+                          <PollOption
+                            key={option.value}
+                            name="region-poll"
+                            value={option.value}
+                            label={option.label}
+                            onChange={handleVote}
+                            checked={selectedRegion === option.value}
+                            showResults={hasVoted}
+                            percentage={pollResults[option.value]}
+                            isUserSelection={selectedRegion === option.value}
+                          />
+                        ))}
                       </div>
                     )}
 

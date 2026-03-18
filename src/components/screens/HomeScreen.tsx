@@ -10,31 +10,7 @@ import {
 } from '../ada';
 import { SparkIcon } from '../ada/SparkIcon';
 import { useApi } from '../../hooks/useApi';
-import type { ScreenProps } from '../../types';
-
-interface HomeSummaryResponse {
-  greeting: string;
-  date: string;
-  attentionCount: number;
-  summary: string;
-  portfolioValue: number;
-  dailyChangeAmount: number;
-  dailyChangePercent: number;
-  sparklineData: { value: number }[];
-  contentCards: {
-    id: string;
-    category: string;
-    categoryType: string;
-    title: string;
-    description: string;
-    timestamp: string;
-    buttonText: string;
-    secondaryButtonText?: string;
-    image?: string;
-    sourcesCount?: number;
-    topicLabelColor?: string;
-  }[];
-}
+import type { ScreenProps, HomeSummaryResponse } from '../../types';
 
 function formatCurrency(value: number): string {
   return value.toLocaleString('en-US', {

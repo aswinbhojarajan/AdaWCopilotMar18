@@ -16,55 +16,14 @@ import {
 } from '../ada';
 import { Home, GraduationCap, AlertTriangle, TrendingDown, Wallet, Target } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
-import type { ChatContext } from '../../types';
-
-interface WealthOverview {
-  totalValue: number;
-  dailyChangeAmount: number;
-  dailyChangePercent: number;
-  performanceData: Record<string, { value: number; label: string }[]>;
-}
-
-interface AllocationItem {
-  label: string;
-  value: number;
-  amount: number;
-  percentage: number;
-  color: string;
-}
-
-interface HoldingItem {
-  symbol: string;
-  name: string;
-  quantity: number;
-  value: number;
-  changePercent: number;
-  changeAmount: number;
-}
-
-interface GoalItem {
-  id: string;
-  title: string;
-  targetAmount: number;
-  currentAmount: number;
-  deadline: string;
-  iconName: string;
-  color: string;
-  healthStatus: 'on-track' | 'needs-attention' | 'at-risk';
-  aiInsight: string;
-  ctaText: string;
-}
-
-interface AccountItem {
-  id: string;
-  institutionName: string;
-  logoColor: string;
-  logoText: string;
-  accountType: string;
-  balance: number;
-  lastSynced: string;
-  status: 'synced' | 'error' | 'pending';
-}
+import type {
+  ChatContext,
+  WealthOverviewResponse,
+  AssetAllocation,
+  Holding,
+  GoalResponse,
+  AccountResponse,
+} from '../../types';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Home: <Home className="size-[18px] text-[#555555]" strokeWidth={1.5} />,
@@ -121,11 +80,11 @@ export function WealthScreen({
   const houseDepositGoalRef = React.useRef<HTMLDivElement>(null);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
-  const { data: overview, loading: loadingOverview } = useApi<WealthOverview>('/api/wealth/overview');
-  const { data: apiAllocations, loading: loadingAlloc } = useApi<AllocationItem[]>('/api/wealth/allocation');
-  const { data: apiHoldings, loading: loadingHoldings } = useApi<HoldingItem[]>('/api/wealth/holdings');
-  const { data: apiGoals, loading: loadingGoals } = useApi<GoalItem[]>('/api/wealth/goals');
-  const { data: apiAccounts, loading: loadingAccounts } = useApi<AccountItem[]>('/api/wealth/accounts');
+  const { data: overview, loading: loadingOverview } = useApi<WealthOverviewResponse>('/api/wealth/overview');
+  const { data: apiAllocations, loading: loadingAlloc } = useApi<AssetAllocation[]>('/api/wealth/allocation');
+  const { data: apiHoldings, loading: loadingHoldings } = useApi<Holding[]>('/api/wealth/holdings');
+  const { data: apiGoals, loading: loadingGoals } = useApi<GoalResponse[]>('/api/wealth/goals');
+  const { data: apiAccounts, loading: loadingAccounts } = useApi<AccountResponse[]>('/api/wealth/accounts');
 
   const loading = loadingOverview || loadingAlloc || loadingHoldings || loadingGoals || loadingAccounts;
 
@@ -161,7 +120,7 @@ export function WealthScreen({
     }
   }, [shouldScrollToGoal, goalsExpanded, onScrollComplete]);
 
-  const buildAccountLogo = (account: AccountItem) => (
+  const buildAccountLogo = (account: AccountResponse) => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
       <rect width="24" height="24" rx="4" fill={account.logoColor} />
       <text
