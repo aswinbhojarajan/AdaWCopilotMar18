@@ -6,7 +6,7 @@ A mobile-first wealth management copilot prototype. Full-stack application with 
 ## Tech Stack
 - **Frontend**: React 18 + TypeScript, Vite 6, Tailwind CSS v4, TanStack Query v5
 - **Backend**: Express + TypeScript (via tsx), port 3001
-- **Database**: PostgreSQL (Replit-managed), 22 tables
+- **Database**: PostgreSQL (Replit-managed), 23 tables
 - **AI**: OpenAI (Replit AI Integrations), gpt-5-mini model, streaming SSE (chat + Morning Sentinel)
 - **Styling**: Tailwind utility classes, custom fonts (Crimson Pro, DM Sans)
 - **Type Checking**: TypeScript 5.8, `tsconfig.json` with `noImplicitReturns`, `noFallthroughCasesInSwitch`

@@ -199,7 +199,7 @@ Every tab screen follows the same layout:
 
 - `SlideNotification` component is implemented and prop-driven (`showGoalNotification`). In the current app flow, goal notification visibility on Wealth is controlled by `App.tsx` state — it is not actively triggered by default but the component is wired and ready.
 - Auto-scroll: When navigating from Collective after poll vote, the Wealth tab auto-expands goals and scrolls to the house deposit goal.
-- Add Account Modal: Mock flow that adds a new account to the local state.
+- Add Account Modal: Adds a new account via `POST /api/wealth/accounts` (persisted to database).
 
 ### 4.3 Discover Tab
 
@@ -331,11 +331,12 @@ User Message → PII Detection → Intent Classification → RAG Context Buildin
 
    **Widget types**: `allocation_chart`, `holdings_summary`, `goal_progress`, `portfolio_summary` — rendered by `ChatWidgets.tsx` components (`AllocationChartWidget`, `HoldingsSummaryWidget`, `GoalProgressWidget`, `PortfolioSummaryWidget`).
 
-7. **Streaming** (`POST /api/chat/stream`): Responses stream via Server-Sent Events (SSE) with the following event types:
-   - `text` — Incremental text chunks for progressive rendering.
-   - `tool_call` — Tool invocation with name and arguments (parsed as JSON).
-   - `suggested_questions` — Array of 3 follow-up question suggestions.
-   - `done` — Stream complete signal with final metadata.
+7. **Streaming** (`POST /api/chat/stream`): Responses stream via Server-Sent Events (SSE) with the following event types (defined in `ChatStreamEvent`):
+   - `text` — Incremental text chunks for progressive rendering (`{ type: 'text', content: string }`).
+   - `widget` — Embedded data widget (`{ type: 'widget', widget: { type: string } }`).
+   - `simulator` — Interactive simulator (`{ type: 'simulator', simulator: { type: string, initialValues?: Record<string, number> } }`).
+   - `suggested_questions` — Array of 3 follow-up suggestions (`{ type: 'suggested_questions', suggestedQuestions: string[] }`).
+   - `done` — Stream complete signal.
    - `error` — Error event if the LLM call fails.
 
 8. **Suggested Questions**: The LLM generates 3 contextual follow-up suggestions after each response. These are specific to the conversation context, not generic defaults.
@@ -363,6 +364,10 @@ User Message → PII Detection → Intent Classification → RAG Context Buildin
 - Lists threads from `GET /api/chat/threads` (database-backed).
 - Each thread shows title, preview text, and relative timestamp.
 - Three seeded threads for Abdullah covering portfolio rebalancing, concentration risk, and hedging.
+
+### PII Handling
+
+PII detection runs on every user message before the LLM call. Detected PII types are logged in `chat_audit_log.pii_detected`. The raw user message (including any PII) is currently persisted to `chat_messages` for thread history. The sanitized version is sent to the LLM. Future consideration: store sanitized messages in `chat_messages` or add a retention/purge policy.
 
 ### Legacy Chat Infrastructure
 
@@ -520,8 +525,8 @@ Development: `http://localhost:5000/api/` (Vite proxies to Express on port 3001)
 | GET | `/api/wealth/goals` | — | `GoalResponse[]` | Financial goals with health status |
 | GET | `/api/wealth/goals/health-score` | — | `GoalHealthScoreResponse` | Computed goal health score (0–100) |
 | GET | `/api/wealth/goals/life-gaps` | — | `LifeGapPrompt[]` | AI-generated missing goal prompts |
-| POST | `/api/wealth/goals/life-gaps/dismiss` | `{ promptId: string }` | `{ success: boolean }` | Dismiss a life gap prompt |
-| POST | `/api/wealth/goals/life-event` | `{ event: string }` | `LifeEventSuggestion[]` | AI goal suggestions for a life event |
+| POST | `/api/wealth/goals/life-gaps/dismiss` | `{ promptKey: string }` | `{ success: boolean }` | Dismiss a life gap prompt |
+| POST | `/api/wealth/goals/life-event` | `{ eventType: LifeEventType }` | `LifeEventSuggestion[]` | AI goal suggestions for a life event |
 | GET | `/api/wealth/accounts` | — | `AccountResponse[]` | Connected bank/brokerage accounts |
 | POST | `/api/wealth/accounts` | `AddAccountRequest` | `AccountResponse` | Add a new connected account |
 | GET | `/api/notifications` | — | `AlertResponse[]` | User alerts and notifications |
@@ -580,7 +585,7 @@ The following endpoints duplicate wealth endpoints at shorter paths:
 
 ## 8. Data Model
 
-### Database: PostgreSQL (22 tables)
+### Database: PostgreSQL (23 tables)
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌──────────────┐
@@ -627,10 +632,13 @@ The following endpoints duplicate wealth endpoints at shorter paths:
 │poll_questions │────>│ poll_options  │
 └──────────────┘     └──────────────┘
 
-AI Memory & Audit tables (linked to users):
+AI Memory, Audit & Life Planning tables (linked to users):
 ┌─────────────────────┐     ┌──────────────┐     ┌──────────────┐
 │ episodic_memories    │     │semantic_facts │     │chat_audit_log │
 └─────────────────────┘     └──────────────┘     └──────────────┘
+┌───────────────────────────┐
+│ dismissed_life_gap_prompts │
+└───────────────────────────┘
 
 Standalone tables:
 ┌──────────────┐     ┌──────────────┐
@@ -664,9 +672,10 @@ Standalone tables:
 | `poll_votes` | `id` (TEXT) | poll_id + user_id (UNIQUE), option_id | Ensures one vote per user per poll |
 | `transactions` | `id` (TEXT) | account_id (FK), type, symbol, quantity, price, amount | buy/sell/dividend/deposit/withdrawal |
 | `price_history` | `id` (SERIAL) | symbol, price, recorded_at | Historical price data |
-| `episodic_memories` | `id` (TEXT) | user_id (FK), thread_id, summary, message_count, created_at | Summarized conversation episodes for long-term AI context |
-| `semantic_facts` | `id` (TEXT) | user_id (FK), fact, category, source_thread_id, created_at | Extracted user preferences/facts for AI personalization |
-| `chat_audit_log` | `id` (TEXT) | user_id (FK), thread_id, intent, pii_detected, model, token_count, created_at | AI interaction audit trail |
+| `episodic_memories` | `id` (TEXT) | user_id (FK), thread_id (FK), summary, topics (TEXT[]), created_at | Summarized conversation episodes for long-term AI context |
+| `semantic_facts` | `id` (TEXT) | user_id (FK), fact, category, source_thread_id (FK), created_at | Extracted user preferences/facts for AI personalization |
+| `chat_audit_log` | `id` (SERIAL) | user_id (FK), thread_id, action, intent, pii_detected, input_preview, model, prompt_tokens, completion_tokens, created_at | AI interaction audit trail |
+| `dismissed_life_gap_prompts` | `id` (SERIAL) | user_id (FK), prompt_key (UNIQUE pair), dismissed_at | Tracks dismissed life-gap prompts per user |
 
 ### Table Name Mapping (Spec vs Actual)
 
@@ -688,7 +697,7 @@ Standalone tables:
 |---|---|
 | Frontend | React 18 + TypeScript, Vite 6, Tailwind CSS v4, TanStack Query v5 |
 | Backend | Express + TypeScript (via `tsx`), port 3001 |
-| Database | PostgreSQL (Replit-managed), 22 tables |
+| Database | PostgreSQL (Replit-managed), 23 tables |
 | AI | OpenAI gpt-5-mini (Replit AI Integrations), streaming SSE |
 | Animations | Framer Motion v11 (`motion/react`), AnimatePresence transitions |
 | Fonts | Crimson Pro, DM Sans (Google Fonts) |
@@ -814,13 +823,13 @@ main.tsx (QueryClient + prefetch)
 | **Chat Memory** | Built | Working (in-memory), episodic (DB), semantic facts (DB) — three-tier architecture |
 | **Notifications** | Built | DB-backed alerts, category filtering, unread indicators |
 | **Client Environment** | Built | Onboarding splash screen (Figma-generated) |
-| **PostgreSQL Database** | Built | 22 tables, 4 personas, full seed data |
+| **PostgreSQL Database** | Built | 23 tables, 4 personas, full seed data |
 | **REST API** | Built | 25+ endpoints, asyncHandler, global error handler, 2 SSE streams |
 | **Loading Skeletons** | Built | All data-fetching screens |
 | **Error States** | Built | All data-fetching screens |
 | **Animations** | Built | Tab transitions (horizontal slide), overlay transitions (slide-up), animated tab indicator |
 | **Slide Notifications** | Built | Goal alerts on Wealth + Collective |
-| **Add Account Modal** | Built | Mock flow, local state only |
+| **Add Account Modal** | Built | Persists to DB via POST /api/wealth/accounts |
 | **Auto-scroll to Goal** | Built | Cross-tab navigation from Collective |
 | **Performance Chart** | Built | 5 time-frame toggles, DB-backed (366 days) |
 | **Poll Voting** | Built | Optimistic UI, server-persisted, atomic transactions |
