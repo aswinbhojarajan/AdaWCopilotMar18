@@ -4,6 +4,20 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Discover Thumbnail Fix & Video Overlay Refactor
+**Date:** March 18, 2026
+
+### Fixed
+- **Broken image thumbnails** in Discover > For You tab — replaced expired/hotlink-blocked external URLs (WSJ, NYT) with reliable Unsplash alternatives for `disc-fy-1`, `disc-fy-2`, and `disc-fy-4` content items
+- **Hardcoded video play overlay** — play button was rendering on every ContentCard image regardless of content type; now only appears when `isVideo` is true
+
+### Added
+- **`is_video` column** on `content_items` table (schema + live DB migration) — `BOOLEAN DEFAULT FALSE`
+- **`isVideo` prop** on `ContentCard` component — conditionally renders the circular play button overlay
+- **Full-stack wiring** — `isVideo` flows through `shared/types.ts`, `src/types/index.ts`, `contentRepository.ts` mapper, `DiscoverScreen.tsx`, and `HomeScreen.tsx`
+
+---
+
 ## PRD Comprehensive Audit
 **Date:** March 18, 2026
 
