@@ -298,9 +298,7 @@ export function WealthScreen({
             <CollapsibleAdvisor
               advisorName="Sarah Mitchell"
               availability="Available today"
-              onContactAdvisor={() => {
-                console.log('Contact advisor clicked');
-              }}
+              onContactAdvisor={() => {}}
             />
           </div>
         )}

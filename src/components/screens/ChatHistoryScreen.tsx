@@ -58,7 +58,6 @@ export function ChatHistoryScreen({ onBack, onThreadClick }: ChatHistoryScreenPr
   };
 
   const handleThreadMenu = (threadId: string) => {
-    console.log('Thread menu:', threadId);
   };
 
   return (

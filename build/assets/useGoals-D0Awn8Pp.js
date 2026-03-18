@@ -1,0 +1,1 @@
+import{u as a,a as e}from"./index-D5AccgCD.js";function l(){return a({queryKey:["wealth","allocations"],queryFn:()=>e("/api/wealth/allocation")})}function n(){return a({queryKey:["wealth","holdings"],queryFn:()=>e("/api/wealth/holdings")})}function o(){return a({queryKey:["wealth","goals"],queryFn:()=>e("/api/wealth/goals")})}export{n as a,l as b,o as u};

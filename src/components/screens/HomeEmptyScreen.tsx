@@ -7,7 +7,6 @@ interface HomeEmptyScreenProps {
 
 export function HomeEmptyScreen({ onChatHistoryClick }: HomeEmptyScreenProps = {}) {
   const handleGetStarted = () => {
-    console.log('Starting onboarding...');
     // Navigate to onboarding flow
   };
 

@@ -424,7 +424,7 @@ export function ChatScreen({
 
         <BottomBar
           onSubmit={handleSubmit}
-          onChatHistoryClick={onChatHistoryClick || (() => console.log('Chat history'))}
+          onChatHistoryClick={onChatHistoryClick || (() => {})}
           isOnChatScreen={true}
           hasActiveChatToday={messages.length > 0}
         />
