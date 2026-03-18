@@ -6,6 +6,7 @@ import * as pollRepo from '../repositories/pollRepository';
 import * as portfolioService from '../services/portfolioService';
 import * as chatService from '../services/chatService';
 import * as goalService from '../services/goalService';
+import * as morningSentinelService from '../services/morningSentinelService';
 import type { ChatMessageRequest, PollVoteRequest, LifeEventType } from '../../shared/types';
 
 const router = Router();
@@ -26,6 +27,12 @@ router.get('/me', asyncHandler(async (_req, res) => {
 router.get('/home/summary', asyncHandler(async (_req, res) => {
   const summary = await portfolioService.getHomeSummary(DEFAULT_USER_ID);
   res.json(summary);
+}));
+
+router.get('/morning-sentinel', asyncHandler(async (req, res) => {
+  const forceRefresh = req.query.refresh === 'true';
+  const briefing = await morningSentinelService.generateBriefing(DEFAULT_USER_ID, forceRefresh);
+  res.json(briefing);
 }));
 
 router.get('/wealth/overview', asyncHandler(async (_req, res) => {

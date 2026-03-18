@@ -21,6 +21,7 @@ src/
   hooks/
     api.ts                   — apiFetch/apiPost helpers for TanStack Query
     usePortfolio.ts          — useHomeSummary, useWealthOverview hooks
+    useMorningSentinel.ts    — useMorningSentinel hook with daily caching + force refresh
     useHoldings.ts           — useHoldings hook
     useAllocations.ts        — useAllocations hook
     useGoals.ts              — useGoals, useGoalHealthScore, useLifeGapPrompts, useDismissLifeGapPrompt, useLifeEventSuggestions hooks
@@ -49,6 +50,7 @@ server/
     piiDetector.ts           — Regex-based PII detection (email, phone, SSN, credit card, passport, IBAN)
     goalService.ts           — Goal health score, life-gap prompts, life-event suggestions (AI-powered)
     portfolioService.ts      — Portfolio value computations
+    morningSentinelService.ts — AI-generated daily briefing (Morning Sentinel) with anomaly detection
   repositories/              — Data access layer (PostgreSQL queries)
     userRepository.ts        — User + risk profile queries
     portfolioRepository.ts   — Portfolio, holdings, allocations, goals, accounts, performance history
@@ -79,6 +81,7 @@ episodic_memories, semantic_facts, chat_audit_log
 | GET    | /api/health                | Health check                       |
 | GET    | /api/me                    | Current user profile               |
 | GET    | /api/home/summary          | Home screen data + content cards   |
+| GET    | /api/morning-sentinel      | AI-generated daily briefing (?refresh=true to force) |
 | GET    | /api/wealth/overview       | Portfolio value + performance      |
 | GET    | /api/wealth/allocation     | Asset allocation (computed)        |
 | GET    | /api/wealth/holdings       | Top 5 holdings by value            |

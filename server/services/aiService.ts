@@ -3,6 +3,8 @@ import type { Intent } from './intentClassifier';
 import type { PortfolioContext } from './ragService';
 import { openai, MODEL } from './openaiClient';
 
+export { openai, MODEL };
+
 const SYSTEM_PERSONA = `You are Ada, an AI wealth copilot for a premium wealth management platform. Your personality:
 - Clear, jargon-free language calibrated for sophisticated but non-technical investors
 - Action-oriented: always suggest concrete next steps

@@ -23,6 +23,7 @@ export { AtomIcon } from './AtomIcon';
 // Card Components
 export { ContentCard } from './ContentCard';
 export { SummaryCard } from './SummaryCard';
+export { MorningSentinelCard } from './MorningSentinelCard';
 export { InsightCard } from './InsightCard';
 export { TrendCard } from './TrendCard';
 export { OnboardingCard } from './OnboardingCard';
