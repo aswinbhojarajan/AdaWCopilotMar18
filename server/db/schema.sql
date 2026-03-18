@@ -229,3 +229,19 @@ CREATE TABLE IF NOT EXISTS poll_votes (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(poll_id, user_id)
 );
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='goals' AND column_name='previous_amount') THEN
+    ALTER TABLE goals ADD COLUMN previous_amount NUMERIC(14,2);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='goals' AND column_name='health_status') THEN
+    ALTER TABLE goals ADD COLUMN health_status TEXT NOT NULL DEFAULT 'on-track' CHECK (health_status IN ('on-track','needs-attention','at-risk'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='goals' AND column_name='ai_insight') THEN
+    ALTER TABLE goals ADD COLUMN ai_insight TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='goals' AND column_name='cta_text') THEN
+    ALTER TABLE goals ADD COLUMN cta_text TEXT NOT NULL DEFAULT 'View details';
+  END IF;
+END $$;
