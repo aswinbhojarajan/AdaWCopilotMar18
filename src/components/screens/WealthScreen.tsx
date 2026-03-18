@@ -151,10 +151,10 @@ export function WealthScreen({
   }));
 
   const handleAccountAdded = (institution: { name: string; type: string }) => {
-    addAccountMutation.mutate({
-      institutionName: institution.name,
-      accountType: institution.type,
-    });
+    addAccountMutation.mutate(
+      { institutionName: institution.name, accountType: institution.type },
+      { onError: () => setShowAddAccountModal(false) },
+    );
   };
 
   const goals = (goalsQuery.data ?? []).map((goal) => ({
