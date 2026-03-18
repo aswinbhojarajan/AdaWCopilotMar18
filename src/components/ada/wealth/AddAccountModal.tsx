@@ -196,32 +196,19 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
     setStep('credentials');
   };
 
-  const handleConnect = async () => {
+  const handleConnect = () => {
     if (!selectedInstitution) return;
 
     setStep('connecting');
 
-    try {
-      const res = await fetch('/api/wealth/accounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          institutionName: selectedInstitution.name,
-          accountType: selectedInstitution.type,
-        }),
-      });
+    onAccountAdded({ name: selectedInstitution.name, type: selectedInstitution.type });
 
-      if (!res.ok) throw new Error('Failed to add account');
-
+    setTimeout(() => {
       setStep('success');
-
       setTimeout(() => {
-        onAccountAdded({ name: selectedInstitution.name, type: selectedInstitution.type });
         handleClose();
       }, 1500);
-    } catch {
-      setStep('select');
-    }
+    }, 1500);
   };
 
   const handleBack = () => {
