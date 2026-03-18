@@ -180,44 +180,95 @@ export function getHomeSparkline(_userId: string): SparklinePoint[] {
   ];
 }
 
-export function getPerformanceData(_userId: string): Record<string, PerformanceDataPoint[]> {
-  const now = new Date();
-  const formatMonthDay = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+export async function getPerformanceHistory(
+  userId: string,
+  days: number,
+): Promise<{ value: number; recordedDate: string }[]> {
+  const { rows } = await pool.query(
+    `SELECT value, recorded_date
+     FROM performance_history
+     WHERE user_id = $1 AND recorded_date >= CURRENT_DATE - ($2 || ' days')::INTERVAL
+     ORDER BY recorded_date ASC`,
+    [userId, days],
+  );
+  return rows.map((r) => ({
+    value: Number(r.value),
+    recordedDate: String(r.recorded_date),
+  }));
+}
+
+export async function getPerformanceData(userId: string): Promise<Record<string, PerformanceDataPoint[]>> {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const formatMonthDay = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+
+  const yearData = await getPerformanceHistory(userId, 365);
+
+  if (yearData.length === 0) {
+    return { '1D': [], '1W': [], '1M': [], '3M': [], '1Y': [] };
+  }
+
+  const latest = yearData[yearData.length - 1];
+  const latestValue = latest.value;
+
+  const make1D = (): PerformanceDataPoint[] => {
+    const hours = ['9am', '10am', '11am', '12pm', '1pm', '2pm', '3pm', '4pm', '5pm', '6pm'];
+    const base = latestValue * 0.991;
+    const step = (latestValue - base) / (hours.length - 1);
+    return hours.map((label, i) => ({
+      value: Math.round((base + step * i) * 100) / 100,
+      label,
+    }));
+  };
+
+  const sampleEvery = (data: typeof yearData, n: number): PerformanceDataPoint[] => {
+    if (data.length <= n) {
+      return data.map((d) => {
+        const dt = new Date(d.recordedDate);
+        return { value: d.value, label: dayNames[dt.getDay()] };
+      });
+    }
+    const step = Math.floor(data.length / n);
+    const result: PerformanceDataPoint[] = [];
+    for (let i = 0; i < n; i++) {
+      const idx = Math.min(i * step, data.length - 1);
+      const d = data[idx];
+      const dt = new Date(d.recordedDate);
+      let label: string;
+      if (n <= 7) label = dayNames[dt.getDay()];
+      else if (n <= 12) label = monthNames[dt.getMonth()];
+      else label = formatMonthDay(dt);
+      result.push({ value: d.value, label });
+    }
+    const last = data[data.length - 1];
+    const lastDt = new Date(last.recordedDate);
+    result.push({
+      value: last.value,
+      label: n <= 12 ? monthNames[lastDt.getMonth()] : formatMonthDay(lastDt),
+    });
+    return result;
+  };
+
+  const weekData = yearData.filter((d) => {
+    const diff = (Date.now() - new Date(d.recordedDate).getTime()) / 86400000;
+    return diff <= 7;
+  });
+
+  const monthData = yearData.filter((d) => {
+    const diff = (Date.now() - new Date(d.recordedDate).getTime()) / 86400000;
+    return diff <= 30;
+  });
+
+  const qtrData = yearData.filter((d) => {
+    const diff = (Date.now() - new Date(d.recordedDate).getTime()) / 86400000;
+    return diff <= 90;
+  });
 
   return {
-    '1D': [
-      { value: 94000, label: '9am' },
-      { value: 94100, label: '10am' },
-      { value: 94200, label: '11am' },
-      { value: 94300, label: '12pm' },
-      { value: 94400, label: '1pm' },
-      { value: 94500, label: '2pm' },
-      { value: 94600, label: '3pm' },
-      { value: 94700, label: '4pm' },
-      { value: 94800, label: '5pm' },
-      { value: 94830, label: '6pm' },
-    ],
-    '1W': Array.from({ length: 5 }, (_, i) => {
-      const d = new Date(now);
-      d.setDate(d.getDate() - (4 - i));
-      return { value: 93500 + i * 332.5, label: dayNames[d.getDay()] };
-    }),
-    '1M': Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now);
-      d.setDate(d.getDate() - (5 - i) * 7);
-      return { value: 91000 + i * 783, label: formatMonthDay(d) };
-    }),
-    '3M': Array.from({ length: 4 }, (_, i) => {
-      const d = new Date(now);
-      d.setMonth(d.getMonth() - (3 - i));
-      return { value: 85000 + i * 3276.67, label: monthNames[d.getMonth()] };
-    }),
-    '1Y': Array.from({ length: 12 }, (_, i) => {
-      const d = new Date(now);
-      d.setMonth(d.getMonth() - (11 - i));
-      return { value: 78000 + i * 1402.5, label: monthNames[d.getMonth()] };
-    }),
+    '1D': make1D(),
+    '1W': sampleEvery(weekData, 5),
+    '1M': sampleEvery(monthData, 6),
+    '3M': sampleEvery(qtrData, 4),
+    '1Y': sampleEvery(yearData, 11),
   };
 }

@@ -176,6 +176,30 @@ export interface HoldingResponse {
   changeAmount: number;
 }
 
+export interface PollQuestion {
+  id: string;
+  question: string;
+  createdAt: string;
+  options: PollOption[];
+  userVote?: string;
+}
+
+export interface PollOption {
+  id: string;
+  pollId: string;
+  label: string;
+  voteCount: number;
+}
+
+export interface PollVoteRequest {
+  optionId: string;
+}
+
+export interface PollVoteResponse {
+  success: boolean;
+  poll: PollQuestion;
+}
+
 export interface ChatMessageRequest {
   message: string;
   threadId?: string;

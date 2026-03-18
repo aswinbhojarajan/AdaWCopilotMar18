@@ -119,6 +119,37 @@ INSERT INTO peer_segments (asset_class, user_percent, peer_percent, color) VALUE
   ('Alternatives', 10, 15, '#8b5a5d')
 ON CONFLICT DO NOTHING;
 
+-- Performance History (Abdullah - 1 year of daily data)
+INSERT INTO performance_history (user_id, value, recorded_date)
+SELECT 'user-abdullah',
+       78000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 46.19,
+       d::date
+FROM generate_series(
+  CURRENT_DATE - INTERVAL '365 days',
+  CURRENT_DATE,
+  '1 day'
+) AS d
+ON CONFLICT (user_id, recorded_date) DO NOTHING;
+
+-- Update the most recent performance_history entry to match snapshot
+UPDATE performance_history
+SET value = 94830.19
+WHERE user_id = 'user-abdullah' AND recorded_date = CURRENT_DATE;
+
+-- Poll Questions
+INSERT INTO poll_questions (id, question, created_at) VALUES
+  ('poll-1', 'Which region do you feel most confident investing in right now?', NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Poll Options
+INSERT INTO poll_options (id, poll_id, label, vote_count) VALUES
+  ('opt-1-1', 'poll-1', 'North America', 32),
+  ('opt-1-2', 'poll-1', 'Europe', 18),
+  ('opt-1-3', 'poll-1', 'Asia Pacific', 24),
+  ('opt-1-4', 'poll-1', 'Emerging Markets', 12),
+  ('opt-1-5', 'poll-1', 'Global/Diversified', 14)
+ON CONFLICT (id) DO NOTHING;
+
 -- Chat Threads (Abdullah)
 INSERT INTO chat_threads (id, user_id, title, preview, created_at, updated_at) VALUES
   ('thread-abd-1', 'user-abdullah', 'Portfolio rebalancing and asset allocation',

@@ -33,7 +33,7 @@ export async function getHomeSummary(userId: string): Promise<HomeSummaryRespons
 
 export async function getWealthOverview(userId: string): Promise<WealthOverviewResponse> {
   const snapshot = await portfolioRepo.getLatestSnapshot(userId);
-  const perfData = portfolioRepo.getPerformanceData(userId);
+  const perfData = await portfolioRepo.getPerformanceData(userId);
 
   return {
     totalValue: snapshot.totalValue,

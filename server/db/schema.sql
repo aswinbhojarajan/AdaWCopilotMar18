@@ -153,3 +153,33 @@ CREATE TABLE IF NOT EXISTS transactions (
   amount NUMERIC(14,2) NOT NULL,
   executed_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS performance_history (
+  id SERIAL PRIMARY KEY,
+  user_id TEXT REFERENCES users(id),
+  value NUMERIC(14,2) NOT NULL,
+  recorded_date DATE NOT NULL,
+  UNIQUE(user_id, recorded_date)
+);
+
+CREATE TABLE IF NOT EXISTS poll_questions (
+  id TEXT PRIMARY KEY,
+  question TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS poll_options (
+  id TEXT PRIMARY KEY,
+  poll_id TEXT REFERENCES poll_questions(id),
+  label TEXT NOT NULL,
+  vote_count INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS poll_votes (
+  id TEXT PRIMARY KEY,
+  poll_id TEXT REFERENCES poll_questions(id),
+  user_id TEXT REFERENCES users(id),
+  option_id TEXT REFERENCES poll_options(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(poll_id, user_id)
+);

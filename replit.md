@@ -6,7 +6,7 @@ A mobile-first wealth management copilot prototype. Full-stack application with 
 ## Tech Stack
 - **Frontend**: React 18 + TypeScript, Vite 6, Tailwind CSS v4
 - **Backend**: Express + TypeScript (via tsx), port 3001
-- **Database**: PostgreSQL (Replit-managed), 15 tables, 4 demo personas
+- **Database**: PostgreSQL (Replit-managed), 19 tables, 4 demo personas
 - **Styling**: Tailwind utility classes, custom fonts (Crimson Pro, DM Sans)
 - **Linting**: ESLint 9 (flat config) + Prettier
 - **Dev Server**: Vite on port 5000 proxies /api → port 3001
@@ -32,12 +32,13 @@ server/
   services/                  — Business logic (portfolioService, chatService)
   repositories/              — Data access layer (PostgreSQL queries)
     userRepository.ts        — User + risk profile queries
-    portfolioRepository.ts   — Portfolio, holdings, allocations, goals, accounts
-    contentRepository.ts     — Content cards, alerts, chat threads, peer comparisons
+    portfolioRepository.ts   — Portfolio, holdings, allocations, goals, accounts, performance history
+    contentRepository.ts     — Content cards, alerts, chat threads/messages, peer comparisons
     chatRepository.ts        — Deterministic chat response mappings (in-memory)
+    pollRepository.ts        — Poll questions, options, and voting
   db/
     pool.ts                  — pg Pool configured from DATABASE_URL
-    schema.sql               — 15-table schema definition
+    schema.sql               — 19-table schema definition
     seed.sql                 — Seed data for 4 personas
 
 shared/
@@ -47,29 +48,36 @@ shared/
 ## Database Tables
 users, risk_profiles, advisors, accounts, positions, transactions,
 price_history, portfolio_snapshots, goals, alerts, content_items,
-peer_segments, chat_threads, chat_messages, action_contexts
+peer_segments, chat_threads, chat_messages, action_contexts,
+performance_history, poll_questions, poll_options, poll_votes
 
 ## API Endpoints
-| Method | Path                  | Description                     |
-|--------|-----------------------|---------------------------------|
-| GET    | /api/health           | Health check                    |
-| GET    | /api/me               | Current user profile            |
-| GET    | /api/home/summary     | Home screen data + content cards|
-| GET    | /api/wealth/overview  | Portfolio value + performance   |
-| GET    | /api/wealth/allocation| Asset allocation (computed)     |
-| GET    | /api/wealth/holdings  | Top 5 holdings by value         |
-| GET    | /api/wealth/goals     | Financial goals                 |
-| GET    | /api/wealth/accounts  | Connected accounts              |
-| GET    | /api/notifications    | User alerts/notifications       |
-| GET    | /api/chat/threads     | Chat history threads            |
-| POST   | /api/chat/message     | Send message, get AI response   |
-| GET    | /api/collective/peers | Peer comparison data            |
+| Method | Path                       | Description                        |
+|--------|----------------------------|------------------------------------|
+| GET    | /api/health                | Health check                       |
+| GET    | /api/me                    | Current user profile               |
+| GET    | /api/home/summary          | Home screen data + content cards   |
+| GET    | /api/wealth/overview       | Portfolio value + performance      |
+| GET    | /api/wealth/allocation     | Asset allocation (computed)        |
+| GET    | /api/wealth/holdings       | Top 5 holdings by value            |
+| GET    | /api/wealth/goals          | Financial goals                    |
+| GET    | /api/wealth/accounts       | Connected accounts                 |
+| GET    | /api/notifications         | User alerts/notifications          |
+| GET    | /api/content               | All content items (?category=X)    |
+| GET    | /api/chat/threads          | Chat history threads               |
+| GET    | /api/chat/:threadId/messages | Messages in a thread             |
+| POST   | /api/chat/message          | Send message, get AI response      |
+| POST   | /api/chat/:threadId/messages | Send message to specific thread  |
+| GET    | /api/collective/peers      | Peer comparison data               |
+| GET    | /api/polls                 | Active polls with options & votes  |
+| POST   | /api/polls/:pollId/vote    | Vote on a poll option              |
 
 ## Frontend-API Integration
 - HomeScreen: fetches `/api/home/summary`, renders content cards from DB
 - WealthScreen: fetches overview, allocation, holdings, goals, accounts (5 parallel API calls)
 - ChatScreen: sends messages to `/api/chat/message`, receives deterministic responses
 - Both screens have loading skeletons and error states
+- Performance data now sourced from performance_history table (366 daily data points)
 
 ## Navigation
 - 4 main tabs: Home, Wealth, Discover, Collective
@@ -90,3 +98,5 @@ peer_segments, chat_threads, chat_messages, action_contexts
 - Global error handler catches unhandled errors
 - Default user: Abdullah Al-Rashid (user-abdullah)
 - ESLint ignores `src/imports/` (Figma-generated code)
+- Poll voting uses transactions for atomicity (vote count + vote record)
+- Performance history seeded with 366 days of data via generate_series

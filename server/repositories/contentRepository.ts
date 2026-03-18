@@ -1,5 +1,5 @@
 import pool from '../db/pool';
-import type { ContentItem, Alert, ChatThread, PeerComparison } from '../../shared/types';
+import type { ContentItem, Alert, ChatThread, ChatMessage, PeerComparison } from '../../shared/types';
 
 export async function getHomeContent(_userId: string): Promise<ContentItem[]> {
   const { rows } = await pool.query(
@@ -59,6 +59,99 @@ export async function getPeerComparisons(_userId: string): Promise<PeerCompariso
     peerPercent: Number(r.peer_percent),
     color: String(r.color),
   }));
+}
+
+export async function getAllContent(): Promise<ContentItem[]> {
+  const { rows } = await pool.query(
+    `SELECT id, category, category_type, title, context_title, description,
+            timestamp, button_text, secondary_button_text, image, sources_count,
+            topic_label_color
+     FROM content_items
+     ORDER BY id`,
+  );
+  return rows.map(mapRowToContentItem);
+}
+
+export async function getContentByCategory(category: string): Promise<ContentItem[]> {
+  const { rows } = await pool.query(
+    `SELECT id, category, category_type, title, context_title, description,
+            timestamp, button_text, secondary_button_text, image, sources_count,
+            topic_label_color
+     FROM content_items
+     WHERE LOWER(category) = LOWER($1)
+     ORDER BY id`,
+    [category],
+  );
+  return rows.map(mapRowToContentItem);
+}
+
+export async function getChatMessagesByThreadId(
+  threadId: string,
+  userId: string,
+): Promise<ChatMessage[]> {
+  const { rows: threadCheck } = await pool.query(
+    `SELECT id FROM chat_threads WHERE id = $1 AND user_id = $2`,
+    [threadId, userId],
+  );
+  if (threadCheck.length === 0) return [];
+
+  const { rows } = await pool.query(
+    `SELECT id, thread_id, sender, message, created_at
+     FROM chat_messages WHERE thread_id = $1
+     ORDER BY created_at ASC`,
+    [threadId],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    threadId: String(r.thread_id),
+    sender: r.sender as ChatMessage['sender'],
+    message: String(r.message),
+    timestamp: new Date(r.created_at as string).toISOString(),
+  }));
+}
+
+export async function insertChatMessage(
+  threadId: string,
+  sender: 'user' | 'assistant',
+  message: string,
+): Promise<ChatMessage> {
+  const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const { rows } = await pool.query(
+    `INSERT INTO chat_messages (id, thread_id, sender, message)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, thread_id, sender, message, created_at`,
+    [id, threadId, sender, message],
+  );
+  await pool.query(
+    `UPDATE chat_threads SET updated_at = NOW() WHERE id = $1`,
+    [threadId],
+  );
+  const r = rows[0];
+  return {
+    id: String(r.id),
+    threadId: String(r.thread_id),
+    sender: r.sender as ChatMessage['sender'],
+    message: String(r.message),
+    timestamp: new Date(r.created_at as string).toISOString(),
+  };
+}
+
+export async function ensureChatThread(
+  userId: string,
+  threadId: string,
+  title: string,
+): Promise<string> {
+  const { rows } = await pool.query(
+    `SELECT id FROM chat_threads WHERE id = $1 AND user_id = $2`,
+    [threadId, userId],
+  );
+  if (rows.length > 0) return threadId;
+
+  await pool.query(
+    `INSERT INTO chat_threads (id, user_id, title, preview) VALUES ($1, $2, $3, $4)`,
+    [threadId, userId, title, ''],
+  );
+  return threadId;
 }
 
 function mapRowToContentItem(r: Record<string, unknown>): ContentItem {
