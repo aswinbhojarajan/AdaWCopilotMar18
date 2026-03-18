@@ -89,6 +89,24 @@ performance_history, poll_questions, poll_options, poll_votes
 - Green badge: `#c6ff6a`
 - Cream background: `#efede6`, Header background: `#f7f6f2`
 
+## Database Setup
+```bash
+npm run db:setup    # Creates all tables and seeds data
+npm run db:schema   # Schema only (idempotent, uses IF NOT EXISTS)
+npm run db:seed     # Seed only (idempotent, uses ON CONFLICT DO NOTHING)
+```
+Requires `DATABASE_URL` environment variable (auto-provisioned by Replit).
+
+## Table Name Mapping
+The database uses descriptive table names that differ from the task spec:
+| Spec Name | Actual Table | Notes |
+|-----------|-------------|-------|
+| portfolios | portfolio_snapshots | Stores snapshot values |
+| holdings | positions | With computed value/change |
+| connected_accounts | accounts | Same structure |
+| notifications | alerts | Category-based filtering |
+| asset_allocations | (computed) | Derived from positions + accounts |
+
 ## Key Decisions
 - "Lounge" renamed to "Collective" everywhere
 - Repository/service pattern; repositories query PostgreSQL
