@@ -85,7 +85,7 @@ export function CollectiveScreen({
     setHasVoted(true);
     onPollVote?.();
 
-    voteMutation.mutate({ pollId: poll.id, optionId: Number(optionId) });
+    voteMutation.mutate({ pollId: String(poll.id), optionId });
 
     setTimeout(() => {
       setShowNotification(true);

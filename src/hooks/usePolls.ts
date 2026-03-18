@@ -16,8 +16,8 @@ export function useVotePoll() {
       pollId,
       optionId,
     }: {
-      pollId: number;
-      optionId: number;
+      pollId: string;
+      optionId: string;
     }) => apiPost<{ success: boolean }>(`/api/polls/${pollId}/vote`, { optionId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['polls'] });
