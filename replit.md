@@ -147,7 +147,11 @@ Requires `DATABASE_URL` environment variable (auto-provisioned by Replit).
 - "Lounge" renamed to "Collective" everywhere
 - Repository/service pattern; repositories query PostgreSQL
 - Asset allocation computed from positions + account balances
-- Chat uses LLM with full portfolio RAG context; falls back to deterministic keyword matching
+- Chat uses LLM with full portfolio RAG context
+- AnimatePresence transitions: tab switches (horizontal slide), overlays (slide-up), ClientEnvironment (fade)
+- Pull-to-refresh on Home, Wealth, Discover, Collective screens (PullToRefresh component with forwardRef)
+- Animated tab indicator using Framer Motion layoutId in Navigation component
+- Production deployment configured as autoscale (build: vite, run: Node.js Express)
 - asyncHandler wrapper on all async Express routes
 - Global error handler catches unhandled errors
 - Default user: Abdullah Al-Rashid (user-abdullah)

@@ -13,6 +13,7 @@ import {
   CompactConnectedAccounts,
   AddAccountModal,
   SlideNotification,
+  PullToRefresh,
 } from '../ada';
 import { Home, GraduationCap, AlertTriangle, TrendingDown, Wallet, Target } from 'lucide-react';
 import { SkeletonList } from '../ada/Skeleton';
@@ -44,6 +45,7 @@ interface WealthScreenProps {
   shouldAutoScrollToGoal?: boolean;
   onScrollComplete?: () => void;
   onClose?: () => void;
+  onTabChange?: (tab: string) => void;
 }
 
 export function WealthScreen({
@@ -58,12 +60,13 @@ export function WealthScreen({
   onScrollComplete,
   onNotificationsClick,
   onClose,
+  onTabChange,
 }: WealthScreenProps) {
   const [showAddAccountModal, setShowAddAccountModal] = React.useState(false);
   const [goalsExpanded, setGoalsExpanded] = React.useState(false);
   const [shouldScrollToGoal, setShouldScrollToGoal] = React.useState(false);
   const houseDepositGoalRef = React.useRef<HTMLDivElement>(null);
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const pullToRefreshRef = React.useRef<HTMLDivElement>(null);
 
   const overviewQuery = useWealthOverview();
   const allocationsQuery = useAllocations();
@@ -105,9 +108,9 @@ export function WealthScreen({
     if (shouldScrollToGoal && goalsExpanded) {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          if (houseDepositGoalRef.current && scrollContainerRef.current) {
+          if (houseDepositGoalRef.current && pullToRefreshRef.current) {
             const goalElement = houseDepositGoalRef.current;
-            const scrollContainer = scrollContainerRef.current;
+            const scrollContainer = pullToRefreshRef.current;
 
             const containerRect = scrollContainer.getBoundingClientRect();
             const goalRect = goalElement.getBoundingClientRect();
@@ -187,12 +190,13 @@ export function WealthScreen({
       <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-0 px-0 w-full z-10">
         <TopBar />
         <Header onNotificationsClick={onNotificationsClick} onClose={onClose} />
-        <Navigation activeTab="wealth" onTabChange={() => {}} />
+        <Navigation activeTab="wealth" onTabChange={onTabChange ?? (() => {})} />
       </div>
 
-      <div
-        className="absolute top-[128px] left-0 right-0 bottom-0 overflow-y-auto"
-        ref={scrollContainerRef}
+      <PullToRefresh
+        ref={pullToRefreshRef}
+        onRefresh={async () => { await Promise.all([overviewQuery.refetch(), holdingsQuery.refetch(), allocationsQuery.refetch(), goalsQuery.refetch(), accountsQuery.refetch()]); }}
+        className="absolute top-[128px] left-0 right-0 bottom-0"
       >
         {loading ? (
           <div className="px-[6px] pt-[5px] pb-[107px]">
@@ -300,7 +304,7 @@ export function WealthScreen({
             />
           </div>
         )}
-      </div>
+      </PullToRefresh>
 
       <div className="absolute bottom-0 left-0 right-0 z-10">
         <BottomBar

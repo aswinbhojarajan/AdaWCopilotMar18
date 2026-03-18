@@ -14,11 +14,11 @@ const PORT = isProd ? 5000 : 3001;
 app.use(cors());
 app.use(express.json());
 
-app.use('/api', apiRouter);
-
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+app.use('/api', apiRouter);
 
 if (isProd) {
   const buildDir = path.resolve(__dirname, '..', 'build');

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TopBar, Header, Navigation, BottomBar, Tag, ContentCard } from '../ada';
+import { TopBar, Header, Navigation, BottomBar, Tag, ContentCard, PullToRefresh } from '../ada';
 import { SkeletonList } from '../ada/Skeleton';
 import { ErrorBanner } from '../ada/ErrorBanner';
 import { useDiscoverContent } from '../../hooks/useContent';
@@ -13,6 +13,7 @@ export function DiscoverScreen({
   onResumeChat,
   onOpenChat,
   onClose,
+  onTabChange,
 }: ScreenProps = {}) {
   const [activeFilter, setActiveFilter] = useState<'forYou' | 'whatsHappening'>('forYou');
 
@@ -25,10 +26,13 @@ export function DiscoverScreen({
       <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-0 px-0 w-full z-10">
         <TopBar />
         <Header onNotificationsClick={onNotificationsClick} onClose={onClose} />
-        <Navigation activeTab="discover" onTabChange={() => {}} />
+        <Navigation activeTab="discover" onTabChange={onTabChange ?? (() => {})} />
       </div>
 
-      <div className="absolute top-[128px] left-0 right-0 bottom-0 overflow-y-auto">
+      <PullToRefresh
+        onRefresh={async () => { await refetch(); }}
+        className="absolute top-[128px] left-0 right-0 bottom-0"
+      >
         {isLoading && !data ? (
           <div className="px-[6px] pt-[5px] pb-[107px]">
             <SkeletonList count={4} />
@@ -77,7 +81,7 @@ export function DiscoverScreen({
             ))}
           </div>
         )}
-      </div>
+      </PullToRefresh>
 
       <div className="absolute bottom-0 left-0 right-0 z-10">
         <BottomBar

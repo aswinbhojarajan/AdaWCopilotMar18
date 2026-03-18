@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { Navigation } from './components/ada';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { HomeScreen } from './components/screens/HomeScreen';
 import { HomeEmptyScreen } from './components/screens/HomeEmptyScreen';
 import { DiscoverScreen } from './components/screens/DiscoverScreen';
@@ -10,6 +10,20 @@ import { WealthScreen } from './components/screens/WealthScreen';
 import { NotificationsScreen } from './components/screens/NotificationsScreen';
 import ClientEnvironment from './imports/ClientEnvironment-2066-398';
 import type { TabType, ViewType, ChatContext, Message } from './types';
+
+const TAB_ORDER: TabType[] = ['home', 'wealth', 'discover', 'collective'];
+
+const overlayVariants = {
+  initial: { y: '100%', opacity: 1 },
+  animate: { y: 0, opacity: 1 },
+  exit: { y: '100%', opacity: 1 },
+};
+
+const fadeVariants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -27,7 +41,8 @@ export default function App() {
   const [_hasVotedInPoll, setHasVotedInPoll] = useState(false);
   const [showGoalNotification, setShowGoalNotification] = useState(false);
   const [pendingWealthScroll, setPendingWealthScroll] = useState(false);
-  const [_screensExpanded, _setScreensExpanded] = useState(true);
+
+  const prevTabRef = useRef<TabType>('home');
 
   const handlePollVote = () => {
     setHasVotedInPoll(true);
@@ -39,6 +54,7 @@ export default function App() {
   };
 
   const handleTabChange = (newTab: TabType) => {
+    prevTabRef.current = activeTab;
     setActiveTab(newTab);
   };
 
@@ -65,6 +81,37 @@ export default function App() {
       setMessages([]);
       setCurrentView('chat');
     }
+  };
+
+  const tabDirection = useMemo(() => {
+    const prevIdx = TAB_ORDER.indexOf(prevTabRef.current);
+    const curIdx = TAB_ORDER.indexOf(activeTab);
+    return curIdx >= prevIdx ? 1 : -1;
+  }, [activeTab]);
+
+  const tabVariants = useMemo(() => ({
+    initial: { x: `${tabDirection * 30}%`, opacity: 0 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: `${-tabDirection * 30}%`, opacity: 0 },
+  }), [tabDirection]);
+
+  const isOverlay = ['chat', 'chat-history', 'notifications'].includes(currentView);
+  const isClientEnv = currentView === 'client-environment';
+
+  const screenKey = isOverlay || isClientEnv || currentView === 'home-empty'
+    ? currentView
+    : `tab-${activeTab}`;
+
+  const getVariants = () => {
+    if (isOverlay) return overlayVariants;
+    if (isClientEnv) return fadeVariants;
+    return tabVariants;
+  };
+
+  const getTransition = () => {
+    if (isOverlay) return { type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] };
+    if (isClientEnv) return { duration: 0.4 };
+    return { type: 'tween', duration: 0.2, ease: 'easeInOut' };
   };
 
   const renderCurrentView = () => {
@@ -143,6 +190,7 @@ export default function App() {
           onResumeChat={handleResumeChat}
           onOpenChat={handleOpenChat}
           onClose={() => setCurrentView('client-environment')}
+          onTabChange={handleTabChange}
         />
       );
     if (activeTab === 'wealth')
@@ -159,6 +207,7 @@ export default function App() {
           shouldAutoScrollToGoal={pendingWealthScroll}
           onScrollComplete={() => setPendingWealthScroll(false)}
           onClose={() => setCurrentView('client-environment')}
+          onTabChange={handleTabChange}
         />
       );
     if (activeTab === 'discover')
@@ -171,6 +220,7 @@ export default function App() {
           onResumeChat={handleResumeChat}
           onOpenChat={handleOpenChat}
           onClose={() => setCurrentView('client-environment')}
+          onTabChange={handleTabChange}
         />
       );
     if (activeTab === 'collective')
@@ -185,35 +235,32 @@ export default function App() {
           onPollVote={handlePollVote}
           onNavigateToWealth={handleNavigateToWealthFromCollective}
           onClose={() => setCurrentView('client-environment')}
+          onTabChange={handleTabChange}
         />
       );
 
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="bg-white rounded-[30px] p-[32px] mx-[24px]">
-          <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] tracking-[-0.48px] text-center">
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} screen coming soon...
-          </p>
-        </div>
-      </div>
-    );
+    return null;
   };
 
   return (
     <div className="relative w-full min-h-screen bg-[#999999] flex items-center justify-center overflow-hidden">
       <div
-        className="relative w-full max-w-[430px] h-screen bg-[#efede6] shadow-2xl"
+        className="relative w-full max-w-[430px] h-screen bg-[#efede6] shadow-2xl overflow-hidden"
         style={{ isolation: 'isolate' } as React.CSSProperties}
       >
-        {!['chat', 'chat-history', 'home-empty', 'notifications', 'client-environment'].includes(
-          currentView,
-        ) && (
-          <div className="absolute top-[88px] left-0 right-0 z-20">
-            <Navigation activeTab={activeTab} onTabChange={handleTabChange} />
-          </div>
-        )}
-
-        <div className="relative w-full h-full">{renderCurrentView()}</div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={screenKey}
+            variants={getVariants()}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={getTransition()}
+            className="relative w-full h-full"
+          >
+            {renderCurrentView()}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

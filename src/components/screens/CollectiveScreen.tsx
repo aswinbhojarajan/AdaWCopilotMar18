@@ -9,6 +9,7 @@ import {
   SlideNotification,
   SummaryCard,
   ContentCard,
+  PullToRefresh,
 } from '../ada';
 import { Clock } from 'lucide-react';
 import { SkeletonList } from '../ada/Skeleton';
@@ -31,6 +32,7 @@ interface CollectiveScreenProps {
   onPollVote?: () => void;
   onNavigateToWealth?: () => void;
   onClose?: () => void;
+  onTabChange?: (tab: string) => void;
 }
 
 export function CollectiveScreen({
@@ -43,6 +45,7 @@ export function CollectiveScreen({
   onPollVote,
   onNavigateToWealth,
   onClose,
+  onTabChange,
 }: CollectiveScreenProps = {}) {
   const [hasVoted, setHasVoted] = React.useState(false);
   const [selectedOptionId, setSelectedOptionId] = React.useState<string | null>(null);
@@ -110,10 +113,13 @@ export function CollectiveScreen({
       <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-0 px-0 w-full z-10">
         <TopBar />
         <Header onNotificationsClick={onNotificationsClick} onClose={onClose} />
-        <Navigation activeTab="collective" onTabChange={() => {}} />
+        <Navigation activeTab="collective" onTabChange={onTabChange ?? (() => {})} />
       </div>
 
-      <div className="absolute top-[128px] left-0 right-0 bottom-0 overflow-y-auto">
+      <PullToRefresh
+        onRefresh={async () => { await Promise.all([pollsQuery.refetch(), peersQuery.refetch()]); }}
+        className="absolute top-[128px] left-0 right-0 bottom-0"
+      >
         {loading ? (
           <div className="px-[6px] pt-[5px] pb-[107px]">
             <SkeletonList count={4} />
@@ -367,7 +373,7 @@ export function CollectiveScreen({
             )}
           </div>
         )}
-      </div>
+      </PullToRefresh>
 
       <div className="absolute bottom-0 left-0 right-0 z-10">
         <BottomBar

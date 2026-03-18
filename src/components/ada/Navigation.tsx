@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import type { TabType } from '../../types';
 
 interface NavigationProps {
@@ -6,42 +7,35 @@ interface NavigationProps {
   onTabChange: (tab: TabType) => void;
 }
 
+const TABS: { id: TabType; label: string; width: string }[] = [
+  { id: 'home', label: 'HOME', width: 'w-[39px]' },
+  { id: 'wealth', label: 'WEALTH', width: 'w-[45px]' },
+  { id: 'discover', label: 'DISCOVER', width: 'w-[57px]' },
+  { id: 'collective', label: 'COLLECTIVE', width: 'w-[46px]' },
+];
+
 export function Navigation({ activeTab = 'home', onTabChange }: NavigationProps) {
   return (
     <div className="bg-[#f7f6f2] content-stretch flex gap-[32px] h-[40px] items-center px-[24px] py-0 relative shrink-0 w-full">
-      <button onClick={() => onTabChange('home')}>
-        <div className="content-stretch flex flex-col items-start relative shrink-0">
-          <p
-            className={`font-['DM_Sans:${activeTab === 'home' ? 'SemiBold' : 'Regular'}',sans-serif] h-[10px] leading-[1.3] not-italic relative shrink-0 text-[#441316] text-[10px] text-center tracking-[1.2px] uppercase w-[39px] ${activeTab === 'home' ? '' : 'opacity-60'}`}
-          >
-            HOME
-          </p>
-        </div>
-      </button>
-
-      <button onClick={() => onTabChange('wealth')}>
-        <p
-          className={`font-['DM_Sans:${activeTab === 'wealth' ? 'SemiBold' : 'Regular'}',sans-serif] h-[10px] leading-[1.3] not-italic ${activeTab === 'wealth' ? '' : 'opacity-60'} relative shrink-0 text-[#441316] text-[10px] text-center tracking-[1.2px] uppercase w-[45px]`}
-        >
-          WEALTH
-        </p>
-      </button>
-
-      <button onClick={() => onTabChange('discover')}>
-        <p
-          className={`font-['DM_Sans:${activeTab === 'discover' ? 'SemiBold' : 'Regular'}',sans-serif] h-[10px] leading-[1.3] not-italic ${activeTab === 'discover' ? '' : 'opacity-60'} relative shrink-0 text-[#441316] text-[10px] text-center tracking-[1.2px] uppercase w-[57px]`}
-        >
-          DISCOVER
-        </p>
-      </button>
-
-      <button onClick={() => onTabChange('collective')}>
-        <p
-          className={`font-['DM_Sans:${activeTab === 'collective' ? 'SemiBold' : 'Regular'}',sans-serif] h-[10px] leading-[1.3] not-italic ${activeTab === 'collective' ? '' : 'opacity-60'} relative shrink-0 text-[#441316] text-[10px] text-center tracking-[1.2px] uppercase w-[46px]`}
-        >
-          COLLECTIVE
-        </p>
-      </button>
+      {TABS.map((tab) => {
+        const isActive = activeTab === tab.id;
+        return (
+          <button key={tab.id} onClick={() => onTabChange(tab.id)} className="relative">
+            <p
+              className={`font-['DM_Sans:${isActive ? 'SemiBold' : 'Regular'}',sans-serif] h-[10px] leading-[1.3] not-italic text-[#441316] text-[10px] text-center tracking-[1.2px] uppercase ${tab.width} transition-opacity duration-200 ${isActive ? '' : 'opacity-60'}`}
+            >
+              {tab.label}
+            </p>
+            {isActive && (
+              <motion.div
+                layoutId="tab-indicator"
+                className="absolute -bottom-[6px] left-0 right-0 h-[2px] bg-[#441316] rounded-full"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

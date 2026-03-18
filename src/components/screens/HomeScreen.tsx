@@ -7,6 +7,7 @@ import {
   SummaryCard,
   ContentCard,
   SimpleSparkline,
+  PullToRefresh,
 } from '../ada';
 import { SparkIcon } from '../ada/SparkIcon';
 import { SkeletonList } from '../ada/Skeleton';
@@ -30,6 +31,7 @@ export function HomeScreen({
   onResumeChat,
   onOpenChat,
   onClose,
+  onTabChange,
 }: ScreenProps = {}) {
   const { data, isLoading, isError, refetch } = useHomeSummary();
 
@@ -189,12 +191,15 @@ export function HomeScreen({
       <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-0 px-0 w-full z-10">
         <TopBar />
         <Header onNotificationsClick={onNotificationsClick} onClose={onClose} />
-        <Navigation activeTab="home" onTabChange={() => {}} />
+        <Navigation activeTab="home" onTabChange={onTabChange ?? (() => {})} />
       </div>
 
-      <div className="absolute top-[128px] left-0 right-0 bottom-0 overflow-y-auto">
+      <PullToRefresh
+        onRefresh={async () => { await refetch(); }}
+        className="absolute top-[128px] left-0 right-0 bottom-0"
+      >
         {renderContent()}
-      </div>
+      </PullToRefresh>
 
       <div className="absolute bottom-0 left-0 right-0 z-10">
         <BottomBar

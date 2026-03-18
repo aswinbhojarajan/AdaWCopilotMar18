@@ -157,6 +157,7 @@ export interface ScreenProps {
   onResumeChat?: () => void;
   onOpenChat?: () => void;
   onClose?: () => void;
+  onTabChange?: (tab: TabType) => void;
 }
 
 export interface HomeSummaryResponse {
