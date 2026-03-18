@@ -1,6 +1,8 @@
 import React from 'react';
 import { ScenarioSimulator } from './ScenarioSimulator';
 import { SparkIcon } from './SparkIcon';
+import { ChatWidgetRenderer } from './ChatWidgets';
+import type { ChatWidget } from '../../types';
 
 interface ChatMessageProps {
   message: string;
@@ -11,6 +13,8 @@ interface ChatMessageProps {
     type: 'retirement' | 'investment' | 'spending' | 'tax';
     initialValues?: Record<string, number>;
   };
+  widgets?: ChatWidget[];
+  isStreaming?: boolean;
 }
 
 export function ChatMessage({
@@ -19,6 +23,8 @@ export function ChatMessage({
   timestamp: _timestamp,
   contextPrefix,
   simulator,
+  widgets,
+  isStreaming,
 }: ChatMessageProps) {
   const isUser = sender === 'user';
 
@@ -128,7 +134,18 @@ export function ChatMessage({
                 {formatMessage(message)}
               </div>
 
-              {/* Render simulator if provided */}
+              {isStreaming && !isUser && (
+                <span className="inline-block w-[6px] h-[14px] bg-[#441316] animate-pulse ml-[2px] align-middle rounded-sm" />
+              )}
+
+              {widgets && widgets.length > 0 && !isUser && (
+                <div className="mt-[8px]">
+                  {widgets.map((widget, idx) => (
+                    <ChatWidgetRenderer key={idx} widget={widget} />
+                  ))}
+                </div>
+              )}
+
               {simulator && !isUser && (
                 <ScenarioSimulator type={simulator.type} initialValues={simulator.initialValues} />
               )}

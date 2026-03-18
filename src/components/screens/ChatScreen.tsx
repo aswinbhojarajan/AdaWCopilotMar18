@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TopBar, ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon } from '../ada';
-import type { Message, ChatContext } from '../../types';
+import type { Message, ChatContext, ChatWidget } from '../../types';
 
 interface ChatScreenProps {
   initialMessage?: string;
@@ -11,38 +11,109 @@ interface ChatScreenProps {
   setMessages?: React.Dispatch<React.SetStateAction<Message[]>>;
 }
 
-async function fetchChatResponse(
-  message: string,
-  context?: ChatContext,
-): Promise<{ message: string; suggestedQuestions: string[] }> {
-  try {
-    const res = await fetch('/api/chat/message', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message,
-        context: context
-          ? {
-              category: context.category,
-              categoryType: context.categoryType,
-              title: context.title,
-              sourceScreen: context.sourceScreen,
+function useStreamingChat() {
+  const abortRef = useRef<AbortController | null>(null);
+
+  const streamMessage = useCallback(async (
+    message: string,
+    context: ChatContext | undefined,
+    threadId: string | undefined,
+    onText: (text: string) => void,
+    onWidget: (widget: ChatWidget) => void,
+    onSimulator: (sim: { type: string; initialValues?: Record<string, number> }) => void,
+    onSuggestions: (questions: string[]) => void,
+    onDone: () => void,
+    onError: (error: string) => void,
+  ) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const res = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          threadId,
+          context: context ? {
+            category: context.category,
+            categoryType: context.categoryType,
+            title: context.title,
+            sourceScreen: context.sourceScreen,
+          } : undefined,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        onError("I'm having trouble connecting. Please try again.");
+        onDone();
+        return;
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) {
+        onError("I'm having trouble connecting. Please try again.");
+        onDone();
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            switch (event.type) {
+              case 'text':
+                if (event.content) onText(event.content);
+                break;
+              case 'widget':
+                if (event.widget) onWidget(event.widget);
+                break;
+              case 'simulator':
+                if (event.simulator) onSimulator(event.simulator);
+                break;
+              case 'suggested_questions':
+                if (event.suggestedQuestions) onSuggestions(event.suggestedQuestions);
+                break;
+              case 'error':
+                onError(event.content || 'Something went wrong.');
+                break;
+              case 'done':
+                onDone();
+                return;
             }
-          : undefined,
-      }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    return {
-      message: data.message.message,
-      suggestedQuestions: data.suggestedQuestions ?? [],
-    };
-  } catch {
-    return {
-      message: "I'm having trouble connecting right now. Please try again in a moment.",
-      suggestedQuestions: ['Try again'],
-    };
-  }
+          } catch {
+            // skip malformed SSE lines
+          }
+        }
+      }
+
+      onDone();
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        onError("I'm having trouble connecting. Please try again.");
+        onDone();
+      }
+    }
+  }, []);
+
+  const cancel = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
+
+  return { streamMessage, cancel };
 }
 
 export function ChatScreen({
@@ -60,6 +131,8 @@ export function ChatScreen({
   const [isTyping, setIsTyping] = useState(false);
   const [apiSuggestions, setApiSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const threadIdRef = useRef<string>(`thread-${Date.now()}`);
+  const { streamMessage } = useStreamingChat();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -69,18 +142,65 @@ export function ChatScreen({
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const sendAndReceive = async (userMessage: string, context?: ChatContext) => {
+  const sendAndReceive = useCallback(async (userMessage: string, context?: ChatContext) => {
     setIsTyping(true);
-    const response = await fetchChatResponse(userMessage, context);
-    const adaMsg: Message = {
-      id: (Date.now() + 1).toString(),
-      message: response.message,
+
+    const adaMsgId = (Date.now() + 1).toString();
+    let currentText = '';
+    const currentWidgets: ChatWidget[] = [];
+
+    setMessages(prev => [...prev, {
+      id: adaMsgId,
+      message: '',
       sender: 'assistant',
-    };
-    setMessages((prev) => [...prev, adaMsg]);
-    setApiSuggestions(response.suggestedQuestions);
-    setIsTyping(false);
-  };
+      isStreaming: true,
+    }]);
+
+    await streamMessage(
+      userMessage,
+      context,
+      threadIdRef.current,
+      (text) => {
+        currentText += text;
+        setMessages(prev => prev.map(m =>
+          m.id === adaMsgId ? { ...m, message: currentText } : m
+        ));
+      },
+      (widget) => {
+        currentWidgets.push(widget);
+        setMessages(prev => prev.map(m =>
+          m.id === adaMsgId ? { ...m, widgets: [...currentWidgets] } : m
+        ));
+      },
+      (sim) => {
+        setMessages(prev => prev.map(m =>
+          m.id === adaMsgId ? {
+            ...m,
+            simulator: {
+              type: sim.type as 'retirement' | 'investment' | 'spending' | 'tax',
+              initialValues: sim.initialValues,
+            },
+          } : m
+        ));
+      },
+      (questions) => {
+        setApiSuggestions(questions);
+      },
+      () => {
+        setMessages(prev => prev.map(m =>
+          m.id === adaMsgId ? { ...m, isStreaming: false } : m
+        ));
+        setIsTyping(false);
+      },
+      (errorMsg) => {
+        currentText = errorMsg;
+        setMessages(prev => prev.map(m =>
+          m.id === adaMsgId ? { ...m, message: errorMsg, isStreaming: false } : m
+        ));
+        setIsTyping(false);
+      },
+    );
+  }, [setMessages, streamMessage]);
 
   useEffect(() => {
     if (initialMessage && messages.length === 0) {
@@ -99,35 +219,11 @@ export function ChatScreen({
             message: chatContext.adaResponse!,
             sender: 'assistant',
           };
-          setMessages((prev) => [...prev, adaMsg]);
+          setMessages(prev => [...prev, adaMsg]);
           setIsTyping(false);
         }, 1500);
       } else {
         sendAndReceive(initialMessage, chatContext);
-      }
-    } else if (
-      initialMessage &&
-      messages.length > 0 &&
-      messages[messages.length - 1].sender === 'user' &&
-      messages[messages.length - 1].message === initialMessage
-    ) {
-      const hasResponse =
-        messages.length > 1 && messages[messages.length - 1].sender === 'assistant';
-      if (!hasResponse) {
-        if (chatContext?.adaResponse) {
-          setIsTyping(true);
-          setTimeout(() => {
-            const adaMsg: Message = {
-              id: (Date.now() + 1).toString(),
-              message: chatContext.adaResponse!,
-              sender: 'assistant',
-            };
-            setMessages((prev) => [...prev, adaMsg]);
-            setIsTyping(false);
-          }, 1500);
-        } else {
-          sendAndReceive(initialMessage, chatContext);
-        }
       }
     }
   }, [initialMessage]);
@@ -140,7 +236,7 @@ export function ChatScreen({
       message: value,
       sender: 'user',
     };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages(prev => [...prev, userMsg]);
     sendAndReceive(value);
   };
 
@@ -151,8 +247,6 @@ export function ChatScreen({
   const handleBack = () => {
     if (onBack) {
       onBack();
-    } else {
-      console.log('Back to previous screen');
     }
   };
 
@@ -165,19 +259,6 @@ export function ChatScreen({
         'Show me bond opportunities',
         "What's my portfolio risk?",
       ];
-    }
-
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage.sender === 'assistant') {
-      if (lastMessage.message.includes('rate expectations')) {
-        return ['Why does this affect my portfolio?', 'How much of my portfolio is exposed?'];
-      }
-      if (lastMessage.message.includes('rebalancing')) {
-        return ['Yes, show me scenarios', 'What are the risks?'];
-      }
-      if (lastMessage.message.includes('off track')) {
-        return ['Show me recovery options', 'How much more do I need monthly?'];
-      }
     }
 
     return ['Tell me more', 'Show me the numbers'];
@@ -221,6 +302,8 @@ export function ChatScreen({
                             message={msg.message}
                             sender={msg.sender}
                             simulator={msg.simulator}
+                            widgets={msg.widgets}
+                            isStreaming={msg.isStreaming}
                             contextPrefix={
                               index === 0 && msg.sender === 'user' && chatContext
                                 ? chatContext.title
@@ -230,7 +313,7 @@ export function ChatScreen({
                         </React.Fragment>
                       ))}
 
-                      {isTyping && (
+                      {isTyping && messages[messages.length - 1]?.sender !== 'assistant' && (
                         <div className="self-start max-w-[85%]">
                           <div className="bg-white rounded-[16px] px-[16px] py-[12px]">
                             <div className="flex gap-[4px] items-center">

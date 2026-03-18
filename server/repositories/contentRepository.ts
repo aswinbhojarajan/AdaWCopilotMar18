@@ -177,6 +177,31 @@ export async function ensureChatThread(
   return threadId;
 }
 
+export async function insertChatMessageWithWidgets(
+  threadId: string,
+  sender: 'user' | 'assistant',
+  message: string,
+  widgets: string | null,
+): Promise<void> {
+  const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  await pool.query(
+    `INSERT INTO chat_messages (id, thread_id, sender, message, widgets)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [id, threadId, sender, message, widgets],
+  );
+  await pool.query(
+    `UPDATE chat_threads SET updated_at = NOW() WHERE id = $1`,
+    [threadId],
+  );
+}
+
+export async function updateThreadPreview(threadId: string, preview: string): Promise<void> {
+  await pool.query(
+    `UPDATE chat_threads SET preview = $1, updated_at = NOW() WHERE id = $2`,
+    [preview, threadId],
+  );
+}
+
 function mapRowToContentItem(r: Record<string, unknown>): ContentItem {
   return {
     id: String(r.id),

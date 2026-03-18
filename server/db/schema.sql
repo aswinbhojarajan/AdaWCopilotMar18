@@ -127,6 +127,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   thread_id TEXT REFERENCES chat_threads(id),
   sender TEXT NOT NULL CHECK (sender IN ('user', 'assistant')),
   message TEXT NOT NULL,
+  widgets JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -165,6 +166,37 @@ CREATE TABLE IF NOT EXISTS performance_history (
   value NUMERIC(14,2) NOT NULL,
   recorded_date DATE NOT NULL,
   UNIQUE(user_id, recorded_date)
+);
+
+CREATE TABLE IF NOT EXISTS episodic_memories (
+  id TEXT PRIMARY KEY,
+  user_id TEXT REFERENCES users(id),
+  thread_id TEXT REFERENCES chat_threads(id),
+  summary TEXT NOT NULL,
+  topics TEXT[] NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS semantic_facts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT REFERENCES users(id),
+  fact TEXT NOT NULL,
+  category TEXT NOT NULL,
+  source_thread_id TEXT REFERENCES chat_threads(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS chat_audit_log (
+  id SERIAL PRIMARY KEY,
+  user_id TEXT REFERENCES users(id),
+  thread_id TEXT,
+  action TEXT NOT NULL,
+  intent TEXT,
+  pii_detected BOOLEAN DEFAULT FALSE,
+  input_preview TEXT,
+  model TEXT,
+  tokens_used INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS poll_questions (

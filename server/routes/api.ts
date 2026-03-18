@@ -78,9 +78,32 @@ router.post('/chat/message', (req: Request, res: Response) => {
     res.status(400).json({ error: 'message is required' });
     return;
   }
-  const result = chatService.processMessage(DEFAULT_USER_ID, body);
+  const result = chatService.processMessageSync(DEFAULT_USER_ID, body);
   res.json(result);
 });
+
+router.post('/chat/stream', asyncHandler(async (req, res) => {
+  const body = req.body as ChatMessageRequest;
+  if (!body.message) {
+    res.status(400).json({ error: 'message is required' });
+    return;
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  res.flushHeaders();
+
+  const stream = chatService.processMessageStream(DEFAULT_USER_ID, body);
+
+  for await (const event of stream) {
+    res.write(`data: ${JSON.stringify(event)}\n\n`);
+  }
+
+  res.end();
+}));
 
 router.get('/portfolio', asyncHandler(async (_req, res) => {
   const overview = await portfolioService.getWealthOverview(DEFAULT_USER_ID);
@@ -171,7 +194,7 @@ router.post('/chat/:threadId/messages', asyncHandler(async (req, res) => {
   await contentRepo.ensureChatThread(DEFAULT_USER_ID, threadId, body.message.slice(0, 60));
   await contentRepo.insertChatMessage(threadId, 'user', body.message);
 
-  const result = chatService.processMessage(DEFAULT_USER_ID, {
+  const result = chatService.processMessageSync(DEFAULT_USER_ID, {
     ...body,
     threadId,
   });

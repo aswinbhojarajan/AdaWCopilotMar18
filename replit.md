@@ -1,12 +1,13 @@
 # Ada — AI Wealth Copilot
 
 ## Overview
-A mobile-first wealth management copilot prototype. Full-stack application with Express backend, PostgreSQL database, and React frontend. Originally exported from Figma.
+A mobile-first wealth management copilot prototype. Full-stack application with Express backend, PostgreSQL database, and React frontend with LLM-powered AI chat. Originally exported from Figma.
 
 ## Tech Stack
 - **Frontend**: React 18 + TypeScript, Vite 6, Tailwind CSS v4, TanStack Query v5
 - **Backend**: Express + TypeScript (via tsx), port 3001
-- **Database**: PostgreSQL (Replit-managed), 19 tables, 4 demo personas
+- **Database**: PostgreSQL (Replit-managed), 22 tables
+- **AI**: OpenAI (Replit AI Integrations), gpt-5-mini model, streaming SSE
 - **Styling**: Tailwind utility classes, custom fonts (Crimson Pro, DM Sans)
 - **Linting**: ESLint 9 (flat config) + Prettier
 - **Dev Server**: Vite on port 5000 proxies /api → port 3001
@@ -28,11 +29,10 @@ src/
     usePolls.ts              — usePolls, useVotePoll hooks (query + mutation)
     useNotifications.ts      — useNotifications hook
     useChatThreads.ts        — useChatThreads hook
-    useApi.ts                — Legacy generic hook (not used by screens)
   data/                      — Client-side fallback data (no longer imported by screens)
   components/
-    ada/                     — Design system components (Button, Tag, ContentCard, Skeleton, ErrorBanner, etc.)
-    screens/                 — Screen-level components (Home, Wealth, Discover, etc.)
+    ada/                     — Design system components (Button, Tag, ContentCard, Skeleton, ErrorBanner, ChatWidgets, etc.)
+    screens/                 — Screen-level components (Home, Wealth, Discover, ChatScreen, etc.)
     figma/                   — Figma utility components (ImageWithFallback)
   imports/                   — Retained Figma-generated files (ClientEnvironment, SVGs)
   assets/                    — Image assets (descriptive names)
@@ -40,27 +40,37 @@ src/
 server/
   index.ts                   — Express entry point (port 3001), global error handler
   routes/api.ts              — REST API routes with asyncHandler wrapper
-  services/                  — Business logic (portfolioService, chatService)
+  services/
+    aiService.ts             — OpenAI client, system prompt builder, streaming completions with tool-calling
+    chatService.ts           — Orchestrates intent→RAG→memory→LLM→persist pipeline
+    intentClassifier.ts      — Classifies messages into portfolio/goals/market/scenario/general intents
+    ragService.ts            — Builds portfolio context from DB (holdings, allocations, goals, accounts, transactions)
+    memoryService.ts         — Three-tier memory (working/episodic/semantic) + audit logging
+    piiDetector.ts           — Regex-based PII detection (email, phone, SSN, credit card, passport, IBAN)
+    portfolioService.ts      — Portfolio value computations
   repositories/              — Data access layer (PostgreSQL queries)
     userRepository.ts        — User + risk profile queries
     portfolioRepository.ts   — Portfolio, holdings, allocations, goals, accounts, performance history
     contentRepository.ts     — Content cards, alerts, chat threads/messages, peer comparisons
-    chatRepository.ts        — Deterministic chat response mappings (in-memory)
+    chatRepository.ts        — Deterministic chat response mappings (fallback, in-memory)
     pollRepository.ts        — Poll questions, options, and voting
   db/
     pool.ts                  — pg Pool configured from DATABASE_URL
-    schema.sql               — 19-table schema definition
-    seed.sql                 — Seed data for 4 personas
+    schema.sql               — 22-table schema definition
+    seed.sql                 — Seed data for 4 demo personas
+  replit_integrations/       — OpenAI blueprint integration files (chat, audio, image, batch)
 
 shared/
   types.ts                   — Backend/frontend contract types
+  models/chat.ts             — Drizzle schema for AI integration (not used by main app)
 ```
 
 ## Database Tables
 users, risk_profiles, advisors, accounts, positions, transactions,
 price_history, portfolio_snapshots, goals, alerts, content_items,
 peer_segments, chat_threads, chat_messages, action_contexts,
-performance_history, poll_questions, poll_options, poll_votes
+performance_history, poll_questions, poll_options, poll_votes,
+episodic_memories, semantic_facts, chat_audit_log
 
 ## API Endpoints
 | Method | Path                       | Description                        |
@@ -78,24 +88,37 @@ performance_history, poll_questions, poll_options, poll_votes
 | GET    | /api/content/discover      | Discover feed (?tab=forYou/whatsHappening) |
 | GET    | /api/chat/threads          | Chat history threads               |
 | GET    | /api/chat/:threadId/messages | Messages in a thread             |
-| POST   | /api/chat/message          | Send message, get AI response      |
+| POST   | /api/chat/message          | Send message, get sync response    |
+| POST   | /api/chat/stream           | **SSE streaming** AI chat with tool-calling |
 | POST   | /api/chat/:threadId/messages | Send message to specific thread  |
 | GET    | /api/collective/peers      | Peer comparison data               |
 | GET    | /api/polls                 | Active polls with options & votes  |
 | POST   | /api/polls/:pollId/vote    | Vote on a poll option              |
 
-## Frontend-API Integration
-All screens fetch live data from the API — no static imports remain in screen components.
-- HomeScreen: fetches `/api/home/summary`, renders content cards from DB
-- WealthScreen: fetches overview, allocation, holdings, goals, accounts (5 parallel API calls)
-- DiscoverScreen: fetches `/api/content/discover?tab=forYou|whatsHappening`, 11 content items with detail sections
-- CollectiveScreen: fetches `/api/polls` + `/api/collective/peers`, poll voting POSTs to `/api/polls/:id/vote`
-- ChatHistoryScreen: fetches `/api/chat/threads`, formats relative timestamps
-- NotificationsScreen: fetches `/api/notifications`, category filtering
-- ChatScreen: sends messages to `/api/chat/message`, receives deterministic responses
-- All screens have loading skeletons and error states
-- `useApi` hook supports `refetch()` for post-mutation data refresh
-- Performance data sourced from performance_history table (366 daily data points)
+## AI Chat Architecture
+The chat system uses a multi-stage pipeline:
+1. **PII Detection** — Scans user input for sensitive data (email, phone, SSN, etc.) and redacts before sending to LLM
+2. **Intent Classification** — Routes messages to domain handlers: portfolio, goals, market, scenario, general
+3. **RAG Pipeline** — Queries user's portfolio data (holdings, allocations, goals, accounts, transactions) from PostgreSQL
+4. **Memory System** — Three-tier:
+   - Working memory: in-memory conversation turns (per thread, max 20)
+   - Episodic memory: summarized conversation episodes in PostgreSQL
+   - Semantic memory: extracted user facts/preferences in PostgreSQL
+5. **LLM Call** — OpenAI gpt-5-mini with system prompt containing portfolio context, memories, and persona instructions
+6. **Tool Calling** — LLM can invoke:
+   - `show_simulator`: Triggers interactive scenario simulator (retirement/investment/spending/tax)
+   - `show_widget`: Embeds data widgets (allocation chart, holdings summary, goal progress, portfolio summary)
+   - `extract_user_fact`: Saves user preferences/facts to semantic memory
+7. **Streaming** — Responses stream via SSE with progressive text rendering
+8. **Suggested Questions** — LLM generates 3 follow-up suggestions after each response
+9. **Audit Logging** — All interactions logged with intent, PII detection status, model, token usage
+
+## Frontend Chat Features
+- **SSE Streaming** — Real-time text rendering with typing cursor animation
+- **Embedded Widgets** — Inline allocation charts, holdings summaries, goal progress bars, portfolio summaries
+- **Scenario Simulators** — Interactive sliders for retirement/investment/spending/tax modeling
+- **Suggested Questions** — Dynamic follow-up suggestions from LLM
+- **Context Passing** — CTAs on Home/Wealth/Discover screens pass structured context to chat
 
 ## Navigation
 - 4 main tabs: Home, Wealth, Discover, Collective
@@ -115,24 +138,20 @@ npm run db:seed     # Seed only (idempotent, uses ON CONFLICT DO NOTHING)
 ```
 Requires `DATABASE_URL` environment variable (auto-provisioned by Replit).
 
-## Table Name Mapping
-The database uses descriptive table names that differ from the task spec:
-| Spec Name | Actual Table | Notes |
-|-----------|-------------|-------|
-| portfolios | portfolio_snapshots | Stores snapshot values |
-| holdings | positions | With computed value/change |
-| connected_accounts | accounts | Same structure |
-| notifications | alerts | Category-based filtering |
-| asset_allocations | (computed) | Derived from positions + accounts |
+## Environment Variables
+- `DATABASE_URL` — PostgreSQL connection string (auto-provisioned)
+- `AI_INTEGRATIONS_OPENAI_BASE_URL` — OpenAI API base URL (set by Replit AI Integrations)
+- `AI_INTEGRATIONS_OPENAI_API_KEY` — OpenAI API key (set by Replit AI Integrations)
 
 ## Key Decisions
 - "Lounge" renamed to "Collective" everywhere
 - Repository/service pattern; repositories query PostgreSQL
 - Asset allocation computed from positions + account balances
-- Chat uses deterministic keyword-matched responses (chatRepository)
+- Chat uses LLM with full portfolio RAG context; falls back to deterministic keyword matching
 - asyncHandler wrapper on all async Express routes
 - Global error handler catches unhandled errors
 - Default user: Abdullah Al-Rashid (user-abdullah)
 - ESLint ignores `src/imports/` (Figma-generated code)
 - Poll voting uses transactions for atomicity (vote count + vote record)
 - Performance history seeded with 366 days of data via generate_series
+- AI model: gpt-5-mini (cost-effective, fast, supports tool-calling)

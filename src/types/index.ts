@@ -21,11 +21,17 @@ export interface SimulatorConfig {
   initialValues?: Record<string, number>;
 }
 
+export interface ChatWidget {
+  type: 'allocation_chart' | 'holdings_summary' | 'goal_progress' | 'portfolio_summary';
+}
+
 export interface Message {
   id: string;
   message: string;
   sender: 'user' | 'assistant';
   simulator?: SimulatorConfig;
+  widgets?: ChatWidget[];
+  isStreaming?: boolean;
 }
 
 export interface SparklinePoint {
