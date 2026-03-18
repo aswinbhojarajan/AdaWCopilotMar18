@@ -33,22 +33,25 @@ Hash-named Figma exports renamed to descriptive names in `src/assets/`:
 ### figma:asset Import Removal
 - All `figma:asset/` Vite aliases removed from `vite.config.ts`
 - `AdvisorCard.tsx`: replaced with relative import `../../../assets/advisor-photo.png`
-- `HomeScreen.tsx`: removed dead import of non-existent `f2dddff1...` asset
+- `HomeScreen.tsx`: removed dead import of non-existent asset
 - All versioned package aliases (e.g. `lucide-react@0.487.0`) removed — only `@` path alias retained
 
 ### Type Extraction
-New `src/types/index.ts` exports shared interfaces:
-- `TabType`, `ViewType`, `ChatContext`, `SimulatorConfig`, `Message`
-- `PortfolioSummary`, `Holding`, `AssetAllocation`, `SparklinePoint`, `PerformanceDataPoint`
-- `ContentItem`, `DetailSection`, `Goal`, `ConnectedAccount`
-- `PollResults`, `PeerComparison`, `NotificationData`, `ChatThread`
-- `ChatResponseMapping`, `ScreenProps`
+`src/types/index.ts` exports shared interfaces:
+- Navigation: `TabType`, `ViewType`
+- Chat: `ChatContext`, `SimulatorConfig`, `Message`, `ChatResponseMapping`, `ChatHistoryThread`
+- Portfolio: `Holding`, `AssetAllocation`, `SparklinePoint`, `PerformanceDataPoint`, `GoalData`, `ConnectedAccountData`
+- Content: `ContentItem`, `DetailSection`
+- Collective: `PollResults`, `PeerComparison`
+- Notifications: `NotificationType`, `NotificationCategory`, `NotificationItem`
+- API responses: `HomeSummaryResponse`, `WealthOverviewResponse`, `AccountResponse`, `GoalResponse`
+- Common: `ScreenProps`
 
 ### Data Extraction
 Hard-coded data moved from screen components to `src/data/`:
 - `portfolio.ts` — portfolio values, sparkline data, allocations, holdings, performance generator
 - `content.ts` — Discover feed items, Home content cards
-- `collective.ts` — poll results, peer comparison data
+- `collective.ts` — poll results, peer comparison data, poll options
 - `chat.ts` — chat response mappings with keyword matching
 - `notifications.ts` — notification and chat thread seed data
 - `index.ts` — barrel re-export
@@ -57,3 +60,31 @@ Hard-coded data moved from screen components to `src/data/`:
 - Removed all 30+ unused versioned package aliases
 - Removed all 5 `figma:asset/` aliases (assets renamed, imports updated to relative)
 - Retained only `@` → `./src` path alias
+
+## Phase 2: Backend & Database (Tasks #2–5)
+
+### Backend Scaffold (T002)
+- Express server on port 3001 with TypeScript (tsx)
+- Repository/service pattern in `server/`
+- Shared API contract types in `shared/types.ts`
+- Vite proxy: `/api` → port 3001
+- Routes: `/api/me`, `/api/home/summary`, `/api/wealth/overview`, `/api/wealth/allocation`, `/api/wealth/holdings`, `/api/wealth/goals`, `/api/wealth/accounts`, `/api/chat/message`
+- `asyncHandler` wrapper + global error handler
+
+### PostgreSQL Database (T003)
+- 15-table schema: users, risk_profiles, advisors, accounts, positions, transactions, price_history, portfolio_snapshots, goals, alerts, content_items, peer_segments, chat_threads, chat_messages, action_contexts
+- 4 demo personas seeded (Abdullah Al-Rashid as default: `user-abdullah`)
+- Repositories query PostgreSQL via `pg` pool (`server/db/pool.ts`)
+- Schema: `server/db/schema.sql`, Seeds: `server/db/seed.sql`
+
+### Frontend API Integration (T004)
+- `useApi` hook with loading/error states (`src/hooks/useApi.ts`)
+- HomeScreen fetches `/api/home/summary` (content cards from DB)
+- WealthScreen fetches 5 endpoints in parallel (overview, allocation, holdings, goals, accounts)
+- Loading skeleton animations and error states on both screens
+
+### Chat Context (T005)
+- ChatScreen calls `/api/chat/message` for responses
+- CTAs on Home/Wealth/Collective pass structured context (category, title, sourceScreen)
+- Deterministic keyword-matched responses from chatRepository
+- Suggested questions returned from API
