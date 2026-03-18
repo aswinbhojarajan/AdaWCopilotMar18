@@ -72,6 +72,31 @@ router.post('/chat/message', (req: Request, res: Response) => {
   res.json(result);
 });
 
+router.get('/portfolio', asyncHandler(async (_req, res) => {
+  const overview = await portfolioService.getWealthOverview(DEFAULT_USER_ID);
+  res.json(overview);
+}));
+
+router.get('/holdings', asyncHandler(async (_req, res) => {
+  const holdings = await portfolioRepo.getHoldingsByUserId(DEFAULT_USER_ID);
+  res.json(holdings);
+}));
+
+router.get('/allocations', asyncHandler(async (_req, res) => {
+  const allocations = await portfolioRepo.getAllocationsByUserId(DEFAULT_USER_ID);
+  res.json(allocations);
+}));
+
+router.get('/goals', asyncHandler(async (_req, res) => {
+  const goals = await portfolioRepo.getGoalsByUserId(DEFAULT_USER_ID);
+  res.json(goals);
+}));
+
+router.get('/accounts', asyncHandler(async (_req, res) => {
+  const accounts = await portfolioRepo.getAccountsByUserId(DEFAULT_USER_ID);
+  res.json(accounts);
+}));
+
 router.get('/collective/peers', asyncHandler(async (_req, res) => {
   const peers = await contentRepo.getPeerComparisons(DEFAULT_USER_ID);
   res.json(peers);

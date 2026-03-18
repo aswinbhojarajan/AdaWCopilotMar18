@@ -76,6 +76,7 @@
     "dev:server": "npx tsx server/index.ts",
     "dev:client": "vite",
     "build": "vite build",
+    "start": "NODE_ENV=production npx tsx server/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\""

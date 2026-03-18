@@ -159,3 +159,15 @@ INSERT INTO chat_threads (id, user_id, title, preview, created_at, updated_at) V
   ('thread-abd-3', 'user-abdullah', 'Portfolio diversification and hedging against macroeconomic risks',
    'Silver jumps above $32/oz amid global debt concerns.', NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days')
 ON CONFLICT (id) DO NOTHING;
+
+-- Chat Messages (Abdullah)
+INSERT INTO chat_messages (id, thread_id, sender, message, created_at) VALUES
+  ('msg-abd-1-1', 'thread-abd-1', 'user', 'I want to review my portfolio rebalancing options.', NOW() - INTERVAL '55 minutes'),
+  ('msg-abd-1-2', 'thread-abd-1', 'assistant', 'Your technology allocation currently stands at 48% (AAPL, MSFT, AMZN), which exceeds your target range of 35-40%. I recommend rebalancing 8-10% into diversified equities or fixed income. Would you like me to prepare a detailed rebalancing plan?', NOW() - INTERVAL '54 minutes'),
+  ('msg-abd-1-3', 'thread-abd-1', 'user', 'What about my risk/return profile?', NOW() - INTERVAL '53 minutes'),
+  ('msg-abd-1-4', 'thread-abd-1', 'assistant', 'If you want, I can estimate the new risk/return profile for you.', NOW() - INTERVAL '52 minutes'),
+  ('msg-abd-2-1', 'thread-abd-2', 'user', 'How concentrated is my portfolio?', NOW() - INTERVAL '2 days 1 hour'),
+  ('msg-abd-2-2', 'thread-abd-2', 'assistant', 'Your tech exposure is 48%, compared to your target range of 30-40%. This represents significant concentration risk. Would you like to explore diversification options?', NOW() - INTERVAL '2 days'),
+  ('msg-abd-3-1', 'thread-abd-3', 'user', 'What hedging options do I have?', NOW() - INTERVAL '3 days 1 hour'),
+  ('msg-abd-3-2', 'thread-abd-3', 'assistant', 'Silver jumps above $32/oz amid global debt concerns. Consider commodities and precious metals as a hedge against macroeconomic uncertainty.', NOW() - INTERVAL '3 days')
+ON CONFLICT (id) DO NOTHING;
