@@ -1,3 +1,4 @@
+// @ts-nocheck
 import svgPaths from './svg-qhj5a0ggbh';
 import clsx from 'clsx';
 import { imgEllipse3627 } from './svg-hgsl2';

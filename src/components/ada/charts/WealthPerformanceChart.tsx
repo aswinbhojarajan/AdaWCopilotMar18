@@ -14,13 +14,7 @@ interface WealthPerformanceChartProps {
   };
 
   /** Performance data for each time frame */
-  data: {
-    '1D': { value: number; label: string }[];
-    '1W': { value: number; label: string }[];
-    '1M': { value: number; label: string }[];
-    '3M': { value: number; label: string }[];
-    '1Y': { value: number; label: string }[];
-  };
+  data: Record<string, { value: number; label: string }[]>;
 
   /** Default time frame to show */
   defaultTimeFrame?: TimeFrame;

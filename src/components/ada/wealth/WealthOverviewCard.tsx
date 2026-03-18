@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Clock } from 'lucide-react';
 import { WealthPerformanceChart } from '../charts/WealthPerformanceChart';
 import { SparkIcon } from '../SparkIcon';
 
@@ -11,13 +12,7 @@ interface WealthOverviewCardProps {
   weeklyChangePercent?: number;
   monthlyChangePercent?: number;
   sparklineData?: number[];
-  performanceData?: {
-    '1D': { value: number; label: string }[];
-    '1W': { value: number; label: string }[];
-    '1M': { value: number; label: string }[];
-    '3M': { value: number; label: string }[];
-    '1Y': { value: number; label: string }[];
-  };
+  performanceData?: Record<string, { value: number; label: string }[]>;
   defaultTimeFrame?: TimeFrame;
   onChatSubmit?: (
     message: string,
@@ -29,7 +24,7 @@ export function WealthOverviewCard({
   totalValue,
   dailyChange,
   dailyChangePercent,
-  weeklyChangePercent: _weeklyChangePercent,
+  weeklyChangePercent,
   monthlyChangePercent: _monthlyChangePercent,
   sparklineData: _sparklineData = [],
   performanceData,
@@ -100,7 +95,7 @@ export function WealthOverviewCard({
                     $
                     {Math.abs(dailyChange).toLocaleString('en-US', {
                       minimumFractionDigits: 1,
-                      maximumFractionDigals: 1,
+                      maximumFractionDigits: 1,
                     })}{' '}
                     ({isPositive ? '+' : ''}
                     {dailyChangePercent.toFixed(2)}%)

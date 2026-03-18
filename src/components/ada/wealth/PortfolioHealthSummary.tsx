@@ -7,7 +7,7 @@ interface PortfolioHealthSummaryProps {
   riskLevel: string;
   topSuggestion: string;
   additionalSuggestions?: string[];
-  onChatSubmit?: (message: string, context?: Record<string, string>) => void;
+  onChatSubmit?: (message: string, context?: { category: string; categoryType: string; title: string; sourceScreen?: string }) => void;
 }
 
 export function PortfolioHealthSummary({

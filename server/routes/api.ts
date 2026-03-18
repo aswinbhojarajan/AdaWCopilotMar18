@@ -218,7 +218,7 @@ router.get('/polls', asyncHandler(async (_req, res) => {
 }));
 
 router.post('/polls/:pollId/vote', asyncHandler(async (req, res) => {
-  const { pollId } = req.params;
+  const pollId = req.params.pollId as string;
   const body = req.body as PollVoteRequest;
   if (!body.optionId) {
     res.status(400).json({ error: 'optionId is required' });
@@ -241,13 +241,13 @@ router.post('/polls/:pollId/vote', asyncHandler(async (req, res) => {
 }));
 
 router.get('/chat/:threadId/messages', asyncHandler(async (req, res) => {
-  const { threadId } = req.params;
+  const threadId = req.params.threadId as string;
   const messages = await contentRepo.getChatMessagesByThreadId(threadId, DEFAULT_USER_ID);
   res.json(messages);
 }));
 
 router.post('/chat/:threadId/messages', asyncHandler(async (req, res) => {
-  const { threadId } = req.params;
+  const threadId = req.params.threadId as string;
   const body = req.body as ChatMessageRequest;
   if (!body.message) {
     res.status(400).json({ error: 'message is required' });
@@ -263,7 +263,7 @@ router.post('/chat/:threadId/messages', asyncHandler(async (req, res) => {
 }));
 
 router.post('/chat/:threadId/close', asyncHandler(async (req, res) => {
-  const { threadId } = req.params;
+  const threadId = req.params.threadId as string;
   await chatService.finalizeSession(DEFAULT_USER_ID, threadId);
   res.json({ success: true });
 }));

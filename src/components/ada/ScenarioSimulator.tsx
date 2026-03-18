@@ -103,7 +103,7 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
 
       {/* Inputs */}
       <div className="space-y-[16px] mb-[24px]">
-        {Object.entries(values).map(([key, value]) => {
+        {Object.entries(values).map(([key, value]: [string, number]) => {
           const labels: Record<string, string> = {
             monthlyContribution: 'Monthly Contribution',
             years: 'Years',

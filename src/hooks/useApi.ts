@@ -20,7 +20,7 @@ export function useApi<T>(url: string | null): UseApiResult<T> {
   useEffect(() => {
     if (!url) {
       setLoading(false);
-      return;
+      return undefined;
     }
 
     let cancelled = false;

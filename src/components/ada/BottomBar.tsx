@@ -26,12 +26,12 @@ export function BottomBar({
   // Auto-focus when on chat screen and no active chat
   React.useEffect(() => {
     if (isOnChatScreen && !hasActiveChatToday) {
-      // Small delay to ensure the screen is rendered
       const timer = setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isOnChatScreen, hasActiveChatToday]);
 
   const handleSubmit = () => {

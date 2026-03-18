@@ -17,12 +17,14 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
-export const insertConversationSchema = createInsertSchema(conversations).omit({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const insertConversationSchema = (createInsertSchema(conversations) as any).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertMessageSchema = createInsertSchema(messages).omit({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const insertMessageSchema = (createInsertSchema(messages) as any).omit({
   id: true,
   createdAt: true,
 });

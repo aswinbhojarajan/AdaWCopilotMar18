@@ -4,6 +4,7 @@ import { DonutChart, DonutSegment } from '../charts/DonutChart';
 
 interface AllocationItem extends DonutSegment {
   amount: number;
+  percentage: number;
 }
 
 interface CompactAssetAllocationProps {

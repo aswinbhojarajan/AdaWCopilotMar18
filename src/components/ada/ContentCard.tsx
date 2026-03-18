@@ -123,13 +123,13 @@ export function ContentCard({
   forceSecondaryButtonStyle,
 }: ContentCardProps) {
   // Determine category type from category string if not explicitly provided
-  const determinedCategoryType: CategoryType =
-    categoryType ||
+  const determinedCategoryType =
+    (categoryType ||
     (category.toUpperCase().includes('RISK') || category.toUpperCase().includes('ALERT')
       ? 'PORTFOLIO RISK ALERT'
       : category.toUpperCase().includes('OPPORTUNITY') || category.toUpperCase().includes('INSIGHT')
         ? 'MARKET OPPORTUNITY INSIGHT'
-        : 'NEWS');
+        : 'NEWS')) as CategoryType;
 
   // Get config with fallback to NEWS if category type is not found
   const config = categoryConfig[determinedCategoryType] || categoryConfig['NEWS'];

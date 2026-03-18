@@ -54,6 +54,7 @@ export function SlideNotification({
         return () => clearTimeout(timer);
       }
     }
+    return undefined;
   }, [show, autoDismiss, onDismiss]);
 
   const handleDismiss = () => {

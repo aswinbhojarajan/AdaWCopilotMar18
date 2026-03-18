@@ -8,7 +8,7 @@ interface Account {
   logo: React.ReactNode;
   balance: number;
   lastUpdated: string;
-  status: 'synced' | 'syncing' | 'error';
+  status: 'synced' | 'syncing' | 'error' | 'pending';
 }
 
 interface CompactConnectedAccountsProps {

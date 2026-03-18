@@ -1,6 +1,7 @@
 import React from 'react';
 import { Mail } from 'lucide-react';
 import { ImageWithFallback } from '../../figma/ImageWithFallback';
+// @ts-ignore — asset import handled by Vite
 import advisorPhotoDefault from '../../../assets/advisor-photo.png';
 
 interface AdvisorCardProps {

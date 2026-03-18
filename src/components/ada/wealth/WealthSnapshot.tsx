@@ -20,13 +20,7 @@ interface WealthSnapshotProps {
   totalValue: number;
   dailyChange: number;
   dailyChangePercent: number;
-  performanceData?: {
-    '1D': { value: number; label: string }[];
-    '1W': { value: number; label: string }[];
-    '1M': { value: number; label: string }[];
-    '3M': { value: number; label: string }[];
-    '1Y': { value: number; label: string }[];
-  };
+  performanceData?: Record<string, { value: number; label: string }[]>;
   defaultTimeFrame?: TimeFrame;
   primaryInsight: string;
   onViewDetails?: () => void;

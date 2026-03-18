@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    "types": ["node"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "server/**/*.ts",
+    "shared/**/*.ts",
+    "vite.config.ts",
+    "eslint.config.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "build",
+    ".local",
+    "src/imports/**",
+    "server/replit_integrations/**"
+  ]
+}

@@ -198,7 +198,7 @@ export default function App() {
   };
 
   const getFullScreenTransition = () => {
-    if (isOverlay) return { type: 'tween' as const, duration: 0.3, ease: [0.32, 0.72, 0, 1] };
+    if (isOverlay) return { type: 'tween' as const, duration: 0.3, ease: [0.32, 0.72, 0, 1] as [number, number, number, number] };
     return { duration: 0.4 };
   };
 

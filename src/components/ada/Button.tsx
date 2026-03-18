@@ -38,6 +38,7 @@ interface ButtonProps {
   size?: 'sm' | 'md' | 'lg';
   onClick?: () => void;
   className?: string;
+  disabled?: boolean;
 }
 
 export function Button({
@@ -46,6 +47,7 @@ export function Button({
   size = 'md',
   onClick,
   className = '',
+  disabled = false,
 }: ButtonProps) {
   const baseStyles =
     'content-stretch flex items-center justify-center relative rounded-[50px] shrink-0';
@@ -72,7 +74,8 @@ export function Button({
   return (
     <button
       onClick={onClick}
-      className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className} transition-all duration-200 hover:brightness-110 active:scale-[0.98] cursor-pointer`}
+      disabled={disabled}
+      className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className} transition-all duration-200 hover:brightness-110 active:scale-[0.98] cursor-pointer ${disabled ? 'opacity-50 pointer-events-none' : ''}`}
     >
       {showBorder && (
         <div

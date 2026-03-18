@@ -228,6 +228,7 @@ export interface LifeEventSuggestionResponse {
 export type LifeEventType = 'new_baby' | 'home_purchase' | 'inheritance' | 'job_change' | 'marriage';
 
 export interface DiscoverContentItem extends ContentItem {
+  id?: string;
   detailSections?: DetailSection[];
   stackButtons?: boolean;
   hideIntent?: boolean;

@@ -83,7 +83,7 @@ function GoalProgress() {
     <div className="bg-white border border-[#E5E5E5] rounded-[12px] p-[16px] my-[8px]">
       <h4 className="text-[13px] text-[#1A1A1A] font-medium mb-[12px]">Goal Progress</h4>
       <div className="space-y-[12px]">
-        {(goals as GoalData[]).map((g, i) => {
+        {(goals as unknown as GoalData[]).map((g, i) => {
           const pct = (Number(g.currentAmount) / Number(g.targetAmount)) * 100;
           const statusColor = g.healthStatus === 'on-track' ? '#0F6F4E' : g.healthStatus === 'at-risk' ? '#C1464F' : '#D4A017';
           return (

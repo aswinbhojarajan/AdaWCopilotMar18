@@ -9,7 +9,9 @@ A mobile-first wealth management copilot prototype. Full-stack application with 
 - **Database**: PostgreSQL (Replit-managed), 22 tables
 - **AI**: OpenAI (Replit AI Integrations), gpt-5-mini model, streaming SSE
 - **Styling**: Tailwind utility classes, custom fonts (Crimson Pro, DM Sans)
+- **Type Checking**: TypeScript 5.8, `tsconfig.json` with `noImplicitReturns`, `noFallthroughCasesInSwitch`
 - **Linting**: ESLint 9 (flat config) + Prettier
+- **Validation**: `npm run typecheck` (tsc --noEmit), registered as validation command
 - **Dev Server**: Vite on port 5000 proxies /api → port 3001
 - **Build Output**: `build/` directory
 
