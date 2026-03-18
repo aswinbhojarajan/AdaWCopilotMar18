@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import apiRouter from './routes/api';
+import { initDatabase } from './db/init';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +41,14 @@ app.use(
   },
 );
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`API server running on port ${PORT}`);
+async function start() {
+  await initDatabase();
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`API server running on port ${PORT}`);
+  });
+}
+
+start().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });
