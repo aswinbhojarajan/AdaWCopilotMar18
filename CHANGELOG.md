@@ -4,6 +4,167 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## PRD Comprehensive Audit
+**Date:** March 18, 2026
+
+### Changed
+- **Section 5 (Chat Experience)** — complete rewrite: replaced outdated "deterministic keyword matching" description with full LLM pipeline documentation (PII detection → intent classification → RAG → memory → LLM → tool-calling → streaming)
+- **Section 4.1 (Home Tab)** — added Morning Sentinel feature: prefetch architecture, SSE streaming fallback, server-side deduplication, 4h cache TTL
+- **Section 4.2 (Wealth Tab)** — added Goals & Life Planning: goal health scores, AI life-gap analysis, life-event goal suggestions, 4 new endpoints
+- **Section 7 (API Contracts)** — added 8+ missing endpoints: morning-sentinel, morning-sentinel/stream, goals/health-score, goals/life-gaps, goals/life-gaps/dismiss, goals/life-event, chat/stream, wealth/accounts POST
+- **Section 8 (Data Model)** — fixed table count from 19 to 23; added `episodic_memories`, `semantic_facts`, `chat_audit_log`, `dismissed_life_gap_prompts` tables with accurate column details
+- **Section 9 (Architecture)** — expanded tech stack (AI, TanStack Query, Framer Motion, TypeScript validation); rewrote backend/frontend architecture diagrams; updated key architectural decisions
+- **Section 10 (Non-Functional)** — added performance optimizations: Morning Sentinel prefetch, SSE streaming fallback, server-side dedup, TanStack Query caching
+- **Section 11 (Implementation Status)** — marked 13 features as Built that were previously missing or listed as "Not built" (AI Chat, Widgets, Simulators, Memory, PII Detection, Morning Sentinel, Goals, Animations, Pull-to-Refresh, TypeScript Validation)
+- **Section 12 (Change Log)** — added entries for Tasks #7–#12
+
+### Fixed
+- API contract payloads: `promptKey` (not `promptId`), `eventType: LifeEventType` (not `event: string`)
+- SSE stream event types: `widget`/`simulator` (not `tool_call`)
+- `chat_audit_log` PK type: SERIAL (not TEXT); column names: `prompt_tokens`/`completion_tokens` (not `token_count`)
+- `episodic_memories` columns: `topics TEXT[]` (not `message_count`)
+- Add Account Modal: persists to DB via `POST /api/wealth/accounts` (not local/mock only)
+
+### Added
+- **PII Handling** subsection in Section 5 documenting raw message retention behavior and future remediation consideration
+
+---
+
+## Task #12 — Morning Sentinel Performance Optimization
+**Date:** March 18, 2026
+
+### Added
+- **App-init prefetch** in `src/main.tsx` — Morning Sentinel briefing generation starts immediately on app load via TanStack Query `prefetchQuery`, before the user navigates past the splash screen
+  - 4-hour `gcTime` and `staleTime` to prevent unnecessary regeneration
+- **SSE streaming fallback endpoint** `GET /api/morning-sentinel/stream` — streams briefing generation progressively when prefetch hasn't completed
+  - `SentinelStreamEvent` discriminated union with three event types: `metrics` (immediate portfolio numbers), `text` (incremental AI narrative), `complete` (final structured result)
+- **`StreamingSentinel` component** in `MorningSentinelCard.tsx` — progressive UI that shows portfolio value and daily change immediately, then streams in the AI narrative with a typing cursor animation
+- **Server-side deduplication** — `inFlightRequests` Map in `morningSentinelService.ts` prevents concurrent OpenAI calls for the same user when both prefetch and stream fire simultaneously
+
+### Changed
+- **`useMorningSentinel` hook** — complete rewrite with coordinated prefetch/stream strategy:
+  - Waits 500ms for cached prefetch data from TanStack Query
+  - If prefetch hasn't resolved, falls back to SSE streaming automatically
+  - Merges stream events into React state for progressive rendering
+  - Returns `streamState` ('idle' | 'streaming' | 'done') for UI coordination
+- **`MorningSentinelCard`** — added conditional rendering: shows `SentinelSkeleton` during initial wait, `StreamingSentinel` during active streaming, full rich card when complete
+
+### Performance Impact
+- Eliminates perceived loading time for the Home tab's AI briefing on warm loads
+- Cold start shows portfolio metrics instantly + progressive text within ~1s
+- Prevents duplicate OpenAI API calls (token savings)
+
+---
+
+## Task #11 — TypeScript Validation Framework
+**Date:** March 18, 2026
+
+### Added
+- `npm run typecheck` script running `tsc --noEmit` for static type checking
+- Registered `typecheck` as a CI validation command (runs on every task completion)
+- `typescript`, `@types/react`, `@types/react-dom` added as explicit devDependencies
+
+### Fixed
+- **112 TypeScript errors** resolved across the codebase:
+  - Missing type annotations on function parameters and return types
+  - Implicit `any` types in hooks, services, and components
+  - Incorrect type narrowing in conditional branches
+  - Missing interface properties in component props
+  - Type mismatches between shared types and component expectations
+  - Unsafe `as any` casts replaced with proper type assertions where possible
+
+### Changed
+- `tsconfig.json` updated: `noImplicitReturns: true`, `noFallthroughCasesInSwitch: true`
+- `tsconfig.json` excludes `src/imports/**` (Figma-generated code) and `server/replit_integrations/**` (auto-generated integration code)
+
+---
+
+## Task #10 — Tab Transition Animation Fix
+**Date:** March 18, 2026
+
+### Fixed
+- **Shared chrome (header, tabs, bottom bar) no longer animates** during tab switches — lifted TopBar, Header, Navigation, and BottomBar into `App.tsx` so they remain stationary while only the content area transitions
+- **Replaced horizontal slide with crossfade** for tab content transitions — smoother UX, eliminates the jarring left/right swipe on every tab change
+
+### Changed
+- `App.tsx` refactored: shared chrome components rendered outside AnimatePresence zone
+- Tab screen components now render content-only (no chrome wrappers)
+- AnimatePresence `mode="wait"` applies opacity fade transition to content area only
+- Overlay screens (chat, notifications, chat history) retain slide-up transition
+
+---
+
+## Task #9 — Morning Sentinel: AI Daily Briefing
+**Date:** March 18, 2026
+
+### Added
+- **`morningSentinelService.ts`** — new backend service for AI-generated daily briefings:
+  - `gatherMetrics()` — 6 parallel database queries (portfolio snapshot, holdings, allocations, goals, alerts, user profile)
+  - `detectAnomalies()` — flags concentration risk (>40% single asset class), large daily moves (>1.5%), off-track goals, low diversification
+  - `generateBriefing()` — sends structured prompt to OpenAI gpt-5-mini requesting JSON response with headline, overview, key movers, risks, and suggested actions
+  - Server-side `briefingCache` with 4-hour TTL
+- **`GET /api/morning-sentinel`** endpoint — returns cached or freshly generated briefing; `?refresh=true` forces regeneration
+- **`MorningSentinelCard.tsx`** — rich UI component displaying:
+  - Portfolio value and daily change with directional arrow
+  - AI-generated narrative overview
+  - Key Movers section with symbol icons and price direction indicators
+  - Flagged Risks with color-coded severity dots (high/red, medium/orange, low/green)
+  - Suggested Actions as tappable buttons that open AI chat with pre-populated context
+- **`SentinelSkeleton`** — loading placeholder matching the card's layout
+
+### Changed
+- `HomeScreen.tsx` — integrated Morning Sentinel card above the existing portfolio summary section
+- `src/hooks/useMorningSentinel.ts` — new TanStack Query hook with daily caching and force-refresh support
+
+---
+
+## Task #8 — Goals & Life Planning
+**Date:** March 18, 2026
+
+### Added
+- **`goalService.ts`** — new backend service with three AI-powered features:
+  - `calculateGoalHealthScore()` — multi-factor 0–100 score computed from progress (30%), status (30%), time remaining (15%), and trajectory (25%)
+  - `generateLifeGapPrompts()` — LLM analyzes user's existing goals and risk profile to identify missing financial coverage areas (e.g., emergency fund, disability insurance, estate planning)
+  - `generateLifeEventSuggestions()` — LLM generates tailored goal suggestions with target amounts, timelines, icons, and reasoning for selected life events
+  - `dismissPrompt()` — persists prompt dismissal to `dismissed_life_gap_prompts` table
+- **4 new API endpoints**:
+  - `GET /api/wealth/goals/health-score` — computed plan health score
+  - `GET /api/wealth/goals/life-gaps` — AI-generated missing goal suggestions
+  - `POST /api/wealth/goals/life-gaps/dismiss` — dismiss a life gap prompt (`{ promptKey }`)
+  - `POST /api/wealth/goals/life-event` — generate goal suggestions for a life event (`{ eventType: LifeEventType }`)
+- **`GoalHealthGauge.tsx`** — circular SVG gauge component with color transitions (green >70, yellow ≥40, red <40) displaying the plan health score
+- **`LifeGapCards.tsx`** — card-based list for AI-suggested missing goals with dismiss action and "Address this" CTA
+- **`LifeEventModal.tsx`** — multi-step modal:
+  - Step 1: Select a life event (New Baby, Home Purchase, Job Change, Inheritance, Marriage)
+  - Step 2: Loading state with "Ada is thinking..." animation
+  - Step 3: AI-generated goal suggestions with rationale, target amounts, timelines, and "Set up this goal" button
+- **`dismissed_life_gap_prompts`** database table — tracks which prompts each user has dismissed (user_id + prompt_key UNIQUE constraint)
+- **Frontend hooks** in `useGoals.ts`:
+  - `useGoalHealthScore()` — TanStack Query hook for plan health
+  - `useLifeGapPrompts()` — hook for AI gap suggestions
+  - `useDismissLifeGapPrompt()` — mutation to dismiss prompts
+  - `useLifeEventSuggestions()` — mutation for life event goal generation
+  - `useCreateGoal()` — mutation to save a suggested goal
+
+### Changed
+- `WealthScreen.tsx` — integrated GoalHealthGauge, LifeGapCards, and LifeEventModal into the goals section
+- `shared/types.ts` — added `GoalHealthScore`, `LifeGapPrompt`, `LifeEventSuggestion`, and `LifeEventType` types
+
+---
+
+## Task #7 — RM Productivity Suite (Backlog)
+**Date:** March 18, 2026
+
+### Added
+- **RM Productivity Suite specification document** — detailed backlog item documenting the Relationship Manager persona features planned for future implementation:
+  - RM Morning Planning Queue (priority-sorted client list)
+  - AI Customer Digest & Talking Points (LLM-generated call prep)
+  - At-Risk Client Radar (attrition risk ranking with interventions)
+  - Next-Best-Action Coach (AI-recommended actions per flagged client)
+- This task produced a planning/backlog document only; no code changes were made
+
+---
+
 ## Task #6 — Product Requirements Document (PRD)
 **Date:** March 18, 2026
 
@@ -279,15 +440,13 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 28 |
-| Files changed | 275 |
-| Lines added | ~18,900 |
-| Lines removed | ~22,000 |
-| PostgreSQL tables | 22 |
-| API endpoints | 17+ |
-| React components | 60+ |
-| React hooks | 12 |
-| Backend services | 7 |
+| PostgreSQL tables | 23 |
+| API endpoints | 25+ (including 2 SSE streams) |
+| React components | 65+ |
+| React hooks | 15+ |
+| Backend services | 8 (ai, chat, intent, rag, memory, pii, goal, sentinel) |
 | Database repositories | 5 |
 | AI tools | 3 (simulator, widget, fact extraction) |
 | Memory tiers | 3 (working, episodic, semantic) |
+| SSE streams | 2 (chat, morning sentinel) |
+| TypeScript errors fixed | 112 |
