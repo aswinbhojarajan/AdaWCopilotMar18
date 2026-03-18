@@ -2,91 +2,30 @@ import React, { useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
 import svgPaths from '../../imports/svg-3k2bapmb30';
 
-/**
- * SlideNotification Component
- *
- * A notification component with two variants:
- * - "system": Compact alert banner with Ada branding for critical, action-required alerts
- * - "default": Standard slide-down notification for general alerts
- *
- * System Alert Pattern (variant="system"):
- * Reserved only for alerts requiring user attention. Compact design with Ada icon,
- * category label, title, and single action link. Scrolls with content.
- *
- * @component
- * @example
- * ```tsx
- * // System Alert Banner
- * <SlideNotification
- *   variant="system"
- *   headline="Your withdrawal goal is off track"
- *   message="Recent withdrawals put you 63% behind your plan."
- *   categoryLabel="OPPORTUNITY"
- *   show={true}
- *   onDismiss={() => setShow(false)}
- *   actionText="Explore"
- *   onAction={() => console.log('Action clicked')}
- * />
- *
- * // Standard Notification
- * <SlideNotification
- *   message="'Buy a Home' goal dropped to 68% after withdrawals. See why you're off track."
- *   show={true}
- *   onDismiss={() => setShow(false)}
- *   actionText="View Details"
- *   onAction={() => console.log('Action clicked')}
- * />
- * ```
- */
-
 export interface SlideNotificationProps {
-  /** Component variant: "system" for alert banners, "default" for standard notifications */
   variant?: 'system' | 'default';
-  /** Headline text (required for system variant) */
-  headline?: string;
-  /** The notification message to display */
   message: string;
-  /** Category label for system alerts (e.g., "OPPORTUNITY", "ALERT") */
   categoryLabel?: string;
-  /** Category label color (default: green for opportunities) */
   categoryLabelColor?: string;
-  /** Temporal cue for system alerts (e.g., "Needs review today") */
-  temporalCue?: string;
-  /** Whether to show the notification */
   show: boolean;
-  /** Callback when notification is dismissed */
   onDismiss: () => void;
-  /** Optional action button text */
   actionText?: string;
-  /** Optional action button callback */
   onAction?: () => void;
-  /** Secondary action text (default variant only) */
-  secondaryActionText?: string;
-  /** Secondary action callback (default variant only) */
-  onSecondaryAction?: () => void;
-  /** Auto-dismiss after milliseconds (default: no auto-dismiss) */
   autoDismiss?: number;
-  /** Icon to show (default: AlertTriangle for default, Ada logo for system) */
   icon?: React.ReactNode;
-  /** Background color (default: system uses mauve, default uses white) */
   backgroundColor?: string;
-  /** Text color (default: dark text) */
   textColor?: string;
 }
 
 export function SlideNotification({
   variant = 'default',
-  headline: _headline,
   message,
   categoryLabel,
   categoryLabelColor = '#059669',
-  temporalCue: _temporalCue,
   show,
   onDismiss,
   actionText,
   onAction,
-  secondaryActionText: _secondaryActionText,
-  onSecondaryAction: _onSecondaryAction,
   autoDismiss,
   icon,
   backgroundColor,

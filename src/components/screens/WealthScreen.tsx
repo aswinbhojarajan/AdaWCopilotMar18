@@ -326,8 +326,7 @@ export function WealthScreen({
         variant="system"
         categoryLabel="ALERT"
         categoryLabelColor="#d97706"
-        headline="Your house deposit goal is off track"
-        message="Recent withdrawals put you at 63% progress, down from 68%."
+        message="Your house deposit goal is off track. Recent withdrawals put you at 63% progress, down from 68%."
         show={showGoalNotification || false}
         onDismiss={() => onDismissNotification?.()}
         actionText="View details"

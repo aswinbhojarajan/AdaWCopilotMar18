@@ -1,15 +1,16 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, Suspense, lazy, useTransition } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { HomeScreen } from './components/screens/HomeScreen';
-import { HomeEmptyScreen } from './components/screens/HomeEmptyScreen';
-import { DiscoverScreen } from './components/screens/DiscoverScreen';
-import { CollectiveScreen } from './components/screens/CollectiveScreen';
-import { ChatScreen } from './components/screens/ChatScreen';
-import { ChatHistoryScreen } from './components/screens/ChatHistoryScreen';
-import { WealthScreen } from './components/screens/WealthScreen';
-import { NotificationsScreen } from './components/screens/NotificationsScreen';
-import ClientEnvironment from './imports/ClientEnvironment-2066-398';
 import type { TabType, ViewType, ChatContext, Message } from './types';
+
+const HomeEmptyScreen = lazy(() => import('./components/screens/HomeEmptyScreen').then(m => ({ default: m.HomeEmptyScreen })));
+const DiscoverScreen = lazy(() => import('./components/screens/DiscoverScreen').then(m => ({ default: m.DiscoverScreen })));
+const CollectiveScreen = lazy(() => import('./components/screens/CollectiveScreen').then(m => ({ default: m.CollectiveScreen })));
+const ChatScreen = lazy(() => import('./components/screens/ChatScreen').then(m => ({ default: m.ChatScreen })));
+const ChatHistoryScreen = lazy(() => import('./components/screens/ChatHistoryScreen').then(m => ({ default: m.ChatHistoryScreen })));
+const WealthScreen = lazy(() => import('./components/screens/WealthScreen').then(m => ({ default: m.WealthScreen })));
+const NotificationsScreen = lazy(() => import('./components/screens/NotificationsScreen').then(m => ({ default: m.NotificationsScreen })));
+const ClientEnvironment = lazy(() => import('./imports/ClientEnvironment-2066-398'));
 
 const TAB_ORDER: TabType[] = ['home', 'wealth', 'discover', 'collective'];
 
@@ -43,19 +44,31 @@ export default function App() {
   const [pendingWealthScroll, setPendingWealthScroll] = useState(false);
 
   const prevTabRef = useRef<TabType>('home');
+  const [, startTransition] = useTransition();
+
+  const navigateTo = useCallback((view: ViewType, tab?: TabType) => {
+    startTransition(() => {
+      setCurrentView(view);
+      if (tab !== undefined) setActiveTab(tab);
+    });
+  }, [startTransition]);
 
   const handlePollVote = () => {
     setHasVotedInPoll(true);
   };
 
   const handleNavigateToWealthFromCollective = () => {
-    setActiveTab('wealth');
-    setPendingWealthScroll(true);
+    startTransition(() => {
+      setActiveTab('wealth');
+      setPendingWealthScroll(true);
+    });
   };
 
   const handleTabChange = (newTab: TabType) => {
     prevTabRef.current = activeTab;
-    setActiveTab(newTab);
+    startTransition(() => {
+      setActiveTab(newTab);
+    });
   };
 
   const handleChatSubmit = useCallback((message: string, context?: ChatContext) => {
@@ -64,12 +77,12 @@ export default function App() {
     setChatContext(context);
     setActiveThreadId(undefined);
     setMessages([]);
-    setCurrentView('chat');
-  }, [currentView, activeTab]);
+    navigateTo('chat');
+  }, [currentView, activeTab, navigateTo]);
 
   const handleResumeChat = () => {
     setPreviousScreen({ view: currentView, tab: activeTab });
-    setCurrentView('chat');
+    navigateTo('chat');
   };
 
   const handleOpenChat = () => {
@@ -79,7 +92,7 @@ export default function App() {
       setChatContext(undefined);
       setActiveThreadId(undefined);
       setMessages([]);
-      setCurrentView('chat');
+      navigateTo('chat');
     }
   };
 
@@ -116,7 +129,7 @@ export default function App() {
 
   const renderCurrentView = () => {
     if (currentView === 'home-empty') {
-      return <HomeEmptyScreen onChatHistoryClick={() => setCurrentView('chat-history')} />;
+      return <HomeEmptyScreen onChatHistoryClick={() => navigateTo('chat-history')} />;
     }
     if (currentView === 'chat') {
       return (
@@ -127,15 +140,14 @@ export default function App() {
           setMessages={setMessages}
           existingThreadId={activeThreadId}
           onThreadIdChange={setActiveThreadId}
-          onChatHistoryClick={() => setCurrentView('chat-history')}
+          onChatHistoryClick={() => navigateTo('chat-history')}
           onBack={() => {
             if (activeThreadId) {
               fetch(`/api/chat/${activeThreadId}/close`, { method: 'POST' }).catch(() => {});
             }
             setChatMessage('');
             setChatContext(undefined);
-            setCurrentView(previousScreen.view);
-            setActiveTab(previousScreen.tab);
+            navigateTo(previousScreen.view, previousScreen.tab);
           }}
         />
       );
@@ -143,17 +155,14 @@ export default function App() {
     if (currentView === 'chat-history') {
       return (
         <ChatHistoryScreen
-          onBack={() => {
-            setCurrentView('home');
-            setActiveTab('home');
-          }}
+          onBack={() => navigateTo('home', 'home')}
           onThreadClick={(threadId) => {
             setPreviousScreen({ view: 'chat-history', tab: activeTab });
             setActiveThreadId(threadId);
             setChatMessage('');
             setChatContext(undefined);
             setMessages([]);
-            setCurrentView('chat');
+            navigateTo('chat');
           }}
         />
       );
@@ -161,21 +170,15 @@ export default function App() {
     if (currentView === 'notifications') {
       return (
         <NotificationsScreen
-          onBack={() => {
-            setCurrentView('home');
-            setActiveTab('home');
-          }}
-          onChatHistoryClick={() => setCurrentView('chat-history')}
+          onBack={() => navigateTo('home', 'home')}
+          onChatHistoryClick={() => navigateTo('chat-history')}
         />
       );
     }
     if (currentView === 'client-environment') {
       return (
         <ClientEnvironment
-          onNavigateToAda={() => {
-            setCurrentView('home');
-            setActiveTab('home');
-          }}
+          onNavigateToAda={() => navigateTo('home', 'home')}
         />
       );
     }
@@ -183,21 +186,21 @@ export default function App() {
     if (activeTab === 'home')
       return (
         <HomeScreen
-          onChatHistoryClick={() => setCurrentView('chat-history')}
-          onNotificationsClick={() => setCurrentView('notifications')}
+          onChatHistoryClick={() => navigateTo('chat-history')}
+          onNotificationsClick={() => navigateTo('notifications')}
           onChatSubmit={handleChatSubmit}
           hasActiveChatToday={hasActiveChatToday}
           onResumeChat={handleResumeChat}
           onOpenChat={handleOpenChat}
-          onClose={() => setCurrentView('client-environment')}
+          onClose={() => navigateTo('client-environment')}
           onTabChange={handleTabChange}
         />
       );
     if (activeTab === 'wealth')
       return (
         <WealthScreen
-          onChatHistoryClick={() => setCurrentView('chat-history')}
-          onNotificationsClick={() => setCurrentView('notifications')}
+          onChatHistoryClick={() => navigateTo('chat-history')}
+          onNotificationsClick={() => navigateTo('notifications')}
           onChatSubmit={handleChatSubmit}
           hasActiveChatToday={hasActiveChatToday}
           onResumeChat={handleResumeChat}
@@ -206,35 +209,35 @@ export default function App() {
           onDismissNotification={() => setShowGoalNotification(false)}
           shouldAutoScrollToGoal={pendingWealthScroll}
           onScrollComplete={() => setPendingWealthScroll(false)}
-          onClose={() => setCurrentView('client-environment')}
+          onClose={() => navigateTo('client-environment')}
           onTabChange={handleTabChange}
         />
       );
     if (activeTab === 'discover')
       return (
         <DiscoverScreen
-          onChatHistoryClick={() => setCurrentView('chat-history')}
-          onNotificationsClick={() => setCurrentView('notifications')}
+          onChatHistoryClick={() => navigateTo('chat-history')}
+          onNotificationsClick={() => navigateTo('notifications')}
           onChatSubmit={handleChatSubmit}
           hasActiveChatToday={hasActiveChatToday}
           onResumeChat={handleResumeChat}
           onOpenChat={handleOpenChat}
-          onClose={() => setCurrentView('client-environment')}
+          onClose={() => navigateTo('client-environment')}
           onTabChange={handleTabChange}
         />
       );
     if (activeTab === 'collective')
       return (
         <CollectiveScreen
-          onChatHistoryClick={() => setCurrentView('chat-history')}
-          onNotificationsClick={() => setCurrentView('notifications')}
+          onChatHistoryClick={() => navigateTo('chat-history')}
+          onNotificationsClick={() => navigateTo('notifications')}
           onChatSubmit={handleChatSubmit}
           hasActiveChatToday={hasActiveChatToday}
           onResumeChat={handleResumeChat}
           onOpenChat={handleOpenChat}
           onPollVote={handlePollVote}
           onNavigateToWealth={handleNavigateToWealthFromCollective}
-          onClose={() => setCurrentView('client-environment')}
+          onClose={() => navigateTo('client-environment')}
           onTabChange={handleTabChange}
         />
       );
@@ -248,19 +251,21 @@ export default function App() {
         className="relative w-full max-w-[430px] h-screen bg-[#efede6] shadow-2xl overflow-hidden"
         style={{ isolation: 'isolate' } as React.CSSProperties}
       >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={screenKey}
-            variants={getVariants()}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={getTransition()}
-            className="relative w-full h-full"
-          >
-            {renderCurrentView()}
-          </motion.div>
-        </AnimatePresence>
+        <Suspense fallback={<div className="flex items-center justify-center h-full bg-[#efede6]" />}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={screenKey}
+              variants={getVariants()}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={getTransition()}
+              className="relative w-full h-full"
+            >
+              {renderCurrentView()}
+            </motion.div>
+          </AnimatePresence>
+        </Suspense>
       </div>
     </div>
   );
