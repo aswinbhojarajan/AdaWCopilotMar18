@@ -5,7 +5,7 @@
 >
 > **Source of truth precedence**: When a mismatch exists between this document and the runtime code/schema, the code is authoritative. Update this PRD to reflect the code, not the other way around.
 >
-> **Last audited against**: `server/routes/api.ts`, `server/index.ts`, `server/db/schema.sql`, `server/db/seed.sql`, `src/App.tsx`, `src/components/screens/*.tsx`, `src/components/ada/index.ts`, `shared/types.ts`, `src/types/index.ts`
+> **Last audited against**: `server/routes/api.ts`, `server/index.ts`, `server/db/schema.sql`, `server/db/seed.sql`, `src/App.tsx`, `src/main.tsx`, `src/components/screens/*.tsx`, `src/components/ada/index.ts`, `src/hooks/*.ts`, `shared/types.ts`, `src/types/index.ts`, `server/services/*.ts`, `tsconfig.json`
 
 ---
 
@@ -33,7 +33,7 @@
 ### Core Value Propositions
 
 - **Proactive insights**: Surface portfolio risks, opportunities, and action items before the user asks.
-- **Conversational finance**: Allow users to explore complex financial topics through natural-language chat with deterministic, advisor-quality responses.
+- **Conversational finance**: Allow users to explore complex financial topics through natural-language chat with LLM-powered, advisor-quality responses that stream in real time.
 - **Peer benchmarking**: Show how the user's allocation compares to similar investors.
 - **Goal tracking**: Monitor progress toward financial goals with AI-generated recovery suggestions.
 
@@ -120,17 +120,31 @@ Every tab screen follows the same layout:
 
 ### 4.1 Home Tab
 
-**Purpose**: Daily summary view with proactive insights and portfolio overview.
+**Purpose**: Daily summary view with proactive AI-generated insights and portfolio overview.
 
-**Data Source**: `GET /api/home/summary` → `HomeSummaryResponse`
+**Data Sources**:
+
+| Endpoint | Response Type |
+|---|---|
+| `GET /api/home/summary` | `HomeSummaryResponse` |
+| `GET /api/morning-sentinel` | `MorningSentinelResponse` |
+| `GET /api/morning-sentinel/stream` | SSE stream (`SentinelStreamEvent`) |
 
 **Components**:
 
 | Section | Component | Data | Behavior |
 |---|---|---|---|
+| Morning Sentinel | `MorningSentinelCard` / `StreamingSentinel` | AI-generated daily briefing: portfolio metrics, market movers, risks, actions | Prefetched on app init. Falls back to SSE streaming if not cached. Progressive text rendering with typing animation. Refresh button forces regeneration. |
 | Summary Card | `SummaryCard` | Greeting, date, attention count, summary text | Static display |
 | Portfolio Overview | Inline card | Portfolio value, daily change (amount + %), sparkline chart | "Dive deeper" CTA opens chat with portfolio context. "Contact advisor" button (placeholder). |
 | Content Cards | `ContentCard` (×N) | Category, title, description, timestamp, CTA buttons, optional image, sources count | Primary button opens chat with card context. Secondary button (if present) also opens chat. Rendered from `contentCards` array in API response. |
+
+**Morning Sentinel** is an AI-generated daily briefing produced by `morningSentinelService.ts`. It analyzes the user's portfolio for anomalies (concentration risk, large daily moves, low diversification) and generates a personalized narrative covering portfolio status, market context, risk alerts, and recommended actions. The briefing is:
+
+- **Prefetched** on app initialization in `main.tsx` via TanStack Query prefetch (4h cache TTL).
+- **Streamed** via SSE if the prefetch hasn't completed when the user reaches Home. The `useMorningSentinel` hook coordinates: it waits 500ms for the prefetch, then starts an SSE stream if needed.
+- **Deduplicated** server-side: an `inFlightRequests` Map prevents concurrent OpenAI calls for the same user.
+- **Cacheable**: Results are cached with `gcTime` and `staleTime` of 4 hours.
 
 **Content Cards** are sourced from the `content_items` database table filtered by `target_screen = 'home'`. Three home cards are seeded:
 
@@ -160,9 +174,26 @@ Every tab screen follows the same layout:
 | Asset Allocation | `CompactAssetAllocation` | Donut chart + legend showing allocation breakdown (Stocks 55%, Cash 20%, Bonds 15%, Crypto 6%, Commodities 4%). |
 | Portfolio Health | `PortfolioHealthSummary` | Diversification score (82/100), risk level (low-medium), suggestions. CTA → chat. |
 | Holdings | `CompactHoldings` | Top 5 holdings by value with symbol, name, value, change %. |
-| Goals | `CompactGoals` | Expandable section. Each goal shows progress bar, health status badge, AI insight, CTA button → chat. House deposit goal supports auto-scroll from notification. |
+| Goals | `CompactGoals` | Expandable section. Each goal shows progress bar, health status badge (on-track/needs-attention/at-risk), AI insight, CTA button → chat. House deposit goal supports auto-scroll from notification. Goal Health Score gauge (0–100). |
+| Life Gap Analysis | `LifeGapPrompts` | AI-driven detection of missing financial goals (e.g., emergency fund, estate planning). Each prompt includes explanation and "Create Goal" CTA. Dismissible per-user. |
+| Life Event Simulation | `LifeEventModal` | Modal to simulate life events (New Baby, Home Purchase, Career Change, etc.) and receive AI-generated goal suggestions with reasoning. |
 | Connected Accounts | `CompactConnectedAccounts` | List of linked accounts with logo, balance, sync status. "Add account" button opens `AddAccountModal`. |
 | Advisor | `CollapsibleAdvisor` | Expandable advisor card showing Sarah Mitchell, availability, contact button. |
+
+**Goals & Life Planning** features (added in Task #8):
+
+- **Goal Health Score**: Computed by `goalService.ts` based on target amount, current savings, deadline proximity, and contribution trajectory. Returns a 0–100 score with status (on-track/needs-attention/at-risk) and actionable recommendation.
+- **Life Gap Analysis**: AI-powered detection of missing financial coverage areas. The LLM analyzes the user's existing goals and risk profile to identify gaps like emergency fund, disability insurance, or estate planning. Prompts are dismissible and stored in the database.
+- **Life Event Suggestions**: Users select a life event (from a predefined list), and the LLM generates tailored goal suggestions with target amounts, timelines, and reasoning based on the user's portfolio context.
+
+**Additional Wealth Endpoints**:
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `GET /api/wealth/goals/health-score` | GET | Computed goal health score (0–100) |
+| `GET /api/wealth/goals/life-gaps` | GET | AI-generated life gap prompts |
+| `POST /api/wealth/goals/life-gaps/dismiss` | POST | Dismiss a life gap prompt |
+| `POST /api/wealth/goals/life-event` | POST | Generate goal suggestions for a life event |
 
 **Special Behaviors**:
 
@@ -252,60 +283,64 @@ Every tab screen follows the same layout:
 
 ### AI Response System
 
-**Deterministic keyword matching** — not LLM-based.
+**LLM-powered** — uses OpenAI gpt-5-mini via Replit AI Integrations with a multi-stage pipeline.
 
-The server-side `chatRepository.ts` maintains an in-memory array of `ChatResponseMapping` objects:
+The chat system follows a full AI pipeline orchestrated by `chatService.ts`:
 
-```typescript
-{
-  keywords: string[];            // Lowercase phrases to match
-  message: string;               // Response text
-  simulator?: SimulatorConfig;   // Optional interactive simulator
-}
+```
+User Message → PII Detection → Intent Classification → RAG Context Building
+    → Memory Retrieval → LLM Call (with tools) → Tool Execution
+    → Response Streaming → Memory Persistence → Audit Logging
 ```
 
-**Matching logic**: The user's message is lowercased, then each mapping's keywords are checked for substring inclusion. First match wins. If no match, a default fallback response is returned.
+**Pipeline Stages**:
 
-**Server-side response topics** (defined in `server/repositories/chatRepository.ts`):
+1. **PII Detection** (`piiDetector.ts`): Scans user input for sensitive data patterns (email, phone, SSN, credit card, passport, IBAN). Detected PII is flagged in the audit log; messages are still processed but flagged.
 
-| Topic | Keywords |
-|---|---|
-| Market changes | "what changed", "what's changed" |
-| Portfolio impact | "why does this affect" |
-| Tech allocation | "review tech allocation" |
-| Risk exposure | "review my risk exposure" |
-| Goal off-track | "why am i off track" |
-| Goal recovery | "how can i get back on track" |
-| Portfolio deep-dive | "dive deeper" |
-| Bond opportunities | "bond", "fixed income" |
-| Portfolio risk | "portfolio", "risk" |
-| Advisor contact | "contact advisor" |
+2. **Intent Classification** (`intentClassifier.ts`): Classifies user messages into domain-specific intents to determine what portfolio context to fetch:
 
-**Client-side response topics** (defined in `src/data/chat.ts`, used as fallback reference — includes simulator configs):
+   | Intent | Triggers | Context Fetched |
+   |---|---|---|
+   | `portfolio` | Portfolio, holdings, allocation, performance | Holdings, allocations, snapshot |
+   | `goals` | Goals, savings, retirement, target | Goals, health scores |
+   | `market` | Market, bonds, stocks, trends | Holdings, allocations |
+   | `scenario` | What if, simulate, model, compare | Holdings, allocations, goals |
+   | `general` | Everything else | Basic portfolio summary |
 
-| Topic | Keywords | Includes Simulator |
-|---|---|---|
-| Risk scenarios | "model risk scenarios" | Investment simulator |
-| Bond comparison | "compare scenarios" | Investment simulator |
-| Simple scenario | "simple scenario" | Investment simulator |
-| Over-time analysis | "mean over time" | Investment simulator |
-| Retirement | "retirement" | Retirement simulator |
-| Spending/budget | "spending", "budget" | Spending simulator |
-| Tax optimization | "tax", "optimize tax" | Tax simulator |
-| Regional opportunities | "regional opportunities" | No |
-| Emerging regions | "emerging regions" | No |
-| (plus duplicates of server-side topics with simulator configs) | — | — |
+3. **RAG Pipeline** (`ragService.ts`): Builds rich portfolio context from PostgreSQL based on the classified intent. Queries holdings, allocations, goals, accounts, and recent transactions to inject into the LLM system prompt.
 
-> **Note**: The server-side chatRepository has a smaller keyword set and does not include simulator mappings. The client-side `src/data/chat.ts` has a superset of responses including simulators, but it is not used at runtime (the server chatRepository handles all responses). The current API response contract (`ChatMessageResponse`) returns only `threadId`, `message`, and `suggestedQuestions` — simulator configs are **not** returned by the API. Simulator support exists only as reference data in the client-side module and would require API contract changes to surface.
+4. **Memory System** (`memoryService.ts`): Three-tier memory architecture:
+   - **Working memory**: In-memory conversation turns (per thread, max 20 messages). Provides immediate context.
+   - **Episodic memory**: Summarized conversation episodes stored in `episodic_memories` table. Retrieved by relevance to current conversation.
+   - **Semantic memory**: Extracted user facts and preferences stored in `semantic_facts` table (e.g., "User plans to retire in 10 years", "User prefers conservative investments"). Persisted via the `extract_user_fact` tool call.
 
-**Suggested Questions**: After each response, the API returns contextual follow-up suggestions based on keywords in the assistant's last message. Default suggestions: "Tell me more", "Show me the numbers".
+5. **LLM Call** (`aiService.ts`): OpenAI gpt-5-mini with:
+   - System prompt containing persona instructions, portfolio context, memories, and available tools.
+   - `max_completion_tokens` (not `max_tokens`) for token budget control.
+   - Streaming enabled via SSE for progressive text rendering.
 
-**Simulator Config** (4 types):
+6. **Tool Calling**: The LLM can invoke three tools during a response:
 
-```typescript
-type: 'retirement' | 'investment' | 'spending' | 'tax'
-initialValues?: Record<string, number>
-```
+   | Tool | Purpose | UI Result |
+   |---|---|---|
+   | `show_simulator` | Triggers interactive financial simulator | Inline simulator component with sliders |
+   | `show_widget` | Embeds a data visualization widget | Inline chart/summary in chat |
+   | `extract_user_fact` | Saves a user preference or fact to semantic memory | Silent persistence (no UI) |
+
+   **Simulator types**: `retirement`, `investment`, `spending`, `tax` — each with domain-specific sliders and calculations rendered by `ScenarioSimulator.tsx`.
+
+   **Widget types**: `allocation_chart`, `holdings_summary`, `goal_progress`, `portfolio_summary` — rendered by `ChatWidgets.tsx` components (`AllocationChartWidget`, `HoldingsSummaryWidget`, `GoalProgressWidget`, `PortfolioSummaryWidget`).
+
+7. **Streaming** (`POST /api/chat/stream`): Responses stream via Server-Sent Events (SSE) with the following event types:
+   - `text` — Incremental text chunks for progressive rendering.
+   - `tool_call` — Tool invocation with name and arguments (parsed as JSON).
+   - `suggested_questions` — Array of 3 follow-up question suggestions.
+   - `done` — Stream complete signal with final metadata.
+   - `error` — Error event if the LLM call fails.
+
+8. **Suggested Questions**: The LLM generates 3 contextual follow-up suggestions after each response. These are specific to the conversation context, not generic defaults.
+
+9. **Audit Logging** (`chat_audit_log` table): Every interaction is logged with: user ID, thread ID, classified intent, PII detection result, model used, token count (prompt + completion), and timestamp.
 
 ### Chat UI Elements
 
@@ -315,10 +350,12 @@ initialValues?: Record<string, number>
 | Date Pill | "Today" indicator |
 | Capability Statement | "I can analyze your portfolio, model risk scenarios..." |
 | User Messages | Right-aligned, dark background |
-| Assistant Messages | Left-aligned, white background |
+| Assistant Messages | Left-aligned, white background, with SSE streaming text + typing cursor |
+| Embedded Widgets | Inline allocation charts, holdings summaries, goal progress, portfolio summaries |
+| Scenario Simulators | Interactive sliders for retirement/investment/spending/tax modeling |
 | Context Prefix | First user message shows context title above the message text |
-| Typing Indicator | Three bouncing dots |
-| Suggested Questions | Horizontally scrollable pills below chat area |
+| Typing Indicator | Three bouncing dots (shown while awaiting first stream chunk) |
+| Suggested Questions | Horizontally scrollable pills below chat area (LLM-generated) |
 | BottomBar | Text input + chat history icon |
 
 ### Chat History (`ChatHistoryScreen.tsx`)
@@ -326,6 +363,10 @@ initialValues?: Record<string, number>
 - Lists threads from `GET /api/chat/threads` (database-backed).
 - Each thread shows title, preview text, and relative timestamp.
 - Three seeded threads for Abdullah covering portfolio rebalancing, concentration risk, and hedging.
+
+### Legacy Chat Infrastructure
+
+The original deterministic keyword-matching system (`chatRepository.ts` and `src/data/chat.ts`) is retained as fallback reference data but is **not used at runtime**. All chat responses are now generated by the LLM pipeline. The `POST /api/chat/message` endpoint (synchronous) still exists for non-streaming clients but routes through the same LLM pipeline.
 
 ---
 
@@ -471,17 +512,25 @@ Development: `http://localhost:5000/api/` (Vite proxies to Express on port 3001)
 | GET | `/api/health` | — | `{ status: 'ok', timestamp: string }` | Health check |
 | GET | `/api/me` | — | `User` (with `riskProfile`) | Current user profile |
 | GET | `/api/home/summary` | — | `HomeSummaryResponse` | Home screen aggregate data |
+| GET | `/api/morning-sentinel` | `?refresh=true` | `MorningSentinelResponse` | AI-generated daily briefing (cached, ?refresh=true to force) |
+| GET | `/api/morning-sentinel/stream` | — | SSE stream | Streaming briefing generation (metrics → text → complete events) |
 | GET | `/api/wealth/overview` | — | `WealthOverviewResponse` | Portfolio value + performance history |
 | GET | `/api/wealth/allocation` | — | `AssetAllocation[]` | Computed allocation breakdown |
 | GET | `/api/wealth/holdings` | — | `HoldingResponse[]` | Top 5 holdings by value |
 | GET | `/api/wealth/goals` | — | `GoalResponse[]` | Financial goals with health status |
+| GET | `/api/wealth/goals/health-score` | — | `GoalHealthScoreResponse` | Computed goal health score (0–100) |
+| GET | `/api/wealth/goals/life-gaps` | — | `LifeGapPrompt[]` | AI-generated missing goal prompts |
+| POST | `/api/wealth/goals/life-gaps/dismiss` | `{ promptId: string }` | `{ success: boolean }` | Dismiss a life gap prompt |
+| POST | `/api/wealth/goals/life-event` | `{ event: string }` | `LifeEventSuggestion[]` | AI goal suggestions for a life event |
 | GET | `/api/wealth/accounts` | — | `AccountResponse[]` | Connected bank/brokerage accounts |
+| POST | `/api/wealth/accounts` | `AddAccountRequest` | `AccountResponse` | Add a new connected account |
 | GET | `/api/notifications` | — | `AlertResponse[]` | User alerts and notifications |
 | GET | `/api/content` | `?category=X` | `ContentItem[]` | All or filtered content items |
 | GET | `/api/content/discover` | `?tab=forYou\|whatsHappening` | `DiscoverContentItem[]` | Discover tab content |
 | GET | `/api/chat/threads` | — | `ChatThreadResponse[]` | Chat history threads |
 | GET | `/api/chat/:threadId/messages` | — | `ChatMessage[]` | Messages in a thread |
-| POST | `/api/chat/message` | `ChatMessageRequest` | `ChatMessageResponse` | Send message, get AI response |
+| POST | `/api/chat/message` | `ChatMessageRequest` | `ChatMessageResponse` | Send message, get synchronous AI response |
+| POST | `/api/chat/stream` | `ChatMessageRequest` | SSE stream | **Primary**: Streaming AI chat with tool-calling |
 | POST | `/api/chat/:threadId/messages` | `ChatMessageRequest` | `ChatMessageResponse` | Send message to specific thread (persisted) |
 | GET | `/api/collective/peers` | — | `PeerComparison[]` | Peer allocation comparison |
 | GET | `/api/polls` | — | `PollQuestion[]` | Active polls with options + vote counts |
@@ -531,7 +580,7 @@ The following endpoints duplicate wealth endpoints at shorter paths:
 
 ## 8. Data Model
 
-### Database: PostgreSQL (19 tables)
+### Database: PostgreSQL (22 tables)
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌──────────────┐
@@ -578,6 +627,11 @@ The following endpoints duplicate wealth endpoints at shorter paths:
 │poll_questions │────>│ poll_options  │
 └──────────────┘     └──────────────┘
 
+AI Memory & Audit tables (linked to users):
+┌─────────────────────┐     ┌──────────────┐     ┌──────────────┐
+│ episodic_memories    │     │semantic_facts │     │chat_audit_log │
+└─────────────────────┘     └──────────────┘     └──────────────┘
+
 Standalone tables:
 ┌──────────────┐     ┌──────────────┐
 │content_items  │     │peer_segments  │
@@ -610,6 +664,9 @@ Standalone tables:
 | `poll_votes` | `id` (TEXT) | poll_id + user_id (UNIQUE), option_id | Ensures one vote per user per poll |
 | `transactions` | `id` (TEXT) | account_id (FK), type, symbol, quantity, price, amount | buy/sell/dividend/deposit/withdrawal |
 | `price_history` | `id` (SERIAL) | symbol, price, recorded_at | Historical price data |
+| `episodic_memories` | `id` (TEXT) | user_id (FK), thread_id, summary, message_count, created_at | Summarized conversation episodes for long-term AI context |
+| `semantic_facts` | `id` (TEXT) | user_id (FK), fact, category, source_thread_id, created_at | Extracted user preferences/facts for AI personalization |
+| `chat_audit_log` | `id` (TEXT) | user_id (FK), thread_id, intent, pii_detected, model, token_count, created_at | AI interaction audit trail |
 
 ### Table Name Mapping (Spec vs Actual)
 
@@ -629,11 +686,14 @@ Standalone tables:
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18 + TypeScript, Vite 6, Tailwind CSS v4 |
+| Frontend | React 18 + TypeScript, Vite 6, Tailwind CSS v4, TanStack Query v5 |
 | Backend | Express + TypeScript (via `tsx`), port 3001 |
-| Database | PostgreSQL (Replit-managed) |
+| Database | PostgreSQL (Replit-managed), 22 tables |
+| AI | OpenAI gpt-5-mini (Replit AI Integrations), streaming SSE |
+| Animations | Framer Motion v11 (`motion/react`), AnimatePresence transitions |
 | Fonts | Crimson Pro, DM Sans (Google Fonts) |
 | Icons | Lucide React |
+| Type Checking | TypeScript 5.8 (`tsc --noEmit`), registered as CI validation |
 | Linting | ESLint 9 (flat config) + Prettier |
 | Dev Proxy | Vite on port 5000 → `/api` proxy to port 3001 |
 
@@ -641,39 +701,52 @@ Standalone tables:
 
 ```
 Request → Express Router → asyncHandler → Service → Repository → PostgreSQL
-                                              ↓
-                                    chatRepository (in-memory)
+                                   │
+                                   ├── AI Pipeline (chat):
+                                   │   PII Detection → Intent Classification → RAG → Memory → LLM → Tools → Streaming
+                                   │
+                                   └── AI Pipeline (sentinel):
+                                       Portfolio Analysis → Anomaly Detection → LLM → SSE Streaming
 ```
 
 - **Repository pattern**: `server/repositories/` — data access layer with direct SQL queries via `pg` pool.
 - **Service layer**: `server/services/` — business logic combining multiple repositories.
+- **AI services**: `aiService.ts` (OpenAI client), `chatService.ts` (orchestration), `intentClassifier.ts`, `ragService.ts`, `memoryService.ts`, `piiDetector.ts`, `goalService.ts`, `morningSentinelService.ts`.
 - **asyncHandler**: Wraps async route handlers to catch errors and pass to Express error handler.
 - **Global error handler**: Catches unhandled errors, logs the actual message server-side, and returns a generic `500 { error: 'Internal server error' }` response.
+- **SSE streaming**: Two SSE endpoints — `POST /api/chat/stream` (chat) and `GET /api/morning-sentinel/stream` (briefing).
 
 ### Frontend Architecture
 
 ```
-App.tsx (state management)
-  ├── Screen Components (HomeScreen, WealthScreen, etc.)
-  │     ├── ada/ Design System Components
-  │     └── useApi() hook for data fetching
-  └── Type Definitions (src/types/index.ts)
+main.tsx (QueryClient + prefetch)
+  └── App.tsx (state management + AnimatePresence)
+        ├── Screen Components (HomeScreen, WealthScreen, etc.)
+        │     ├── ada/ Design System Components
+        │     └── TanStack Query hooks for data fetching
+        ├── Chat (SSE streaming + tool-call rendering)
+        └── Type Definitions (src/types/index.ts, shared/types.ts)
 ```
 
-- **useApi hook** (`src/hooks/useApi.ts`): Generic data-fetching hook with `data`, `loading`, `error` states and `refetch` function.
+- **TanStack Query**: All data fetching via React Query hooks (`useHomeSummary`, `useWealthOverview`, `useMorningSentinel`, `useGoals`, etc.) with proper caching, stale times, and prefetching.
+- **SSE streaming**: Chat responses and Morning Sentinel briefings stream progressively via EventSource/fetch with ReadableStream.
 - **Shared types** (`shared/types.ts`): Backend/frontend API contract types.
 - **Frontend types** (`src/types/index.ts`): Frontend-specific types including view/tab types, chat context, screen props.
+- **Animations**: Tab switches use horizontal slide transitions, overlays use slide-up, and the client environment uses fade — all via Framer Motion's AnimatePresence with `mode="wait"`.
 - **Fallback data** (`src/data/`): Client-side data modules (mostly superseded by API but retained as reference).
 
 ### Key Architectural Decisions
 
 1. **"Lounge" renamed to "Collective"** throughout the entire codebase.
 2. **Asset allocation is computed** from positions + account balances, not stored directly.
-3. **Chat uses deterministic keyword matching**, not an LLM.
-4. **Default user is hardcoded** to `user-abdullah` in `api.ts`.
-5. **Poll voting uses database transactions** for atomicity (increment vote_count + insert vote record).
-6. **Performance history** seeded with 366 daily data points using PostgreSQL `generate_series`.
-7. **ESLint ignores `src/imports/`** (Figma-generated code retained for the client environment splash).
+3. **Chat uses LLM (gpt-5-mini)** with full RAG pipeline, intent routing, three-tier memory, tool-calling, and SSE streaming.
+4. **Morning Sentinel uses LLM** with portfolio anomaly detection, prefetch-on-init, and SSE streaming fallback.
+5. **Default user is hardcoded** to `user-abdullah` in `api.ts`.
+6. **Poll voting uses database transactions** for atomicity (increment vote_count + insert vote record).
+7. **Performance history** seeded with 366 daily data points using PostgreSQL `generate_series`.
+8. **ESLint ignores `src/imports/`** (Figma-generated code retained for the client environment splash).
+9. **TypeScript validation** (`npm run typecheck`) registered as CI validation command; `tsc --noEmit` passes cleanly.
+10. **No React Router** — navigation is useState-based with `navigateTo()` helper wrapping `startTransition`.
 
 ---
 
@@ -685,6 +758,10 @@ App.tsx (state management)
 - Parallel API calls on Wealth screen (5 simultaneous requests).
 - Optimistic UI on poll voting (update local state before server response).
 - Scroll-to-goal uses `requestAnimationFrame` for smooth animation.
+- **Morning Sentinel prefetch**: Briefing generation starts on app init in `main.tsx` (before user navigates to Home), cached for 4 hours.
+- **SSE streaming fallback**: If prefetch hasn't completed, the `useMorningSentinel` hook automatically starts an SSE stream after 500ms, showing progressive text rendering.
+- **Server-side deduplication**: `inFlightRequests` Map in `morningSentinelService.ts` prevents duplicate OpenAI calls when both prefetch and stream fire simultaneously.
+- **TanStack Query caching**: All API responses cached with appropriate `staleTime` and `gcTime` values to minimize refetching.
 
 ### Mobile-First
 
@@ -724,25 +801,32 @@ App.tsx (state management)
 | Feature | Status | Notes |
 |---|---|---|
 | **Home Tab** | Built | API-backed, content cards from DB, sparkline chart |
+| **Morning Sentinel** | Built | AI-generated daily briefing with prefetch + SSE streaming fallback, server-side dedup |
 | **Wealth Tab** | Built | 5 parallel API calls, all sections functional |
+| **Goals & Life Planning** | Built | Goal health scores, AI life-gap analysis, life-event goal suggestions |
 | **Discover Tab** | Built | API-backed, two filter tabs, expandable detail sections |
 | **Collective Tab** | Built | Polls (vote + results), peer comparison chart, API-backed |
-| **Chat Screen** | Built | Deterministic responses, suggested questions, typing indicator |
+| **AI Chat (LLM)** | Built | GPT-5-mini with intent routing, RAG, 3-tier memory, tool-calling, SSE streaming |
+| **Chat Widgets** | Built | Inline allocation charts, holdings summaries, goal progress, portfolio summaries via tool-calling |
+| **Scenario Simulators** | Built | Retirement, investment, spending, tax simulators triggered by LLM `show_simulator` tool call |
 | **Chat History** | Built | DB-backed thread list, thread detail messages |
+| **PII Detection** | Built | Email, phone, SSN, credit card, passport, IBAN detection with audit logging |
+| **Chat Memory** | Built | Working (in-memory), episodic (DB), semantic facts (DB) — three-tier architecture |
 | **Notifications** | Built | DB-backed alerts, category filtering, unread indicators |
 | **Client Environment** | Built | Onboarding splash screen (Figma-generated) |
-| **PostgreSQL Database** | Built | 19 tables, 4 personas, full seed data |
-| **REST API** | Built | 17+ endpoints, asyncHandler, global error handler |
+| **PostgreSQL Database** | Built | 22 tables, 4 personas, full seed data |
+| **REST API** | Built | 25+ endpoints, asyncHandler, global error handler, 2 SSE streams |
 | **Loading Skeletons** | Built | All data-fetching screens |
 | **Error States** | Built | All data-fetching screens |
+| **Animations** | Built | Tab transitions (horizontal slide), overlay transitions (slide-up), animated tab indicator |
 | **Slide Notifications** | Built | Goal alerts on Wealth + Collective |
 | **Add Account Modal** | Built | Mock flow, local state only |
 | **Auto-scroll to Goal** | Built | Cross-tab navigation from Collective |
 | **Performance Chart** | Built | 5 time-frame toggles, DB-backed (366 days) |
 | **Poll Voting** | Built | Optimistic UI, server-persisted, atomic transactions |
-| **Simulator Components** | Partial | `ScenarioSimulator.tsx` component exists and is rendered within `ChatMessage.tsx` when a simulator config is present. However, the server API does not currently return simulator configs in responses, so the component is never triggered at runtime. Client-side `src/data/chat.ts` has simulator mappings but is not used by the API. |
+| **Pull-to-Refresh** | Built | Home, Wealth, Discover, Collective screens |
+| **TypeScript Validation** | Built | `tsc --noEmit` passes cleanly, registered as CI validation |
 | **User Switching** | Not built | Backend hardcoded to `user-abdullah` |
-| **Real AI/LLM Chat** | Not built | Uses deterministic keyword matching |
 | **Authentication** | Not built | No auth layer |
 | **Real Account Linking** | Not built | Mock flow only |
 | **Push Notifications** | Not built | — |
@@ -761,7 +845,14 @@ App.tsx (state management)
 |---|---|---|
 | 2026-03-17 | T001: Codebase Cleanup | Deleted 63 unused Figma SVGs + 37 unused shadcn/ui components. Renamed Lounge → Collective. Renamed hash-named assets to descriptive names. Extracted types to `src/types/index.ts`. Extracted data to `src/data/`. Cleaned Vite config aliases. |
 | 2026-03-17 | T002: Backend Scaffold | Express server on port 3001. Repository/service pattern. Shared types in `shared/types.ts`. Vite proxy `/api` → 3001. Core REST endpoints. `asyncHandler` + global error handler. |
-| 2026-03-17 | T003: PostgreSQL Database | 15-table schema (later expanded to 19). 4 demo personas seeded. Repositories query PostgreSQL via `pg` pool. |
-| 2026-03-17 | T004: Frontend API Integration | `useApi` hook. HomeScreen fetches `/api/home/summary`. WealthScreen fetches 5 endpoints in parallel. Loading skeletons and error states. |
-| 2026-03-18 | T005: Chat Context & Interactions | ChatScreen calls `/api/chat/message`. CTAs pass structured context. Deterministic keyword-matched responses from chatRepository. Suggested questions from API. Poll voting endpoint. Peer comparison endpoint. Discover content endpoint. Performance history (366 daily data points). Chat thread message persistence. |
-| 2026-03-18 | T006: PRD Creation | Created this living Product Requirements Document capturing full product scope, design system, API contracts, data model, and implementation status. |
+| 2026-03-17 | T003: PostgreSQL Database | 15-table schema (later expanded to 22). 4 demo personas seeded. Repositories query PostgreSQL via `pg` pool. |
+| 2026-03-17 | T004: Frontend API Integration | TanStack Query hooks. HomeScreen fetches `/api/home/summary`. WealthScreen fetches 5 endpoints in parallel. Loading skeletons and error states. |
+| 2026-03-18 | T005: Chat Context & Interactions | ChatScreen calls `/api/chat/message`. CTAs pass structured context. Poll voting endpoint. Peer comparison endpoint. Discover content endpoint. Performance history (366 daily data points). Chat thread message persistence. |
+| 2026-03-18 | T006: PRD Creation | Created this living Product Requirements Document. |
+| 2026-03-18 | T007: AI Chat + LLM Integration | Full LLM-powered chat replacing keyword matching. OpenAI gpt-5-mini via Replit AI Integrations. Intent classification, RAG pipeline (holdings, allocations, goals, accounts, transactions), three-tier memory system (working/episodic/semantic), PII detection, tool-calling (show_simulator, show_widget, extract_user_fact), SSE streaming, embedded widgets (AllocationChartWidget, HoldingsSummaryWidget, GoalProgressWidget, PortfolioSummaryWidget), scenario simulators via LLM, suggested questions from LLM, audit logging. Added 3 new tables: episodic_memories, semantic_facts, chat_audit_log. |
+| 2026-03-18 | T008: Goals & Life Planning | Goal health score computation (goalService.ts). AI-powered life-gap analysis. Life-event goal suggestions. New endpoints: /wealth/goals/health-score, /wealth/goals/life-gaps, /wealth/goals/life-gaps/dismiss, /wealth/goals/life-event. UI components: LifeGapPrompts, LifeEventModal. |
+| 2026-03-18 | T009: Morning Sentinel | AI-generated daily briefing (morningSentinelService.ts). Portfolio anomaly detection (concentration, large moves, low diversification). Streaming SSE endpoint. MorningSentinelCard UI component. |
+| 2026-03-18 | T010: Animations & Transitions | Framer Motion AnimatePresence for tab switches (horizontal slide), overlays (slide-up), client environment (fade). Animated tab indicator with layoutId. Pull-to-refresh on all tab screens. |
+| 2026-03-18 | T011: TypeScript Validation | Fixed all 112 TypeScript errors. Registered `npm run typecheck` as CI validation. Added typescript, @types/react, @types/react-dom as direct devDependencies. |
+| 2026-03-18 | T012: Morning Sentinel Performance | Prefetch on app init (main.tsx). SSE streaming fallback in useMorningSentinel hook. StreamingSentinel progressive UI component. Server-side deduplication with inFlightRequests Map. 4h cache TTL with gcTime + staleTime. |
+| 2026-03-18 | PRD Update | Comprehensive PRD audit — updated chat section (LLM pipeline), added Morning Sentinel, Goals & Life Planning, AI architecture, streaming, 3 new DB tables (22 total), 8 new API endpoints (25+ total), updated implementation status. |
