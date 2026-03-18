@@ -23,7 +23,7 @@ src/
     usePortfolio.ts          — useHomeSummary, useWealthOverview hooks
     useHoldings.ts           — useHoldings hook
     useAllocations.ts        — useAllocations hook
-    useGoals.ts              — useGoals hook
+    useGoals.ts              — useGoals, useGoalHealthScore, useLifeGapPrompts, useDismissLifeGapPrompt, useLifeEventSuggestions hooks
     useAccounts.ts           — useAccounts, useAddAccount hooks (query + mutation)
     useContent.ts            — useDiscoverContent hook
     usePolls.ts              — usePolls, useVotePoll hooks (query + mutation)
@@ -47,6 +47,7 @@ server/
     ragService.ts            — Builds portfolio context from DB (holdings, allocations, goals, accounts, transactions)
     memoryService.ts         — Three-tier memory (working/episodic/semantic) + audit logging
     piiDetector.ts           — Regex-based PII detection (email, phone, SSN, credit card, passport, IBAN)
+    goalService.ts           — Goal health score, life-gap prompts, life-event suggestions (AI-powered)
     portfolioService.ts      — Portfolio value computations
   repositories/              — Data access layer (PostgreSQL queries)
     userRepository.ts        — User + risk profile queries

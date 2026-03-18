@@ -195,6 +195,7 @@ export interface GoalResponse {
   title: string;
   targetAmount: number;
   currentAmount: number;
+  previousAmount?: number;
   deadline: string;
   iconName: string;
   color: string;
@@ -202,6 +203,29 @@ export interface GoalResponse {
   aiInsight: string;
   ctaText: string;
 }
+
+export interface GoalHealthScoreResponse {
+  score: number;
+  label: string;
+}
+
+export interface LifeGapPromptResponse {
+  key: string;
+  title: string;
+  description: string;
+  ctaText: string;
+}
+
+export interface LifeEventSuggestionResponse {
+  title: string;
+  targetAmount: number;
+  deadline: string;
+  iconName: string;
+  color: string;
+  rationale: string;
+}
+
+export type LifeEventType = 'new_baby' | 'home_purchase' | 'inheritance' | 'job_change' | 'marriage';
 
 export interface DiscoverContentItem extends ContentItem {
   detailSections?: DetailSection[];

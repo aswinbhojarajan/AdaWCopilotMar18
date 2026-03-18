@@ -119,7 +119,7 @@ export async function getAllocationsByUserId(userId: string): Promise<AssetAlloc
 
 export async function getGoalsByUserId(userId: string): Promise<Goal[]> {
   const { rows } = await pool.query(
-    `SELECT id, user_id, title, target_amount, current_amount, deadline,
+    `SELECT id, user_id, title, target_amount, current_amount, previous_amount, deadline,
             icon_name, color, health_status, ai_insight, cta_text
      FROM goals WHERE user_id = $1`,
     [userId],
@@ -130,6 +130,7 @@ export async function getGoalsByUserId(userId: string): Promise<Goal[]> {
     title: String(r.title),
     targetAmount: Number(r.target_amount),
     currentAmount: Number(r.current_amount),
+    previousAmount: r.previous_amount != null ? Number(r.previous_amount) : undefined,
     deadline: String(r.deadline),
     iconName: String(r.icon_name),
     color: String(r.color),
@@ -137,6 +138,48 @@ export async function getGoalsByUserId(userId: string): Promise<Goal[]> {
     aiInsight: String(r.ai_insight ?? ''),
     ctaText: String(r.cta_text),
   }));
+}
+
+export async function createGoal(
+  userId: string,
+  suggestion: { title: string; targetAmount: number; deadline: string; iconName: string; color: string },
+): Promise<Goal> {
+  const { rows } = await pool.query(
+    `INSERT INTO goals (id, user_id, title, target_amount, current_amount, deadline, icon_name, color, health_status, ai_insight, cta_text)
+     VALUES (gen_random_uuid(), $1, $2, $3, 0, $4, $5, $6, 'on-track', 'New goal created. Start contributing to build momentum.', 'View details')
+     RETURNING id, user_id, title, target_amount, current_amount, previous_amount, deadline, icon_name, color, health_status, ai_insight, cta_text`,
+    [userId, suggestion.title, suggestion.targetAmount, suggestion.deadline, suggestion.iconName, suggestion.color],
+  );
+  const r = rows[0];
+  return {
+    id: String(r.id),
+    userId: String(r.user_id),
+    title: String(r.title),
+    targetAmount: Number(r.target_amount),
+    currentAmount: Number(r.current_amount),
+    previousAmount: r.previous_amount != null ? Number(r.previous_amount) : undefined,
+    deadline: String(r.deadline),
+    iconName: String(r.icon_name),
+    color: String(r.color),
+    healthStatus: r.health_status as Goal['healthStatus'],
+    aiInsight: String(r.ai_insight ?? ''),
+    ctaText: String(r.cta_text),
+  };
+}
+
+export async function getDismissedLifeGapPrompts(userId: string): Promise<string[]> {
+  const { rows } = await pool.query(
+    `SELECT prompt_key FROM dismissed_life_gap_prompts WHERE user_id = $1`,
+    [userId],
+  );
+  return rows.map((r) => String(r.prompt_key));
+}
+
+export async function dismissLifeGapPrompt(userId: string, promptKey: string): Promise<void> {
+  await pool.query(
+    `INSERT INTO dismissed_life_gap_prompts (user_id, prompt_key) VALUES ($1, $2) ON CONFLICT (user_id, prompt_key) DO NOTHING`,
+    [userId, promptKey],
+  );
 }
 
 export async function getLatestSnapshot(userId: string): Promise<PortfolioSnapshot> {

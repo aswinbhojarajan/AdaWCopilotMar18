@@ -61,6 +61,7 @@ export interface Goal {
   title: string;
   targetAmount: number;
   currentAmount: number;
+  previousAmount?: number;
   deadline: string;
   iconName: string;
   color: string;
@@ -68,6 +69,29 @@ export interface Goal {
   aiInsight: string;
   ctaText: string;
 }
+
+export interface GoalHealthScore {
+  score: number;
+  label: string;
+}
+
+export interface LifeGapPrompt {
+  key: string;
+  title: string;
+  description: string;
+  ctaText: string;
+}
+
+export interface LifeEventSuggestion {
+  title: string;
+  targetAmount: number;
+  deadline: string;
+  iconName: string;
+  color: string;
+  rationale: string;
+}
+
+export type LifeEventType = 'new_baby' | 'home_purchase' | 'inheritance' | 'job_change' | 'marriage';
 
 export interface PortfolioSnapshot {
   id: string;

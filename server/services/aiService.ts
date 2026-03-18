@@ -1,13 +1,7 @@
 import OpenAI from 'openai';
 import type { Intent } from './intentClassifier';
 import type { PortfolioContext } from './ragService';
-
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
-
-const MODEL = 'gpt-5-mini';
+import { openai, MODEL } from './openaiClient';
 
 const SYSTEM_PERSONA = `You are Ada, an AI wealth copilot for a premium wealth management platform. Your personality:
 - Clear, jargon-free language calibrated for sophisticated but non-technical investors
@@ -146,6 +140,23 @@ const TOOLS: OpenAI.ChatCompletionTool[] = [
     },
   },
 ];
+
+export async function generateJsonCompletion(systemPrompt: string, userPrompt: string): Promise<string> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: MODEL,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      max_completion_tokens: 512,
+    });
+    return response.choices[0]?.message?.content || '[]';
+  } catch (err) {
+    console.error('AI JSON generation error:', err);
+    return '[]';
+  }
+}
 
 export interface StreamChunk {
   type: 'text' | 'widget' | 'simulator' | 'suggested_questions' | 'done' | 'error';

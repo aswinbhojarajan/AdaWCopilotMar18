@@ -14,16 +14,18 @@ import {
   AddAccountModal,
   SlideNotification,
   PullToRefresh,
+  LifeGapCards,
+  LifeEventModal,
 } from '../ada';
-import { Home, GraduationCap, AlertTriangle, TrendingDown, Wallet, Target } from 'lucide-react';
+import { Home, GraduationCap, AlertTriangle, TrendingDown, Wallet, Target, CalendarPlus } from 'lucide-react';
 import { SkeletonList } from '../ada/Skeleton';
 import { ErrorBanner } from '../ada/ErrorBanner';
 import { useWealthOverview } from '../../hooks/usePortfolio';
 import { useHoldings } from '../../hooks/useHoldings';
 import { useAllocations } from '../../hooks/useAllocations';
-import { useGoals } from '../../hooks/useGoals';
+import { useGoals, useGoalHealthScore, useLifeGapPrompts, useDismissLifeGapPrompt, useLifeEventSuggestions, useCreateGoal } from '../../hooks/useGoals';
 import { useAccounts, useAddAccount } from '../../hooks/useAccounts';
-import type { ChatContext, AccountResponse } from '../../types';
+import type { ChatContext, AccountResponse, LifeEventType, LifeEventSuggestionResponse } from '../../types';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Home: <Home className="size-[18px] text-[#555555]" strokeWidth={1.5} />,
@@ -63,6 +65,8 @@ export function WealthScreen({
   onTabChange,
 }: WealthScreenProps) {
   const [showAddAccountModal, setShowAddAccountModal] = React.useState(false);
+  const [showLifeEventModal, setShowLifeEventModal] = React.useState(false);
+  const [lifeEventSuggestions, setLifeEventSuggestions] = React.useState<LifeEventSuggestionResponse[]>([]);
   const [goalsExpanded, setGoalsExpanded] = React.useState(false);
   const [shouldScrollToGoal, setShouldScrollToGoal] = React.useState(false);
   const houseDepositGoalRef = React.useRef<HTMLDivElement>(null);
@@ -74,6 +78,11 @@ export function WealthScreen({
   const goalsQuery = useGoals();
   const accountsQuery = useAccounts();
   const addAccountMutation = useAddAccount();
+  const healthScoreQuery = useGoalHealthScore();
+  const lifeGapQuery = useLifeGapPrompts();
+  const dismissLifeGapMutation = useDismissLifeGapPrompt();
+  const lifeEventMutation = useLifeEventSuggestions();
+  const createGoalMutation = useCreateGoal();
 
   const loading =
     overviewQuery.isLoading ||
@@ -164,6 +173,7 @@ export function WealthScreen({
     title: goal.title,
     targetAmount: goal.targetAmount,
     currentAmount: goal.currentAmount,
+    previousAmount: goal.previousAmount,
     deadline: goal.deadline,
     icon: ICON_MAP[goal.iconName] ?? null,
     color: goal.color,
@@ -179,6 +189,29 @@ export function WealthScreen({
       });
     },
   }));
+
+  const handleLifeEventSubmit = (eventType: LifeEventType) => {
+    lifeEventMutation.mutate(eventType, {
+      onSuccess: (data) => setLifeEventSuggestions(data),
+    });
+  };
+
+  const handleConfirmSuggestion = (suggestion: LifeEventSuggestionResponse) => {
+    createGoalMutation.mutate(
+      {
+        title: suggestion.title,
+        targetAmount: suggestion.targetAmount,
+        deadline: suggestion.deadline,
+        iconName: suggestion.iconName,
+        color: suggestion.color,
+      },
+      {
+        onSuccess: () => {
+          setLifeEventSuggestions((prev) => prev.filter((s) => s.title !== suggestion.title));
+        },
+      },
+    );
+  };
 
   const overview = overviewQuery.data;
   const totalValue = overview?.totalValue ?? 0;
@@ -283,11 +316,39 @@ export function WealthScreen({
 
             <CompactHoldings holdings={holdings} />
 
+            {(lifeGapQuery.data ?? []).length > 0 && (
+              <LifeGapCards
+                prompts={lifeGapQuery.data ?? []}
+                onDismiss={(key) => dismissLifeGapMutation.mutate(key)}
+                onAction={() => {
+                  setShowLifeEventModal(true);
+                }}
+              />
+            )}
+
+            <button
+              onClick={() => setShowLifeEventModal(true)}
+              className="bg-white rounded-[20px] px-[20px] py-[14px] w-full flex items-center gap-[12px] text-left hover:bg-[#fafaf8] transition-colors"
+            >
+              <div className="shrink-0 size-[32px] rounded-full bg-[#f7f6f2] flex items-center justify-center">
+                <CalendarPlus className="size-[16px] text-[#992929]" strokeWidth={1.5} />
+              </div>
+              <div className="flex flex-col gap-[1px]">
+                <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] text-[14px]">
+                  Log a life event
+                </p>
+                <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[12px] opacity-60">
+                  Get AI-powered goal suggestions
+                </p>
+              </div>
+            </button>
+
             <CompactGoals
               goals={goals}
               isExpanded={goalsExpanded}
               onExpandChange={setGoalsExpanded}
               houseDepositGoalRef={houseDepositGoalRef}
+              healthScore={healthScoreQuery.data}
             />
 
             <CompactConnectedAccounts
@@ -318,6 +379,18 @@ export function WealthScreen({
         isOpen={showAddAccountModal}
         onClose={() => setShowAddAccountModal(false)}
         onAccountAdded={handleAccountAdded}
+      />
+
+      <LifeEventModal
+        isOpen={showLifeEventModal}
+        onClose={() => {
+          setShowLifeEventModal(false);
+          setLifeEventSuggestions([]);
+        }}
+        onSubmit={handleLifeEventSubmit}
+        suggestions={lifeEventSuggestions}
+        isLoading={lifeEventMutation.isPending}
+        onConfirmSuggestion={handleConfirmSuggestion}
       />
 
       <SlideNotification

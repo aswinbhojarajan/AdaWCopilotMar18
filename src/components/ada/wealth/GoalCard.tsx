@@ -13,6 +13,7 @@ interface GoalCardProps {
   title: string;
   targetAmount: number;
   currentAmount: number;
+  previousAmount?: number;
   deadline: string;
   icon: React.ReactNode;
   color: string;
@@ -31,6 +32,7 @@ export function GoalCard({
   title,
   targetAmount,
   currentAmount,
+  previousAmount,
   deadline,
   icon: _icon,
   color,
@@ -46,6 +48,7 @@ export function GoalCard({
 }: GoalCardProps) {
   const progress = (currentAmount / targetAmount) * 100;
   const remaining = targetAmount - currentAmount;
+  const delta = previousAmount != null ? currentAmount - previousAmount : null;
 
   // Health status badge config (using Ada's burgundy palette)
   const healthConfig = {
@@ -131,6 +134,16 @@ export function GoalCard({
                 <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[11px] opacity-60">
                   Target: {deadline}
                 </p>
+                {delta !== null && (
+                  <p
+                    className="font-['DM_Sans:SemiBold',sans-serif] text-[12px] mt-[2px]"
+                    style={{ color: delta >= 0 ? '#16a34a' : '#dc2626' }}
+                  >
+                    {delta >= 0
+                      ? `$${Math.abs(delta).toLocaleString()} closer this month`
+                      : `$${Math.abs(delta).toLocaleString()} behind last month's pace`}
+                  </p>
+                )}
               </div>
             </div>
           </div>

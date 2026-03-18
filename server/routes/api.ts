@@ -5,7 +5,8 @@ import * as contentRepo from '../repositories/contentRepository';
 import * as pollRepo from '../repositories/pollRepository';
 import * as portfolioService from '../services/portfolioService';
 import * as chatService from '../services/chatService';
-import type { ChatMessageRequest, PollVoteRequest } from '../../shared/types';
+import * as goalService from '../services/goalService';
+import type { ChatMessageRequest, PollVoteRequest, LifeEventType } from '../../shared/types';
 
 const router = Router();
 
@@ -45,6 +46,61 @@ router.get('/wealth/holdings', asyncHandler(async (_req, res) => {
 router.get('/wealth/goals', asyncHandler(async (_req, res) => {
   const goals = await portfolioRepo.getGoalsByUserId(DEFAULT_USER_ID);
   res.json(goals);
+}));
+
+router.get('/wealth/goals/health-score', asyncHandler(async (_req, res) => {
+  const goals = await portfolioRepo.getGoalsByUserId(DEFAULT_USER_ID);
+  const score = goalService.calculateGoalHealthScore(goals);
+  res.json(score);
+}));
+
+router.get('/wealth/goals/life-gaps', asyncHandler(async (_req, res) => {
+  const goals = await portfolioRepo.getGoalsByUserId(DEFAULT_USER_ID);
+  const prompts = await goalService.generateLifeGapPrompts(DEFAULT_USER_ID, goals);
+  res.json(prompts);
+}));
+
+router.post('/wealth/goals/life-gaps/dismiss', asyncHandler(async (req, res) => {
+  const { promptKey } = req.body as { promptKey: string };
+  if (!promptKey) {
+    res.status(400).json({ error: 'promptKey is required' });
+    return;
+  }
+  await goalService.dismissPrompt(DEFAULT_USER_ID, promptKey);
+  res.json({ success: true });
+}));
+
+router.post('/wealth/goals/life-event', asyncHandler(async (req, res) => {
+  const { eventType } = req.body as { eventType: LifeEventType };
+  if (!eventType) {
+    res.status(400).json({ error: 'eventType is required' });
+    return;
+  }
+  const goals = await portfolioRepo.getGoalsByUserId(DEFAULT_USER_ID);
+  const suggestions = await goalService.generateLifeEventSuggestions(eventType, goals);
+  res.json(suggestions);
+}));
+
+router.post('/wealth/goals', asyncHandler(async (req, res) => {
+  const { title, targetAmount, deadline, iconName, color } = req.body as {
+    title: string;
+    targetAmount: number;
+    deadline: string;
+    iconName: string;
+    color: string;
+  };
+  if (!title || !targetAmount || !deadline) {
+    res.status(400).json({ error: 'title, targetAmount, and deadline are required' });
+    return;
+  }
+  const goal = await goalService.createGoalFromSuggestion(DEFAULT_USER_ID, {
+    title,
+    targetAmount,
+    deadline,
+    iconName: iconName || 'Target',
+    color: color || '#a87174',
+  });
+  res.status(201).json(goal);
 }));
 
 router.get('/wealth/accounts', asyncHandler(async (_req, res) => {

@@ -68,16 +68,16 @@ INSERT INTO portfolio_snapshots (id, user_id, total_value, daily_change_amount, 
 ON CONFLICT (id) DO NOTHING;
 
 -- Goals (Abdullah)
-INSERT INTO goals (id, user_id, title, target_amount, current_amount, deadline, icon_name, color, health_status, ai_insight, cta_text) VALUES
-  ('goal-abd-1', 'user-abdullah', 'House deposit', 30000, 18966.04, 'Dec 2026', 'Home', '#a87174', 'needs-attention',
+INSERT INTO goals (id, user_id, title, target_amount, current_amount, previous_amount, deadline, icon_name, color, health_status, ai_insight, cta_text) VALUES
+  ('goal-abd-1', 'user-abdullah', 'House deposit', 30000, 18966.04, 20500.00, 'Dec 2026', 'Home', '#a87174', 'needs-attention',
    'You''re slightly behind pace. Increasing monthly contributions by $919 keeps you on track.', 'Why am I off track?'),
-  ('goal-abd-2', 'user-abdullah', 'Education fund', 100000, 33190.57, 'Sep 2035', 'GraduationCap', '#6d3f42', 'needs-attention',
+  ('goal-abd-2', 'user-abdullah', 'Education fund', 100000, 33190.57, 31800.00, 'Sep 2035', 'GraduationCap', '#6d3f42', 'needs-attention',
    'You''re behind schedule. Consistent contributions now will help you catch up over time.', 'How can I get back on track?')
 ON CONFLICT (id) DO NOTHING;
 
 -- Goals (Fatima)
-INSERT INTO goals (id, user_id, title, target_amount, current_amount, deadline, icon_name, color, health_status, ai_insight, cta_text) VALUES
-  ('goal-fat-1', 'user-fatima', 'Retirement', 500000, 165700.00, 'Dec 2040', 'Wallet', '#6d3f42', 'on-track',
+INSERT INTO goals (id, user_id, title, target_amount, current_amount, previous_amount, deadline, icon_name, color, health_status, ai_insight, cta_text) VALUES
+  ('goal-fat-1', 'user-fatima', 'Retirement', 500000, 165700.00, 162300.00, 'Dec 2040', 'Wallet', '#6d3f42', 'on-track',
    'You''re on track for your retirement goal. Keep up the consistent contributions.', 'Review my plan')
 ON CONFLICT (id) DO NOTHING;
 

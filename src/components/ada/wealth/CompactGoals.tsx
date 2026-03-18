@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Target } from 'lucide-react';
 import { GoalCard } from './GoalCard';
+import { GoalHealthGauge } from './GoalHealthGauge';
 
 interface Goal {
   title: string;
   targetAmount: number;
   currentAmount: number;
+  previousAmount?: number;
   deadline: string;
   icon: React.ReactNode;
   color: string;
@@ -20,6 +22,7 @@ interface CompactGoalsProps {
   isExpanded?: boolean;
   onExpandChange?: (expanded: boolean) => void;
   houseDepositGoalRef?: React.RefObject<HTMLDivElement>;
+  healthScore?: { score: number; label: string };
 }
 
 export function CompactGoals({
@@ -27,6 +30,7 @@ export function CompactGoals({
   isExpanded: controlledIsExpanded,
   onExpandChange,
   houseDepositGoalRef,
+  healthScore,
 }: CompactGoalsProps) {
   const [internalIsExpanded, setInternalIsExpanded] = useState(false);
 
@@ -83,6 +87,12 @@ export function CompactGoals({
             </div>
           </button>
 
+          {healthScore && (
+            <div className="px-[24px] pb-[12px] w-full">
+              <GoalHealthGauge score={healthScore.score} label={healthScore.label} />
+            </div>
+          )}
+
           {/* Expanded Content */}
           {isExpanded && (
             <>
@@ -102,7 +112,7 @@ export function CompactGoals({
                   {needsAttentionCount > 0 && (
                     <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[13px] opacity-60 mb-[8px]">
                       {needsAttentionCount === goals.length
-                        ? 'Both goals'
+                        ? `All ${goals.length} goals`
                         : `${needsAttentionCount} goal${needsAttentionCount === 1 ? '' : 's'}`}{' '}
                       need attention. Small adjustments today can get you back on track.
                     </p>
