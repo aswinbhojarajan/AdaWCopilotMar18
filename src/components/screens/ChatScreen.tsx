@@ -10,6 +10,7 @@ interface ChatScreenProps {
   messages?: Message[];
   setMessages?: React.Dispatch<React.SetStateAction<Message[]>>;
   existingThreadId?: string;
+  onThreadIdChange?: (threadId: string) => void;
 }
 
 function useStreamingChat() {
@@ -125,6 +126,7 @@ export function ChatScreen({
   messages: externalMessages = [],
   setMessages: externalSetMessages,
   existingThreadId,
+  onThreadIdChange,
 }: ChatScreenProps = {}) {
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const messages = externalSetMessages ? externalMessages : localMessages;
@@ -136,6 +138,12 @@ export function ChatScreen({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const threadIdRef = useRef<string>(existingThreadId ?? `thread-${Date.now()}`);
   const { streamMessage } = useStreamingChat();
+
+  useEffect(() => {
+    if (onThreadIdChange) {
+      onThreadIdChange(threadIdRef.current);
+    }
+  }, [onThreadIdChange]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

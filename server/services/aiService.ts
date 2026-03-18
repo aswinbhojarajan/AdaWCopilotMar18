@@ -26,8 +26,13 @@ export function buildSystemPrompt(
   episodicMemories: string[],
   semanticFacts: string[],
   chatContext?: { category: string; title: string; sourceScreen?: string },
+  userProfile?: { name: string; riskLevel: string; riskScore: number },
 ): string {
   let prompt = SYSTEM_PERSONA;
+
+  if (userProfile) {
+    prompt += `\n\nUSER PROFILE:\nName: ${userProfile.name}\nRisk tolerance: ${userProfile.riskLevel} (score ${userProfile.riskScore}/100)\nCalibrate all investment suggestions, language, and risk framing to this ${userProfile.riskLevel} risk profile.`;
+  }
 
   prompt += `\n\nUSER'S PORTFOLIO DATA:\n${portfolioContext.summary}`;
 

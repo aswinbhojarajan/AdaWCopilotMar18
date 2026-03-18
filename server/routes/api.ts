@@ -199,4 +199,10 @@ router.post('/chat/:threadId/messages', asyncHandler(async (req, res) => {
   res.json(result);
 }));
 
+router.post('/chat/:threadId/close', asyncHandler(async (req, res) => {
+  const { threadId } = req.params;
+  await chatService.finalizeSession(DEFAULT_USER_ID, threadId);
+  res.json({ success: true });
+}));
+
 export default router;

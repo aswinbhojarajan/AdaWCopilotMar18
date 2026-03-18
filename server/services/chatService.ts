@@ -4,6 +4,7 @@ import * as memoryService from './memoryService';
 import * as aiService from './aiService';
 import * as piiDetector from './piiDetector';
 import * as contentRepo from '../repositories/contentRepository';
+import * as userRepo from '../repositories/userRepository';
 import type { ChatMessageRequest } from '../../shared/types';
 
 export interface StreamEvent {
@@ -37,10 +38,11 @@ export async function* processMessageStream(
     ? intentClassifier.getScenarioType(sanitizedMessage)
     : null;
 
-  const [portfolioContext, episodicMemories, semanticFacts] = await Promise.all([
+  const [portfolioContext, episodicMemories, semanticFacts, userProfile] = await Promise.all([
     ragService.buildPortfolioContext(userId, intent),
     memoryService.getEpisodicMemories(userId),
-    memoryService.getSemanticFacts(userId),
+    memoryService.getSemanticFacts(userId, 10, sanitizedMessage),
+    userRepo.findUserById(userId),
   ]);
 
   const systemPrompt = aiService.buildSystemPrompt(
@@ -52,6 +54,11 @@ export async function* processMessageStream(
       category: req.context.category,
       title: req.context.title,
       sourceScreen: req.context.sourceScreen,
+    } : undefined,
+    userProfile ? {
+      name: `${userProfile.firstName} ${userProfile.lastName}`,
+      riskLevel: userProfile.riskProfile.level,
+      riskScore: userProfile.riskProfile.score,
     } : undefined,
   );
 
@@ -156,4 +163,29 @@ export async function processMessageSync(
     },
     suggestedQuestions,
   };
+}
+
+export async function finalizeSession(userId: string, threadId: string): Promise<void> {
+  const workingMem = memoryService.getWorkingMemory(threadId);
+
+  if (workingMem.length >= 2) {
+    try {
+      const conversationText = workingMem.map(t => t.content).join(' ');
+      const topics = intentClassifier.extractTopics(conversationText);
+      const summary = workingMem
+        .map(t => `${t.role}: ${t.content.slice(0, 100)}`)
+        .join(' | ');
+      await memoryService.saveEpisodicMemory(userId, threadId, summary, topics);
+    } catch {
+      // episodic save is best-effort
+    }
+  }
+
+  memoryService.clearWorkingMemory(threadId);
+
+  await memoryService.logAudit({
+    userId,
+    threadId,
+    action: 'session_closed',
+  });
 }

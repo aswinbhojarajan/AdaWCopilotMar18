@@ -79,8 +79,12 @@ export default function App() {
           messages={messages}
           setMessages={setMessages}
           existingThreadId={activeThreadId}
+          onThreadIdChange={setActiveThreadId}
           onChatHistoryClick={() => setCurrentView('chat-history')}
           onBack={() => {
+            if (activeThreadId) {
+              fetch(`/api/chat/${activeThreadId}/close`, { method: 'POST' }).catch(() => {});
+            }
             setChatMessage('');
             setChatContext(undefined);
             setCurrentView(previousScreen.view);

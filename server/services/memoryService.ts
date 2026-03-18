@@ -48,7 +48,34 @@ export async function saveEpisodicMemory(
   );
 }
 
-export async function getSemanticFacts(userId: string, limit = 10): Promise<string[]> {
+export async function getSemanticFacts(userId: string, limit = 10, queryText?: string): Promise<string[]> {
+  if (queryText) {
+    const tsQuery = queryText
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .split(/\s+/)
+      .filter(w => w.length > 2)
+      .slice(0, 6)
+      .join(' | ');
+
+    if (tsQuery) {
+      const { rows } = await pool.query(
+        `SELECT fact, category,
+                ts_rank_cd(to_tsvector('english', fact || ' ' || category), to_tsquery('english', $3)) AS rank
+         FROM semantic_facts
+         WHERE user_id = $1
+           AND to_tsvector('english', fact || ' ' || category) @@ to_tsquery('english', $3)
+         ORDER BY rank DESC
+         LIMIT $2`,
+        [userId, limit, tsQuery],
+      );
+
+      if (rows.length > 0) {
+        return rows.map(r => `[${r.category}] ${r.fact}`);
+      }
+    }
+  }
+
   const { rows } = await pool.query(
     `SELECT fact, category FROM semantic_facts
      WHERE user_id = $1
