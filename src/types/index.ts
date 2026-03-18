@@ -195,3 +195,45 @@ export interface GoalResponse {
   aiInsight: string;
   ctaText: string;
 }
+
+export interface DiscoverContentItem extends ContentItem {
+  detailSections?: DetailSection[];
+  stackButtons?: boolean;
+  hideIntent?: boolean;
+  customTopic?: string;
+}
+
+export interface PollOption {
+  id: string;
+  pollId: string;
+  label: string;
+  voteCount: number;
+}
+
+export interface PollQuestion {
+  id: string;
+  question: string;
+  createdAt: string;
+  options: PollOption[];
+  userVote?: string;
+}
+
+export interface AlertResponse {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  unread: boolean;
+  category: NotificationCategory;
+}
+
+export interface ChatThreadResponse {
+  id: string;
+  userId: string;
+  title: string;
+  preview: string;
+  createdAt: string;
+  updatedAt: string;
+}

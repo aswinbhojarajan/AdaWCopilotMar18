@@ -97,7 +97,12 @@ CREATE TABLE IF NOT EXISTS content_items (
   image TEXT,
   sources_count INTEGER,
   topic_label_color TEXT,
-  target_screen TEXT DEFAULT 'home'
+  target_screen TEXT DEFAULT 'home',
+  tab TEXT,
+  detail_sections JSONB,
+  stack_buttons BOOLEAN DEFAULT FALSE,
+  hide_intent BOOLEAN DEFAULT FALSE,
+  custom_topic TEXT
 );
 
 CREATE TABLE IF NOT EXISTS peer_segments (

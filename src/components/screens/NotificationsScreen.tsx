@@ -4,17 +4,48 @@ import {
   NotificationItem as NotificationItemComponent,
   NotificationType,
 } from '../ada/NotificationItem';
-import { notificationsData } from '../../data/notifications';
-import type { NotificationItem, NotificationCategory } from '../../types';
+import { useApi } from '../../hooks/useApi';
+import type { AlertResponse, NotificationCategory } from '../../types';
 
 interface NotificationsScreenProps {
   onChatHistoryClick?: () => void;
   onBack?: () => void;
 }
 
+function NotificationsSkeleton() {
+  return (
+    <div className="flex flex-col gap-[8px] w-full">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="bg-white rounded-[12px] px-[16px] py-[14px] w-full animate-pulse">
+          <div className="flex gap-[12px]">
+            <div className="w-[36px] h-[36px] bg-gray-200 rounded-full shrink-0" />
+            <div className="flex-1">
+              <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
+              <div className="h-3 bg-gray-200 rounded w-full mb-2" />
+              <div className="h-3 bg-gray-200 rounded w-1/4" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function NotificationsScreen({ onBack }: NotificationsScreenProps = {}) {
   const [activeFilter, setActiveFilter] = useState<NotificationCategory>('all');
-  const [notifications, setNotifications] = useState<NotificationItem[]>(notificationsData);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+
+  const { data: apiAlerts, loading, error } = useApi<AlertResponse[]>('/api/notifications');
+
+  const notifications = (apiAlerts ?? []).map((alert) => ({
+    id: alert.id,
+    type: alert.type as NotificationType,
+    title: alert.title,
+    message: alert.message,
+    timestamp: alert.timestamp,
+    unread: readIds.has(alert.id) ? false : alert.unread,
+    category: alert.category,
+  }));
 
   const filteredNotifications = notifications.filter((notification) => {
     if (activeFilter === 'all') return true;
@@ -22,7 +53,7 @@ export function NotificationsScreen({ onBack }: NotificationsScreenProps = {}) {
   });
 
   const handleNotificationClick = (id: string) => {
-    setNotifications(notifications.map((n) => (n.id === id ? { ...n, unread: false } : n)));
+    setReadIds((prev) => new Set(prev).add(id));
   };
 
   return (
@@ -56,31 +87,46 @@ export function NotificationsScreen({ onBack }: NotificationsScreenProps = {}) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-[8px] w-full">
-            {filteredNotifications.map((notification) => (
-              <NotificationItemComponent
-                key={notification.id}
-                id={notification.id}
-                type={notification.type as NotificationType}
-                title={notification.title}
-                message={notification.message}
-                timestamp={notification.timestamp}
-                unread={notification.unread}
-                onClick={() => handleNotificationClick(notification.id)}
-              />
-            ))}
-
-            {filteredNotifications.length === 0 && (
-              <div className="bg-white rounded-[12px] px-[24px] py-[48px] text-center w-full">
-                <p className="font-['DM_Sans:Medium',sans-serif] text-[#3a3a3a] text-[16px] mb-[8px]">
-                  No notifications
+          {loading ? (
+            <NotificationsSkeleton />
+          ) : error ? (
+            <div className="flex items-center justify-center w-full py-[40px]">
+              <div className="text-center">
+                <p className="text-[#992929] text-[14px] font-['DM_Sans:SemiBold',sans-serif] mb-2">
+                  Unable to load notifications
                 </p>
-                <p className="font-['DM_Sans:Regular',sans-serif] text-[#667085] text-[14px] leading-[20px]">
-                  You're all caught up! Check back later for new updates.
+                <p className="text-[#555555] text-[12px] font-['DM_Sans:Regular',sans-serif]">
+                  {error}
                 </p>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-[8px] w-full">
+              {filteredNotifications.map((notification) => (
+                <NotificationItemComponent
+                  key={notification.id}
+                  id={notification.id}
+                  type={notification.type}
+                  title={notification.title}
+                  message={notification.message}
+                  timestamp={notification.timestamp}
+                  unread={notification.unread}
+                  onClick={() => handleNotificationClick(notification.id)}
+                />
+              ))}
+
+              {filteredNotifications.length === 0 && (
+                <div className="bg-white rounded-[12px] px-[24px] py-[48px] text-center w-full">
+                  <p className="font-['DM_Sans:Medium',sans-serif] text-[#3a3a3a] text-[16px] mb-[8px]">
+                    No notifications
+                  </p>
+                  <p className="font-['DM_Sans:Regular',sans-serif] text-[#667085] text-[14px] leading-[20px]">
+                    You're all caught up! Check back later for new updates.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,6 +1,13 @@
 import pool from '../db/pool';
 import type { ContentItem, Alert, ChatThread, ChatMessage, PeerComparison } from '../../shared/types';
 
+export interface DiscoverContentItem extends ContentItem {
+  detailSections?: { title: string; content: string | string[] }[];
+  stackButtons?: boolean;
+  hideIntent?: boolean;
+  customTopic?: string;
+}
+
 export async function getHomeContent(_userId: string): Promise<ContentItem[]> {
   const { rows } = await pool.query(
     `SELECT id, category, category_type, title, context_title, description,
@@ -10,6 +17,22 @@ export async function getHomeContent(_userId: string): Promise<ContentItem[]> {
      ORDER BY id`,
   );
   return rows.map(mapRowToContentItem);
+}
+
+export async function getDiscoverContent(tab?: string): Promise<DiscoverContentItem[]> {
+  const query = tab
+    ? `SELECT id, category, category_type, title, context_title, description,
+              timestamp, button_text, secondary_button_text, image, sources_count,
+              topic_label_color, detail_sections, stack_buttons, hide_intent, custom_topic
+       FROM content_items WHERE target_screen = 'discover' AND tab = $1
+       ORDER BY id`
+    : `SELECT id, category, category_type, title, context_title, description,
+              timestamp, button_text, secondary_button_text, image, sources_count,
+              topic_label_color, detail_sections, stack_buttons, hide_intent, custom_topic
+       FROM content_items WHERE target_screen = 'discover'
+       ORDER BY id`;
+  const { rows } = tab ? await pool.query(query, [tab]) : await pool.query(query);
+  return rows.map(mapRowToDiscoverItem);
 }
 
 export async function getAlertsByUserId(userId: string): Promise<Alert[]> {
@@ -168,5 +191,15 @@ function mapRowToContentItem(r: Record<string, unknown>): ContentItem {
     image: r.image ? String(r.image) : undefined,
     sourcesCount: r.sources_count ? Number(r.sources_count) : undefined,
     topicLabelColor: r.topic_label_color ? String(r.topic_label_color) : undefined,
+  };
+}
+
+function mapRowToDiscoverItem(r: Record<string, unknown>): DiscoverContentItem {
+  return {
+    ...mapRowToContentItem(r),
+    detailSections: r.detail_sections ? (r.detail_sections as DiscoverContentItem['detailSections']) : undefined,
+    stackButtons: r.stack_buttons ? Boolean(r.stack_buttons) : undefined,
+    hideIntent: r.hide_intent ? Boolean(r.hide_intent) : undefined,
+    customTopic: r.custom_topic ? String(r.custom_topic) : undefined,
   };
 }

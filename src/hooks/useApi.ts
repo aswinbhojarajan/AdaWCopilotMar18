@@ -1,17 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface UseApiResult<T> {
   data: T | null;
   loading: boolean;
   error: string | null;
+  refetch: () => void;
 }
 
-export function useApi<T>(url: string): UseApiResult<T> {
+export function useApi<T>(url: string | null): UseApiResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fetchKey, setFetchKey] = useState(0);
+
+  const refetch = useCallback(() => {
+    setFetchKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
+    if (!url) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -37,7 +48,7 @@ export function useApi<T>(url: string): UseApiResult<T> {
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, fetchKey]);
 
-  return { data, loading, error };
+  return { data, loading, error, refetch };
 }

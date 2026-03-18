@@ -110,6 +110,12 @@ router.get('/content', asyncHandler(async (req, res) => {
   res.json(items);
 }));
 
+router.get('/content/discover', asyncHandler(async (req, res) => {
+  const tab = req.query.tab as string | undefined;
+  const items = await contentRepo.getDiscoverContent(tab);
+  res.json(items);
+}));
+
 router.get('/polls', asyncHandler(async (_req, res) => {
   const polls = await pollRepo.getActivePolls(DEFAULT_USER_ID);
   res.json(polls);
