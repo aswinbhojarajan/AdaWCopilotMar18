@@ -1,10 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiFetch } from './api';
 import type { MorningSentinelResponse } from '../types';
 
 const SENTINEL_KEY = ['morning-sentinel'];
-const STALE_TIME = 4 * 60 * 60 * 1000;
-const STREAM_FALLBACK_DELAY_MS = 300;
+const CACHE_TTL = 4 * 60 * 60 * 1000;
+const STREAM_FALLBACK_DELAY_MS = 500;
 
 interface StreamingState {
   isStreaming: boolean;
@@ -49,11 +50,7 @@ async function consumeSentinelStream(
 export function useMorningSentinel() {
   const queryClient = useQueryClient();
   const abortRef = useRef<AbortController | null>(null);
-  const hasStartedRef = useRef(false);
-
-  const [data, setData] = useState<MorningSentinelResponse | null>(() => {
-    return queryClient.getQueryData<MorningSentinelResponse>(SENTINEL_KEY) ?? null;
-  });
+  const streamStartedRef = useRef(false);
 
   const [streaming, setStreaming] = useState<StreamingState>({
     isStreaming: false,
@@ -61,15 +58,22 @@ export function useMorningSentinel() {
     rawText: '',
   });
 
-  const [isError, setIsError] = useState(false);
+  const query = useQuery({
+    queryKey: SENTINEL_KEY,
+    queryFn: () => apiFetch<MorningSentinelResponse>('/api/morning-sentinel'),
+    staleTime: CACHE_TTL,
+    gcTime: CACHE_TTL,
+    refetchOnWindowFocus: false,
+    enabled: !streamStartedRef.current,
+  });
 
   const startStream = useCallback((refresh = false) => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    streamStartedRef.current = true;
 
     setStreaming({ isStreaming: true, metrics: null, rawText: '' });
-    setIsError(false);
 
     const url = refresh ? '/api/morning-sentinel/stream?refresh=true' : '/api/morning-sentinel/stream';
 
@@ -79,7 +83,6 @@ export function useMorningSentinel() {
       (chunk) => setStreaming(s => ({ ...s, rawText: s.rawText + chunk })),
       (completedData) => {
         setStreaming({ isStreaming: false, metrics: null, rawText: '' });
-        setData(completedData);
         queryClient.setQueryData(SENTINEL_KEY, completedData);
       },
       controller.signal,
@@ -87,68 +90,53 @@ export function useMorningSentinel() {
       if (err.name !== 'AbortError') {
         console.error('Sentinel stream error:', err);
         setStreaming(s => ({ ...s, isStreaming: false }));
-        setIsError(true);
       }
     });
   }, [queryClient]);
 
   useEffect(() => {
-    if (data || hasStartedRef.current) return undefined;
+    if (query.data || streaming.isStreaming || streamStartedRef.current) return undefined;
 
-    const cachedData = queryClient.getQueryData<MorningSentinelResponse>(SENTINEL_KEY);
-    if (cachedData) {
-      setData(cachedData);
+    const queryState = queryClient.getQueryState(SENTINEL_KEY);
+    const isPrefetching = queryState?.fetchStatus === 'fetching';
+
+    if (!isPrefetching) {
+      startStream();
       return undefined;
     }
 
     const timer = setTimeout(() => {
-      const freshCheck = queryClient.getQueryData<MorningSentinelResponse>(SENTINEL_KEY);
-      if (freshCheck) {
-        setData(freshCheck);
-        return;
-      }
-      hasStartedRef.current = true;
+      if (queryClient.getQueryData(SENTINEL_KEY)) return;
       startStream();
     }, STREAM_FALLBACK_DELAY_MS);
 
     return () => clearTimeout(timer);
-  }, [data, queryClient, startStream]);
+  }, [query.data, query.fetchStatus, streaming.isStreaming, queryClient, startStream]);
 
   useEffect(() => {
-    if (data) return undefined;
-
-    const unsub = queryClient.getQueryCache().subscribe((event) => {
-      if (event.type === 'updated' && event.query.queryKey[0] === 'morning-sentinel') {
-        const newData = event.query.state.data as MorningSentinelResponse | undefined;
-        if (newData) {
-          setData(newData);
-          abortRef.current?.abort();
-          setStreaming({ isStreaming: false, metrics: null, rawText: '' });
-        }
-      }
-    });
-
-    return unsub;
-  }, [data, queryClient]);
+    if (query.data && streaming.isStreaming) {
+      abortRef.current?.abort();
+      setStreaming({ isStreaming: false, metrics: null, rawText: '' });
+    }
+    return undefined;
+  }, [query.data, streaming.isStreaming]);
 
   const forceRefresh = useCallback(async () => {
     queryClient.removeQueries({ queryKey: SENTINEL_KEY });
-    setData(null);
-    hasStartedRef.current = true;
     startStream(true);
   }, [queryClient, startStream]);
 
   const refetch = useCallback(() => {
-    setData(null);
-    hasStartedRef.current = true;
     startStream();
   }, [startStream]);
 
+  const data = query.data ?? null;
+
   return {
     data,
-    isLoading: !data && !streaming.isStreaming && !isError,
-    isError: isError && !data && !streaming.isStreaming,
-    isStreaming: streaming.isStreaming,
+    isLoading: !data && !streaming.isStreaming && query.isLoading,
+    isError: query.isError && !data && !streaming.isStreaming,
+    isStreaming: streaming.isStreaming && !data,
     streamingMetrics: streaming.metrics,
     streamingText: streaming.rawText,
     refetch,

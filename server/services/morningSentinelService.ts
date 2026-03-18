@@ -163,7 +163,12 @@ function buildSentinelPrompt(metrics: PortfolioMetrics, anomalies: AnomalyFlags)
   return prompt;
 }
 
-export async function* generateBriefingStream(userId: string, forceRefresh = false): AsyncGenerator<{ type: string; data?: any }> {
+type SentinelStreamEvent =
+  | { type: 'metrics'; data: Partial<MorningSentinelResponse> & { hasAnomalies: boolean } }
+  | { type: 'text'; data: string }
+  | { type: 'complete'; data: MorningSentinelResponse };
+
+export async function* generateBriefingStream(userId: string, forceRefresh = false): AsyncGenerator<SentinelStreamEvent> {
   const cacheKey = getCacheKey(userId);
 
   if (!forceRefresh) {

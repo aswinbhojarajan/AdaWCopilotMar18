@@ -19,6 +19,7 @@ queryClient.prefetchQuery({
   queryKey: ['morning-sentinel'],
   queryFn: () => apiFetch<MorningSentinelResponse>('/api/morning-sentinel'),
   staleTime: 4 * 60 * 60 * 1000,
+  gcTime: 4 * 60 * 60 * 1000,
 });
 
 createRoot(document.getElementById('root')!).render(
