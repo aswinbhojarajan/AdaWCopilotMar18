@@ -4,6 +4,15 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Deployment Fix — Express Wildcard Route
+**Date:** March 18, 2026
+
+### Fixed
+- **Production crash loop** — replaced incompatible wildcard route `'*'` with `'/{*splat}'` in `server/index.ts` for compatibility with the newer `path-to-regexp` used by Express
+- **Verified build output** — confirmed `build/` directory with `index.html` is generated correctly by `vite build`
+
+---
+
 ## Discover Thumbnail Fix & Video Overlay Refactor
 **Date:** March 18, 2026
 
