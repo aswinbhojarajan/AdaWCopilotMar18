@@ -119,7 +119,7 @@ export async function getChatMessagesByThreadId(
   if (threadCheck.length === 0) return [];
 
   const { rows } = await pool.query(
-    `SELECT id, thread_id, sender, message, created_at
+    `SELECT id, thread_id, sender, message, widgets, created_at
      FROM chat_messages WHERE thread_id = $1
      ORDER BY created_at ASC`,
     [threadId],
@@ -130,6 +130,7 @@ export async function getChatMessagesByThreadId(
     sender: r.sender as ChatMessage['sender'],
     message: String(r.message),
     timestamp: new Date(r.created_at as string).toISOString(),
+    ...(r.widgets ? { widgets: r.widgets } : {}),
   }));
 }
 

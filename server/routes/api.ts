@@ -72,15 +72,15 @@ router.get('/chat/threads', asyncHandler(async (_req, res) => {
   res.json(threads);
 }));
 
-router.post('/chat/message', (req: Request, res: Response) => {
+router.post('/chat/message', asyncHandler(async (req, res) => {
   const body = req.body as ChatMessageRequest;
   if (!body.message) {
     res.status(400).json({ error: 'message is required' });
     return;
   }
-  const result = chatService.processMessageSync(DEFAULT_USER_ID, body);
+  const result = await chatService.processMessageSync(DEFAULT_USER_ID, body);
   res.json(result);
-});
+}));
 
 router.post('/chat/stream', asyncHandler(async (req, res) => {
   const body = req.body as ChatMessageRequest;
@@ -191,15 +191,10 @@ router.post('/chat/:threadId/messages', asyncHandler(async (req, res) => {
     return;
   }
 
-  await contentRepo.ensureChatThread(DEFAULT_USER_ID, threadId, body.message.slice(0, 60));
-  await contentRepo.insertChatMessage(threadId, 'user', body.message);
-
-  const result = chatService.processMessageSync(DEFAULT_USER_ID, {
+  const result = await chatService.processMessageSync(DEFAULT_USER_ID, {
     ...body,
     threadId,
   });
-
-  await contentRepo.insertChatMessage(threadId, 'assistant', result.message.message);
 
   res.json(result);
 }));

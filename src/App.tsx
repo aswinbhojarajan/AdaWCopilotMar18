@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Navigation } from './components/ada';
 import { HomeScreen } from './components/screens/HomeScreen';
 import { HomeEmptyScreen } from './components/screens/HomeEmptyScreen';
@@ -17,6 +17,7 @@ export default function App() {
   const [chatMessage, setChatMessage] = useState<string>('');
   const [chatContext, setChatContext] = useState<ChatContext | undefined>(undefined);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | undefined>(undefined);
   const [previousScreen, setPreviousScreen] = useState<{
     view: ViewType;
     tab: TabType;
@@ -41,13 +42,14 @@ export default function App() {
     setActiveTab(newTab);
   };
 
-  const handleChatSubmit = (message: string, context?: ChatContext) => {
+  const handleChatSubmit = useCallback((message: string, context?: ChatContext) => {
     setPreviousScreen({ view: currentView, tab: activeTab });
     setChatMessage(message);
     setChatContext(context);
+    setActiveThreadId(undefined);
+    setMessages([]);
     setCurrentView('chat');
-    setMessages([...messages, { id: Date.now().toString(), message, sender: 'user' }]);
-  };
+  }, [currentView, activeTab]);
 
   const handleResumeChat = () => {
     setPreviousScreen({ view: currentView, tab: activeTab });
@@ -58,6 +60,9 @@ export default function App() {
     if (!hasActiveChatToday) {
       setPreviousScreen({ view: currentView, tab: activeTab });
       setChatMessage('');
+      setChatContext(undefined);
+      setActiveThreadId(undefined);
+      setMessages([]);
       setCurrentView('chat');
     }
   };
@@ -73,6 +78,7 @@ export default function App() {
           chatContext={chatContext}
           messages={messages}
           setMessages={setMessages}
+          existingThreadId={activeThreadId}
           onChatHistoryClick={() => setCurrentView('chat-history')}
           onBack={() => {
             setChatMessage('');
@@ -91,7 +97,11 @@ export default function App() {
             setActiveTab('home');
           }}
           onThreadClick={(threadId) => {
-            console.log('Opening thread:', threadId);
+            setPreviousScreen({ view: 'chat-history', tab: activeTab });
+            setActiveThreadId(threadId);
+            setChatMessage('');
+            setChatContext(undefined);
+            setMessages([]);
             setCurrentView('chat');
           }}
         />

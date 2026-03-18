@@ -66,6 +66,25 @@ export function classifyIntent(message: string): Intent {
   return bestMatch;
 }
 
+const TOPIC_KEYWORDS: Record<string, string[]> = {
+  portfolio: ['portfolio', 'allocation', 'holding', 'stock', 'bond', 'rebalance'],
+  goals: ['goal', 'target', 'house', 'education', 'saving', 'milestone'],
+  market: ['market', 'interest rate', 'inflation', 'economic', 'sector'],
+  scenario: ['retire', 'scenario', 'projection', 'tax', 'spending'],
+  risk: ['risk', 'volatility', 'drawdown', 'diversif'],
+};
+
+export function extractTopics(text: string): string[] {
+  const lower = text.toLowerCase();
+  const found: string[] = [];
+  for (const [topic, keywords] of Object.entries(TOPIC_KEYWORDS)) {
+    if (keywords.some(k => lower.includes(k))) {
+      found.push(topic);
+    }
+  }
+  return found.length > 0 ? found : ['general'];
+}
+
 export function getScenarioType(message: string): 'retirement' | 'investment' | 'spending' | 'tax' | null {
   const lower = message.toLowerCase();
   if (lower.includes('retire') || lower.includes('retirement')) return 'retirement';

@@ -28,7 +28,7 @@ export async function* processMessageStream(
     threadId,
     action: 'message_received',
     piiDetected: piiResult.hasPii,
-    inputPreview: req.message.slice(0, 100),
+    inputPreview: piiResult.hasPii ? piiResult.sanitized.slice(0, 100) : req.message.slice(0, 100),
   });
 
   const intent = intentClassifier.classifyIntent(sanitizedMessage);
@@ -63,7 +63,7 @@ export async function* processMessageStream(
   const conversationHistory = memoryService.getWorkingMemory(threadId);
 
   let fullResponse = '';
-  const widgets: any[] = [];
+  const widgets: { type: string }[] = [];
 
   for await (const chunk of aiService.streamChatCompletion(systemPrompt, conversationHistory)) {
     if (chunk.type === 'text' && chunk.content) {
@@ -72,15 +72,15 @@ export async function* processMessageStream(
     } else if (chunk.type === 'simulator') {
       widgets.push({ type: 'simulator', ...chunk.simulator });
       yield { type: 'simulator', simulator: chunk.simulator };
-    } else if (chunk.type === 'widget') {
-      if (chunk.widget?.type.startsWith('fact:')) {
+    } else if (chunk.type === 'widget' && chunk.widget) {
+      if (chunk.widget.type.startsWith('fact:')) {
         const parts = chunk.widget.type.split(':');
         const category = parts[1];
         const fact = parts.slice(2).join(':');
         try {
           await memoryService.saveSemanticFact(userId, fact, category, threadId);
         } catch {
-          // ignore fact storage errors
+          // episodic save is best-effort
         }
       } else {
         widgets.push(chunk.widget);
@@ -111,18 +111,39 @@ export async function* processMessageStream(
     await contentRepo.updateThreadPreview(threadId, fullResponse.slice(0, 100));
   }
 
+  const workingMem = memoryService.getWorkingMemory(threadId);
+  if (workingMem.length >= 10) {
+    try {
+      const topics = intentClassifier.extractTopics(workingMem.map(t => t.content).join(' '));
+      const summary = workingMem
+        .slice(0, 6)
+        .map(t => `${t.role}: ${t.content.slice(0, 80)}`)
+        .join(' | ');
+      await memoryService.saveEpisodicMemory(userId, threadId, summary, topics);
+    } catch {
+      // episodic save is best-effort
+    }
+  }
+
   yield { type: 'done' };
 }
 
-export function processMessageSync(
+export async function processMessageSync(
   userId: string,
   req: ChatMessageRequest,
-): { threadId: string; message: { id: string; threadId: string; sender: 'assistant'; message: string; timestamp: string }; suggestedQuestions: string[] } {
+): Promise<{ threadId: string; message: { id: string; threadId: string; sender: 'assistant'; message: string; timestamp: string }; suggestedQuestions: string[] }> {
   const threadId = req.threadId ?? `thread-${Date.now()}`;
 
-  const oldChatRepo = require('../repositories/chatRepository');
-  const response = oldChatRepo.findChatResponse(req.message);
-  const suggestedQuestions = oldChatRepo.getSuggestedQuestions(response.message);
+  let fullResponse = '';
+  let suggestedQuestions: string[] = [];
+
+  for await (const event of processMessageStream(userId, { ...req, threadId })) {
+    if (event.type === 'text' && event.content) {
+      fullResponse += event.content;
+    } else if (event.type === 'suggested_questions' && event.suggestedQuestions) {
+      suggestedQuestions = event.suggestedQuestions;
+    }
+  }
 
   return {
     threadId,
@@ -130,7 +151,7 @@ export function processMessageSync(
       id: `msg-${Date.now()}`,
       threadId,
       sender: 'assistant',
-      message: response.message,
+      message: fullResponse || "I'm here to help with your portfolio. What would you like to know?",
       timestamp: new Date().toISOString(),
     },
     suggestedQuestions,

@@ -3,7 +3,7 @@ import { useAllocations } from '../../hooks/useAllocations';
 import { useHoldings } from '../../hooks/useHoldings';
 import { useGoals } from '../../hooks/useGoals';
 import { useWealthOverview } from '../../hooks/usePortfolio';
-import type { ChatWidget } from '../../types';
+import type { ChatWidget, AssetAllocation, Holding, GoalData } from '../../types';
 
 function AllocationChart() {
   const { data: allocations, isLoading } = useAllocations();
@@ -12,13 +12,13 @@ function AllocationChart() {
     return <WidgetSkeleton title="Asset Allocation" />;
   }
 
-  const total = allocations.reduce((s: number, a: any) => s + Number(a.amount || a.value || 0), 0);
+  const total = (allocations as AssetAllocation[]).reduce((s, a) => s + Number(a.amount || a.value || 0), 0);
 
   return (
     <div className="bg-white border border-[#E5E5E5] rounded-[12px] p-[16px] my-[8px]">
       <h4 className="text-[13px] text-[#1A1A1A] font-medium mb-[12px]">Asset Allocation</h4>
       <div className="space-y-[8px]">
-        {allocations.map((a: any, i: number) => {
+        {(allocations as AssetAllocation[]).map((a, i) => {
           const pct = total > 0 ? ((Number(a.amount || a.value || 0) / total) * 100) : 0;
           return (
             <div key={i}>
@@ -47,13 +47,13 @@ function HoldingsSummary() {
     return <WidgetSkeleton title="Top Holdings" />;
   }
 
-  const sorted = [...holdings].sort((a: any, b: any) => Number(b.value) - Number(a.value)).slice(0, 5);
+  const sorted = [...(holdings as Holding[])].sort((a, b) => Number(b.value) - Number(a.value)).slice(0, 5);
 
   return (
     <div className="bg-white border border-[#E5E5E5] rounded-[12px] p-[16px] my-[8px]">
       <h4 className="text-[13px] text-[#1A1A1A] font-medium mb-[12px]">Top Holdings</h4>
       <div className="space-y-[10px]">
-        {sorted.map((h: any, i: number) => (
+        {sorted.map((h, i) => (
           <div key={i} className="flex justify-between items-center">
             <div>
               <span className="text-[12px] text-[#1A1A1A] font-medium">{h.symbol}</span>
@@ -83,7 +83,7 @@ function GoalProgress() {
     <div className="bg-white border border-[#E5E5E5] rounded-[12px] p-[16px] my-[8px]">
       <h4 className="text-[13px] text-[#1A1A1A] font-medium mb-[12px]">Goal Progress</h4>
       <div className="space-y-[12px]">
-        {goals.map((g: any, i: number) => {
+        {(goals as GoalData[]).map((g, i) => {
           const pct = (Number(g.currentAmount) / Number(g.targetAmount)) * 100;
           const statusColor = g.healthStatus === 'on-track' ? '#0F6F4E' : g.healthStatus === 'at-risk' ? '#C1464F' : '#D4A017';
           return (

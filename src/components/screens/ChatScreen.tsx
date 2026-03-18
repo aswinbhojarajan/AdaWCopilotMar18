@@ -9,6 +9,7 @@ interface ChatScreenProps {
   onChatHistoryClick?: () => void;
   messages?: Message[];
   setMessages?: React.Dispatch<React.SetStateAction<Message[]>>;
+  existingThreadId?: string;
 }
 
 function useStreamingChat() {
@@ -123,15 +124,17 @@ export function ChatScreen({
   onChatHistoryClick,
   messages: externalMessages = [],
   setMessages: externalSetMessages,
+  existingThreadId,
 }: ChatScreenProps = {}) {
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const messages = externalSetMessages ? externalMessages : localMessages;
   const setMessages = externalSetMessages || setLocalMessages;
 
   const [isTyping, setIsTyping] = useState(false);
+  const [isLoadingThread, setIsLoadingThread] = useState(false);
   const [apiSuggestions, setApiSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const threadIdRef = useRef<string>(`thread-${Date.now()}`);
+  const threadIdRef = useRef<string>(existingThreadId ?? `thread-${Date.now()}`);
   const { streamMessage } = useStreamingChat();
 
   const scrollToBottom = () => {
@@ -203,7 +206,27 @@ export function ChatScreen({
   }, [setMessages, streamMessage]);
 
   useEffect(() => {
-    if (initialMessage && messages.length === 0) {
+    if (existingThreadId && messages.length === 0) {
+      setIsLoadingThread(true);
+      fetch(`/api/chat/${existingThreadId}/messages`)
+        .then(res => res.json())
+        .then((data: Array<{ id: string; sender: string; message: string; widgets?: ChatWidget[] }>) => {
+          const loaded: Message[] = data.map(m => ({
+            id: m.id,
+            message: m.message,
+            sender: m.sender as 'user' | 'assistant',
+            widgets: m.widgets as ChatWidget[] | undefined,
+          }));
+          setMessages(loaded);
+          setIsLoadingThread(false);
+        })
+        .catch(() => {
+          setIsLoadingThread(false);
+        });
+      return;
+    }
+
+    if (initialMessage && messages.length === 0 && !existingThreadId) {
       const userMsg: Message = {
         id: Date.now().toString(),
         message: initialMessage,
@@ -226,7 +249,7 @@ export function ChatScreen({
         sendAndReceive(initialMessage, chatContext);
       }
     }
-  }, [initialMessage]);
+  }, [initialMessage, existingThreadId]);
 
   const handleSubmit = (value: string) => {
     if (!value.trim()) return;
@@ -342,7 +365,7 @@ export function ChatScreen({
             </>
           )}
 
-          {messages.length === 0 && (
+          {messages.length === 0 && !isLoadingThread && (
             <div className="flex flex-col items-center justify-center w-full pt-[40px] px-[24px]">
               <div className="mb-[16px]">
                 <AtomIcon size={55} />
@@ -356,6 +379,17 @@ export function ChatScreen({
                 <br />
                 investments, or market insights.
               </p>
+            </div>
+          )}
+
+          {isLoadingThread && messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center w-full pt-[60px]">
+              <div className="flex gap-[4px] items-center">
+                <div className="w-[6px] h-[6px] bg-[#555555] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-[6px] h-[6px] bg-[#555555] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-[6px] h-[6px] bg-[#555555] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <p className="font-['DM_Sans:Light',sans-serif] text-[#555555] text-[12px] mt-[12px]">Loading conversation...</p>
             </div>
           )}
         </div>

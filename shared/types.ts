@@ -119,6 +119,7 @@ export interface ChatMessage {
   sender: 'user' | 'assistant';
   message: string;
   timestamp: string;
+  widgets?: { type: string }[];
 }
 
 export interface ActionContext {
