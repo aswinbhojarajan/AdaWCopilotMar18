@@ -1,9 +1,5 @@
 import React from 'react';
 import {
-  TopBar,
-  Header,
-  Navigation,
-  BottomBar,
   Button,
   PollOption,
   SlideNotification,
@@ -20,32 +16,18 @@ import { apiFetch } from '../../hooks/api';
 import type { PeerComparison } from '../../types';
 
 interface CollectiveScreenProps {
-  onChatHistoryClick?: () => void;
-  onNotificationsClick?: () => void;
   onChatSubmit?: (
     message: string,
     context?: { category: string; categoryType: string; title: string; sourceScreen?: string },
   ) => void;
-  hasActiveChatToday?: boolean;
-  onResumeChat?: () => void;
-  onOpenChat?: () => void;
   onPollVote?: () => void;
   onNavigateToWealth?: () => void;
-  onClose?: () => void;
-  onTabChange?: (tab: string) => void;
 }
 
 export function CollectiveScreen({
-  onChatHistoryClick,
-  onNotificationsClick,
   onChatSubmit,
-  hasActiveChatToday,
-  onResumeChat,
-  onOpenChat,
   onPollVote,
   onNavigateToWealth,
-  onClose,
-  onTabChange,
 }: CollectiveScreenProps = {}) {
   const [hasVoted, setHasVoted] = React.useState(false);
   const [selectedOptionId, setSelectedOptionId] = React.useState<string | null>(null);
@@ -109,16 +91,10 @@ export function CollectiveScreen({
   };
 
   return (
-    <div className="bg-[#efede6] relative h-screen w-full">
-      <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-0 px-0 w-full z-10">
-        <TopBar />
-        <Header onNotificationsClick={onNotificationsClick} onClose={onClose} />
-        <Navigation activeTab="collective" onTabChange={onTabChange ?? (() => {})} />
-      </div>
-
+    <>
       <PullToRefresh
         onRefresh={async () => { await Promise.all([pollsQuery.refetch(), peersQuery.refetch()]); }}
-        className="absolute top-[128px] left-0 right-0 bottom-0"
+        className="h-full"
       >
         {loading ? (
           <div className="px-[6px] pt-[5px] pb-[107px]">
@@ -375,16 +351,6 @@ export function CollectiveScreen({
         )}
       </PullToRefresh>
 
-      <div className="absolute bottom-0 left-0 right-0 z-10">
-        <BottomBar
-          onSubmit={onChatSubmit}
-          onChatHistoryClick={onChatHistoryClick}
-          hasActiveChatToday={hasActiveChatToday}
-          onResumeChat={onResumeChat}
-          onOpenChat={onOpenChat}
-        />
-      </div>
-
       <SlideNotification
         variant="system"
         categoryLabel="ALERT"
@@ -398,6 +364,6 @@ export function CollectiveScreen({
           onNavigateToWealth?.();
         }}
       />
-    </div>
+    </>
   );
 }

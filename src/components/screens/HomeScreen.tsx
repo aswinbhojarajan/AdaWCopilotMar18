@@ -1,9 +1,5 @@
 import React, { useCallback } from 'react';
 import {
-  TopBar,
-  Header,
-  Navigation,
-  BottomBar,
   ContentCard,
   PullToRefresh,
   MorningSentinelCard,
@@ -12,18 +8,14 @@ import { SkeletonList } from '../ada/Skeleton';
 import { ErrorBanner } from '../ada/ErrorBanner';
 import { useHomeSummary } from '../../hooks/usePortfolio';
 import { useMorningSentinel } from '../../hooks/useMorningSentinel';
-import type { ScreenProps } from '../../types';
+
+interface HomeScreenProps {
+  onChatSubmit?: (message: string, context?: { category: string; categoryType: string; title: string; sourceScreen?: string }) => void;
+}
 
 export function HomeScreen({
-  onChatHistoryClick,
-  onNotificationsClick,
   onChatSubmit,
-  hasActiveChatToday,
-  onResumeChat,
-  onOpenChat,
-  onClose,
-  onTabChange,
-}: ScreenProps = {}) {
+}: HomeScreenProps) {
   const { data, isLoading, isError, refetch } = useHomeSummary();
   const sentinel = useMorningSentinel();
 
@@ -93,29 +85,11 @@ export function HomeScreen({
   };
 
   return (
-    <div className="bg-[#efede6] relative h-screen w-full">
-      <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-0 px-0 w-full z-10">
-        <TopBar />
-        <Header onNotificationsClick={onNotificationsClick} onClose={onClose} />
-        <Navigation activeTab="home" onTabChange={onTabChange ?? (() => {})} />
-      </div>
-
-      <PullToRefresh
-        onRefresh={handleRefresh}
-        className="absolute top-[128px] left-0 right-0 bottom-0"
-      >
-        {renderContent()}
-      </PullToRefresh>
-
-      <div className="absolute bottom-0 left-0 right-0 z-10">
-        <BottomBar
-          onSubmit={onChatSubmit}
-          onChatHistoryClick={onChatHistoryClick}
-          hasActiveChatToday={hasActiveChatToday}
-          onResumeChat={onResumeChat}
-          onOpenChat={onOpenChat}
-        />
-      </div>
-    </div>
+    <PullToRefresh
+      onRefresh={handleRefresh}
+      className="h-full"
+    >
+      {renderContent()}
+    </PullToRefresh>
   );
 }

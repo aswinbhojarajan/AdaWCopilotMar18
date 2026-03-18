@@ -1,9 +1,5 @@
 import React from 'react';
 import {
-  TopBar,
-  Header,
-  Navigation,
-  BottomBar,
   WealthSnapshot,
   CompactAssetAllocation,
   PortfolioHealthSummary,
@@ -35,34 +31,19 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 };
 
 interface WealthScreenProps {
-  onNavigate?: (path: string) => void;
   onChatSubmit?: (message: string, context?: ChatContext) => void;
   showGoalNotification?: boolean;
   onDismissNotification?: () => void;
-  onChatHistoryClick?: () => void;
-  onNotificationsClick?: () => void;
-  hasActiveChatToday?: boolean;
-  onResumeChat?: () => void;
-  onOpenChat?: () => void;
   shouldAutoScrollToGoal?: boolean;
   onScrollComplete?: () => void;
-  onClose?: () => void;
-  onTabChange?: (tab: string) => void;
 }
 
 export function WealthScreen({
   onChatSubmit,
   showGoalNotification,
   onDismissNotification,
-  onChatHistoryClick,
-  onResumeChat,
-  onOpenChat,
-  hasActiveChatToday,
   shouldAutoScrollToGoal,
   onScrollComplete,
-  onNotificationsClick,
-  onClose,
-  onTabChange,
 }: WealthScreenProps) {
   const [showAddAccountModal, setShowAddAccountModal] = React.useState(false);
   const [showLifeEventModal, setShowLifeEventModal] = React.useState(false);
@@ -219,17 +200,11 @@ export function WealthScreen({
   const holdings = holdingsQuery.data ?? [];
 
   return (
-    <div className="bg-[#efede6] relative h-screen w-full">
-      <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-0 px-0 w-full z-10">
-        <TopBar />
-        <Header onNotificationsClick={onNotificationsClick} onClose={onClose} />
-        <Navigation activeTab="wealth" onTabChange={onTabChange ?? (() => {})} />
-      </div>
-
+    <>
       <PullToRefresh
         ref={pullToRefreshRef}
         onRefresh={async () => { await Promise.all([overviewQuery.refetch(), holdingsQuery.refetch(), allocationsQuery.refetch(), goalsQuery.refetch(), accountsQuery.refetch()]); }}
-        className="absolute top-[128px] left-0 right-0 bottom-0"
+        className="h-full"
       >
         {loading ? (
           <div className="px-[6px] pt-[5px] pb-[107px]">
@@ -365,16 +340,6 @@ export function WealthScreen({
         )}
       </PullToRefresh>
 
-      <div className="absolute bottom-0 left-0 right-0 z-10">
-        <BottomBar
-          onSubmit={onChatSubmit}
-          onChatHistoryClick={onChatHistoryClick}
-          hasActiveChatToday={hasActiveChatToday}
-          onResumeChat={onResumeChat}
-          onOpenChat={onOpenChat}
-        />
-      </div>
-
       <AddAccountModal
         isOpen={showAddAccountModal}
         onClose={() => setShowAddAccountModal(false)}
@@ -407,6 +372,6 @@ export function WealthScreen({
           setShouldScrollToGoal(true);
         }}
       />
-    </div>
+    </>
   );
 }

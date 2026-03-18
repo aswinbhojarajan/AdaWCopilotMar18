@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo, Suspense, lazy, useTransition } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { HomeScreen } from './components/screens/HomeScreen';
+import { TopBar, Header, Navigation, BottomBar } from './components/ada';
 import type { TabType, ViewType, ChatContext, Message } from './types';
 
 const HomeEmptyScreen = lazy(() => import('./components/screens/HomeEmptyScreen').then(m => ({ default: m.HomeEmptyScreen })));
@@ -12,8 +13,6 @@ const WealthScreen = lazy(() => import('./components/screens/WealthScreen').then
 const NotificationsScreen = lazy(() => import('./components/screens/NotificationsScreen').then(m => ({ default: m.NotificationsScreen })));
 const ClientEnvironment = lazy(() => import('./imports/ClientEnvironment-2066-398'));
 
-const TAB_ORDER: TabType[] = ['home', 'wealth', 'discover', 'collective'];
-
 const overlayVariants = {
   initial: { y: '100%', opacity: 1 },
   animate: { y: 0, opacity: 1 },
@@ -21,6 +20,12 @@ const overlayVariants = {
 };
 
 const fadeVariants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+};
+
+const contentFadeVariants = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
   exit: { opacity: 0 },
@@ -96,38 +101,45 @@ export default function App() {
     }
   };
 
-  const tabDirection = useMemo(() => {
-    const prevIdx = TAB_ORDER.indexOf(prevTabRef.current);
-    const curIdx = TAB_ORDER.indexOf(activeTab);
-    return curIdx >= prevIdx ? 1 : -1;
-  }, [activeTab]);
-
-  const tabVariants = useMemo(() => ({
-    initial: { x: `${tabDirection * 30}%`, opacity: 0 },
-    animate: { x: 0, opacity: 1 },
-    exit: { x: `${-tabDirection * 30}%`, opacity: 0 },
-  }), [tabDirection]);
-
   const isOverlay = ['chat', 'chat-history', 'notifications'].includes(currentView);
   const isClientEnv = currentView === 'client-environment';
+  const isTabView = !isOverlay && !isClientEnv && currentView !== 'home-empty';
 
-  const screenKey = isOverlay || isClientEnv || currentView === 'home-empty'
-    ? currentView
-    : `tab-${activeTab}`;
-
-  const getVariants = () => {
-    if (isOverlay) return overlayVariants;
-    if (isClientEnv) return fadeVariants;
-    return tabVariants;
+  const renderTabContent = () => {
+    if (activeTab === 'home')
+      return (
+        <HomeScreen
+          onChatSubmit={handleChatSubmit}
+        />
+      );
+    if (activeTab === 'wealth')
+      return (
+        <WealthScreen
+          onChatSubmit={handleChatSubmit}
+          showGoalNotification={showGoalNotification}
+          onDismissNotification={() => setShowGoalNotification(false)}
+          shouldAutoScrollToGoal={pendingWealthScroll}
+          onScrollComplete={() => setPendingWealthScroll(false)}
+        />
+      );
+    if (activeTab === 'discover')
+      return (
+        <DiscoverScreen
+          onChatSubmit={handleChatSubmit}
+        />
+      );
+    if (activeTab === 'collective')
+      return (
+        <CollectiveScreen
+          onChatSubmit={handleChatSubmit}
+          onPollVote={handlePollVote}
+          onNavigateToWealth={handleNavigateToWealthFromCollective}
+        />
+      );
+    return null;
   };
 
-  const getTransition = () => {
-    if (isOverlay) return { type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] };
-    if (isClientEnv) return { duration: 0.4 };
-    return { type: 'tween', duration: 0.2, ease: 'easeInOut' };
-  };
-
-  const renderCurrentView = () => {
+  const renderFullScreenView = () => {
     if (currentView === 'home-empty') {
       return <HomeEmptyScreen onChatHistoryClick={() => navigateTo('chat-history')} />;
     }
@@ -182,67 +194,19 @@ export default function App() {
         />
       );
     }
-
-    if (activeTab === 'home')
-      return (
-        <HomeScreen
-          onChatHistoryClick={() => navigateTo('chat-history')}
-          onNotificationsClick={() => navigateTo('notifications')}
-          onChatSubmit={handleChatSubmit}
-          hasActiveChatToday={hasActiveChatToday}
-          onResumeChat={handleResumeChat}
-          onOpenChat={handleOpenChat}
-          onClose={() => navigateTo('client-environment')}
-          onTabChange={handleTabChange}
-        />
-      );
-    if (activeTab === 'wealth')
-      return (
-        <WealthScreen
-          onChatHistoryClick={() => navigateTo('chat-history')}
-          onNotificationsClick={() => navigateTo('notifications')}
-          onChatSubmit={handleChatSubmit}
-          hasActiveChatToday={hasActiveChatToday}
-          onResumeChat={handleResumeChat}
-          onOpenChat={handleOpenChat}
-          showGoalNotification={showGoalNotification}
-          onDismissNotification={() => setShowGoalNotification(false)}
-          shouldAutoScrollToGoal={pendingWealthScroll}
-          onScrollComplete={() => setPendingWealthScroll(false)}
-          onClose={() => navigateTo('client-environment')}
-          onTabChange={handleTabChange}
-        />
-      );
-    if (activeTab === 'discover')
-      return (
-        <DiscoverScreen
-          onChatHistoryClick={() => navigateTo('chat-history')}
-          onNotificationsClick={() => navigateTo('notifications')}
-          onChatSubmit={handleChatSubmit}
-          hasActiveChatToday={hasActiveChatToday}
-          onResumeChat={handleResumeChat}
-          onOpenChat={handleOpenChat}
-          onClose={() => navigateTo('client-environment')}
-          onTabChange={handleTabChange}
-        />
-      );
-    if (activeTab === 'collective')
-      return (
-        <CollectiveScreen
-          onChatHistoryClick={() => navigateTo('chat-history')}
-          onNotificationsClick={() => navigateTo('notifications')}
-          onChatSubmit={handleChatSubmit}
-          hasActiveChatToday={hasActiveChatToday}
-          onResumeChat={handleResumeChat}
-          onOpenChat={handleOpenChat}
-          onPollVote={handlePollVote}
-          onNavigateToWealth={handleNavigateToWealthFromCollective}
-          onClose={() => navigateTo('client-environment')}
-          onTabChange={handleTabChange}
-        />
-      );
-
     return null;
+  };
+
+  const fullScreenKey = isOverlay ? currentView : isClientEnv ? 'client-environment' : currentView === 'home-empty' ? 'home-empty' : null;
+
+  const getFullScreenVariants = () => {
+    if (isOverlay) return overlayVariants;
+    return fadeVariants;
+  };
+
+  const getFullScreenTransition = () => {
+    if (isOverlay) return { type: 'tween' as const, duration: 0.3, ease: [0.32, 0.72, 0, 1] };
+    return { duration: 0.4 };
   };
 
   return (
@@ -252,18 +216,57 @@ export default function App() {
         style={{ isolation: 'isolate' } as React.CSSProperties}
       >
         <Suspense fallback={<div className="flex items-center justify-center h-full bg-[#efede6]" />}>
+          {isTabView && (
+            <div className="relative h-full w-full">
+              <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-0 px-0 w-full z-10">
+                <TopBar />
+                <Header
+                  onNotificationsClick={() => navigateTo('notifications')}
+                  onClose={() => navigateTo('client-environment')}
+                />
+                <Navigation activeTab={activeTab} onTabChange={handleTabChange} />
+              </div>
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`tab-${activeTab}`}
+                  variants={contentFadeVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={{ duration: 0.15, ease: 'easeInOut' }}
+                  className="absolute top-[128px] left-0 right-0 bottom-0"
+                >
+                  {renderTabContent()}
+                </motion.div>
+              </AnimatePresence>
+
+              <div className="absolute bottom-0 left-0 right-0 z-10">
+                <BottomBar
+                  onSubmit={handleChatSubmit}
+                  onChatHistoryClick={() => navigateTo('chat-history')}
+                  hasActiveChatToday={hasActiveChatToday}
+                  onResumeChat={handleResumeChat}
+                  onOpenChat={handleOpenChat}
+                />
+              </div>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
-            <motion.div
-              key={screenKey}
-              variants={getVariants()}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={getTransition()}
-              className="relative w-full h-full"
-            >
-              {renderCurrentView()}
-            </motion.div>
+            {fullScreenKey && (
+              <motion.div
+                key={fullScreenKey}
+                variants={getFullScreenVariants()}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={getFullScreenTransition()}
+                className="absolute inset-0 z-20"
+              >
+                {renderFullScreenView()}
+              </motion.div>
+            )}
           </AnimatePresence>
         </Suspense>
       </div>
