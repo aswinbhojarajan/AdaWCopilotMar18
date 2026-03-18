@@ -35,6 +35,28 @@ router.get('/morning-sentinel', asyncHandler(async (req, res) => {
   res.json(briefing);
 }));
 
+router.get('/morning-sentinel/stream', asyncHandler(async (req, res) => {
+  const forceRefresh = req.query.refresh === 'true';
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  let closed = false;
+  req.on('close', () => { closed = true; });
+
+  const stream = morningSentinelService.generateBriefingStream(DEFAULT_USER_ID, forceRefresh);
+
+  for await (const event of stream) {
+    if (closed) break;
+    res.write(`data: ${JSON.stringify(event)}\n\n`);
+  }
+
+  res.end();
+}));
+
 router.get('/wealth/overview', asyncHandler(async (_req, res) => {
   const overview = await portfolioService.getWealthOverview(DEFAULT_USER_ID);
   res.json(overview);

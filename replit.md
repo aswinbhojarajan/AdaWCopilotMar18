@@ -7,7 +7,7 @@ A mobile-first wealth management copilot prototype. Full-stack application with 
 - **Frontend**: React 18 + TypeScript, Vite 6, Tailwind CSS v4, TanStack Query v5
 - **Backend**: Express + TypeScript (via tsx), port 3001
 - **Database**: PostgreSQL (Replit-managed), 22 tables
-- **AI**: OpenAI (Replit AI Integrations), gpt-5-mini model, streaming SSE
+- **AI**: OpenAI (Replit AI Integrations), gpt-5-mini model, streaming SSE (chat + Morning Sentinel)
 - **Styling**: Tailwind utility classes, custom fonts (Crimson Pro, DM Sans)
 - **Type Checking**: TypeScript 5.8, `tsconfig.json` with `noImplicitReturns`, `noFallthroughCasesInSwitch`
 - **Linting**: ESLint 9 (flat config) + Prettier
@@ -84,6 +84,7 @@ episodic_memories, semantic_facts, chat_audit_log
 | GET    | /api/me                    | Current user profile               |
 | GET    | /api/home/summary          | Home screen data + content cards   |
 | GET    | /api/morning-sentinel      | AI-generated daily briefing (?refresh=true to force) |
+| GET    | /api/morning-sentinel/stream | SSE stream of briefing generation (metrics → text → complete) |
 | GET    | /api/wealth/overview       | Portfolio value + performance      |
 | GET    | /api/wealth/allocation     | Asset allocation (computed)        |
 | GET    | /api/wealth/holdings       | Top 5 holdings by value            |

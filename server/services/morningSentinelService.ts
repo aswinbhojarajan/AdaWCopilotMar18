@@ -163,6 +163,109 @@ function buildSentinelPrompt(metrics: PortfolioMetrics, anomalies: AnomalyFlags)
   return prompt;
 }
 
+export async function* generateBriefingStream(userId: string, forceRefresh = false): AsyncGenerator<{ type: string; data?: any }> {
+  const cacheKey = getCacheKey(userId);
+
+  if (!forceRefresh) {
+    const cached = briefingCache.get(cacheKey);
+    if (cached && Date.now() - cached.generatedAt < CACHE_TTL_MS) {
+      yield { type: 'complete', data: cached.data };
+      return;
+    }
+  }
+
+  const metrics = await gatherMetrics(userId);
+  const anomalies = detectAnomalies(metrics);
+  const systemPrompt = buildSentinelPrompt(metrics, anomalies);
+
+  const baseFields = {
+    userName: metrics.userName,
+    generatedAt: new Date().toISOString(),
+    portfolioValue: metrics.totalValue,
+    dailyChangeAmount: metrics.dailyChangeAmount,
+    dailyChangePercent: metrics.dailyChangePercent,
+    hasAnomalies: anomalies.largeDailyChange || anomalies.goalOffTrack || anomalies.concentrationAlert,
+  };
+
+  yield { type: 'metrics', data: baseFields };
+
+  try {
+    const stream = await openai.chat.completions.create({
+      model: MODEL,
+      messages: [
+        { role: 'system', content: 'You are a JSON API. You always respond with valid JSON only, no markdown or explanation.' },
+        { role: 'user', content: systemPrompt },
+      ],
+      max_completion_tokens: 2048,
+      stream: true,
+    });
+
+    let fullContent = '';
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content || '';
+      if (delta) {
+        fullContent += delta;
+        yield { type: 'text', data: delta };
+      }
+    }
+
+    const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No JSON found in AI response');
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    const briefing: MorningSentinelResponse = {
+      ...baseFields,
+      headline: parsed.headline || 'Your portfolio overview is ready',
+      overview: parsed.overview || '',
+      keyMovers: (parsed.keyMovers || []).slice(0, 3).map((m: { symbol: string; name: string; direction: string; detail: string }) => ({
+        symbol: m.symbol || '',
+        name: m.name || '',
+        direction: m.direction === 'down' ? 'down' as const : 'up' as const,
+        detail: m.detail || '',
+      })),
+      risks: (parsed.risks || []).slice(0, 3).map((r: { severity: string; title: string; description: string }) => ({
+        severity: (['high', 'medium', 'low'].includes(r.severity) ? r.severity : 'medium') as MorningSentinelRisk['severity'],
+        title: r.title || '',
+        description: r.description || '',
+      })),
+      actions: (parsed.actions || []).slice(0, 3).map((a: { title: string; description: string; ctaText: string; ctaMessage: string }) => ({
+        title: a.title,
+        description: a.description,
+        ctaText: a.ctaText || 'Explore',
+        ctaMessage: a.ctaMessage || a.title,
+      })),
+      benchmarkNote: parsed.benchmarkNote || '',
+    };
+
+    briefingCache.set(cacheKey, { data: briefing, generatedAt: Date.now() });
+    yield { type: 'complete', data: briefing };
+  } catch (err) {
+    console.error('Morning Sentinel streaming error:', err);
+    const fallback: MorningSentinelResponse = {
+      ...baseFields,
+      headline: metrics.dailyChangeAmount >= 0
+        ? 'Your portfolio is holding steady'
+        : 'Minor movement in your portfolio overnight',
+      overview: `Your portfolio is valued at $${metrics.totalValue.toLocaleString()} with a ${metrics.dailyChangePercent >= 0 ? '+' : ''}${metrics.dailyChangePercent}% daily change.`,
+      keyMovers: metrics.holdings.slice(0, 2).map(h => ({
+        symbol: h.symbol,
+        name: h.name,
+        direction: (h.gainPercent >= 0 ? 'up' : 'down') as 'up' | 'down',
+        detail: `${h.gainPercent >= 0 ? '+' : ''}${h.gainPercent.toFixed(1)}% overall gain`,
+      })),
+      risks: anomalies.concentrationAlert
+        ? [{ severity: 'medium' as const, title: 'Concentration alert', description: anomalies.details.find(d => d.includes('concentration')) || 'Review your allocation' }]
+        : [],
+      actions: [{ title: 'Review portfolio', description: 'Take a look at your current holdings and allocation', ctaText: 'Dive deeper', ctaMessage: 'Show me a detailed breakdown of my portfolio performance' }],
+      benchmarkNote: 'Market comparison data will be available shortly.',
+    };
+    briefingCache.set(cacheKey, { data: fallback, generatedAt: Date.now() });
+    yield { type: 'complete', data: fallback };
+  }
+}
+
 export async function generateBriefing(userId: string, forceRefresh = false): Promise<MorningSentinelResponse> {
   const cacheKey = getCacheKey(userId);
 

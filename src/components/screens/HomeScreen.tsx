@@ -42,6 +42,9 @@ export function HomeScreen({
           data={sentinel.data}
           isLoading={sentinel.isLoading}
           isError={sentinel.isError}
+          isStreaming={sentinel.isStreaming}
+          streamingMetrics={sentinel.streamingMetrics}
+          streamingText={sentinel.streamingText}
           onRetry={() => sentinel.refetch()}
           onChatSubmit={onChatSubmit}
         />

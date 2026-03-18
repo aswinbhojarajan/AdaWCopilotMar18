@@ -13,6 +13,9 @@ interface MorningSentinelCardProps {
   data: MorningSentinelResponse | undefined;
   isLoading: boolean;
   isError: boolean;
+  isStreaming?: boolean;
+  streamingMetrics?: Partial<MorningSentinelResponse> | null;
+  streamingText?: string;
   onRetry: () => void;
   onChatSubmit?: (message: string, context?: ChatContext) => void;
 }
@@ -162,13 +165,98 @@ function SentinelSkeleton() {
   );
 }
 
+function StreamingSentinel({ metrics, text }: { metrics: Partial<MorningSentinelResponse> | null; text: string }) {
+  const hasMetrics = metrics && metrics.portfolioValue !== undefined;
+  const isPositive = (metrics?.dailyChangeAmount ?? 0) >= 0;
+
+  return (
+    <div className="bg-white rounded-[30px] w-full">
+      <div className="p-[24px]">
+        <div className="flex flex-col gap-[16px]">
+          <div className="flex flex-col gap-[10px]">
+            <div className="flex items-end justify-between w-full">
+              <div className="flex flex-col font-['DM_Sans:Regular',sans-serif] h-[7px] justify-center leading-[0] text-[#555555] text-[9px] w-[75px]">
+                <p className="leading-[18px]">{hasMetrics ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` : ''}</p>
+              </div>
+              <p className="font-['DM_Sans:SemiBold',sans-serif] h-[12px] leading-[18px] text-[#992929] text-[10px] text-center tracking-[0.8px] uppercase w-[138px]">
+                MORNING SENTINEL
+              </p>
+              <p className="font-['DM_Sans:Regular',sans-serif] h-[17px] leading-[28px] text-[#555555] text-[9px] text-right w-[75px]">
+                {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </p>
+            </div>
+            <div className="h-[0.5px] bg-[#555555] opacity-30 w-full" />
+          </div>
+
+          {hasMetrics && (
+            <div className="flex flex-col gap-[12px]">
+              <p className="font-['DM_Sans:SemiBold',sans-serif] h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[10px] tracking-[0.8px] uppercase">
+                Portfolio Value
+              </p>
+              <div className="flex items-end justify-between">
+                <p className="font-['Crimson_Pro:ExtraLight',sans-serif] font-extralight leading-[28px] text-[#555555] text-[40px] tracking-[-1.2px]">
+                  {formatCurrency(metrics.portfolioValue!)}
+                </p>
+                <div className={`${isPositive ? 'bg-[#c6ff6a]' : 'bg-[#ffd4d4]'} flex gap-[6px] h-[24px] items-center justify-center px-[8px] py-[10px] rounded-[50px]`}>
+                  <div className="size-[8px]">
+                    <svg className="block size-full" fill="none" viewBox="0 0 8 8">
+                      {isPositive ? (
+                        <path d="M4 0 L8 8 L0 8 Z" fill="#03561A" />
+                      ) : (
+                        <path d="M4 8 L8 0 L0 0 Z" fill="#c0392b" />
+                      )}
+                    </svg>
+                  </div>
+                  <p className={`font-['DM_Sans:Regular',sans-serif] text-[12px] ${isPositive ? 'text-[#03561a]' : 'text-[#c0392b]'}`}>
+                    {`${isPositive ? '+' : ''}${formatCurrency(metrics.dailyChangeAmount!)} (${isPositive ? '+' : ''}${metrics.dailyChangePercent}%) 1D`}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {text ? (
+            <div className="flex flex-col gap-[8px]">
+              <p className="font-['DM_Sans:SemiBold',sans-serif] h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[10px] tracking-[0.8px] uppercase">
+                Generating your briefing...
+              </p>
+              <div className="bg-[#f7f6f2] rounded-[16px] px-[16px] py-[12px] min-h-[60px]">
+                <p className="font-['DM_Sans:Regular',sans-serif] text-[12px] text-[#777777] leading-[18px] whitespace-pre-wrap">
+                  {text}
+                  <span className="inline-block w-[6px] h-[14px] bg-[#992929] ml-[2px] animate-pulse rounded-sm" />
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-[12px]">
+              <Skeleton className="h-[20px] w-[85%] mx-auto" />
+              <Skeleton className="h-[16px] w-[60%] mx-auto" />
+              <div className="space-y-[8px] pt-[8px]">
+                <Skeleton className="h-[48px] w-full" />
+                <Skeleton className="h-[48px] w-full" />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MorningSentinelCard({
   data,
   isLoading,
   isError,
+  isStreaming,
+  streamingMetrics,
+  streamingText,
   onRetry,
   onChatSubmit,
 }: MorningSentinelCardProps) {
+  if (isStreaming) {
+    return <StreamingSentinel metrics={streamingMetrics ?? null} text={streamingText ?? ''} />;
+  }
+
   if (isLoading) {
     return <SentinelSkeleton />;
   }
