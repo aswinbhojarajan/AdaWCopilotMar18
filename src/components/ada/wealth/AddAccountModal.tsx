@@ -24,7 +24,7 @@ interface FinancialInstitution {
 interface AddAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAccountAdded: (institution: FinancialInstitution) => void;
+  onAccountAdded: (institution: { name: string; type: string }) => void;
 }
 
 const institutions: FinancialInstitution[] = [
@@ -201,16 +201,27 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
 
     setStep('connecting');
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const res = await fetch('/api/wealth/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          institutionName: selectedInstitution.name,
+          accountType: selectedInstitution.type,
+        }),
+      });
 
-    setStep('success');
+      if (!res.ok) throw new Error('Failed to add account');
 
-    // Close modal and notify parent after showing success
-    setTimeout(() => {
-      onAccountAdded(selectedInstitution);
-      handleClose();
-    }, 1500);
+      setStep('success');
+
+      setTimeout(() => {
+        onAccountAdded({ name: selectedInstitution.name, type: selectedInstitution.type });
+        handleClose();
+      }, 1500);
+    } catch {
+      setStep('select');
+    }
   };
 
   const handleBack = () => {

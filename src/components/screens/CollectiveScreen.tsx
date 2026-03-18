@@ -11,8 +11,12 @@ import {
   ContentCard,
 } from '../ada';
 import { Clock } from 'lucide-react';
-import { useApi } from '../../hooks/useApi';
-import type { PollQuestion, PeerComparison } from '../../types';
+import { SkeletonList } from '../ada/Skeleton';
+import { ErrorBanner } from '../ada/ErrorBanner';
+import { usePolls, useVotePoll } from '../../hooks/usePolls';
+import { useQuery } from '@tanstack/react-query';
+import { apiFetch } from '../../hooks/api';
+import type { PeerComparison } from '../../types';
 
 interface CollectiveScreenProps {
   onChatHistoryClick?: () => void;
@@ -29,35 +33,6 @@ interface CollectiveScreenProps {
   onClose?: () => void;
 }
 
-function CollectiveSkeleton() {
-  return (
-    <div className="content-stretch flex flex-col gap-[5px] items-start px-[6px] pt-[5px] pb-[107px] w-full">
-      <div className="bg-white rounded-[30px] w-full p-6 animate-pulse">
-        <div className="h-3 bg-gray-200 rounded w-1/4 mb-3" />
-        <div className="h-6 bg-gray-200 rounded w-2/3 mb-4" />
-        <div className="h-4 bg-gray-200 rounded w-full" />
-      </div>
-      <div className="bg-white rounded-[30px] w-full p-6 animate-pulse">
-        <div className="h-3 bg-gray-200 rounded w-1/3 mb-4" />
-        <div className="h-5 bg-gray-200 rounded w-3/4 mb-4" />
-        <div className="h-[100px] bg-gray-200 rounded w-full" />
-      </div>
-      <div className="bg-white rounded-[30px] w-full p-6 animate-pulse">
-        <div className="h-3 bg-gray-200 rounded w-1/3 mb-4" />
-        <div className="h-5 bg-gray-200 rounded w-3/4 mb-4" />
-        <div className="h-[120px] bg-gray-200 rounded w-full" />
-      </div>
-      <div className="bg-white rounded-[30px] w-full p-6 animate-pulse">
-        <div className="h-3 bg-gray-200 rounded w-1/4 mb-4" />
-        <div className="h-5 bg-gray-200 rounded w-2/3 mb-4" />
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-[40px] bg-gray-200 rounded w-full mb-2" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function CollectiveScreen({
   onChatHistoryClick,
   onNotificationsClick,
@@ -72,13 +47,18 @@ export function CollectiveScreen({
   const [hasVoted, setHasVoted] = React.useState(false);
   const [selectedOptionId, setSelectedOptionId] = React.useState<string | null>(null);
   const [showNotification, setShowNotification] = React.useState(false);
-  const [votingInProgress, setVotingInProgress] = React.useState(false);
 
-  const { data: polls, loading: loadingPolls, refetch: refetchPolls } = useApi<PollQuestion[]>('/api/polls');
-  const { data: peerComparisons, loading: loadingPeers } = useApi<PeerComparison[]>('/api/collective/peers');
+  const pollsQuery = usePolls();
+  const voteMutation = useVotePoll();
+  const peersQuery = useQuery({
+    queryKey: ['collective', 'peers'],
+    queryFn: () => apiFetch<PeerComparison[]>('/api/collective/peers'),
+  });
 
-  const loading = loadingPolls || loadingPeers;
-  const poll = polls?.[0];
+  const loading = pollsQuery.isLoading || peersQuery.isLoading;
+  const hasError = pollsQuery.isError || peersQuery.isError;
+  const poll = pollsQuery.data?.[0];
+  const peerComparisons = peersQuery.data;
 
   React.useEffect(() => {
     if (poll?.userVote) {
@@ -99,25 +79,13 @@ export function CollectiveScreen({
     return `${day} ${month} ${year}`;
   };
 
-  const handleVote = async (optionId: string) => {
-    if (!poll || votingInProgress) return;
-    setVotingInProgress(true);
+  const handleVote = (optionId: string) => {
+    if (!poll || voteMutation.isPending) return;
     setSelectedOptionId(optionId);
     setHasVoted(true);
     onPollVote?.();
 
-    try {
-      await fetch(`/api/polls/${poll.id}/vote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ optionId }),
-      });
-      refetchPolls();
-    } catch {
-      // vote still shows locally
-    } finally {
-      setVotingInProgress(false);
-    }
+    voteMutation.mutate({ pollId: poll.id, optionId: Number(optionId) });
 
     setTimeout(() => {
       setShowNotification(true);
@@ -147,7 +115,11 @@ export function CollectiveScreen({
 
       <div className="absolute top-[128px] left-0 right-0 bottom-0 overflow-y-auto">
         {loading ? (
-          <CollectiveSkeleton />
+          <div className="px-[6px] pt-[5px] pb-[107px]">
+            <SkeletonList count={4} />
+          </div>
+        ) : hasError ? (
+          <ErrorBanner onRetry={() => { pollsQuery.refetch(); peersQuery.refetch(); }} />
         ) : (
           <div className="content-stretch flex flex-col gap-[5px] items-start px-[6px] pt-[5px] pb-[107px] w-full">
             <SummaryCard

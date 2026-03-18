@@ -9,8 +9,10 @@ import {
   SimpleSparkline,
 } from '../ada';
 import { SparkIcon } from '../ada/SparkIcon';
-import { useApi } from '../../hooks/useApi';
-import type { ScreenProps, HomeSummaryResponse } from '../../types';
+import { SkeletonList } from '../ada/Skeleton';
+import { ErrorBanner } from '../ada/ErrorBanner';
+import { useHomeSummary } from '../../hooks/usePortfolio';
+import type { ScreenProps } from '../../types';
 
 function formatCurrency(value: number): string {
   return value.toLocaleString('en-US', {
@@ -18,34 +20,6 @@ function formatCurrency(value: number): string {
     currency: 'USD',
     minimumFractionDigits: 2,
   });
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="bg-[#efede6] relative h-screen w-full">
-      <div className="absolute top-[128px] left-0 right-0 bottom-0 overflow-y-auto">
-        <div className="content-stretch flex flex-col gap-[5px] items-start px-[6px] pt-[5px] pb-[107px] w-full">
-          <div className="bg-white rounded-[30px] w-full p-6 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/3 mb-3" />
-            <div className="h-6 bg-gray-200 rounded w-2/3 mb-4" />
-            <div className="h-4 bg-gray-200 rounded w-full" />
-          </div>
-          <div className="bg-white rounded-[30px] w-full p-6 animate-pulse">
-            <div className="h-3 bg-gray-200 rounded w-1/4 mb-4" />
-            <div className="h-10 bg-gray-200 rounded w-1/2 mb-4" />
-            <div className="h-[50px] bg-gray-200 rounded w-full" />
-          </div>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-[30px] w-full p-6 animate-pulse">
-              <div className="h-3 bg-gray-200 rounded w-1/3 mb-3" />
-              <div className="h-5 bg-gray-200 rounded w-3/4 mb-3" />
-              <div className="h-4 bg-gray-200 rounded w-full" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export function HomeScreen({
@@ -57,24 +31,19 @@ export function HomeScreen({
   onOpenChat,
   onClose,
 }: ScreenProps = {}) {
-  const { data, loading, error } = useApi<HomeSummaryResponse>('/api/home/summary');
+  const { data, isLoading, isError, refetch } = useHomeSummary();
 
   const renderContent = () => {
-    if (loading) return <LoadingSkeleton />;
-
-    if (error || !data) {
+    if (isLoading) {
       return (
-        <div className="flex items-center justify-center h-full p-8">
-          <div className="text-center">
-            <p className="text-[#992929] text-[14px] font-['DM_Sans:SemiBold',sans-serif] mb-2">
-              Unable to load data
-            </p>
-            <p className="text-[#555555] text-[12px] font-['DM_Sans:Regular',sans-serif]">
-              {error || 'Please try again later.'}
-            </p>
-          </div>
+        <div className="px-[6px] pt-[5px] pb-[107px]">
+          <SkeletonList count={5} />
         </div>
       );
+    }
+
+    if (isError || !data) {
+      return <ErrorBanner onRetry={() => refetch()} />;
     }
 
     const changeSign = data.dailyChangeAmount >= 0 ? '+' : '';

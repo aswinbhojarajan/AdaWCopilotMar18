@@ -52,6 +52,16 @@ router.get('/wealth/accounts', asyncHandler(async (_req, res) => {
   res.json(accounts);
 }));
 
+router.post('/wealth/accounts', asyncHandler(async (req, res) => {
+  const { institutionName, accountType } = req.body as { institutionName: string; accountType: string };
+  if (!institutionName || !accountType) {
+    res.status(400).json({ error: 'institutionName and accountType are required' });
+    return;
+  }
+  const account = await portfolioRepo.createAccount(DEFAULT_USER_ID, institutionName, accountType);
+  res.status(201).json(account);
+}));
+
 router.get('/notifications', asyncHandler(async (_req, res) => {
   const alerts = await contentRepo.getAlertsByUserId(DEFAULT_USER_ID);
   res.json(alerts);

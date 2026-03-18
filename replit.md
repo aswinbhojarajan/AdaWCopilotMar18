@@ -4,7 +4,7 @@
 A mobile-first wealth management copilot prototype. Full-stack application with Express backend, PostgreSQL database, and React frontend. Originally exported from Figma.
 
 ## Tech Stack
-- **Frontend**: React 18 + TypeScript, Vite 6, Tailwind CSS v4
+- **Frontend**: React 18 + TypeScript, Vite 6, Tailwind CSS v4, TanStack Query v5
 - **Backend**: Express + TypeScript (via tsx), port 3001
 - **Database**: PostgreSQL (Replit-managed), 19 tables, 4 demo personas
 - **Styling**: Tailwind utility classes, custom fonts (Crimson Pro, DM Sans)
@@ -17,10 +17,21 @@ A mobile-first wealth management copilot prototype. Full-stack application with 
 src/
   App.tsx                    — Root component with useState-based navigation
   types/index.ts             — Frontend-specific TypeScript interfaces
-  hooks/useApi.ts            — Generic data-fetching hook with loading/error states
-  data/                      — Client-side fallback data (mostly superseded by API)
+  hooks/
+    api.ts                   — apiFetch/apiPost helpers for TanStack Query
+    usePortfolio.ts          — useHomeSummary, useWealthOverview hooks
+    useHoldings.ts           — useHoldings hook
+    useAllocations.ts        — useAllocations hook
+    useGoals.ts              — useGoals hook
+    useAccounts.ts           — useAccounts, useAddAccount hooks (query + mutation)
+    useContent.ts            — useDiscoverContent hook
+    usePolls.ts              — usePolls, useVotePoll hooks (query + mutation)
+    useNotifications.ts      — useNotifications hook
+    useChatThreads.ts        — useChatThreads hook
+    useApi.ts                — Legacy generic hook (not used by screens)
+  data/                      — Client-side fallback data (no longer imported by screens)
   components/
-    ada/                     — Design system components (Button, Tag, ContentCard, etc.)
+    ada/                     — Design system components (Button, Tag, ContentCard, Skeleton, ErrorBanner, etc.)
     screens/                 — Screen-level components (Home, Wealth, Discover, etc.)
     figma/                   — Figma utility components (ImageWithFallback)
   imports/                   — Retained Figma-generated files (ClientEnvironment, SVGs)

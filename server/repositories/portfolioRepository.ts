@@ -167,6 +167,61 @@ export async function getLatestSnapshot(userId: string): Promise<PortfolioSnapsh
   };
 }
 
+const INSTITUTION_META: Record<string, { logoColor: string; logoText: string }> = {
+  'Emirates NBD': { logoColor: '#D32027', logoText: 'ENBD' },
+  'ADCB': { logoColor: '#0066B2', logoText: 'ADCB' },
+  'Mashreq Bank': { logoColor: '#E20714', logoText: 'M' },
+  'FAB': { logoColor: '#00558C', logoText: 'FAB' },
+  'Interactive Brokers': { logoColor: '#DA1F26', logoText: 'IB' },
+  'Saxo Bank': { logoColor: '#003366', logoText: 'SAXO' },
+  'Binance': { logoColor: '#F0B90B', logoText: 'BN' },
+  'Coinbase': { logoColor: '#0052FF', logoText: 'CB' },
+  'Kraken': { logoColor: '#5741D9', logoText: 'K' },
+  'Sarwa': { logoColor: '#7B61FF', logoText: 'S' },
+  'StashAway': { logoColor: '#00D09C', logoText: 'SA' },
+};
+
+const ACCOUNT_TYPE_MAP: Record<string, string> = {
+  bank: 'savings',
+  broker: 'brokerage',
+  crypto: 'brokerage',
+  investment: 'brokerage',
+  savings: 'savings',
+  checking: 'checking',
+  retirement: 'retirement',
+  brokerage: 'brokerage',
+};
+
+export async function createAccount(
+  userId: string,
+  institutionName: string,
+  accountType: string,
+): Promise<Account> {
+  const meta = INSTITUTION_META[institutionName] ?? {
+    logoColor: '#888888',
+    logoText: institutionName.substring(0, 2).toUpperCase(),
+  };
+  const dbAccountType = ACCOUNT_TYPE_MAP[accountType] ?? 'brokerage';
+  const { rows } = await pool.query(
+    `INSERT INTO accounts (id, user_id, institution_name, logo_color, logo_text, account_type, balance, last_synced, status)
+     VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, 0, NOW(), 'synced')
+     RETURNING id, user_id, institution_name, logo_color, logo_text, account_type, balance, last_synced, status`,
+    [userId, institutionName, meta.logoColor, meta.logoText, dbAccountType],
+  );
+  const r = rows[0];
+  return {
+    id: String(r.id),
+    userId: String(r.user_id),
+    institutionName: String(r.institution_name),
+    logoColor: String(r.logo_color),
+    logoText: String(r.logo_text),
+    accountType: r.account_type as Account['accountType'],
+    balance: Number(r.balance),
+    lastSynced: String(r.last_synced),
+    status: r.status as Account['status'],
+  };
+}
+
 export function getHomeSparkline(_userId: string): SparklinePoint[] {
   return [
     { value: 129000 },

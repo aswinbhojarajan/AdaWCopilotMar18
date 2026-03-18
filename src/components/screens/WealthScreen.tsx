@@ -15,15 +15,14 @@ import {
   SlideNotification,
 } from '../ada';
 import { Home, GraduationCap, AlertTriangle, TrendingDown, Wallet, Target } from 'lucide-react';
-import { useApi } from '../../hooks/useApi';
-import type {
-  ChatContext,
-  WealthOverviewResponse,
-  AssetAllocation,
-  Holding,
-  GoalResponse,
-  AccountResponse,
-} from '../../types';
+import { SkeletonList } from '../ada/Skeleton';
+import { ErrorBanner } from '../ada/ErrorBanner';
+import { useWealthOverview } from '../../hooks/usePortfolio';
+import { useHoldings } from '../../hooks/useHoldings';
+import { useAllocations } from '../../hooks/useAllocations';
+import { useGoals } from '../../hooks/useGoals';
+import { useAccounts, useAddAccount } from '../../hooks/useAccounts';
+import type { ChatContext, AccountResponse } from '../../types';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Home: <Home className="size-[18px] text-[#555555]" strokeWidth={1.5} />,
@@ -47,20 +46,6 @@ interface WealthScreenProps {
   onClose?: () => void;
 }
 
-function WealthSkeleton() {
-  return (
-    <div className="content-stretch flex flex-col gap-[5px] items-start px-[6px] pt-[5px] pb-[107px] w-full">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="bg-white rounded-[30px] w-full p-6 animate-pulse">
-          <div className="h-3 bg-gray-200 rounded w-1/4 mb-4" />
-          <div className="h-8 bg-gray-200 rounded w-1/2 mb-3" />
-          <div className="h-4 bg-gray-200 rounded w-3/4" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function WealthScreen({
   onChatSubmit,
   showGoalNotification,
@@ -80,13 +65,34 @@ export function WealthScreen({
   const houseDepositGoalRef = React.useRef<HTMLDivElement>(null);
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
-  const { data: overview, loading: loadingOverview } = useApi<WealthOverviewResponse>('/api/wealth/overview');
-  const { data: apiAllocations, loading: loadingAlloc } = useApi<AssetAllocation[]>('/api/wealth/allocation');
-  const { data: apiHoldings, loading: loadingHoldings } = useApi<Holding[]>('/api/wealth/holdings');
-  const { data: apiGoals, loading: loadingGoals } = useApi<GoalResponse[]>('/api/wealth/goals');
-  const { data: apiAccounts, loading: loadingAccounts } = useApi<AccountResponse[]>('/api/wealth/accounts');
+  const overviewQuery = useWealthOverview();
+  const allocationsQuery = useAllocations();
+  const holdingsQuery = useHoldings();
+  const goalsQuery = useGoals();
+  const accountsQuery = useAccounts();
+  const addAccountMutation = useAddAccount();
 
-  const loading = loadingOverview || loadingAlloc || loadingHoldings || loadingGoals || loadingAccounts;
+  const loading =
+    overviewQuery.isLoading ||
+    allocationsQuery.isLoading ||
+    holdingsQuery.isLoading ||
+    goalsQuery.isLoading ||
+    accountsQuery.isLoading;
+
+  const hasError =
+    overviewQuery.isError ||
+    allocationsQuery.isError ||
+    holdingsQuery.isError ||
+    goalsQuery.isError ||
+    accountsQuery.isError;
+
+  const refetchAll = () => {
+    overviewQuery.refetch();
+    allocationsQuery.refetch();
+    holdingsQuery.refetch();
+    goalsQuery.refetch();
+    accountsQuery.refetch();
+  };
 
   React.useEffect(() => {
     if (shouldAutoScrollToGoal) {
@@ -136,7 +142,7 @@ export function WealthScreen({
     </svg>
   );
 
-  const connectedAccounts = (apiAccounts ?? []).map((account) => ({
+  const connectedAccounts = (accountsQuery.data ?? []).map((account) => ({
     name: account.institutionName,
     logo: buildAccountLogo(account),
     balance: account.balance,
@@ -144,22 +150,14 @@ export function WealthScreen({
     status: account.status,
   }));
 
-  const [extraAccounts, setExtraAccounts] = React.useState<
-    { name: string; logo: React.ReactNode; balance: number; lastUpdated: string; status: 'synced' | 'error' | 'pending' }[]
-  >([]);
-
-  const handleAccountAdded = (institution: { name: string; logo: React.ReactNode }) => {
-    const newAccount = {
-      name: institution.name,
-      logo: institution.logo,
-      balance: Math.random() * 50000 + 10000,
-      lastUpdated: 'Just now',
-      status: 'synced' as const,
-    };
-    setExtraAccounts((prev) => [...prev, newAccount]);
+  const handleAccountAdded = (institution: { name: string; type: string }) => {
+    addAccountMutation.mutate({
+      institutionName: institution.name,
+      accountType: institution.type,
+    });
   };
 
-  const goals = (apiGoals ?? []).map((goal) => ({
+  const goals = (goalsQuery.data ?? []).map((goal) => ({
     title: goal.title,
     targetAmount: goal.targetAmount,
     currentAmount: goal.currentAmount,
@@ -179,9 +177,10 @@ export function WealthScreen({
     },
   }));
 
+  const overview = overviewQuery.data;
   const totalValue = overview?.totalValue ?? 0;
-  const allocations = apiAllocations ?? [];
-  const holdings = apiHoldings ?? [];
+  const allocations = allocationsQuery.data ?? [];
+  const holdings = holdingsQuery.data ?? [];
 
   return (
     <div className="bg-[#efede6] relative h-screen w-full">
@@ -196,7 +195,11 @@ export function WealthScreen({
         ref={scrollContainerRef}
       >
         {loading ? (
-          <WealthSkeleton />
+          <div className="px-[6px] pt-[5px] pb-[107px]">
+            <SkeletonList count={5} />
+          </div>
+        ) : hasError ? (
+          <ErrorBanner onRetry={refetchAll} />
         ) : (
           <div className="content-stretch flex flex-col gap-[5px] items-start px-[6px] pt-[5px] pb-[107px] w-full">
             <WealthSnapshot
@@ -284,7 +287,7 @@ export function WealthScreen({
             />
 
             <CompactConnectedAccounts
-              accounts={[...connectedAccounts, ...extraAccounts]}
+              accounts={connectedAccounts}
               onAddAccount={() => setShowAddAccountModal(true)}
             />
 

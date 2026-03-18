@@ -4,38 +4,21 @@ import {
   NotificationItem as NotificationItemComponent,
   NotificationType,
 } from '../ada/NotificationItem';
-import { useApi } from '../../hooks/useApi';
-import type { AlertResponse, NotificationCategory } from '../../types';
+import { SkeletonList } from '../ada/Skeleton';
+import { ErrorBanner } from '../ada/ErrorBanner';
+import { useNotifications } from '../../hooks/useNotifications';
+import type { NotificationCategory } from '../../types';
 
 interface NotificationsScreenProps {
   onChatHistoryClick?: () => void;
   onBack?: () => void;
 }
 
-function NotificationsSkeleton() {
-  return (
-    <div className="flex flex-col gap-[8px] w-full">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="bg-white rounded-[12px] px-[16px] py-[14px] w-full animate-pulse">
-          <div className="flex gap-[12px]">
-            <div className="w-[36px] h-[36px] bg-gray-200 rounded-full shrink-0" />
-            <div className="flex-1">
-              <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
-              <div className="h-3 bg-gray-200 rounded w-full mb-2" />
-              <div className="h-3 bg-gray-200 rounded w-1/4" />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function NotificationsScreen({ onBack }: NotificationsScreenProps = {}) {
   const [activeFilter, setActiveFilter] = useState<NotificationCategory>('all');
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
-  const { data: apiAlerts, loading, error } = useApi<AlertResponse[]>('/api/notifications');
+  const { data: apiAlerts, isLoading, isError, refetch } = useNotifications();
 
   const notifications = (apiAlerts ?? []).map((alert) => ({
     id: alert.id,
@@ -87,19 +70,10 @@ export function NotificationsScreen({ onBack }: NotificationsScreenProps = {}) {
             </div>
           </div>
 
-          {loading ? (
-            <NotificationsSkeleton />
-          ) : error ? (
-            <div className="flex items-center justify-center w-full py-[40px]">
-              <div className="text-center">
-                <p className="text-[#992929] text-[14px] font-['DM_Sans:SemiBold',sans-serif] mb-2">
-                  Unable to load notifications
-                </p>
-                <p className="text-[#555555] text-[12px] font-['DM_Sans:Regular',sans-serif]">
-                  {error}
-                </p>
-              </div>
-            </div>
+          {isLoading ? (
+            <SkeletonList count={5} />
+          ) : isError ? (
+            <ErrorBanner onRetry={() => refetch()} />
           ) : (
             <div className="flex flex-col gap-[8px] w-full">
               {filteredNotifications.map((notification) => (
