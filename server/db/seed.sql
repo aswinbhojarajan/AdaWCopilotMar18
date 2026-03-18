@@ -116,12 +116,12 @@ INSERT INTO content_items (id, category, category_type, title, context_title, de
   ('disc-fy-1', 'YOUR PORTFOLIO', 'YOUR PORTFOLIO', 'Alternative investments show 23% lower correlation to public markets', 'Low alternatives allocation',
    'Your 10% alternatives allocation (crypto and commodities) is below the 12-15% recommended for portfolios of your size seeking true diversification.',
    '2 days ago', 'Show me alternatives that fit my portfolio', 'How would this change my risk?',
-   'https://s.wsj.net/public/resources/images/IF-AD336_retire_M_20171129173731.jpg', 41, 'discover', 'forYou',
+   'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080', 41, 'discover', 'forYou',
    '[{"title":"Why alternatives matter:","content":["Hedged risk during market downturns","Access to unique return streams","Portfolio protection in high-inflation environments"]},{"title":"Available opportunities:","content":"Private equity and private credit are available options beyond your current holdings."}]'),
   ('disc-fy-2', 'YOUR PORTFOLIO', 'YOUR PORTFOLIO', 'Your tech allocation outperformed by 12% this quarter', 'Tech outperformance this quarter',
    'AI and semiconductor holdings drove strong gains. Consider rebalancing to lock in profits while maintaining growth exposure.',
    '8 min ago', 'Should I rebalance now?', 'Show optimal profit-taking strategy',
-   'https://static01.nyt.com/images/2024/08/27/climate/26cli-askclimate-ai/26cli-askclimate-ai-articleLarge.jpg?quality=75&auto=webp&disable=upscale', NULL, 'discover', 'forYou',
+   'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080', NULL, 'discover', 'forYou',
    '[{"title":"Performance breakdown:","content":["Tech holdings: +12.3% vs +8.1% sector average","AI infrastructure stocks: +18.2%","Semiconductor positions: +15.7%"]},{"title":"Advisor recommendation:","content":"Consider taking 20% profits from strongest performers to maintain your risk target while preserving upside potential."}]'),
   ('disc-fy-3', 'OPPORTUNITY', 'OPPORTUNITY', 'Emerging market bonds offer 6.8% yields with improving credit profiles', 'EM bonds opportunity',
    'Your current 15% fixed income allocation could benefit from higher-yielding sovereign debt in stable economies.',
@@ -131,7 +131,7 @@ INSERT INTO content_items (id, category, category_type, title, context_title, de
   ('disc-fy-4', 'WEALTH PLANNING', 'WEALTH PLANNING', 'Multi-generational wealth transfer: Structuring for tax efficiency', 'Estate tax efficiency',
    'New regulations create opportunities to reduce estate tax burden by up to 35% through strategic trust structures.',
    '3 days ago', 'Model my estate tax scenarios', 'Compare trust structures for me',
-   'https://m.wsj.net/video-atmo/20251114/768af122-9e27-4ad1-9835-a287a62d07dd/1/dynasty-header_562x1000.jpg', 28, 'discover', 'forYou',
+   'https://images.unsplash.com/photo-1554224155-6726b3ff858f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080', 28, 'discover', 'forYou',
    '[{"title":"Regulatory changes:","content":["Estate tax reduction up to 35%","Strategic trust structures","Multi-generational wealth planning"]},{"title":"Implementation approach:","content":"Work with a financial advisor to model different scenarios and choose the most tax-efficient structure."}]')
 ON CONFLICT (id) DO NOTHING;
 

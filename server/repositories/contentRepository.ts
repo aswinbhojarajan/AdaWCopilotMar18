@@ -215,6 +215,7 @@ function mapRowToContentItem(r: Record<string, unknown>): ContentItem {
     buttonText: String(r.button_text),
     secondaryButtonText: r.secondary_button_text ? String(r.secondary_button_text) : undefined,
     image: r.image ? String(r.image) : undefined,
+    isVideo: r.is_video ? Boolean(r.is_video) : false,
     sourcesCount: r.sources_count ? Number(r.sources_count) : undefined,
     topicLabelColor: r.topic_label_color ? String(r.topic_label_color) : undefined,
   };

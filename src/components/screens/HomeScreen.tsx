@@ -60,6 +60,7 @@ export function HomeScreen({
             buttonText={card.buttonText}
             secondaryButtonText={card.secondaryButtonText}
             image={card.image}
+            isVideo={card.isVideo}
             sourcesCount={card.sourcesCount}
             topicLabelColor={card.topicLabelColor}
             onButtonClick={() =>

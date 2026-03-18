@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS content_items (
   button_text TEXT NOT NULL,
   secondary_button_text TEXT,
   image TEXT,
+  is_video BOOLEAN DEFAULT FALSE,
   sources_count INTEGER,
   topic_label_color TEXT,
   target_screen TEXT DEFAULT 'home',

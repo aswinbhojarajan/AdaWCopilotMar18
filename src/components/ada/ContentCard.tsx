@@ -15,16 +15,17 @@ export type CategoryType =
 
 interface ContentCardProps {
   category?: string;
-  categoryType?: string; // Accept any string to support custom category types from Discover screen
+  categoryType?: string;
   title: React.ReactNode;
   description?: React.ReactNode;
   image?: string;
+  isVideo?: boolean;
   timestamp?: string;
   buttonText?: string;
   secondaryButtonText?: string;
   onButtonClick?: () => void;
   onSecondaryButtonClick?: () => void;
-  contextTitle?: string; // Concise provenance label for chat context
+  contextTitle?: string;
   onChatSubmit?: (
     message: string,
     context?: { category: string; categoryType: string; title: string; sourceScreen?: string },
@@ -108,6 +109,7 @@ export function ContentCard({
   description,
   detailSections,
   image,
+  isVideo = false,
   timestamp = '13 min ago',
   buttonText = 'Dive deeper',
   secondaryButtonText,
@@ -223,14 +225,15 @@ export function ContentCard({
                     className="absolute inset-0 max-w-none object-cover pointer-events-none size-full"
                     src={image}
                   />
-                  {/* Video Play Icon Overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-white/90 rounded-full size-[56px] flex items-center justify-center">
-                      <svg className="size-[24px] ml-1" viewBox="0 0 24 24" fill="none">
-                        <path d="M8 5v14l11-7L8 5z" fill="#441316" />
-                      </svg>
+                  {isVideo && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-white/90 rounded-full size-[56px] flex items-center justify-center">
+                        <svg className="size-[24px] ml-1" viewBox="0 0 24 24" fill="none">
+                          <path d="M8 5v14l11-7L8 5z" fill="#441316" />
+                        </svg>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 

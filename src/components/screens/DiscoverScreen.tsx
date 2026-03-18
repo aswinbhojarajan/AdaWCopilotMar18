@@ -58,6 +58,7 @@ export function DiscoverScreen({
               buttonText={item.buttonText}
               secondaryButtonText={item.secondaryButtonText}
               image={item.image}
+              isVideo={item.isVideo}
               sourcesCount={item.sourcesCount}
               topicLabelColor={item.topicLabelColor}
               detailSections={item.detailSections}

@@ -124,6 +124,7 @@ export interface ContentItem {
   buttonText: string;
   secondaryButtonText?: string;
   image?: string;
+  isVideo?: boolean;
   sourcesCount?: number;
   topicLabelColor?: string;
 }
