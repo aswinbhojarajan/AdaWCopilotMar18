@@ -674,7 +674,7 @@ Standalone tables:
 | `price_history` | `id` (SERIAL) | symbol, price, recorded_at | Historical price data |
 | `episodic_memories` | `id` (TEXT) | user_id (FK), thread_id (FK), summary, topics (TEXT[]), created_at | Summarized conversation episodes for long-term AI context |
 | `semantic_facts` | `id` (TEXT) | user_id (FK), fact, category, source_thread_id (FK), created_at | Extracted user preferences/facts for AI personalization |
-| `chat_audit_log` | `id` (SERIAL) | user_id (FK), thread_id, action, intent, pii_detected, input_preview, model, prompt_tokens, completion_tokens, created_at | AI interaction audit trail |
+| `chat_audit_log` | `id` (SERIAL) | user_id (FK), thread_id, action, intent, pii_detected, input_preview, model, tokens_used, created_at | AI interaction audit trail |
 | `dismissed_life_gap_prompts` | `id` (SERIAL) | user_id (FK), prompt_key (UNIQUE pair), dismissed_at | Tracks dismissed life-gap prompts per user |
 
 ### Table Name Mapping (Spec vs Actual)

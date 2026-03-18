@@ -21,7 +21,7 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 ### Fixed
 - API contract payloads: `promptKey` (not `promptId`), `eventType: LifeEventType` (not `event: string`)
 - SSE stream event types: `widget`/`simulator` (not `tool_call`)
-- `chat_audit_log` PK type: SERIAL (not TEXT); column names: `prompt_tokens`/`completion_tokens` (not `token_count`)
+- `chat_audit_log` PK type: SERIAL (not TEXT); token column: `tokens_used` (single field, not split prompt/completion)
 - `episodic_memories` columns: `topics TEXT[]` (not `message_count`)
 - Add Account Modal: persists to DB via `POST /api/wealth/accounts` (not local/mock only)
 
@@ -39,14 +39,14 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 - **SSE streaming fallback endpoint** `GET /api/morning-sentinel/stream` — streams briefing generation progressively when prefetch hasn't completed
   - `SentinelStreamEvent` discriminated union with three event types: `metrics` (immediate portfolio numbers), `text` (incremental AI narrative), `complete` (final structured result)
 - **`StreamingSentinel` component** in `MorningSentinelCard.tsx` — progressive UI that shows portfolio value and daily change immediately, then streams in the AI narrative with a typing cursor animation
-- **Server-side deduplication** — `inFlightRequests` Map in `morningSentinelService.ts` prevents concurrent OpenAI calls for the same user when both prefetch and stream fire simultaneously
+- **Server-side deduplication** — `inFlightRequests` Map in `morningSentinelService.ts` prevents concurrent `generateBriefing()` calls for the same user (guards the cached `/api/morning-sentinel` endpoint)
 
 ### Changed
 - **`useMorningSentinel` hook** — complete rewrite with coordinated prefetch/stream strategy:
   - Waits 500ms for cached prefetch data from TanStack Query
   - If prefetch hasn't resolved, falls back to SSE streaming automatically
   - Merges stream events into React state for progressive rendering
-  - Returns `streamState` ('idle' | 'streaming' | 'done') for UI coordination
+  - Returns `isStreaming`, `streamingMetrics`, `streamingText`, and `hasData` for UI coordination
 - **`MorningSentinelCard`** — added conditional rendering: shows `SentinelSkeleton` during initial wait, `StreamingSentinel` during active streaming, full rich card when complete
 
 ### Performance Impact
@@ -100,7 +100,7 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 ### Added
 - **`morningSentinelService.ts`** — new backend service for AI-generated daily briefings:
   - `gatherMetrics()` — 6 parallel database queries (portfolio snapshot, holdings, allocations, goals, alerts, user profile)
-  - `detectAnomalies()` — flags concentration risk (>40% single asset class), large daily moves (>1.5%), off-track goals, low diversification
+  - `detectAnomalies()` — flags concentration risk (>40% single asset class), large daily moves (>1.5%), and off-track goals
   - `generateBriefing()` — sends structured prompt to OpenAI gpt-5-mini requesting JSON response with headline, overview, key movers, risks, and suggested actions
   - Server-side `briefingCache` with 4-hour TTL
 - **`GET /api/morning-sentinel`** endpoint — returns cached or freshly generated briefing; `?refresh=true` forces regeneration
@@ -156,12 +156,12 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 **Date:** March 18, 2026
 
 ### Added
-- **RM Productivity Suite specification document** — detailed backlog item documenting the Relationship Manager persona features planned for future implementation:
+- **RM Productivity Suite specification** (`.local/tasks/rm-productivity-suite.md`) — detailed backlog item documenting the Relationship Manager persona features planned for future implementation:
   - RM Morning Planning Queue (priority-sorted client list)
   - AI Customer Digest & Talking Points (LLM-generated call prep)
   - At-Risk Client Radar (attrition risk ranking with interventions)
   - Next-Best-Action Coach (AI-recommended actions per flagged client)
-- This task produced a planning/backlog document only; no code changes were made
+- This task produced a planning/specification document only; no runtime code changes were made
 
 ---
 
