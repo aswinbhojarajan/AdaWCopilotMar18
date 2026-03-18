@@ -23,7 +23,7 @@ app.use('/api', apiRouter);
 if (isProd) {
   const buildDir = path.resolve(__dirname, '..', 'build');
   app.use(express.static(buildDir));
-  app.get('*', (_req, res) => {
+  app.get('/{*splat}', (_req, res) => {
     res.sendFile(path.join(buildDir, 'index.html'));
   });
 }

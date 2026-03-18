@@ -68,7 +68,6 @@ externalPort = 3003
 [deployment]
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
-publicDir = "build"
 run = ["npm", "run", "start"]
 
 [postMerge]
