@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo, Suspense, lazy, useTransition } from 'react';
+import React, { useState, useCallback, Suspense, lazy, useTransition } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { HomeScreen } from './components/screens/HomeScreen';
 import { TopBar, Header, Navigation, BottomBar } from './components/ada';
@@ -25,11 +25,6 @@ const fadeVariants = {
   exit: { opacity: 0 },
 };
 
-const contentFadeVariants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -48,7 +43,6 @@ export default function App() {
   const [showGoalNotification, setShowGoalNotification] = useState(false);
   const [pendingWealthScroll, setPendingWealthScroll] = useState(false);
 
-  const prevTabRef = useRef<TabType>('home');
   const [, startTransition] = useTransition();
 
   const navigateTo = useCallback((view: ViewType, tab?: TabType) => {
@@ -70,7 +64,6 @@ export default function App() {
   };
 
   const handleTabChange = (newTab: TabType) => {
-    prevTabRef.current = activeTab;
     startTransition(() => {
       setActiveTab(newTab);
     });
@@ -230,7 +223,7 @@ export default function App() {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`tab-${activeTab}`}
-                  variants={contentFadeVariants}
+                  variants={fadeVariants}
                   initial="initial"
                   animate="animate"
                   exit="exit"
