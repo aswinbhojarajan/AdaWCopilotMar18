@@ -64,6 +64,7 @@ performance_history, poll_questions, poll_options, poll_votes
 | GET    | /api/wealth/accounts       | Connected accounts                 |
 | GET    | /api/notifications         | User alerts/notifications          |
 | GET    | /api/content               | All content items (?category=X)    |
+| GET    | /api/content/discover      | Discover feed (?tab=forYou/whatsHappening) |
 | GET    | /api/chat/threads          | Chat history threads               |
 | GET    | /api/chat/:threadId/messages | Messages in a thread             |
 | POST   | /api/chat/message          | Send message, get AI response      |
@@ -73,11 +74,17 @@ performance_history, poll_questions, poll_options, poll_votes
 | POST   | /api/polls/:pollId/vote    | Vote on a poll option              |
 
 ## Frontend-API Integration
+All screens fetch live data from the API — no static imports remain in screen components.
 - HomeScreen: fetches `/api/home/summary`, renders content cards from DB
 - WealthScreen: fetches overview, allocation, holdings, goals, accounts (5 parallel API calls)
+- DiscoverScreen: fetches `/api/content/discover?tab=forYou|whatsHappening`, 11 content items with detail sections
+- CollectiveScreen: fetches `/api/polls` + `/api/collective/peers`, poll voting POSTs to `/api/polls/:id/vote`
+- ChatHistoryScreen: fetches `/api/chat/threads`, formats relative timestamps
+- NotificationsScreen: fetches `/api/notifications`, category filtering
 - ChatScreen: sends messages to `/api/chat/message`, receives deterministic responses
-- Both screens have loading skeletons and error states
-- Performance data now sourced from performance_history table (366 daily data points)
+- All screens have loading skeletons and error states
+- `useApi` hook supports `refetch()` for post-mutation data refresh
+- Performance data sourced from performance_history table (366 daily data points)
 
 ## Navigation
 - 4 main tabs: Home, Wealth, Discover, Collective
