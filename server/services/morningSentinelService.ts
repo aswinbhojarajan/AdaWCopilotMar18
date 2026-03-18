@@ -21,6 +21,7 @@ interface AnomalyFlags {
 }
 
 const briefingCache = new Map<string, { data: MorningSentinelResponse; generatedAt: number }>();
+const inFlightRequests = new Map<string, Promise<MorningSentinelResponse>>();
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 
 function getCacheKey(userId: string): string {
@@ -279,8 +280,18 @@ export async function generateBriefing(userId: string, forceRefresh = false): Pr
     if (cached && Date.now() - cached.generatedAt < CACHE_TTL_MS) {
       return cached.data;
     }
+
+    const existing = inFlightRequests.get(cacheKey);
+    if (existing) return existing;
   }
 
+  const promise = generateBriefingInternal(userId, cacheKey);
+  inFlightRequests.set(cacheKey, promise);
+  promise.finally(() => inFlightRequests.delete(cacheKey));
+  return promise;
+}
+
+async function generateBriefingInternal(userId: string, cacheKey: string): Promise<MorningSentinelResponse> {
   const metrics = await gatherMetrics(userId);
   const anomalies = detectAnomalies(metrics);
   const systemPrompt = buildSentinelPrompt(metrics, anomalies);
