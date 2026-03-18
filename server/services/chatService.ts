@@ -34,10 +34,6 @@ export async function* processMessageStream(
 
   const intent = intentClassifier.classifyIntent(sanitizedMessage);
 
-  const scenarioType = intent === 'scenario'
-    ? intentClassifier.getScenarioType(sanitizedMessage)
-    : null;
-
   const [portfolioContext, episodicMemories, semanticFacts, userProfile] = await Promise.all([
     ragService.buildPortfolioContext(userId, intent),
     memoryService.getEpisodicMemories(userId),

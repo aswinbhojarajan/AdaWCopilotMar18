@@ -175,7 +175,7 @@ export async function* streamChatCompletion(
     });
 
     let fullContent = '';
-    let toolCalls: { id: string; name: string; arguments: string }[] = [];
+    const toolCalls: { id: string; name: string; arguments: string }[] = [];
     let currentToolIndex = -1;
     let totalTokens = 0;
 
