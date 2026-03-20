@@ -153,6 +153,94 @@ export async function getConversationSummary(conversationId: string, userId: str
   return rows[0]?.summary ? String(rows[0].summary) : null;
 }
 
+export async function getAgentTracesByConversation(conversationId: string): Promise<AgentTrace[]> {
+  const { rows } = await pool.query(
+    `SELECT id, conversation_id, message_id, tenant_id, user_id, intent_classification,
+            policy_decision, model_name, reasoning_effort, tool_set_exposed,
+            tool_calls_made, final_answer, response_time_ms, step_timings,
+            guardrail_interventions, escalation_decisions, created_at
+     FROM agent_traces WHERE conversation_id = $1 ORDER BY created_at ASC`,
+    [conversationId],
+  );
+  return rows.map((r) => ({
+    conversation_id: r.conversation_id ? String(r.conversation_id) : undefined,
+    message_id: r.message_id ? String(r.message_id) : undefined,
+    tenant_id: r.tenant_id ? String(r.tenant_id) : undefined,
+    intent_classification: r.intent_classification ? String(r.intent_classification) : undefined,
+    policy_decision: r.policy_decision as AgentTrace['policy_decision'],
+    model_name: r.model_name ? String(r.model_name) : undefined,
+    reasoning_effort: r.reasoning_effort ? String(r.reasoning_effort) : undefined,
+    tool_set_exposed: (r.tool_set_exposed as string[]) ?? [],
+    tool_calls_made: (r.tool_calls_made as AgentTrace['tool_calls_made']) ?? [],
+    final_answer: r.final_answer as AgentTrace['final_answer'],
+    response_time_ms: r.response_time_ms ? Number(r.response_time_ms) : undefined,
+    step_timings: r.step_timings as AgentTrace['step_timings'],
+    guardrail_interventions: (r.guardrail_interventions as string[]) ?? [],
+    escalation_decisions: (r.escalation_decisions as string[]) ?? [],
+  }));
+}
+
+export async function getAgentTracesByUser(userId: string, limit = 50): Promise<AgentTrace[]> {
+  const { rows } = await pool.query(
+    `SELECT id, conversation_id, message_id, tenant_id, user_id, intent_classification,
+            policy_decision, model_name, reasoning_effort, tool_set_exposed,
+            tool_calls_made, final_answer, response_time_ms, step_timings,
+            guardrail_interventions, escalation_decisions, created_at
+     FROM agent_traces WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
+    [userId, limit],
+  );
+  return rows.map((r) => ({
+    conversation_id: r.conversation_id ? String(r.conversation_id) : undefined,
+    message_id: r.message_id ? String(r.message_id) : undefined,
+    tenant_id: r.tenant_id ? String(r.tenant_id) : undefined,
+    intent_classification: r.intent_classification ? String(r.intent_classification) : undefined,
+    policy_decision: r.policy_decision as AgentTrace['policy_decision'],
+    model_name: r.model_name ? String(r.model_name) : undefined,
+    reasoning_effort: r.reasoning_effort ? String(r.reasoning_effort) : undefined,
+    tool_set_exposed: (r.tool_set_exposed as string[]) ?? [],
+    tool_calls_made: (r.tool_calls_made as AgentTrace['tool_calls_made']) ?? [],
+    final_answer: r.final_answer as AgentTrace['final_answer'],
+    response_time_ms: r.response_time_ms ? Number(r.response_time_ms) : undefined,
+    step_timings: r.step_timings as AgentTrace['step_timings'],
+    guardrail_interventions: (r.guardrail_interventions as string[]) ?? [],
+    escalation_decisions: (r.escalation_decisions as string[]) ?? [],
+  }));
+}
+
+export async function getPolicyDecisionsByUser(userId: string, limit = 50): Promise<Array<{ id: number; tenant_id: string | null; user_id: string | null; request_type: string; decision: PolicyDecision; created_at: string }>> {
+  const { rows } = await pool.query(
+    `SELECT id, tenant_id, user_id, request_type, decision, created_at
+     FROM policy_decisions WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
+    [userId, limit],
+  );
+  return rows.map((r) => ({
+    id: Number(r.id),
+    tenant_id: r.tenant_id ? String(r.tenant_id) : null,
+    user_id: r.user_id ? String(r.user_id) : null,
+    request_type: String(r.request_type),
+    decision: r.decision as PolicyDecision,
+    created_at: new Date(r.created_at as string).toISOString(),
+  }));
+}
+
+export async function getPolicyDecisionsByRequestType(requestType: string, tenantId?: string, limit = 50): Promise<Array<{ id: number; tenant_id: string | null; user_id: string | null; request_type: string; decision: PolicyDecision; created_at: string }>> {
+  const query = tenantId
+    ? `SELECT id, tenant_id, user_id, request_type, decision, created_at
+       FROM policy_decisions WHERE request_type = $1 AND tenant_id = $2 ORDER BY created_at DESC LIMIT $3`
+    : `SELECT id, tenant_id, user_id, request_type, decision, created_at
+       FROM policy_decisions WHERE request_type = $1 ORDER BY created_at DESC LIMIT $2`;
+  const params = tenantId ? [requestType, tenantId, limit] : [requestType, limit];
+  const { rows } = await pool.query(query, params);
+  return rows.map((r) => ({
+    id: Number(r.id),
+    tenant_id: r.tenant_id ? String(r.tenant_id) : null,
+    user_id: r.user_id ? String(r.user_id) : null,
+    request_type: String(r.request_type),
+    decision: r.decision as PolicyDecision,
+    created_at: new Date(r.created_at as string).toISOString(),
+  }));
+}
+
 export async function getToolRunsByConversation(conversationId: string): Promise<ToolResult[]> {
   const { rows } = await pool.query(
     `SELECT tool_name, outputs, status, source_provider, created_at, latency_ms
