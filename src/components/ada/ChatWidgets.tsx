@@ -139,6 +139,29 @@ function PortfolioSummaryWidget() {
   );
 }
 
+function AdvisorHandoffWidget() {
+  return (
+    <div className="bg-[#FFF8F0] border border-[#E5C9A8] rounded-[12px] p-[16px] my-[8px]">
+      <div className="flex items-start gap-[10px]">
+        <div className="w-[32px] h-[32px] rounded-full bg-[#441316] flex items-center justify-center flex-shrink-0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </div>
+        <div className="flex-1">
+          <h4 className="text-[13px] text-[#441316] font-medium mb-[4px]">Advisor Review Recommended</h4>
+          <p className="text-[12px] text-[#555555] mb-[10px]">
+            This topic would benefit from a conversation with your dedicated advisor for personalized guidance.
+          </p>
+          <button className="bg-[#441316] text-white text-[12px] font-medium px-[16px] py-[8px] rounded-[8px]">
+            Contact Your Advisor
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WidgetSkeleton({ title }: { title: string }) {
   return (
     <div className="bg-white border border-[#E5E5E5] rounded-[12px] p-[16px] my-[8px] animate-pulse">
@@ -162,6 +185,8 @@ export function ChatWidgetRenderer({ widget }: { widget: ChatWidget }) {
       return <GoalProgress />;
     case 'portfolio_summary':
       return <PortfolioSummaryWidget />;
+    case 'advisor_handoff':
+      return <AdvisorHandoffWidget />;
     default:
       return null;
   }

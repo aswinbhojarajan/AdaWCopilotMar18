@@ -1,7 +1,5 @@
-import type { AdaAnswer, ToolResult, PolicyDecision, IntentClassification, Citation } from '../../shared/schemas/agent';
-import type { StreamEvent } from './chatService';
+import type { AdaAnswer, ToolResult, PolicyDecision, IntentClassification, Citation, TenantConfig } from '../../shared/schemas/agent';
 import { getDisclosures } from './policyEngine';
-import type { TenantConfig } from '../../shared/schemas/agent';
 
 export function buildAdaAnswer(params: {
   intent: IntentClassification;
@@ -155,25 +153,3 @@ function buildRenderHints(toolResults: ToolResult[], intent: IntentClassificatio
   };
 }
 
-export function* streamAdaAnswer(answer: AdaAnswer, fullText: string): Generator<StreamEvent> {
-  yield { type: 'text', content: fullText };
-
-  if (answer.render_hints?.show_portfolio_card) {
-    yield { type: 'widget', widget: { type: 'portfolio_summary' } };
-  }
-  if (answer.render_hints?.show_health_card) {
-    yield { type: 'widget', widget: { type: 'portfolio_summary' } };
-  }
-
-  if (answer.actions && answer.actions.length > 0) {
-    for (const action of answer.actions) {
-      if (action.type === 'advisor_handoff') {
-        yield { type: 'widget', widget: { type: 'advisor_handoff' } };
-      }
-    }
-  }
-
-  if (answer.suggested_questions.length > 0) {
-    yield { type: 'suggested_questions', suggestedQuestions: answer.suggested_questions };
-  }
-}

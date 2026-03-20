@@ -79,6 +79,22 @@ export function runPostChecks(
     if (hasCurrencyMention && okTools.length === 0) {
       interventions.push('Response contains financial figures without successful tool data backing');
     }
+
+    if (okTools.length > 0) {
+      const sourceNames = okTools.map(t => t.source_name.toLowerCase());
+      const citationPattern = /(?:source|via|from|according to)[:\s]+(\w[\w\s]*?)(?:\.|,|\n|$)/gi;
+      const mentionedSources: string[] = [];
+      let citMatch;
+      while ((citMatch = citationPattern.exec(sanitized)) !== null) {
+        mentionedSources.push(citMatch[1].trim().toLowerCase());
+      }
+      const uncitedSources = sourceNames.filter(sn =>
+        !mentionedSources.some(ms => ms.includes(sn) || sn.includes(ms))
+      );
+      if (uncitedSources.length > 0 && hasCurrencyMention) {
+        interventions.push(`Data-backed claims may lack citations for: ${uncitedSources.join(', ')}`);
+      }
+    }
   }
 
   return {

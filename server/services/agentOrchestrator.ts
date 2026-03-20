@@ -295,55 +295,63 @@ export async function* orchestrateStream(
   try {
     const llmStart = Date.now();
 
-    const response = await openai.chat.completions.create({
-      model: modelSelection.model,
-      messages,
-      tools: tools.length > 0 ? tools : undefined,
-      stream: true,
-      max_completion_tokens: modelSelection.max_tokens,
-    });
+    const MAX_TOOL_TURNS = 3;
+    let currentMessages = [...messages];
+    let turnCount = 0;
 
-    const toolCalls: { id: string; name: string; arguments: string }[] = [];
-    let currentToolIndex = -1;
+    while (turnCount < MAX_TOOL_TURNS) {
+      turnCount++;
 
-    for await (const chunk of response) {
-      const delta = chunk.choices[0]?.delta;
-      if (!delta) continue;
+      const response = await openai.chat.completions.create({
+        model: modelSelection.model,
+        messages: currentMessages,
+        tools: tools.length > 0 ? tools : undefined,
+        stream: true,
+        max_completion_tokens: modelSelection.max_tokens,
+      });
 
-      if (delta.content) {
-        fullResponse += delta.content;
-        yield { type: 'text', content: delta.content };
-      }
+      const toolCalls: { id: string; name: string; arguments: string }[] = [];
+      let currentToolIndex = -1;
 
-      if (delta.tool_calls) {
-        for (const tc of delta.tool_calls) {
-          if (tc.index !== undefined && tc.index !== currentToolIndex) {
-            currentToolIndex = tc.index;
-            toolCalls.push({
-              id: tc.id || '',
-              name: tc.function?.name || '',
-              arguments: tc.function?.arguments || '',
-            });
-          } else if (tc.function?.arguments) {
-            const last = toolCalls[toolCalls.length - 1];
-            if (last) last.arguments += tc.function.arguments;
-          }
-          if (tc.function?.name && toolCalls.length > 0) {
-            toolCalls[toolCalls.length - 1].name = tc.function.name;
-          }
-          if (tc.id && toolCalls.length > 0) {
-            toolCalls[toolCalls.length - 1].id = tc.id;
+      for await (const chunk of response) {
+        const delta = chunk.choices[0]?.delta;
+        if (!delta) continue;
+
+        if (delta.content) {
+          fullResponse += delta.content;
+          yield { type: 'text', content: delta.content };
+        }
+
+        if (delta.tool_calls) {
+          for (const tc of delta.tool_calls) {
+            if (tc.index !== undefined && tc.index !== currentToolIndex) {
+              currentToolIndex = tc.index;
+              toolCalls.push({
+                id: tc.id || '',
+                name: tc.function?.name || '',
+                arguments: tc.function?.arguments || '',
+              });
+            } else if (tc.function?.arguments) {
+              const last = toolCalls[toolCalls.length - 1];
+              if (last) last.arguments += tc.function.arguments;
+            }
+            if (tc.function?.name && toolCalls.length > 0) {
+              toolCalls[toolCalls.length - 1].name = tc.function.name;
+            }
+            if (tc.id && toolCalls.length > 0) {
+              toolCalls[toolCalls.length - 1].id = tc.id;
+            }
           }
         }
+
+        if (chunk.usage) totalTokens += chunk.usage.total_tokens;
       }
 
-      if (chunk.usage) totalTokens = chunk.usage.total_tokens;
-    }
+      if (toolCalls.length === 0) break;
 
-    if (toolCalls.length > 0) {
       const assistantMsg: OpenAI.ChatCompletionAssistantMessageParam = {
         role: 'assistant',
-        content: null,
+        content: fullResponse || null,
         tool_calls: toolCalls.map(tc => ({
           id: tc.id,
           type: 'function' as const,
@@ -401,8 +409,7 @@ export async function* orchestrateStream(
         }
       }
 
-      const toolExecEnd = Date.now();
-      timings.tool_execution_ms = (timings.tool_execution_ms ?? 0) + (toolExecEnd - llmStart);
+      timings.tool_execution_ms = (timings.tool_execution_ms ?? 0) + (Date.now() - llmStart);
 
       const orderedToolResults: OpenAI.ChatCompletionMessageParam[] = [];
       for (const tc of toolCalls) {
@@ -412,27 +419,8 @@ export async function* orchestrateStream(
         else if (ur) orderedToolResults.push(ur);
       }
 
-      const followUpMessages: OpenAI.ChatCompletionMessageParam[] = [
-        ...messages,
-        assistantMsg,
-        ...orderedToolResults,
-      ];
-
-      const followUp = await openai.chat.completions.create({
-        model: modelSelection.model,
-        messages: followUpMessages,
-        stream: true,
-        max_completion_tokens: modelSelection.max_tokens,
-      });
-
-      for await (const chunk of followUp) {
-        const delta = chunk.choices[0]?.delta;
-        if (delta?.content) {
-          fullResponse += delta.content;
-          yield { type: 'text', content: delta.content };
-        }
-        if (chunk.usage) totalTokens += chunk.usage.total_tokens;
-      }
+      currentMessages = [...currentMessages, assistantMsg, ...orderedToolResults];
+      fullResponse = '';
     }
 
     timings.llm_generation_ms = Date.now() - llmStart;
