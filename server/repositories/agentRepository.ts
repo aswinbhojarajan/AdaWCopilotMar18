@@ -248,7 +248,7 @@ export async function getToolRunsByConversation(conversationId: string): Promise
     [conversationId],
   );
   return rows.map((r) => ({
-    status: (r.status as 'ok' | 'error' | 'partial') ?? 'ok',
+    status: (r.status as 'ok' | 'error' | 'partial' | 'timeout') ?? 'ok',
     source_name: String(r.source_provider ?? 'unknown'),
     source_type: String(r.tool_name),
     as_of: r.created_at ? new Date(r.created_at as string).toISOString() : new Date().toISOString(),
