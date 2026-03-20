@@ -1,31 +1,28 @@
 import type { PortfolioProvider } from '../types';
 import type { ToolResult } from '../../../shared/schemas/agent';
+import { toolOk, toolError } from './helpers';
 import * as portfolioRepo from '../../repositories/portfolioRepository';
 
 export const mockPortfolioProvider: PortfolioProvider = {
   name: 'mock',
 
-  async getPositions(userId: string): Promise<ToolResult> {
+  async getPortfolioSnapshot(userId: string): Promise<ToolResult> {
     const start = Date.now();
     try {
-      const holdings = await portfolioRepo.getHoldingsByUserId(userId);
-      return {
-        tool_name: 'get_positions',
-        success: true,
-        data: holdings,
-        source_provider: 'mock',
-        as_of: new Date().toISOString(),
-        latency_ms: Date.now() - start,
-      };
+      const snapshot = await portfolioRepo.getLatestSnapshot(userId);
+      return toolOk('mock_portfolio', 'portfolio_api', snapshot, start);
     } catch (error) {
-      return {
-        tool_name: 'get_positions',
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        source_provider: 'mock',
-        as_of: new Date().toISOString(),
-        latency_ms: Date.now() - start,
-      };
+      return toolError('mock_portfolio', 'portfolio_api', error instanceof Error ? error.message : 'Unknown error', start);
+    }
+  },
+
+  async getHoldings(userId: string): Promise<ToolResult> {
+    const start = Date.now();
+    try {
+      const holdings = await portfolioRepo.getEnrichedHoldingsByUserId(userId);
+      return toolOk('mock_portfolio', 'portfolio_api', holdings, start);
+    } catch (error) {
+      return toolError('mock_portfolio', 'portfolio_api', error instanceof Error ? error.message : 'Unknown error', start);
     }
   },
 
@@ -33,47 +30,9 @@ export const mockPortfolioProvider: PortfolioProvider = {
     const start = Date.now();
     try {
       const allocations = await portfolioRepo.getAllocationsByUserId(userId);
-      return {
-        tool_name: 'get_allocations',
-        success: true,
-        data: allocations,
-        source_provider: 'mock',
-        as_of: new Date().toISOString(),
-        latency_ms: Date.now() - start,
-      };
+      return toolOk('mock_portfolio', 'portfolio_api', allocations, start);
     } catch (error) {
-      return {
-        tool_name: 'get_allocations',
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        source_provider: 'mock',
-        as_of: new Date().toISOString(),
-        latency_ms: Date.now() - start,
-      };
-    }
-  },
-
-  async getSnapshot(userId: string): Promise<ToolResult> {
-    const start = Date.now();
-    try {
-      const snapshot = await portfolioRepo.getLatestSnapshot(userId);
-      return {
-        tool_name: 'get_portfolio_snapshot',
-        success: true,
-        data: snapshot,
-        source_provider: 'mock',
-        as_of: new Date().toISOString(),
-        latency_ms: Date.now() - start,
-      };
-    } catch (error) {
-      return {
-        tool_name: 'get_portfolio_snapshot',
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        source_provider: 'mock',
-        as_of: new Date().toISOString(),
-        latency_ms: Date.now() - start,
-      };
+      return toolError('mock_portfolio', 'portfolio_api', error instanceof Error ? error.message : 'Unknown error', start);
     }
   },
 
@@ -81,23 +40,9 @@ export const mockPortfolioProvider: PortfolioProvider = {
     const start = Date.now();
     try {
       const history = await portfolioRepo.getPerformanceHistory(userId, days);
-      return {
-        tool_name: 'get_performance',
-        success: true,
-        data: history,
-        source_provider: 'mock',
-        as_of: new Date().toISOString(),
-        latency_ms: Date.now() - start,
-      };
+      return toolOk('mock_portfolio', 'portfolio_api', history, start);
     } catch (error) {
-      return {
-        tool_name: 'get_performance',
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        source_provider: 'mock',
-        as_of: new Date().toISOString(),
-        latency_ms: Date.now() - start,
-      };
+      return toolError('mock_portfolio', 'portfolio_api', error instanceof Error ? error.message : 'Unknown error', start);
     }
   },
 };

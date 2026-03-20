@@ -1,5 +1,6 @@
 import type { FxProvider } from '../types';
-import type { FxRate } from '../../../shared/schemas/agent';
+import type { ToolResult, FxRate } from '../../../shared/schemas/agent';
+import { toolOk } from './helpers';
 
 const MOCK_RATES: Record<string, number> = {
   'USD/AED': 3.6725,
@@ -21,7 +22,7 @@ const MOCK_RATES: Record<string, number> = {
   'SAR/USD': 0.2667,
 };
 
-function getRate(base: string, target: string): number {
+function resolveRate(base: string, target: string): number {
   const key = `${base}/${target}`;
   if (MOCK_RATES[key]) return MOCK_RATES[key];
 
@@ -40,29 +41,38 @@ function getRate(base: string, target: string): number {
   return 1;
 }
 
+function buildFxRate(base: string, target: string): FxRate {
+  const rate = resolveRate(base, target);
+  return {
+    base,
+    target,
+    rate,
+    inverse_rate: +(1 / rate).toFixed(6),
+    source_provider: 'mock',
+    as_of: new Date().toISOString(),
+  };
+}
+
 export const mockFxProvider: FxProvider = {
   name: 'mock',
 
-  async getRate(base: string, target: string): Promise<FxRate> {
-    const rate = getRate(base.toUpperCase(), target.toUpperCase());
-    return {
-      base: base.toUpperCase(),
-      target: target.toUpperCase(),
-      rate,
-      inverse_rate: +(1 / rate).toFixed(6),
-      source_provider: 'mock',
-      as_of: new Date().toISOString(),
-    };
+  async getRate(base: string, target: string): Promise<ToolResult> {
+    const start = Date.now();
+    const rate = buildFxRate(base.toUpperCase(), target.toUpperCase());
+    return toolOk('mock_fx', 'fx_api', rate, start);
   },
 
-  async getRates(base: string, targets: string[]): Promise<FxRate[]> {
-    return Promise.all(targets.map((t) => this.getRate(base, t)));
+  async getRates(base: string, targets: string[]): Promise<ToolResult> {
+    const start = Date.now();
+    const rates = targets.map((t) => buildFxRate(base.toUpperCase(), t.toUpperCase()));
+    return toolOk('mock_fx', 'fx_api', rates, start);
   },
 
-  async getHistoricalRate(base: string, target: string, _date: string): Promise<FxRate> {
-    const rate = getRate(base.toUpperCase(), target.toUpperCase());
+  async getHistoricalRate(base: string, target: string, _date: string): Promise<ToolResult> {
+    const start = Date.now();
+    const rate = resolveRate(base.toUpperCase(), target.toUpperCase());
     const noise = 1 + (Math.random() * 0.01 - 0.005);
-    return {
+    const fxRate: FxRate = {
       base: base.toUpperCase(),
       target: target.toUpperCase(),
       rate: +(rate * noise).toFixed(6),
@@ -70,5 +80,6 @@ export const mockFxProvider: FxProvider = {
       source_provider: 'mock',
       as_of: new Date().toISOString(),
     };
+    return toolOk('mock_fx', 'fx_api', fxRate, start);
   },
 };

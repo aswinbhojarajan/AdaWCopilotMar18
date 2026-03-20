@@ -1,82 +1,106 @@
 import { z } from 'zod';
 
 export const ToolResultSchema = z.object({
-  tool_name: z.string(),
-  success: z.boolean(),
-  data: z.unknown().optional(),
-  error: z.string().optional(),
-  source_provider: z.string(),
+  status: z.enum(['ok', 'error', 'partial']),
+  source_name: z.string(),
+  source_type: z.string(),
   as_of: z.string(),
-  latency_ms: z.number().optional(),
-  cache_hit: z.boolean().optional(),
+  latency_ms: z.number(),
+  warnings: z.array(z.string()).optional(),
+  data: z.unknown().nullable(),
+  error: z.string().optional(),
 });
 export type ToolResult = z.infer<typeof ToolResultSchema>;
 
 export const CitationSchema = z.object({
-  provider: z.string(),
-  label: z.string(),
+  source_type: z.enum(['portfolio_api', 'market_api', 'news_api', 'wealth_engine', 'policy_engine', 'macro_api', 'fx_api', 'research_api', 'identity_api']),
+  source_name: z.string(),
+  reference_id: z.string(),
   as_of: z.string(),
-  url: z.string().optional(),
 });
 export type Citation = z.infer<typeof CitationSchema>;
 
-export const NextBestActionSchema = z.object({
-  action: z.string(),
+export const RecommendationItemSchema = z.object({
+  title: z.string(),
   rationale: z.string(),
-  cta_text: z.string(),
-  cta_message: z.string().optional(),
-  priority: z.enum(['high', 'medium', 'low']).default('medium'),
+  risk_note: z.string().optional(),
+  suitability_note: z.string().optional(),
 });
-export type NextBestAction = z.infer<typeof NextBestActionSchema>;
+export type RecommendationItem = z.infer<typeof RecommendationItemSchema>;
+
+export const ActionSchema = z.object({
+  type: z.enum(['advisor_handoff', 'watchlist', 'alert', 'view_portfolio', 'none']),
+  label: z.string(),
+  payload: z.record(z.string(), z.unknown()).optional(),
+});
+export type Action = z.infer<typeof ActionSchema>;
 
 export const AdaAnswerSchema = z.object({
-  text_blocks: z.array(z.string()),
-  widgets: z.array(z.object({
-    type: z.string(),
-    data: z.record(z.string(), z.unknown()).optional(),
-  })).default([]),
+  answer_id: z.string(),
+  mode: z.enum(['instant', 'analysis', 'advisory']),
+  user_intent: z.enum([
+    'balance_query',
+    'portfolio_explain',
+    'portfolio_health',
+    'market_news',
+    'recommendation_request',
+    'workflow_request',
+    'support',
+    'other',
+  ]),
+  headline: z.string(),
+  summary: z.string(),
+  key_points: z.array(z.string()),
+  portfolio_insights: z.object({
+    health_score: z.number().optional(),
+    concentration_flags: z.array(z.string()).optional(),
+    allocation_notes: z.array(z.string()).optional(),
+    performance_notes: z.array(z.string()).optional(),
+  }).optional(),
+  market_context: z.object({
+    relevant_instruments: z.array(z.string()).optional(),
+    relevant_news_topics: z.array(z.string()).optional(),
+    market_takeaway: z.string().optional(),
+  }).optional(),
+  recommendations: z.object({
+    allowed: z.boolean(),
+    type: z.enum(['none', 'education', 'next_best_actions', 'product_options']),
+    items: z.array(RecommendationItemSchema),
+  }).optional(),
+  actions: z.array(ActionSchema).optional(),
+  disclosures: z.array(z.string()),
+  citations: z.array(CitationSchema),
+  render_hints: z.object({
+    show_portfolio_card: z.boolean().optional(),
+    show_news_card: z.boolean().optional(),
+    show_health_card: z.boolean().optional(),
+  }).optional(),
   suggested_questions: z.array(z.string()).default([]),
-  citations: z.array(CitationSchema).default([]),
-  next_best_actions: z.array(NextBestActionSchema).default([]),
-  disclaimers: z.array(z.string()).default([]),
-  confidence: z.number().min(0).max(1).default(0.8),
-  escalate_to_advisor: z.boolean().default(false),
-  escalation_reason: z.string().optional(),
   tool_results: z.array(ToolResultSchema).default([]),
 });
 export type AdaAnswer = z.infer<typeof AdaAnswerSchema>;
 
 export const PolicyDecisionSchema = z.object({
-  allowed: z.boolean(),
-  advisory_mode: z.enum(['education_only', 'personalized_insights_only', 'restricted_advisory']),
-  can_name_securities: z.boolean(),
-  can_compare_products: z.boolean(),
-  can_generate_recommendations: z.boolean(),
-  can_generate_next_best_actions: z.boolean(),
-  requires_advisor_handoff: z.boolean(),
-  tools_allowed: z.array(z.string()),
-  disclosure_profile: z.string(),
-  blocked_reason: z.string().optional(),
-  guardrail_notes: z.array(z.string()).default([]),
+  allow_response: z.boolean(),
+  response_mode: z.enum(['education_only', 'personalized_insights', 'restricted_advisory']),
+  allowed_tools: z.array(z.string()),
+  recommendation_mode: z.enum(['none', 'next_best_actions', 'product_options']),
+  require_disclosures: z.boolean(),
+  require_human_review: z.boolean(),
+  escalation_reason: z.string().optional(),
 });
 export type PolicyDecision = z.infer<typeof PolicyDecisionSchema>;
 
 export const IntentClassificationSchema = z.object({
   primary_intent: z.enum([
-    'portfolio_query',
-    'market_data',
-    'news_query',
-    'macro_query',
-    'fx_query',
-    'research_query',
-    'goal_management',
-    'risk_assessment',
-    'rebalancing',
-    'general_education',
-    'advisor_handoff',
-    'account_management',
-    'greeting',
-    'unclear',
+    'balance_query',
+    'portfolio_explain',
+    'portfolio_health',
+    'market_news',
+    'recommendation_request',
+    'workflow_request',
+    'support',
+    'other',
   ]),
   confidence: z.number().min(0).max(1),
   entities: z.object({

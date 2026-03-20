@@ -160,11 +160,11 @@ export async function getToolRunsByConversation(conversationId: string): Promise
     [conversationId],
   );
   return rows.map((r) => ({
-    tool_name: String(r.tool_name),
-    success: r.status === 'ok',
-    data: r.outputs,
-    source_provider: String(r.source_provider ?? 'unknown'),
+    status: (r.status as 'ok' | 'error' | 'partial') ?? 'ok',
+    source_name: String(r.source_provider ?? 'unknown'),
+    source_type: String(r.tool_name),
     as_of: r.created_at ? new Date(r.created_at as string).toISOString() : new Date().toISOString(),
-    latency_ms: r.latency_ms ? Number(r.latency_ms) : undefined,
+    latency_ms: r.latency_ms ? Number(r.latency_ms) : 0,
+    data: r.outputs ?? null,
   }));
 }

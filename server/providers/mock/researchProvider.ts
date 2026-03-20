@@ -1,5 +1,6 @@
 import type { ResearchProvider } from '../types';
-import type { Filing } from '../../../shared/schemas/agent';
+import type { ToolResult, Filing } from '../../../shared/schemas/agent';
+import { toolOk } from './helpers';
 
 const MOCK_FILINGS: Filing[] = [
   { id: 'fil-1', company: 'NVDA', type: '10-K', title: 'NVIDIA Annual Report FY2025', filed_date: '2025-02-28', url: 'https://sec.gov/example/nvda-10k', summary: 'Record revenue of $60.9B driven by data center GPU demand. AI infrastructure remains primary growth driver.', source_provider: 'mock' },
@@ -15,21 +16,27 @@ const MOCK_FILINGS: Filing[] = [
 export const mockResearchProvider: ResearchProvider = {
   name: 'mock',
 
-  async getFilings(company: string, type?: string, limit = 5): Promise<Filing[]> {
+  async getFilings(company: string, type?: string, limit = 5): Promise<ToolResult> {
+    const start = Date.now();
     let results = MOCK_FILINGS.filter((f) => f.company.toUpperCase() === company.toUpperCase());
     if (type) results = results.filter((f) => f.type.toUpperCase() === type.toUpperCase());
-    return results.slice(0, limit);
+    return toolOk('mock_research', 'research_api', results.slice(0, limit), start);
   },
 
-  async getLatestFiling(company: string, type: string): Promise<Filing | null> {
-    const filings = await this.getFilings(company, type, 1);
-    return filings[0] ?? null;
+  async getLatestFiling(company: string, type: string): Promise<ToolResult> {
+    const start = Date.now();
+    const results = MOCK_FILINGS.filter(
+      (f) => f.company.toUpperCase() === company.toUpperCase() && f.type.toUpperCase() === type.toUpperCase(),
+    );
+    return toolOk('mock_research', 'research_api', results[0] ?? null, start);
   },
 
-  async searchFilings(query: string, limit = 5): Promise<Filing[]> {
+  async searchFilings(query: string, limit = 5): Promise<ToolResult> {
+    const start = Date.now();
     const q = query.toLowerCase();
-    return MOCK_FILINGS
+    const results = MOCK_FILINGS
       .filter((f) => f.title.toLowerCase().includes(q) || (f.summary?.toLowerCase().includes(q) ?? false))
       .slice(0, limit);
+    return toolOk('mock_research', 'research_api', results, start);
   },
 };

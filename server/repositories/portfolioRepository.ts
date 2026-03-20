@@ -58,6 +58,53 @@ export async function getHoldingsByUserId(userId: string): Promise<HoldingRespon
   });
 }
 
+export interface EnrichedHolding extends HoldingResponse {
+  assetClass: string;
+  sector?: string;
+  geography: string;
+  currency: string;
+  instrumentType: string;
+  isin?: string;
+  exchange?: string;
+}
+
+export async function getEnrichedHoldingsByUserId(userId: string): Promise<EnrichedHolding[]> {
+  const { rows } = await pool.query(
+    `SELECT p.symbol, p.name, p.quantity, p.current_price, p.cost_basis, p.asset_class,
+            i.sector, i.geography, i.currency, i.instrument_type, i.isin, i.exchange
+     FROM positions p
+     JOIN accounts a ON a.id = p.account_id
+     LEFT JOIN instruments i ON UPPER(i.symbol) = UPPER(p.symbol)
+     WHERE a.user_id = $1
+     ORDER BY (p.quantity * p.current_price) DESC`,
+    [userId],
+  );
+  return rows.map((r) => {
+    const qty = Number(r.quantity);
+    const price = Number(r.current_price);
+    const cost = Number(r.cost_basis);
+    const value = qty * price;
+    const costTotal = qty * cost;
+    const changeAmount = value - costTotal;
+    const changePercent = costTotal > 0 ? (changeAmount / costTotal) * 100 : 0;
+    return {
+      symbol: String(r.symbol),
+      name: String(r.name),
+      quantity: qty,
+      value: Math.round(value * 100) / 100,
+      changePercent: Math.round(changePercent * 10) / 10,
+      changeAmount: Math.round(changeAmount * 100) / 100,
+      assetClass: String(r.asset_class ?? 'Unknown'),
+      sector: r.sector ? String(r.sector) : undefined,
+      geography: String(r.geography ?? 'Global'),
+      currency: String(r.currency ?? 'USD'),
+      instrumentType: String(r.instrument_type ?? 'equity'),
+      isin: r.isin ? String(r.isin) : undefined,
+      exchange: r.exchange ? String(r.exchange) : undefined,
+    };
+  });
+}
+
 const ALLOCATION_COLORS: Record<string, string> = {
   Stocks: '#d9b3b5',
   Cash: '#a87174',

@@ -1,5 +1,6 @@
 import type { MarketProvider } from '../types';
-import type { MarketQuote, ToolResult } from '../../../shared/schemas/agent';
+import type { ToolResult, MarketQuote } from '../../../shared/schemas/agent';
+import { toolOk } from './helpers';
 
 const MOCK_PRICES: Record<string, { price: number; change: number; changePct: number; volume: number }> = {
   NVDA: { price: 250.35, change: 5.82, changePct: 2.38, volume: 45_200_000 },
@@ -76,15 +77,14 @@ function buildQuote(symbol: string): MarketQuote {
 export const mockMarketProvider: MarketProvider = {
   name: 'mock',
 
-  async getQuote(symbol: string): Promise<MarketQuote> {
-    return buildQuote(symbol.toUpperCase());
-  },
-
-  async getQuotes(symbols: string[]): Promise<MarketQuote[]> {
-    return symbols.map((s) => buildQuote(s.toUpperCase()));
+  async getQuotes(symbols: string[]): Promise<ToolResult> {
+    const start = Date.now();
+    const quotes = symbols.map((s) => buildQuote(s.toUpperCase()));
+    return toolOk('mock_market', 'market_api', quotes, start);
   },
 
   async getHistoricalPrices(symbol: string, days: number): Promise<ToolResult> {
+    const start = Date.now();
     const quote = buildQuote(symbol.toUpperCase());
     const prices: { date: string; close: number }[] = [];
     const now = Date.now();
@@ -96,12 +96,6 @@ export const mockMarketProvider: MarketProvider = {
         close: +(quote.price * noise).toFixed(2),
       });
     }
-    return {
-      tool_name: 'get_historical_prices',
-      success: true,
-      data: { symbol, prices },
-      source_provider: 'mock',
-      as_of: new Date().toISOString(),
-    };
+    return toolOk('mock_market', 'market_api', { symbol, prices }, start);
   },
 };

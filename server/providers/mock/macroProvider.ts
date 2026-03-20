@@ -1,5 +1,6 @@
 import type { MacroProvider } from '../types';
-import type { MacroIndicator } from '../../../shared/schemas/agent';
+import type { ToolResult, MacroIndicator } from '../../../shared/schemas/agent';
+import { toolOk } from './helpers';
 
 const MOCK_INDICATORS: Record<string, { name: string; value: number; unit: string; category: string; frequency: string }> = {
   FEDFUNDS: { name: 'Federal Funds Rate', value: 5.33, unit: 'percent', category: 'interest_rates', frequency: 'daily' },
@@ -19,43 +20,52 @@ const MOCK_INDICATORS: Record<string, { name: string; value: number; unit: strin
   WALCL: { name: 'Fed Balance Sheet Total Assets', value: 7720.5, unit: 'billions_usd', category: 'monetary_policy', frequency: 'weekly' },
 };
 
-export const mockMacroProvider: MacroProvider = {
-  name: 'mock',
-
-  async getIndicator(seriesId: string): Promise<MacroIndicator> {
-    const data = MOCK_INDICATORS[seriesId.toUpperCase()];
-    if (!data) {
-      return {
-        series_id: seriesId,
-        name: seriesId,
-        value: 0,
-        unit: 'unknown',
-        date: new Date().toISOString().split('T')[0],
-        source_provider: 'mock',
-        as_of: new Date().toISOString(),
-      };
-    }
+function buildIndicator(seriesId: string): MacroIndicator {
+  const data = MOCK_INDICATORS[seriesId.toUpperCase()];
+  if (!data) {
     return {
-      series_id: seriesId.toUpperCase(),
-      name: data.name,
-      value: data.value,
-      unit: data.unit,
+      series_id: seriesId,
+      name: seriesId,
+      value: 0,
+      unit: 'unknown',
       date: new Date().toISOString().split('T')[0],
-      frequency: data.frequency,
       source_provider: 'mock',
       as_of: new Date().toISOString(),
     };
+  }
+  return {
+    series_id: seriesId.toUpperCase(),
+    name: data.name,
+    value: data.value,
+    unit: data.unit,
+    date: new Date().toISOString().split('T')[0],
+    frequency: data.frequency,
+    source_provider: 'mock',
+    as_of: new Date().toISOString(),
+  };
+}
+
+export const mockMacroProvider: MacroProvider = {
+  name: 'mock',
+
+  async getIndicator(seriesId: string): Promise<ToolResult> {
+    const start = Date.now();
+    return toolOk('mock_macro', 'macro_api', buildIndicator(seriesId), start);
   },
 
-  async getMultipleIndicators(seriesIds: string[]): Promise<MacroIndicator[]> {
-    return Promise.all(seriesIds.map((id) => this.getIndicator(id)));
+  async getMultipleIndicators(seriesIds: string[]): Promise<ToolResult> {
+    const start = Date.now();
+    const indicators = seriesIds.map((id) => buildIndicator(id));
+    return toolOk('mock_macro', 'macro_api', indicators, start);
   },
 
-  async getAvailableIndicators(): Promise<{ id: string; name: string; category: string }[]> {
-    return Object.entries(MOCK_INDICATORS).map(([id, data]) => ({
+  async getAvailableIndicators(): Promise<ToolResult> {
+    const start = Date.now();
+    const list = Object.entries(MOCK_INDICATORS).map(([id, data]) => ({
       id,
       name: data.name,
       category: data.category,
     }));
+    return toolOk('mock_macro', 'macro_api', list, start);
   },
 };
