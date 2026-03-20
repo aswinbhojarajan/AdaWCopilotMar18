@@ -44,8 +44,17 @@ server/
   index.ts                   — Express entry point (port 3001), global error handler
   routes/api.ts              — REST API routes with asyncHandler wrapper
   services/
-    aiService.ts             — OpenAI client, system prompt builder, streaming completions with tool-calling
-    chatService.ts           — Orchestrates intent→RAG→memory→LLM→persist pipeline
+    agentOrchestrator.ts     — Full agent pipeline: session hydrate → intent → policy → model select → prompt → LLM+tools → guardrails → trace
+    chatService.ts           — Delegates to agentOrchestrator; preserves StreamEvent interface
+    aiService.ts             — OpenAI client, legacy system prompt builder, streaming completions
+    financialTools.ts        — 8 OpenAI function-calling tool definitions + execution dispatcher
+    policyEngine.ts          — Code-driven policy evaluator (response mode, allowed tools, disclosures, escalation)
+    wealthEngine.ts          — Deterministic portfolio calculations (health score, concentration, allocation, drift)
+    promptBuilder.ts         — Modular system prompt assembly with policy/tenant/grounding blocks
+    modelRouter.ts           — Fast/strong model selection based on intent complexity
+    responseBuilder.ts       — AdaAnswer structured response builder + SSE event mapper
+    traceLogger.ts           — Persists agent traces + tool runs to DB
+    guardrails.ts            — Post-check sanitization (blocked phrases, advisory language, security names)
     intentClassifier.ts      — Classifies messages into portfolio/goals/market/scenario/general intents
     ragService.ts            — Builds portfolio context from DB (holdings, allocations, goals, accounts, transactions)
     memoryService.ts         — Three-tier memory (working/episodic/semantic) + audit logging
@@ -130,23 +139,34 @@ Note: `users.tenant_id` FK to tenants (nullable, backward-compatible)
 | GET    | /api/polls                 | Active polls with options & votes  |
 | POST   | /api/polls/:pollId/vote    | Vote on a poll option              |
 
-## AI Chat Architecture
-The chat system uses a multi-stage pipeline:
+## AI Chat Architecture (Agent Orchestrator Pipeline)
+The chat system uses a comprehensive agent pipeline via `agentOrchestrator.ts`:
 1. **PII Detection** — Scans user input for sensitive data (email, phone, SSN, etc.) and redacts before sending to LLM
-2. **Intent Classification** — Routes messages to domain handlers: portfolio, goals, market, scenario, general
-3. **RAG Pipeline** — Queries user's portfolio data (holdings, allocations, goals, accounts, transactions) from PostgreSQL
-4. **Memory System** — Three-tier:
+2. **Session Hydration** — Loads tenant config + user profile in parallel
+3. **Intent Classification** — Maps messages to structured `IntentClassification` with primary_intent, confidence, entities (symbols, asset_classes, currencies), reasoning_effort (low/medium/high), and suggested_tools
+4. **Policy Evaluation** — `policyEngine.ts` evaluates tenant config + intent → `PolicyDecision` (response_mode, allowed_tools, recommendation_mode, disclosures, escalation)
+5. **Model Routing** — `modelRouter.ts` selects fast/strong model based on intent complexity and tool count
+6. **RAG Pipeline** — Queries user's portfolio data (holdings, allocations, goals, accounts, transactions) from PostgreSQL
+7. **Prompt Assembly** — `promptBuilder.ts` builds modular system prompt with identity, tenant behavior, policy constraints, tool rules, grounding rules, user profile, portfolio context, memories, and navigation context
+8. **Memory System** — Three-tier:
    - Working memory: in-memory conversation turns (per thread, max 20)
    - Episodic memory: summarized conversation episodes in PostgreSQL
    - Semantic memory: extracted user facts/preferences in PostgreSQL
-5. **LLM Call** — OpenAI gpt-5-mini with system prompt containing portfolio context, memories, and persona instructions
-6. **Tool Calling** — LLM can invoke:
-   - `show_simulator`: Triggers interactive scenario simulator (retirement/investment/spending/tax)
-   - `show_widget`: Embeds data widgets (allocation chart, holdings summary, goal progress, portfolio summary)
+9. **LLM Call with Function Calling** — OpenAI gpt-5-mini with 8 tools (5 financial + 3 UI):
+   - `getPortfolioSnapshot`: Fetches live portfolio value, daily change, cash %
+   - `getHoldings`: Fetches holdings with market values, weights, sectors
+   - `getQuotes`: Fetches real-time market quotes for symbols
+   - `getHoldingsRelevantNews`: Fetches news relevant to user's holdings
+   - `calculatePortfolioHealth`: Runs wealth engine (health score, concentration, allocation analysis)
+   - `show_simulator`: Triggers interactive scenario simulator
+   - `show_widget`: Embeds data widgets
    - `extract_user_fact`: Saves user preferences/facts to semantic memory
-7. **Streaming** — Responses stream via SSE with progressive text rendering
-8. **Suggested Questions** — LLM generates 3 follow-up suggestions after each response
-9. **Audit Logging** — All interactions logged with intent, PII detection status, model, token usage
+10. **Wealth Engine** — `wealthEngine.ts` provides deterministic calculations: health score (diversification, cash buffer, concentration risk, risk alignment, position count), concentration analysis, allocation breakdown, drift analysis
+11. **Guardrails** — `guardrails.ts` runs post-checks: blocked phrase redaction, education-only advisory language removal, security name enforcement
+12. **Response Builder** — `responseBuilder.ts` builds structured `AdaAnswer` with headline, summary, key_points, portfolio_insights, market_context, recommendations, citations, disclosures, render_hints
+13. **Trace Logging** — `traceLogger.ts` persists full agent traces (intent, policy, model, tools, timings, guardrails, escalations) + individual tool runs to DB
+14. **Streaming** — Responses stream via SSE with progressive text rendering
+15. **Suggested Questions** — LLM generates 3 follow-up suggestions after each response
 
 ## Frontend Chat Features
 - **SSE Streaming** — Real-time text rendering with typing cursor animation
@@ -199,8 +219,18 @@ Requires `DATABASE_URL` environment variable (auto-provisioned by Replit).
 - **8 Demo Personas**: Abdullah (default, moderate), Fatima (conservative), Omar (aggressive), Layla (moderate), Khalid (ultra-conservative/cash-heavy), Sara (goal-based family), Raj (tech/crypto heavy trader), Nadia (advisor-led dividend investor) — all with recent transactions
 - **Provider Registry Routing**: Config-driven with explicit case branches for future providers (finnhub, fred, sec_edgar, frankfurter, cbuae) plus graceful fallback-to-mock with console warnings
 
+## Agent Architecture (Implemented — Task #2 Complete)
+- **Agent Orchestrator** (`agentOrchestrator.ts`): Full pipeline replacing chatService internals — session hydration, intent classification, policy evaluation, model routing, prompt assembly, LLM call with function calling, tool execution, guardrails, trace logging
+- **Financial Tools** (`financialTools.ts`): 5 data tools + 3 UI tools as OpenAI function definitions; tool execution routes through provider registry; tools: getPortfolioSnapshot, getHoldings, getQuotes, getHoldingsRelevantNews, calculatePortfolioHealth, show_simulator, show_widget, extract_user_fact
+- **Policy Engine** (`policyEngine.ts`): Code-driven policy evaluator using TenantConfig — resolves response mode, allowed tools, recommendation mode, disclosure requirements, escalation decisions
+- **Wealth Engine** (`wealthEngine.ts`): Pure deterministic functions — calculateHealthScore (5-component weighted score), analyzeConcentration, computeAllocationBreakdown, computeDriftAnalysis
+- **Prompt Builder** (`promptBuilder.ts`): Modular prompt assembly with identity, tenant behavior, policy constraints, tool rules, grounding rules, answer contract, user profile, portfolio context, memories
+- **Model Router** (`modelRouter.ts`): Fast/strong model selection based on intent reasoning_effort, tool count, and policy mode (currently both point to gpt-5-mini; ready for multi-model when available)
+- **Response Builder** (`responseBuilder.ts`): Builds structured AdaAnswer from LLM output + tool results; maps to SSE events
+- **Trace Logger** (`traceLogger.ts`): Persists agent traces and tool runs to DB with step timings
+- **Guardrails** (`guardrails.ts`): Post-check sanitization — blocked phrases, education-only advisory language, security name enforcement
+
 ## Agent Architecture (Pending Tasks)
-- **Task #2 — Agent Architecture & Intelligence Overhaul**: Agent orchestrator, financial tool calling via OpenAI functions, policy engine logic, deterministic wealth engine, prompt assembly pipeline, multi-model routing, structured response builder, trace logging, guardrails
 - **Task #3 — External Data Source Integration**: Finnhub (market), FRED (macro), SEC EDGAR (filings), OpenFIGI (identity), Frankfurter (FX), CBUAE (AED rates) — wire real APIs behind existing provider interfaces
 
 ## Key Decisions

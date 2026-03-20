@@ -1,0 +1,481 @@
+import OpenAI from 'openai';
+import type { ChatMessageRequest, RiskProfile } from '../../shared/types';
+import type { IntentClassification, ToolResult, TenantConfig, PolicyDecision, AdaAnswer } from '../../shared/schemas/agent';
+import type { StreamEvent } from './chatService';
+import { openai, MODEL } from './openaiClient';
+import * as intentClassifier from './intentClassifier';
+import * as ragService from './ragService';
+import * as memoryService from './memoryService';
+import * as piiDetector from './piiDetector';
+import * as contentRepo from '../repositories/contentRepository';
+import * as userRepo from '../repositories/userRepository';
+import * as agentRepo from '../repositories/agentRepository';
+import { getProviderRegistry } from '../providers/registry';
+import { evaluatePolicy, getDisclosures } from './policyEngine';
+import { buildAgentPrompt } from './promptBuilder';
+import { selectModel } from './modelRouter';
+import { getToolDefinitions, executeFinancialTool, isFinancialTool, isUiTool, FINANCIAL_TOOL_DEFINITIONS, UI_TOOL_DEFINITIONS } from './financialTools';
+import { buildAdaAnswer } from './responseBuilder';
+import { runPostChecks } from './guardrails';
+import { logAgentTrace, logToolRun } from './traceLogger';
+import type { StepTimings, TraceContext } from './traceLogger';
+
+function mapOldIntentToNew(oldIntent: string): IntentClassification['primary_intent'] {
+  const map: Record<string, IntentClassification['primary_intent']> = {
+    portfolio: 'portfolio_explain',
+    goals: 'workflow_request',
+    market: 'market_news',
+    scenario: 'workflow_request',
+    general: 'other',
+  };
+  return map[oldIntent] ?? 'other';
+}
+
+function inferReasoningEffort(intent: IntentClassification['primary_intent'], message: string): IntentClassification['reasoning_effort'] {
+  const lower = message.toLowerCase();
+  const simple = ['what is', 'show me', 'how much', 'what\'s my balance', 'total value'];
+  if (simple.some(p => lower.includes(p)) && intent !== 'portfolio_health' && intent !== 'recommendation_request') {
+    return 'low';
+  }
+  const complex = ['analyze', 'compare', 'recommend', 'should i', 'rebalance', 'health', 'risk analysis', 'diversif'];
+  if (complex.some(p => lower.includes(p))) return 'high';
+  return 'medium';
+}
+
+function inferSuggestedTools(intent: IntentClassification['primary_intent'], message: string): string[] {
+  const tools: string[] = [];
+  const lower = message.toLowerCase();
+
+  switch (intent) {
+    case 'balance_query':
+      tools.push('getPortfolioSnapshot');
+      break;
+    case 'portfolio_explain':
+      tools.push('getPortfolioSnapshot', 'getHoldings');
+      break;
+    case 'portfolio_health':
+      tools.push('calculatePortfolioHealth', 'getPortfolioSnapshot', 'getHoldings');
+      break;
+    case 'market_news':
+      tools.push('getHoldingsRelevantNews');
+      if (lower.match(/\b[A-Z]{2,5}\b/)) tools.push('getQuotes');
+      break;
+    case 'recommendation_request':
+      tools.push('calculatePortfolioHealth', 'getPortfolioSnapshot', 'getHoldings');
+      break;
+    default:
+      tools.push('getPortfolioSnapshot');
+  }
+
+  if (lower.includes('simulat') || lower.includes('retire') || lower.includes('what if')) {
+    tools.push('show_simulator');
+  }
+
+  return [...new Set(tools)];
+}
+
+function extractSymbols(message: string): string[] {
+  const matches = message.match(/\b[A-Z]{2,5}\b/g) ?? [];
+  const commonWords = new Set(['THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HER', 'WAS', 'ONE', 'OUR', 'OUT', 'HOW', 'HAS']);
+  return matches.filter(m => !commonWords.has(m));
+}
+
+function buildIntentClassification(message: string): IntentClassification {
+  const oldIntent = intentClassifier.classifyIntent(message);
+  const primaryIntent = mapOldIntentToNew(oldIntent);
+  const effort = inferReasoningEffort(primaryIntent, message);
+  const symbols = extractSymbols(message);
+  const suggestedTools = inferSuggestedTools(primaryIntent, message);
+
+  return {
+    primary_intent: primaryIntent,
+    confidence: 0.85,
+    entities: {
+      symbols,
+      asset_classes: [],
+      time_range: undefined,
+      currencies: [],
+    },
+    reasoning_effort: effort,
+    suggested_tools: suggestedTools,
+  };
+}
+
+export async function* orchestrateStream(
+  userId: string,
+  req: ChatMessageRequest,
+): AsyncGenerator<StreamEvent> {
+  const startTime = Date.now();
+  const timings: StepTimings = {};
+  const threadId = req.threadId ?? `thread-${Date.now()}`;
+  const messageId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+  const piiResult = piiDetector.scanForPii(req.message);
+  const sanitizedMessage = piiResult.hasPii ? piiResult.sanitized : req.message;
+
+  await memoryService.logAudit({
+    userId,
+    threadId,
+    action: 'message_received',
+    piiDetected: piiResult.hasPii,
+    inputPreview: piiResult.hasPii ? piiResult.sanitized.slice(0, 100) : req.message.slice(0, 100),
+  });
+
+  const sessionStart = Date.now();
+  const [tenantId, userProfile] = await Promise.all([
+    agentRepo.getUserTenantId(userId),
+    userRepo.findUserById(userId),
+  ]);
+
+  const tenantConfig = tenantId
+    ? (await agentRepo.getTenantConfig(tenantId)) ?? await agentRepo.getDefaultTenantConfig()
+    : await agentRepo.getDefaultTenantConfig();
+
+  timings.session_hydrate_ms = Date.now() - sessionStart;
+
+  const intentStart = Date.now();
+  const intent = buildIntentClassification(sanitizedMessage);
+  timings.intent_classification_ms = Date.now() - intentStart;
+
+  const policyStart = Date.now();
+  const riskProfile: RiskProfile | undefined = userProfile?.riskProfile;
+  const policyDecision = evaluatePolicy(tenantConfig, intent, riskProfile);
+  timings.policy_evaluation_ms = Date.now() - policyStart;
+
+  try {
+    await agentRepo.savePolicyDecision({
+      tenant_id: tenantConfig.tenant_id,
+      user_id: userId,
+      request_type: intent.primary_intent,
+      decision: policyDecision,
+    });
+  } catch {
+    // non-blocking
+  }
+
+  const registry = getProviderRegistry(tenantConfig.provider_config);
+
+  const getToolName = (t: OpenAI.ChatCompletionTool): string => t.type === 'function' ? t.function.name : '';
+  const allToolNames = [
+    ...FINANCIAL_TOOL_DEFINITIONS.map(getToolName),
+    ...UI_TOOL_DEFINITIONS.map(getToolName),
+  ];
+  const allowedToolNames = allToolNames.filter(t => policyDecision.allowed_tools.includes(t));
+  const tools = getToolDefinitions(allowedToolNames);
+
+  const modelSelection = selectModel(intent, policyDecision, intent.suggested_tools.length);
+
+  const [portfolioContext, episodicMemories, semanticFacts] = await Promise.all([
+    ragService.buildPortfolioContext(userId, intentClassifier.classifyIntent(sanitizedMessage)),
+    memoryService.getEpisodicMemories(userId),
+    memoryService.getSemanticFacts(userId, 10, sanitizedMessage),
+  ]);
+
+  const systemPrompt = buildAgentPrompt({
+    tenantConfig,
+    policyDecision,
+    intent,
+    userName: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : undefined,
+    riskProfile,
+    portfolioSummary: portfolioContext.summary +
+      (portfolioContext.holdings ? `\n\nHOLDINGS:\n${portfolioContext.holdings}` : '') +
+      (portfolioContext.allocations ? `\n\nALLOCATION:\n${portfolioContext.allocations}` : '') +
+      (portfolioContext.goals ? `\n\nGOALS:\n${portfolioContext.goals}` : '') +
+      (portfolioContext.recentTransactions ? `\n\nRECENT TRANSACTIONS:\n${portfolioContext.recentTransactions}` : ''),
+    episodicMemories,
+    semanticFacts,
+    chatContext: req.context ? {
+      category: req.context.category,
+      title: req.context.title,
+      sourceScreen: req.context.sourceScreen,
+    } : undefined,
+    toolNames: allowedToolNames,
+  });
+
+  await contentRepo.ensureChatThread(userId, threadId, req.message.slice(0, 60));
+  await contentRepo.insertChatMessage(threadId, 'user', req.message);
+  memoryService.addToWorkingMemory(threadId, { role: 'user', content: sanitizedMessage });
+
+  const conversationHistory = memoryService.getWorkingMemory(threadId);
+  const messages: OpenAI.ChatCompletionMessageParam[] = [
+    { role: 'system', content: systemPrompt },
+    ...conversationHistory,
+  ];
+
+  let fullResponse = '';
+  const widgets: { type: string }[] = [];
+  const toolResults: ToolResult[] = [];
+  const guardrailInterventions: string[] = [];
+  const escalationDecisions: string[] = [];
+  let totalTokens = 0;
+
+  try {
+    const toolExecStart = Date.now();
+    const llmStart = Date.now();
+
+    const response = await openai.chat.completions.create({
+      model: modelSelection.model,
+      messages,
+      tools: tools.length > 0 ? tools : undefined,
+      stream: true,
+      max_completion_tokens: modelSelection.max_tokens,
+    });
+
+    const toolCalls: { id: string; name: string; arguments: string }[] = [];
+    let currentToolIndex = -1;
+
+    for await (const chunk of response) {
+      const delta = chunk.choices[0]?.delta;
+      if (!delta) continue;
+
+      if (delta.content) {
+        fullResponse += delta.content;
+        yield { type: 'text', content: delta.content };
+      }
+
+      if (delta.tool_calls) {
+        for (const tc of delta.tool_calls) {
+          if (tc.index !== undefined && tc.index !== currentToolIndex) {
+            currentToolIndex = tc.index;
+            toolCalls.push({
+              id: tc.id || '',
+              name: tc.function?.name || '',
+              arguments: tc.function?.arguments || '',
+            });
+          } else if (tc.function?.arguments) {
+            const last = toolCalls[toolCalls.length - 1];
+            if (last) last.arguments += tc.function.arguments;
+          }
+          if (tc.function?.name && toolCalls.length > 0) {
+            toolCalls[toolCalls.length - 1].name = tc.function.name;
+          }
+          if (tc.id && toolCalls.length > 0) {
+            toolCalls[toolCalls.length - 1].id = tc.id;
+          }
+        }
+      }
+
+      if (chunk.usage) totalTokens = chunk.usage.total_tokens;
+    }
+
+    if (toolCalls.length > 0) {
+      const toolResultMessages: OpenAI.ChatCompletionMessageParam[] = [];
+
+      const assistantMsg: OpenAI.ChatCompletionAssistantMessageParam = {
+        role: 'assistant',
+        content: null,
+        tool_calls: toolCalls.map(tc => ({
+          id: tc.id,
+          type: 'function' as const,
+          function: { name: tc.name, arguments: tc.arguments },
+        })),
+      };
+
+      for (const tc of toolCalls) {
+        let args: Record<string, unknown> = {};
+        try { args = JSON.parse(tc.arguments); } catch { /* empty */ }
+
+        if (isFinancialTool(tc.name)) {
+          const toolStart = Date.now();
+          const result = await executeFinancialTool(
+            tc.name,
+            args,
+            userId,
+            registry,
+            riskProfile?.level ?? 'moderate',
+          );
+          result.latency_ms = Date.now() - toolStart;
+          toolResults.push(result);
+
+          toolResultMessages.push({
+            role: 'tool' as const,
+            tool_call_id: tc.id,
+            content: JSON.stringify(result.data ?? { status: result.status, error: result.error }),
+          });
+
+          try {
+            await logToolRun({
+              toolName: tc.name,
+              inputs: args,
+              result,
+              conversationId: threadId,
+              messageId,
+              userId,
+            });
+          } catch {
+            // non-blocking
+          }
+        } else if (tc.name === 'show_simulator') {
+          yield { type: 'simulator', simulator: { type: args.type as string, initialValues: args.initialValues as Record<string, number> | undefined } };
+          widgets.push({ type: 'simulator' });
+          toolResultMessages.push({
+            role: 'tool' as const,
+            tool_call_id: tc.id,
+            content: JSON.stringify({ success: true, displayed: true }),
+          });
+        } else if (tc.name === 'show_widget') {
+          yield { type: 'widget', widget: { type: args.type as string } };
+          widgets.push({ type: args.type as string });
+          toolResultMessages.push({
+            role: 'tool' as const,
+            tool_call_id: tc.id,
+            content: JSON.stringify({ success: true, displayed: true }),
+          });
+        } else if (tc.name === 'extract_user_fact') {
+          try {
+            await memoryService.saveSemanticFact(userId, args.fact as string, args.category as string, threadId);
+          } catch {
+            // best-effort
+          }
+          toolResultMessages.push({
+            role: 'tool' as const,
+            tool_call_id: tc.id,
+            content: JSON.stringify({ success: true, saved: true }),
+          });
+        } else {
+          toolResultMessages.push({
+            role: 'tool' as const,
+            tool_call_id: tc.id,
+            content: JSON.stringify({ success: true, displayed: true }),
+          });
+        }
+      }
+
+      timings.tool_execution_ms = Date.now() - toolExecStart;
+
+      const followUpMessages: OpenAI.ChatCompletionMessageParam[] = [
+        ...messages,
+        assistantMsg,
+        ...toolResultMessages,
+      ];
+
+      const followUp = await openai.chat.completions.create({
+        model: modelSelection.model,
+        messages: followUpMessages,
+        stream: true,
+        max_completion_tokens: modelSelection.max_tokens,
+      });
+
+      for await (const chunk of followUp) {
+        const delta = chunk.choices[0]?.delta;
+        if (delta?.content) {
+          fullResponse += delta.content;
+          yield { type: 'text', content: delta.content };
+        }
+        if (chunk.usage) totalTokens += chunk.usage.total_tokens;
+      }
+    }
+
+    timings.llm_generation_ms = Date.now() - llmStart;
+
+    const postStart = Date.now();
+    const guardrailResult = runPostChecks(fullResponse, tenantConfig, policyDecision);
+    if (!guardrailResult.passed) {
+      guardrailInterventions.push(...guardrailResult.interventions);
+      fullResponse = guardrailResult.sanitizedText;
+    }
+
+    if (policyDecision.require_human_review) {
+      escalationDecisions.push(policyDecision.escalation_reason || 'Advisor review required');
+    }
+    timings.post_checks_ms = Date.now() - postStart;
+
+    const suggestMessages: OpenAI.ChatCompletionMessageParam[] = [
+      { role: 'system', content: 'Based on the conversation, generate exactly 3 short follow-up questions the user might want to ask next. Return ONLY a JSON array of 3 strings, no other text.' },
+      ...conversationHistory,
+      { role: 'assistant', content: fullResponse },
+    ];
+
+    let suggestedQuestions: string[] = [];
+    try {
+      const suggestResponse = await openai.chat.completions.create({
+        model: MODEL,
+        messages: suggestMessages,
+        max_completion_tokens: 256,
+      });
+      const suggestContent = suggestResponse.choices[0]?.message?.content || '';
+      const jsonMatch = suggestContent.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        suggestedQuestions = (JSON.parse(jsonMatch[0]) as string[]).slice(0, 3);
+      }
+      if (suggestResponse.usage) totalTokens += suggestResponse.usage.total_tokens;
+    } catch {
+      suggestedQuestions = ['Tell me more about my portfolio', 'How is the market doing?', 'What should I focus on?'];
+    }
+
+    if (suggestedQuestions.length > 0) {
+      yield { type: 'suggested_questions', suggestedQuestions };
+    }
+
+    const adaAnswer = buildAdaAnswer({
+      intent,
+      policyDecision,
+      llmText: fullResponse,
+      toolResults,
+      tenantConfig,
+      guardrailInterventions,
+    });
+    adaAnswer.suggested_questions = suggestedQuestions;
+
+    timings.total_ms = Date.now() - startTime;
+
+    const traceCtx: TraceContext = {
+      conversationId: threadId,
+      messageId,
+      tenantId: tenantConfig.tenant_id,
+      userId,
+    };
+
+    try {
+      await logAgentTrace({
+        ctx: traceCtx,
+        intent,
+        policyDecision,
+        modelName: modelSelection.model,
+        toolSetExposed: allowedToolNames,
+        toolCallsMade: toolResults,
+        finalAnswer: adaAnswer,
+        responseTimeMs: timings.total_ms,
+        stepTimings: timings,
+        guardrailInterventions,
+        escalationDecisions,
+      });
+    } catch {
+      // non-blocking
+    }
+
+    await memoryService.logAudit({
+      userId,
+      threadId,
+      action: 'response_generated',
+      intent: intent.primary_intent,
+      model: modelSelection.model,
+      tokensUsed: totalTokens,
+    });
+
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Agent orchestrator error:', message);
+    yield { type: 'error', content: "I'm having trouble processing that right now. Please try again." };
+  }
+
+  if (fullResponse) {
+    memoryService.addToWorkingMemory(threadId, { role: 'assistant', content: fullResponse });
+    const widgetsJson = widgets.length > 0 ? JSON.stringify(widgets) : null;
+    await contentRepo.insertChatMessageWithWidgets(threadId, 'assistant', fullResponse, widgetsJson);
+    await contentRepo.updateThreadPreview(threadId, fullResponse.slice(0, 100));
+  }
+
+  const workingMem = memoryService.getWorkingMemory(threadId);
+  if (workingMem.length >= 10) {
+    try {
+      const topics = intentClassifier.extractTopics(workingMem.map(t => t.content).join(' '));
+      const summary = workingMem.slice(0, 6).map(t => `${t.role}: ${t.content.slice(0, 80)}`).join(' | ');
+      await memoryService.saveEpisodicMemory(userId, threadId, summary, topics);
+    } catch {
+      // best-effort
+    }
+  }
+
+  yield { type: 'done' };
+}
