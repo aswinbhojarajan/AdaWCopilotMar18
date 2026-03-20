@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import type { ChatMessageRequest, RiskProfile } from '../../shared/types';
-import type { IntentClassification, ToolResult, TenantConfig, PolicyDecision, AdaAnswer } from '../../shared/schemas/agent';
+import type { IntentClassification, ToolResult, AdaAnswer } from '../../shared/schemas/agent';
 import type { StreamEvent } from './chatService';
 import { openai, MODEL } from './openaiClient';
 import * as intentClassifier from './intentClassifier';
@@ -11,14 +11,16 @@ import * as contentRepo from '../repositories/contentRepository';
 import * as userRepo from '../repositories/userRepository';
 import * as agentRepo from '../repositories/agentRepository';
 import { getProviderRegistry } from '../providers/registry';
-import { evaluatePolicy, getDisclosures } from './policyEngine';
+import type { ProviderRegistry } from '../providers/types';
+import { evaluatePolicy } from './policyEngine';
 import { buildAgentPrompt } from './promptBuilder';
 import { selectModel } from './modelRouter';
-import { getToolDefinitions, executeFinancialTool, isFinancialTool, isUiTool, FINANCIAL_TOOL_DEFINITIONS, UI_TOOL_DEFINITIONS } from './financialTools';
+import { getToolDefinitions, executeFinancialTool, isFinancialTool, FINANCIAL_TOOL_DEFINITIONS, UI_TOOL_DEFINITIONS } from './financialTools';
 import { buildAdaAnswer } from './responseBuilder';
 import { runPostChecks } from './guardrails';
 import { logAgentTrace, logToolRun } from './traceLogger';
 import type { StepTimings, TraceContext } from './traceLogger';
+import * as wealthEngine from './wealthEngine';
 
 function mapOldIntentToNew(oldIntent: string): IntentClassification['primary_intent'] {
   const map: Record<string, IntentClassification['primary_intent']> = {
@@ -101,6 +103,69 @@ function buildIntentClassification(message: string): IntentClassification {
   };
 }
 
+const PREFETCH_INTENTS = new Set<IntentClassification['primary_intent']>([
+  'balance_query', 'portfolio_explain', 'portfolio_health', 'recommendation_request',
+]);
+
+async function prefetchToolData(
+  intent: IntentClassification,
+  userId: string,
+  registry: ProviderRegistry,
+  riskLevel: string,
+  allowedTools: string[],
+): Promise<{ results: ToolResult[]; enrichment: Record<string, unknown> | null }> {
+  if (!PREFETCH_INTENTS.has(intent.primary_intent)) {
+    return { results: [], enrichment: null };
+  }
+
+  const prefetchJobs: Array<{ name: string; promise: Promise<ToolResult> }> = [];
+
+  if (allowedTools.includes('getPortfolioSnapshot')) {
+    prefetchJobs.push({ name: 'getPortfolioSnapshot', promise: executeFinancialTool('getPortfolioSnapshot', {}, userId, registry, riskLevel) });
+  }
+  if (allowedTools.includes('getHoldings') && intent.primary_intent !== 'balance_query') {
+    prefetchJobs.push({ name: 'getHoldings', promise: executeFinancialTool('getHoldings', {}, userId, registry, riskLevel) });
+  }
+
+  const settled = await Promise.all(
+    prefetchJobs.map(async (j) => {
+      const start = Date.now();
+      const result = await j.promise;
+      result.latency_ms = Date.now() - start;
+      return { name: j.name, result };
+    }),
+  );
+
+  const results = settled.map(s => s.result);
+
+  let enrichment: Record<string, unknown> | null = null;
+  if (
+    (intent.primary_intent === 'portfolio_health' || intent.primary_intent === 'recommendation_request' || intent.primary_intent === 'portfolio_explain') &&
+    allowedTools.includes('calculatePortfolioHealth')
+  ) {
+    const snapshot = settled.find(s => s.name === 'getPortfolioSnapshot')?.result;
+    const holdings = settled.find(s => s.name === 'getHoldings')?.result;
+    if (snapshot && holdings && snapshot.status === 'ok' && holdings.status === 'ok') {
+      const health = wealthEngine.calculateHealthScore(holdings, snapshot, riskLevel);
+      const concentration = wealthEngine.analyzeConcentration(holdings);
+      const allocation = wealthEngine.computeAllocationBreakdown(holdings, snapshot);
+      const drift = wealthEngine.computeDriftAnalysis(holdings, snapshot);
+      enrichment = { health, concentration, allocation: { by_asset_class: allocation.by_asset_class, cash_pct: allocation.cash_pct, invested_pct: allocation.invested_pct, total_value: allocation.total_value }, drift };
+
+      results.push({
+        status: 'ok',
+        source_name: 'wealth_engine',
+        source_type: 'wealth_engine',
+        as_of: new Date().toISOString(),
+        latency_ms: 0,
+        data: enrichment,
+      });
+    }
+  }
+
+  return { results, enrichment };
+}
+
 export async function* orchestrateStream(
   userId: string,
   req: ChatMessageRequest,
@@ -164,12 +229,30 @@ export async function* orchestrateStream(
   const tools = getToolDefinitions(allowedToolNames);
 
   const modelSelection = selectModel(intent, policyDecision, intent.suggested_tools.length);
+  const riskLevel = riskProfile?.level ?? 'moderate';
 
-  const [portfolioContext, episodicMemories, semanticFacts] = await Promise.all([
+  const prefetchStart = Date.now();
+  const [portfolioContext, episodicMemories, semanticFacts, prefetched] = await Promise.all([
     ragService.buildPortfolioContext(userId, intentClassifier.classifyIntent(sanitizedMessage)),
     memoryService.getEpisodicMemories(userId),
     memoryService.getSemanticFacts(userId, 10, sanitizedMessage),
+    prefetchToolData(intent, userId, registry, riskLevel, allowedToolNames),
   ]);
+  timings.tool_execution_ms = Date.now() - prefetchStart;
+
+  const toolResults: ToolResult[] = [...prefetched.results];
+
+  let enrichmentContext = '';
+  if (prefetched.enrichment) {
+    const e = prefetched.enrichment as Record<string, unknown>;
+    const health = e.health as Record<string, unknown> | undefined;
+    if (health) {
+      enrichmentContext += `\n\nWEALTH ENGINE ANALYSIS (pre-computed):`;
+      enrichmentContext += `\nHealth Score: ${health.score}/100 (${health.label})`;
+      enrichmentContext += `\nStrengths: ${(health.strengths as string[])?.join(', ') || 'none'}`;
+      enrichmentContext += `\nConcerns: ${(health.concerns as string[])?.join(', ') || 'none'}`;
+    }
+  }
 
   const systemPrompt = buildAgentPrompt({
     tenantConfig,
@@ -181,7 +264,8 @@ export async function* orchestrateStream(
       (portfolioContext.holdings ? `\n\nHOLDINGS:\n${portfolioContext.holdings}` : '') +
       (portfolioContext.allocations ? `\n\nALLOCATION:\n${portfolioContext.allocations}` : '') +
       (portfolioContext.goals ? `\n\nGOALS:\n${portfolioContext.goals}` : '') +
-      (portfolioContext.recentTransactions ? `\n\nRECENT TRANSACTIONS:\n${portfolioContext.recentTransactions}` : ''),
+      (portfolioContext.recentTransactions ? `\n\nRECENT TRANSACTIONS:\n${portfolioContext.recentTransactions}` : '') +
+      enrichmentContext,
     episodicMemories,
     semanticFacts,
     chatContext: req.context ? {
@@ -204,13 +288,11 @@ export async function* orchestrateStream(
 
   let fullResponse = '';
   const widgets: { type: string }[] = [];
-  const toolResults: ToolResult[] = [];
   const guardrailInterventions: string[] = [];
   const escalationDecisions: string[] = [];
   let totalTokens = 0;
 
   try {
-    const toolExecStart = Date.now();
     const llmStart = Date.now();
 
     const response = await openai.chat.completions.create({
@@ -259,8 +341,6 @@ export async function* orchestrateStream(
     }
 
     if (toolCalls.length > 0) {
-      const toolResultMessages: OpenAI.ChatCompletionMessageParam[] = [];
-
       const assistantMsg: OpenAI.ChatCompletionAssistantMessageParam = {
         role: 'assistant',
         content: null,
@@ -271,82 +351,71 @@ export async function* orchestrateStream(
         })),
       };
 
-      for (const tc of toolCalls) {
-        let args: Record<string, unknown> = {};
-        try { args = JSON.parse(tc.arguments); } catch { /* empty */ }
+      const financialCalls = toolCalls.filter(tc => isFinancialTool(tc.name));
+      const uiCalls = toolCalls.filter(tc => !isFinancialTool(tc.name));
 
-        if (isFinancialTool(tc.name)) {
+      const financialResults = await Promise.all(
+        financialCalls.map(async (tc) => {
+          let args: Record<string, unknown> = {};
+          try { args = JSON.parse(tc.arguments); } catch { /* empty */ }
           const toolStart = Date.now();
-          const result = await executeFinancialTool(
-            tc.name,
-            args,
-            userId,
-            registry,
-            riskProfile?.level ?? 'moderate',
-          );
+          const result = await executeFinancialTool(tc.name, args, userId, registry, riskLevel);
           result.latency_ms = Date.now() - toolStart;
           toolResults.push(result);
 
-          toolResultMessages.push({
+          logToolRun({
+            toolName: tc.name,
+            inputs: args,
+            result,
+            conversationId: threadId,
+            messageId,
+            userId,
+          }).catch(() => {});
+
+          return {
             role: 'tool' as const,
             tool_call_id: tc.id,
             content: JSON.stringify(result.data ?? { status: result.status, error: result.error }),
-          });
+          };
+        }),
+      );
 
-          try {
-            await logToolRun({
-              toolName: tc.name,
-              inputs: args,
-              result,
-              conversationId: threadId,
-              messageId,
-              userId,
-            });
-          } catch {
-            // non-blocking
-          }
-        } else if (tc.name === 'show_simulator') {
+      const uiResults: Array<{ role: 'tool'; tool_call_id: string; content: string }> = [];
+      for (const tc of uiCalls) {
+        let args: Record<string, unknown> = {};
+        try { args = JSON.parse(tc.arguments); } catch { /* empty */ }
+
+        if (tc.name === 'show_simulator') {
           yield { type: 'simulator', simulator: { type: args.type as string, initialValues: args.initialValues as Record<string, number> | undefined } };
           widgets.push({ type: 'simulator' });
-          toolResultMessages.push({
-            role: 'tool' as const,
-            tool_call_id: tc.id,
-            content: JSON.stringify({ success: true, displayed: true }),
-          });
+          uiResults.push({ role: 'tool' as const, tool_call_id: tc.id, content: JSON.stringify({ success: true, displayed: true }) });
         } else if (tc.name === 'show_widget') {
           yield { type: 'widget', widget: { type: args.type as string } };
           widgets.push({ type: args.type as string });
-          toolResultMessages.push({
-            role: 'tool' as const,
-            tool_call_id: tc.id,
-            content: JSON.stringify({ success: true, displayed: true }),
-          });
+          uiResults.push({ role: 'tool' as const, tool_call_id: tc.id, content: JSON.stringify({ success: true, displayed: true }) });
         } else if (tc.name === 'extract_user_fact') {
-          try {
-            await memoryService.saveSemanticFact(userId, args.fact as string, args.category as string, threadId);
-          } catch {
-            // best-effort
-          }
-          toolResultMessages.push({
-            role: 'tool' as const,
-            tool_call_id: tc.id,
-            content: JSON.stringify({ success: true, saved: true }),
-          });
+          try { await memoryService.saveSemanticFact(userId, args.fact as string, args.category as string, threadId); } catch { /* best-effort */ }
+          uiResults.push({ role: 'tool' as const, tool_call_id: tc.id, content: JSON.stringify({ success: true, saved: true }) });
         } else {
-          toolResultMessages.push({
-            role: 'tool' as const,
-            tool_call_id: tc.id,
-            content: JSON.stringify({ success: true, displayed: true }),
-          });
+          uiResults.push({ role: 'tool' as const, tool_call_id: tc.id, content: JSON.stringify({ success: true, displayed: true }) });
         }
       }
 
-      timings.tool_execution_ms = Date.now() - toolExecStart;
+      const toolExecEnd = Date.now();
+      timings.tool_execution_ms = (timings.tool_execution_ms ?? 0) + (toolExecEnd - llmStart);
+
+      const orderedToolResults: OpenAI.ChatCompletionMessageParam[] = [];
+      for (const tc of toolCalls) {
+        const fr = financialResults.find(r => r.tool_call_id === tc.id);
+        const ur = uiResults.find(r => r.tool_call_id === tc.id);
+        if (fr) orderedToolResults.push(fr);
+        else if (ur) orderedToolResults.push(ur);
+      }
 
       const followUpMessages: OpenAI.ChatCompletionMessageParam[] = [
         ...messages,
         assistantMsg,
-        ...toolResultMessages,
+        ...orderedToolResults,
       ];
 
       const followUp = await openai.chat.completions.create({
@@ -369,15 +438,24 @@ export async function* orchestrateStream(
     timings.llm_generation_ms = Date.now() - llmStart;
 
     const postStart = Date.now();
-    const guardrailResult = runPostChecks(fullResponse, tenantConfig, policyDecision);
+    const guardrailResult = runPostChecks(fullResponse, tenantConfig, policyDecision, toolResults);
     if (!guardrailResult.passed) {
       guardrailInterventions.push(...guardrailResult.interventions);
       fullResponse = guardrailResult.sanitizedText;
     }
 
+    if (guardrailResult.appendedDisclosures.length > 0) {
+      const disclosureText = '\n\n' + guardrailResult.appendedDisclosures.join(' ');
+      fullResponse += disclosureText;
+      yield { type: 'text', content: disclosureText };
+    }
+
     if (policyDecision.require_human_review) {
       escalationDecisions.push(policyDecision.escalation_reason || 'Advisor review required');
+      yield { type: 'widget', widget: { type: 'advisor_handoff' } };
+      widgets.push({ type: 'advisor_handoff' });
     }
+
     timings.post_checks_ms = Date.now() - postStart;
 
     const suggestMessages: OpenAI.ChatCompletionMessageParam[] = [

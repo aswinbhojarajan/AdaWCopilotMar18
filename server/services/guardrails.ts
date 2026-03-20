@@ -1,19 +1,22 @@
-import type { TenantConfig, PolicyDecision } from '../../shared/schemas/agent';
+import type { TenantConfig, PolicyDecision, ToolResult } from '../../shared/schemas/agent';
 import { checkBlockedPhrases } from './policyEngine';
 
 export interface GuardrailResult {
   passed: boolean;
   interventions: string[];
   sanitizedText: string;
+  appendedDisclosures: string[];
 }
 
 export function runPostChecks(
   responseText: string,
   tenantConfig: TenantConfig,
   policyDecision: PolicyDecision,
+  toolResults?: ToolResult[],
 ): GuardrailResult {
   const interventions: string[] = [];
   let sanitized = responseText;
+  const appendedDisclosures: string[] = [];
 
   const blockedViolations = checkBlockedPhrases(responseText, tenantConfig);
   if (blockedViolations.length > 0) {
@@ -50,10 +53,39 @@ export function runPostChecks(
     }
   }
 
+  if (toolResults && toolResults.length > 0) {
+    const freshness = tenantConfig.data_freshness_threshold_seconds ?? 300;
+    const now = Date.now();
+    for (const tr of toolResults) {
+      if (tr.status === 'ok' && tr.as_of) {
+        const age = (now - new Date(tr.as_of).getTime()) / 1000;
+        if (age > freshness) {
+          interventions.push(`Data from ${tr.source_name} is ${Math.round(age)}s old (threshold: ${freshness}s)`);
+        }
+      }
+    }
+  }
+
+  if (policyDecision.require_disclosures) {
+    const hasDisclosureLike = /past performance|not .* financial advice|consult .* advisor/i.test(sanitized);
+    if (!hasDisclosureLike) {
+      appendedDisclosures.push('Past performance is not indicative of future results. This information does not constitute financial advice.');
+    }
+  }
+
+  if (toolResults && toolResults.length > 0) {
+    const okTools = toolResults.filter(r => r.status === 'ok');
+    const hasCurrencyMention = /\$[\d,.]+/.test(sanitized);
+    if (hasCurrencyMention && okTools.length === 0) {
+      interventions.push('Response contains financial figures without successful tool data backing');
+    }
+  }
+
   return {
     passed: interventions.length === 0,
     interventions,
     sanitizedText: sanitized,
+    appendedDisclosures,
   };
 }
 
