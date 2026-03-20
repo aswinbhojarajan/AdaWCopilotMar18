@@ -231,6 +231,132 @@ CREATE TABLE IF NOT EXISTS poll_votes (
   UNIQUE(poll_id, user_id)
 );
 
+-- Tenants
+CREATE TABLE IF NOT EXISTS tenants (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  jurisdiction TEXT NOT NULL DEFAULT 'UAE',
+  status TEXT NOT NULL CHECK (status IN ('active', 'inactive')) DEFAULT 'active',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS tenant_configs (
+  id SERIAL PRIMARY KEY,
+  tenant_id TEXT UNIQUE REFERENCES tenants(id),
+  jurisdiction TEXT NOT NULL DEFAULT 'UAE',
+  advisory_mode TEXT NOT NULL DEFAULT 'personalized_insights_only'
+    CHECK (advisory_mode IN ('education_only', 'personalized_insights_only', 'restricted_advisory')),
+  can_name_securities BOOLEAN NOT NULL DEFAULT TRUE,
+  can_compare_products BOOLEAN NOT NULL DEFAULT FALSE,
+  can_generate_recommendations BOOLEAN NOT NULL DEFAULT FALSE,
+  can_generate_next_best_actions BOOLEAN NOT NULL DEFAULT TRUE,
+  requires_advisor_handoff_for_specific_advice BOOLEAN NOT NULL DEFAULT TRUE,
+  disclosure_profile TEXT NOT NULL DEFAULT 'uae_affluent_v1',
+  allowed_tool_profiles TEXT[] NOT NULL DEFAULT '{portfolio_read,market_read,news_read,health_compute,workflow_light}',
+  provider_config JSONB NOT NULL DEFAULT '{}',
+  feature_flags JSONB NOT NULL DEFAULT '{}',
+  tone TEXT NOT NULL DEFAULT 'professional',
+  language TEXT NOT NULL DEFAULT 'en',
+  blocked_phrases TEXT[] NOT NULL DEFAULT '{}',
+  data_freshness_threshold_seconds INTEGER NOT NULL DEFAULT 300,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Instruments
+CREATE TABLE IF NOT EXISTS instruments (
+  id SERIAL PRIMARY KEY,
+  symbol TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  asset_class TEXT NOT NULL,
+  sector TEXT,
+  geography TEXT NOT NULL DEFAULT 'Global',
+  currency TEXT NOT NULL DEFAULT 'USD',
+  instrument_type TEXT NOT NULL DEFAULT 'equity'
+    CHECK (instrument_type IN ('equity', 'etf', 'bond', 'commodity', 'crypto', 'fund', 'index')),
+  isin TEXT,
+  figi TEXT,
+  exchange TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- News Items
+CREATE TABLE IF NOT EXISTS news_items (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  publisher TEXT NOT NULL,
+  published_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  url TEXT,
+  symbols TEXT[] NOT NULL DEFAULT '{}',
+  relevance_tags TEXT[] NOT NULL DEFAULT '{}',
+  source_provider TEXT NOT NULL DEFAULT 'mock',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Agent Observability
+CREATE TABLE IF NOT EXISTS tool_runs (
+  id SERIAL PRIMARY KEY,
+  tool_name TEXT NOT NULL,
+  inputs JSONB NOT NULL DEFAULT '{}',
+  outputs JSONB,
+  latency_ms INTEGER,
+  status TEXT NOT NULL CHECK (status IN ('ok', 'error', 'partial', 'timeout')) DEFAULT 'ok',
+  source_provider TEXT,
+  conversation_id TEXT,
+  message_id TEXT,
+  user_id TEXT REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS agent_traces (
+  id SERIAL PRIMARY KEY,
+  conversation_id TEXT,
+  message_id TEXT,
+  tenant_id TEXT REFERENCES tenants(id),
+  user_id TEXT REFERENCES users(id),
+  intent_classification TEXT,
+  policy_decision JSONB,
+  model_name TEXT,
+  reasoning_effort TEXT,
+  tool_set_exposed TEXT[] NOT NULL DEFAULT '{}',
+  tool_calls_made JSONB NOT NULL DEFAULT '[]',
+  final_answer JSONB,
+  response_time_ms INTEGER,
+  step_timings JSONB,
+  guardrail_interventions JSONB,
+  escalation_decisions JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS policy_decisions (
+  id SERIAL PRIMARY KEY,
+  tenant_id TEXT REFERENCES tenants(id),
+  user_id TEXT REFERENCES users(id),
+  request_type TEXT NOT NULL,
+  decision JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS conversation_summaries (
+  id SERIAL PRIMARY KEY,
+  conversation_id TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  summary TEXT NOT NULL,
+  message_count INTEGER NOT NULL DEFAULT 0,
+  last_summarized_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(conversation_id, user_id)
+);
+
+-- Add tenant_id to users (nullable for backward compatibility)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='tenant_id') THEN
+    ALTER TABLE users ADD COLUMN tenant_id TEXT REFERENCES tenants(id);
+  END IF;
+END $$;
+
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='goals' AND column_name='previous_amount') THEN

@@ -59,23 +59,41 @@ server/
     contentRepository.ts     — Content cards, alerts, chat threads/messages, peer comparisons
     chatRepository.ts        — Deterministic chat response mappings (fallback, in-memory)
     pollRepository.ts        — Poll questions, options, and voting
+    agentRepository.ts       — Tenant configs, tool runs, agent traces, policy decisions, conversation summaries
+  providers/
+    types.ts                 — Provider interfaces (Portfolio, Market, News, Macro, FX, Research, Identity)
+    registry.ts              — Provider registry with mock-first resolution
+    mock/
+      portfolioProvider.ts   — Mock portfolio data from DB
+      marketProvider.ts      — Mock market quotes (40 instruments)
+      newsProvider.ts        — Mock news from DB news_items table
+      macroProvider.ts       — Mock macro indicators (15 FRED-style series)
+      fxProvider.ts          — Mock FX rates (17 currency pairs incl GCC)
+      researchProvider.ts    — Mock SEC filings (8 companies)
+      identityProvider.ts    — Mock instrument identity from DB instruments table
   db/
     pool.ts                  — pg Pool configured from DATABASE_URL
-    schema.sql               — 22-table schema definition
-    seed.sql                 — Seed data for 4 demo personas
+    schema.sql               — 30-table schema definition
+    seed.sql                 — Seed data for 8 demo personas + 40 instruments + 20 news items
   replit_integrations/       — OpenAI blueprint integration files (chat, audio, image, batch)
 
 shared/
   types.ts                   — Backend/frontend contract types
+  schemas/
+    agent.ts                 — Zod schemas: AdaAnswer, ToolResult, PolicyDecision, IntentClassification, MarketQuote, etc.
   models/chat.ts             — Drizzle schema for AI integration (not used by main app)
 ```
 
 ## Database Tables
-users, risk_profiles, advisors, accounts, positions, transactions,
+**Core**: users, risk_profiles, advisors, accounts, positions, transactions,
 price_history, portfolio_snapshots, goals, alerts, content_items,
 peer_segments, chat_threads, chat_messages, action_contexts,
 performance_history, poll_questions, poll_options, poll_votes,
 episodic_memories, semantic_facts, chat_audit_log
+
+**Agent Architecture** (new): tenants, tenant_configs, instruments, news_items,
+tool_runs, agent_traces, policy_decisions, conversation_summaries
+- users table has `tenant_id` FK to tenants (nullable, backward-compatible)
 
 ## API Endpoints
 | Method | Path                       | Description                        |
@@ -149,6 +167,15 @@ Requires `DATABASE_URL` environment variable (auto-provisioned by Replit).
 - `DATABASE_URL` — PostgreSQL connection string (auto-provisioned)
 - `AI_INTEGRATIONS_OPENAI_BASE_URL` — OpenAI API base URL (set by Replit AI Integrations)
 - `AI_INTEGRATIONS_OPENAI_API_KEY` — OpenAI API key (set by Replit AI Integrations)
+
+## Agent Architecture (Foundation Layer)
+- **Provider Pattern**: 7 data provider interfaces (Portfolio, Market, News, Macro, FX, Research, Identity) with mock-first implementations; provider registry resolves via tenant_config provider_config
+- **Tenant/Policy Engine**: Code-driven policy decisions per tenant (advisory_mode, allowed tools, disclosure profile); default tenant: bank_demo_uae (UAE jurisdiction)
+- **AdaAnswer Schema**: Structured response format (text_blocks, widgets, suggested_questions, citations, next_best_actions, disclaimers); maps to existing SSE events
+- **Agent Tracing**: Full observability via tool_runs and agent_traces tables; every tool call records source_provider + as_of timestamp
+- **Instruments Table**: 40 seeded instruments (US equities, GCC equities, ETFs, bonds, commodities, crypto) with ISIN/FIGI/exchange metadata
+- **News System**: 20 seeded news articles in news_items table, queryable by symbol and tag
+- **8 Demo Personas**: Abdullah (default, moderate), Fatima (conservative), Omar (aggressive), Layla (moderate), Khalid (ultra-conservative/cash-heavy), Sara (goal-based family), Raj (tech/crypto heavy trader), Nadia (advisor-led dividend investor)
 
 ## Key Decisions
 - "Lounge" renamed to "Collective" everywhere
