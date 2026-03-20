@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const ToolResultSchema = z.object({
-  status: z.enum(['ok', 'error', 'partial']),
+  status: z.enum(['ok', 'error', 'partial', 'timeout']),
   source_name: z.string(),
   source_type: z.string(),
   as_of: z.string(),

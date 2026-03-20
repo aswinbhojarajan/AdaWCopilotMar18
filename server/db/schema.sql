@@ -280,6 +280,24 @@ CREATE TABLE IF NOT EXISTS instruments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Market Quotes (current day snapshot, refreshed by providers)
+CREATE TABLE IF NOT EXISTS market_quotes (
+  id SERIAL PRIMARY KEY,
+  symbol TEXT NOT NULL REFERENCES instruments(symbol),
+  price NUMERIC(18,6) NOT NULL,
+  change NUMERIC(18,6) NOT NULL DEFAULT 0,
+  change_percent NUMERIC(10,4) NOT NULL DEFAULT 0,
+  volume BIGINT,
+  high NUMERIC(18,6),
+  low NUMERIC(18,6),
+  open_price NUMERIC(18,6),
+  previous_close NUMERIC(18,6),
+  market_cap NUMERIC(20,2),
+  source_provider TEXT NOT NULL DEFAULT 'mock',
+  as_of TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(symbol, source_provider)
+);
+
 -- News Items
 CREATE TABLE IF NOT EXISTS news_items (
   id TEXT PRIMARY KEY,

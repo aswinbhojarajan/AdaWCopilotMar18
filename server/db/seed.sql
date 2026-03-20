@@ -231,6 +231,42 @@ INSERT INTO chat_messages (id, thread_id, sender, message, created_at) VALUES
   ('msg-abd-3-2', 'thread-abd-3', 'assistant', 'Silver jumps above $32/oz amid global debt concerns. Consider commodities and precious metals as a hedge against macroeconomic uncertainty.', NOW() - INTERVAL '3 days')
 ON CONFLICT (id) DO NOTHING;
 
+-- Transactions (Abdullah)
+INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
+  ('txn-abd-1', 'acc-abd-2', 'buy', 'NVDA', 5, 235.00, 1175.00, NOW() - INTERVAL '15 days'),
+  ('txn-abd-2', 'acc-abd-2', 'buy', 'AAPL', 4, 200.00, 800.00, NOW() - INTERVAL '30 days'),
+  ('txn-abd-3', 'acc-abd-2', 'buy', 'MSFT', 3, 410.00, 1230.00, NOW() - INTERVAL '45 days'),
+  ('txn-abd-4', 'acc-abd-2', 'dividend', 'AAPL', NULL, NULL, 36.00, NOW() - INTERVAL '8 days'),
+  ('txn-abd-5', 'acc-abd-1', 'deposit', NULL, NULL, NULL, 5000.00, NOW() - INTERVAL '20 days'),
+  ('txn-abd-6', 'acc-abd-2', 'buy', 'GLD', 5, 200.00, 1000.00, NOW() - INTERVAL '60 days'),
+  ('txn-abd-7', 'acc-abd-2', 'buy', 'AGG', 30, 107.00, 3210.00, NOW() - INTERVAL '90 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Transactions (Fatima)
+INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
+  ('txn-fat-1', 'acc-fat-2', 'buy', 'AGG', 50, 108.00, 5400.00, NOW() - INTERVAL '20 days'),
+  ('txn-fat-2', 'acc-fat-2', 'dividend', 'AGG', NULL, NULL, 125.00, NOW() - INTERVAL '5 days'),
+  ('txn-fat-3', 'acc-fat-1', 'deposit', NULL, NULL, NULL, 8000.00, NOW() - INTERVAL '10 days'),
+  ('txn-fat-4', 'acc-fat-2', 'buy', 'BND', 40, 72.50, 2900.00, NOW() - INTERVAL '40 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Transactions (Omar)
+INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
+  ('txn-omr-1', 'acc-omr-2', 'buy', 'TSLA', 15, 255.00, 3825.00, NOW() - INTERVAL '12 days'),
+  ('txn-omr-2', 'acc-omr-2', 'sell', 'AMZN', 8, 188.00, 1504.00, NOW() - INTERVAL '3 days'),
+  ('txn-omr-3', 'acc-omr-2', 'buy', 'META', 10, 505.00, 5050.00, NOW() - INTERVAL '25 days'),
+  ('txn-omr-4', 'acc-omr-2', 'buy', 'BTC', 0.1, 85000.00, 8500.00, NOW() - INTERVAL '50 days'),
+  ('txn-omr-5', 'acc-omr-1', 'deposit', NULL, NULL, NULL, 3000.00, NOW() - INTERVAL '7 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Transactions (Layla)
+INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
+  ('txn-lay-1', 'acc-lay-2', 'buy', 'JNJ', 20, 155.00, 3100.00, NOW() - INTERVAL '18 days'),
+  ('txn-lay-2', 'acc-lay-2', 'buy', 'PG', 15, 160.00, 2400.00, NOW() - INTERVAL '35 days'),
+  ('txn-lay-3', 'acc-lay-2', 'dividend', 'KO', NULL, NULL, 85.00, NOW() - INTERVAL '6 days'),
+  ('txn-lay-4', 'acc-lay-1', 'deposit', NULL, NULL, NULL, 4000.00, NOW() - INTERVAL '14 days')
+ON CONFLICT (id) DO NOTHING;
+
 -- ============================================================
 -- AGENT ARCHITECTURE FOUNDATION DATA
 -- ============================================================
@@ -298,6 +334,50 @@ INSERT INTO instruments (symbol, name, asset_class, sector, geography, currency,
   ('BA', 'Boeing Co.', 'Stocks', 'Industrials', 'US', 'USD', 'equity', 'US0970231058', 'NYSE'),
   ('KO', 'Coca-Cola Co.', 'Stocks', 'Consumer Staples', 'US', 'USD', 'equity', 'US1912161007', 'NYSE')
 ON CONFLICT (symbol) DO NOTHING;
+
+-- Market Quotes (seeded for all 40 instruments)
+INSERT INTO market_quotes (symbol, price, change, change_percent, volume, high, low, open_price, previous_close, source_provider, as_of) VALUES
+  ('NVDA', 250.35, 5.82, 2.38, 45200000, 254.10, 246.60, 248.60, 244.53, 'mock', NOW()),
+  ('AAPL', 208.63, -1.24, -0.59, 32100000, 211.75, 207.10, 209.50, 209.87, 'mock', NOW()),
+  ('MSFT', 420.50, 3.15, 0.75, 18700000, 426.81, 414.21, 419.56, 417.35, 'mock', NOW()),
+  ('GOOGL', 175.20, 2.10, 1.21, 22300000, 177.83, 172.57, 174.57, 173.10, 'mock', NOW()),
+  ('AMZN', 192.50, 1.85, 0.97, 28400000, 195.39, 189.61, 191.95, 190.65, 'mock', NOW()),
+  ('META', 520.30, 8.45, 1.65, 15600000, 528.11, 512.49, 517.77, 511.85, 'mock', NOW()),
+  ('TSLA', 245.80, -4.20, -1.68, 52800000, 249.49, 242.11, 247.06, 250.00, 'mock', NOW()),
+  ('JPM', 198.50, 2.30, 1.17, 8900000, 201.48, 195.52, 197.81, 196.20, 'mock', NOW()),
+  ('V', 285.40, 1.60, 0.56, 6200000, 289.68, 281.12, 284.92, 283.80, 'mock', NOW()),
+  ('JNJ', 158.20, 0.45, 0.29, 5800000, 160.57, 155.83, 157.87, 157.75, 'mock', NOW()),
+  ('UNH', 520.10, -2.80, -0.54, 3200000, 527.90, 512.30, 521.54, 522.90, 'mock', NOW()),
+  ('PG', 165.40, 0.78, 0.47, 4100000, 167.88, 162.92, 165.17, 164.62, 'mock', NOW()),
+  ('XOM', 108.60, 1.92, 1.80, 12500000, 110.23, 106.97, 108.02, 106.68, 'mock', NOW()),
+  ('ARAMCO', 32.80, 0.45, 1.39, 15000000, 33.29, 32.31, 32.67, 32.35, 'mock', NOW()),
+  ('EMAAR', 9.85, 0.12, 1.23, 22000000, 10.00, 9.70, 9.82, 9.73, 'mock', NOW()),
+  ('FAB', 14.20, 0.08, 0.57, 8500000, 14.41, 13.99, 14.18, 14.12, 'mock', NOW()),
+  ('ADNOCDIST', 4.15, 0.05, 1.22, 12000000, 4.21, 4.09, 4.14, 4.10, 'mock', NOW()),
+  ('STC', 55.40, 0.30, 0.54, 6300000, 56.23, 54.57, 55.24, 55.10, 'mock', NOW()),
+  ('AGG', 109.42, -0.18, -0.16, 7300000, 111.06, 107.78, 109.47, 109.60, 'mock', NOW()),
+  ('BND', 73.85, -0.12, -0.16, 5100000, 74.96, 72.74, 73.89, 73.97, 'mock', NOW()),
+  ('TLT', 92.30, -0.65, -0.70, 14200000, 93.69, 90.91, 92.50, 92.95, 'mock', NOW()),
+  ('LQD', 108.90, -0.22, -0.20, 3800000, 110.54, 107.26, 108.97, 109.12, 'mock', NOW()),
+  ('EMB', 86.50, 0.35, 0.41, 4600000, 87.80, 85.20, 86.24, 86.15, 'mock', NOW()),
+  ('GLD', 210.73, 3.42, 1.65, 9800000, 213.90, 207.56, 209.10, 207.31, 'mock', NOW()),
+  ('SLV', 24.15, 0.58, 2.46, 11200000, 24.51, 23.79, 23.94, 23.57, 'mock', NOW()),
+  ('USO', 78.50, 1.25, 1.62, 4200000, 79.68, 77.32, 78.27, 77.25, 'mock', NOW()),
+  ('VWO', 43.20, 0.28, 0.65, 8900000, 43.85, 42.55, 43.07, 42.92, 'mock', NOW()),
+  ('VEA', 48.70, 0.15, 0.31, 7200000, 49.43, 47.97, 48.56, 48.55, 'mock', NOW()),
+  ('SPY', 520.30, 2.85, 0.55, 55000000, 528.10, 512.50, 519.74, 517.45, 'mock', NOW()),
+  ('QQQ', 495.60, 4.10, 0.83, 32000000, 503.03, 488.17, 494.37, 491.50, 'mock', NOW()),
+  ('BTC', 87535.00, -2150.00, -2.40, 28500000000, 88848.00, 86226.00, 89160.50, 89685.00, 'mock', NOW()),
+  ('ETH', 2450.00, -85.00, -3.35, 12800000000, 2486.75, 2413.25, 2520.50, 2535.00, 'mock', NOW()),
+  ('SOL', 145.80, -5.20, -3.44, 3200000000, 147.99, 143.61, 149.56, 151.00, 'mock', NOW()),
+  ('VNQ', 85.10, 0.42, 0.50, 3100000, 86.38, 83.82, 84.85, 84.68, 'mock', NOW()),
+  ('IBIT', 42.80, -1.05, -2.39, 25000000, 43.44, 42.16, 43.44, 43.85, 'mock', NOW()),
+  ('DIS', 112.40, -0.85, -0.75, 7600000, 114.09, 110.71, 112.74, 113.25, 'mock', NOW()),
+  ('NFLX', 685.40, 12.30, 1.83, 5400000, 695.68, 675.12, 679.74, 673.10, 'mock', NOW()),
+  ('AMD', 165.20, 3.80, 2.35, 38500000, 167.68, 162.72, 163.86, 161.40, 'mock', NOW()),
+  ('BA', 185.90, -2.40, -1.27, 6800000, 188.69, 183.11, 187.62, 188.30, 'mock', NOW()),
+  ('KO', 62.30, 0.22, 0.35, 9100000, 63.23, 61.37, 62.11, 62.08, 'mock', NOW())
+ON CONFLICT (symbol, source_provider) DO NOTHING;
 
 -- ============================================================
 -- NEW PERSONAS (4 additional, bringing total to 8)
