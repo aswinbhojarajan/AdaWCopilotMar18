@@ -380,10 +380,20 @@ export async function* orchestrateStream(
             userId,
           }).catch(() => {});
 
+          const baseData = typeof result.data === 'object' && result.data !== null ? result.data as Record<string, unknown> : { value: result.data };
+          const toolPayload = {
+            ...baseData,
+            _meta: {
+              source_name: result.source_name,
+              source_type: result.source_type,
+              as_of: result.as_of,
+              status: result.status,
+            },
+          };
           return {
             role: 'tool' as const,
             tool_call_id: tc.id,
-            content: JSON.stringify(result.data ?? { status: result.status, error: result.error }),
+            content: JSON.stringify(toolPayload),
           };
         }),
       );

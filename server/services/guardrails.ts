@@ -56,13 +56,18 @@ export function runPostChecks(
   if (toolResults && toolResults.length > 0) {
     const freshness = tenantConfig.data_freshness_threshold_seconds ?? 300;
     const now = Date.now();
+    const staleSources: string[] = [];
     for (const tr of toolResults) {
       if (tr.status === 'ok' && tr.as_of) {
         const age = (now - new Date(tr.as_of).getTime()) / 1000;
         if (age > freshness) {
+          staleSources.push(tr.source_name);
           interventions.push(`Data from ${tr.source_name} is ${Math.round(age)}s old (threshold: ${freshness}s)`);
         }
       }
+    }
+    if (staleSources.length > 0) {
+      appendedDisclosures.push(`Note: Some data may not reflect the latest market conditions (sources: ${staleSources.join(', ')}). Please verify with your advisor for time-sensitive decisions.`);
     }
   }
 
@@ -93,6 +98,8 @@ export function runPostChecks(
       );
       if (uncitedSources.length > 0 && hasCurrencyMention) {
         interventions.push(`Data-backed claims may lack citations for: ${uncitedSources.join(', ')}`);
+        const citationBlock = uncitedSources.map(s => `[${s}]`).join(', ');
+        appendedDisclosures.push(`Data sources: ${citationBlock}.`);
       }
     }
   }
