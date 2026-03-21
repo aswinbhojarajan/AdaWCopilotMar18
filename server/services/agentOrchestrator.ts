@@ -22,9 +22,18 @@ import { logAgentTrace, logToolRun } from './traceLogger';
 import type { StepTimings, TraceContext } from './traceLogger';
 import * as wealthEngine from './wealthEngine';
 
-function mapOldIntentToNew(oldIntent: string): IntentClassification['primary_intent'] {
+function mapOldIntentToNew(oldIntent: string, message: string): IntentClassification['primary_intent'] {
+  const lower = message.toLowerCase();
+
+  if (oldIntent === 'portfolio') {
+    const healthKeywords = ['health', 'healthy', 'risk', 'diversif', 'concentrated', 'rebalance', 'well-balanced', 'well balanced'];
+    if (healthKeywords.some(k => lower.includes(k))) return 'portfolio_health';
+    const balanceKeywords = ['balance', 'total value', 'how much', 'what\'s my', 'net worth', 'account value'];
+    if (balanceKeywords.some(k => lower.includes(k))) return 'balance_query';
+    return 'portfolio_explain';
+  }
+
   const map: Record<string, IntentClassification['primary_intent']> = {
-    portfolio: 'portfolio_explain',
     goals: 'workflow_request',
     market: 'market_news',
     scenario: 'workflow_request',
@@ -61,7 +70,7 @@ function inferSuggestedTools(intent: IntentClassification['primary_intent'], mes
       break;
     case 'market_news':
       tools.push('getHoldingsRelevantNews');
-      if (lower.match(/\b[A-Z]{2,5}\b/)) tools.push('getQuotes');
+      if (message.match(/\b[A-Z]{2,5}\b/)) tools.push('getQuotes');
       break;
     case 'recommendation_request':
       tools.push('calculatePortfolioHealth', 'getPortfolioSnapshot', 'getHoldings');
@@ -85,7 +94,7 @@ function extractSymbols(message: string): string[] {
 
 function buildIntentClassification(message: string): IntentClassification {
   const oldIntent = intentClassifier.classifyIntent(message);
-  const primaryIntent = mapOldIntentToNew(oldIntent);
+  const primaryIntent = mapOldIntentToNew(oldIntent, message);
   const effort = inferReasoningEffort(primaryIntent, message);
   const symbols = extractSymbols(message);
   const suggestedTools = inferSuggestedTools(primaryIntent, message);
@@ -313,14 +322,14 @@ export async function* orchestrateStream(
 
       const toolCalls: { id: string; name: string; arguments: string }[] = [];
       let currentToolIndex = -1;
+      let turnBuffer = '';
 
       for await (const chunk of response) {
         const delta = chunk.choices[0]?.delta;
         if (!delta) continue;
 
         if (delta.content) {
-          fullResponse += delta.content;
-          yield { type: 'text', content: delta.content };
+          turnBuffer += delta.content;
         }
 
         if (delta.tool_calls) {
@@ -347,6 +356,8 @@ export async function* orchestrateStream(
 
         if (chunk.usage) totalTokens += chunk.usage.total_tokens;
       }
+
+      fullResponse += turnBuffer;
 
       if (toolCalls.length === 0) break;
 
@@ -442,6 +453,8 @@ export async function* orchestrateStream(
       guardrailInterventions.push(...guardrailResult.interventions);
       fullResponse = guardrailResult.sanitizedText;
     }
+
+    yield { type: 'text', content: fullResponse };
 
     if (guardrailResult.appendedDisclosures.length > 0) {
       const disclosureText = '\n\n' + guardrailResult.appendedDisclosures.join(' ');
