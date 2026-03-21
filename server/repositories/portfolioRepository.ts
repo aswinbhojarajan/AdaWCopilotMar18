@@ -130,7 +130,20 @@ export async function getAllocationsByUserId(userId: string): Promise<AssetAlloc
      WHERE user_id = $1 AND account_type IN ('savings', 'checking')`,
     [userId],
   );
-  const cashAmount = Number(cashResult.rows[0]?.cash ?? 0);
+  const savingsCheckingCash = Number(cashResult.rows[0]?.cash ?? 0);
+
+  const brokerageCashResult = await pool.query(
+    `SELECT COALESCE(SUM(a.balance), 0) - COALESCE(SUM(pv.pos_value), 0) as brokerage_cash
+     FROM accounts a
+     LEFT JOIN (
+       SELECT account_id, SUM(quantity * current_price) as pos_value
+       FROM positions GROUP BY account_id
+     ) pv ON pv.account_id = a.id
+     WHERE a.user_id = $1 AND a.account_type = 'brokerage'`,
+    [userId],
+  );
+  const brokerageCash = Math.max(0, Number(brokerageCashResult.rows[0]?.brokerage_cash ?? 0));
+  const cashAmount = savingsCheckingCash + brokerageCash;
 
   const positionTotal = rows.reduce((sum, r) => sum + Number(r.total_value), 0);
   const grandTotal = positionTotal + cashAmount;
