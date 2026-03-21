@@ -62,10 +62,10 @@ Eight seeded personas exist in the database with full data parity. **Abdullah Al
 | `user-fatima` | Fatima Hassan | Conservative | 35 | $165,700.00 | 2 accounts (Emirates NBD, Vanguard). 1 goal (retirement). Lower risk tolerance. |
 | `user-omar` | Omar Khalil | Aggressive | 85 | $102,100.00 | 2 accounts (ADCB, Robinhood). Growth-focused. Highest risk score. Performance history includes drawdowns. |
 | `user-layla` | Layla Mahmoud | Moderate | 55 | $110,500.00 | 2 accounts (Mashreq Bank, Charles Schwab). Balanced profile. Negative daily change. |
-| `user-khalid` | Khalid Al-Mansoori | Conservative | 30 | ~$200,000 | Cash-heavy allocation (~81%). Very conservative investor. |
-| `user-sara` | Sara Al-Fahim | Moderate | 58 | ~$150,000 | Balanced portfolio. Moderate risk tolerance. |
-| `user-raj` | Raj Patel | Aggressive | 82 | ~$120,000 | Growth-focused with aggressive allocation. Performance history includes drawdowns. |
-| `user-nadia` | Nadia Al-Sayed | Moderate | 50 | ~$180,000 | Dividend-focused portfolio. Moderate risk tolerance. |
+| `user-khalid` | Khalid Al-Mansouri | Conservative | 28 | $650,000.00 | 3 accounts (Saudi National Bank, Riyad Bank, Saxo Bank). 1 goal (preserve capital). Cash-heavy allocation. |
+| `user-sara` | Sara Al-Fahad | Moderate | 58 | $173,500.00 | 2 accounts (Emirates NBD, Interactive Brokers). 3 goals (children education, emergency fund, family vacation). |
+| `user-raj` | Raj Patel | Aggressive | 92 | $186,500.00 | 3 accounts (Binance, Interactive Brokers, WIO Bank). 1 goal (early retirement). Performance history includes drawdowns. Negative daily change (-1.80%). |
+| `user-nadia` | Nadia Khoury | Moderate | 48 | $275,500.00 | 3 accounts (FAB, HSBC, Mashreq Bank). 2 goals (retirement income, travel fund). Dividend-focused portfolio. |
 
 All personas share the same advisor: **Sarah Mitchell** (Senior Wealth Advisor, `advisor-sarah`).
 

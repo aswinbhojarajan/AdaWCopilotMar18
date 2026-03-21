@@ -11,7 +11,7 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 - **Full data parity for all 8 personas** — each persona now has accounts, positions, portfolio snapshots, 365-day volatile performance history, goals, alerts, and chat threads
 - **365-day performance history** with risk-profile-appropriate volatility curves: conservative personas show steady growth, aggressive personas (Omar, Raj) include drawdown periods
 - **Server-side `computeWealthInsights()`** in `portfolioService.ts` — computes `primaryInsight`, `diversificationScore`, `riskLevel`, `topAllocationClass`, `topAllocationPercent`, and `advisorName` from actual portfolio data
-- **70-test suite** in `tests/persona-parity.test.ts` covering all 8 personas: positions exist, performance history length, goals exist, alerts exist, chat threads exist, allocation totals reconcile with snapshots
+- **70-test suite** in `tests/persona-parity.test.ts` covering all 8 personas: positions exist, performance history length, alerts exist, chat threads exist, allocation totals reconcile with snapshots; goals validated for personas that have them (6 of 8)
 - **`npm run test:parity`** script for running the persona parity tests
 
 ### Changed
