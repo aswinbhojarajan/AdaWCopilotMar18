@@ -13,7 +13,7 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 - **Hardcoded sparkline replaced** — `portfolioRepository.ts` `getHomeSparkline()` now queries `performance_history` table for real 7-day data instead of returning hardcoded ~$129K values; falls back to computed synthetic data from snapshot when insufficient history exists
 
 ### Changed
-- **Performance history overhauled** — all 8 personas now use multi-frequency formulas (6 harmonic components + amplitude modulation + realistic drawdown periods for aggressive personas) replacing simple sin/cos waves
+- **Performance history overhauled** — all 8 personas now use deterministic hash-based compound return models (hashtext pseudo-random daily returns per asset class, weighted by actual portfolio allocation percentages, compounded via cumulative sum). No trigonometric functions. Drawdown windows for aggressive personas.
 - **PRD persona table updated** — portfolio values and trait descriptions now match actual seeded data
 
 ### Validated

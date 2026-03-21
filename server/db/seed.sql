@@ -186,9 +186,8 @@ INSERT INTO peer_segments (asset_class, user_percent, peer_percent, color) VALUE
 ON CONFLICT (asset_class) DO NOTHING;
 
 -- Performance History (Abdullah - Holdings-weighted compound return model)
--- Allocation: Stocks $7,449 (8%), Bonds $14,225 (15%), Crypto $5,382 (6%), Commodities $3,793 (4%), Cash $62,258 (66%)
--- Daily returns: deterministic hash-based pseudo-random per asset class, weighted by allocation, compounded via cumulative sum
--- No trigonometric functions — returns derived from hashtext() for deterministic reproducibility
+-- Actual allocation from positions+cash: Stocks 8.5%, Bonds 15.3%, Crypto 5.8%, Commodities 4.1%, Cash 66.4%
+-- Daily returns: hashtext()-based pseudo-random per asset class, weighted by actual allocation, compounded via cumulative sum
 INSERT INTO performance_history (user_id, value, recorded_date)
 WITH days AS (
   SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
@@ -197,10 +196,10 @@ WITH days AS (
 returns AS (
   SELECT dt, n,
     SUM(
-      0.08 * 0.012 * ((hashtext('ABD_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.15 * 0.003 * ((hashtext('ABD_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.06 * 0.030 * ((hashtext('ABD_C' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.04 * 0.010 * ((hashtext('ABD_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      0.085 * 0.012 * ((hashtext('ABD_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.153 * 0.003 * ((hashtext('ABD_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.058 * 0.030 * ((hashtext('ABD_C' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.041 * 0.010 * ((hashtext('ABD_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
     ) OVER (ORDER BY dt) as cum_r
   FROM days
 )
@@ -643,8 +642,8 @@ INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount,
 ON CONFLICT (id) DO NOTHING;
 
 -- Khalid: Conservative — Holdings-weighted compound return model
--- Allocation: Stocks $17,930 (3%), Bonds $92,297 (14%), Commodities $17,912 (3%), Cash $521,861 (80%)
--- Conservative: bonds/cash dominate → very low volatility
+-- Actual allocation from positions+cash: Stocks 2.4%, Bonds 13.8%, Commodities 2.8%, Cash 81.0%
+-- Conservative: massive cash buffer → very low volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
 WITH days AS (
   SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
@@ -653,9 +652,9 @@ WITH days AS (
 returns AS (
   SELECT dt, n,
     SUM(
-      0.03 * 0.012 * ((hashtext('KHA_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.14 * 0.003 * ((hashtext('KHA_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.03 * 0.010 * ((hashtext('KHA_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      0.024 * 0.012 * ((hashtext('KHA_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.138 * 0.003 * ((hashtext('KHA_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.028 * 0.010 * ((hashtext('KHA_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
     ) OVER (ORDER BY dt) as cum_r
   FROM days
 )
@@ -669,7 +668,7 @@ UPDATE performance_history SET value = 650000.00 WHERE user_id = 'user-khalid' A
 UPDATE performance_history SET value = 651230.50 WHERE user_id = 'user-khalid' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
 -- Sara: Moderate — Holdings-weighted compound return model
--- Allocation: Stocks $54,960 (32%), Bonds $30,200 (17%), Commodities $13,580 (8%), Cash $74,760 (43%)
+-- Actual allocation from positions+cash: Stocks 37.0%, Bonds 17.6%, Commodities 4.9%, Cash 40.5%
 -- Balanced moderate: stocks and bonds drive volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
 WITH days AS (
@@ -679,9 +678,9 @@ WITH days AS (
 returns AS (
   SELECT dt, n,
     SUM(
-      0.32 * 0.012 * ((hashtext('SAR_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.17 * 0.003 * ((hashtext('SAR_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.08 * 0.010 * ((hashtext('SAR_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      0.370 * 0.012 * ((hashtext('SAR_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.176 * 0.003 * ((hashtext('SAR_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.049 * 0.010 * ((hashtext('SAR_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
     ) OVER (ORDER BY dt) as cum_r
   FROM days
 )
@@ -696,7 +695,7 @@ UPDATE performance_history SET value = 173500.00 WHERE user_id = 'user-sara' AND
 UPDATE performance_history SET value = 172607.70 WHERE user_id = 'user-sara' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
 -- Raj: Aggressive — Holdings-weighted compound return model
--- Allocation: Stocks $68,927 (38%), Crypto $52,325 (29%), Cash $60,075 (33%)
+-- Actual allocation from positions+cash: Stocks 39.7%, Crypto 28.4%, Cash 31.9%
 -- Aggressive: heavy stocks + crypto → high volatility with drawdowns
 INSERT INTO performance_history (user_id, value, recorded_date)
 WITH days AS (
@@ -706,8 +705,8 @@ WITH days AS (
 returns AS (
   SELECT dt, n,
     SUM(
-      0.38 * 0.015 * ((hashtext('RAJ_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.29 * 0.035 * ((hashtext('RAJ_C' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      0.397 * 0.015 * ((hashtext('RAJ_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.284 * 0.035 * ((hashtext('RAJ_C' || n::text) % 20001 - 10000)::numeric / 10000.0)
     ) OVER (ORDER BY dt) as cum_r
   FROM days
 )
@@ -724,8 +723,8 @@ UPDATE performance_history SET value = 181327.25 WHERE user_id = 'user-raj' AND 
 UPDATE performance_history SET value = 184591.14 WHERE user_id = 'user-raj' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
 -- Nadia: Moderate-conservative — Holdings-weighted compound return model
--- Allocation: Stocks $44,615 (16%), Bonds $40,460 (15%), Commodities $10,537 (4%), Cash $179,888 (65%)
--- Dividend-focused: stock component emphasizes stable dividend payers, lower vol
+-- Actual allocation from positions+cash: Stocks 18.9%, Bonds 14.7%, Commodities 3.8%, Cash 62.6%
+-- Dividend-focused: stable dividend payers, lower vol
 INSERT INTO performance_history (user_id, value, recorded_date)
 WITH days AS (
   SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
@@ -734,9 +733,9 @@ WITH days AS (
 returns AS (
   SELECT dt, n,
     SUM(
-      0.16 * 0.008 * ((hashtext('NAD_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.15 * 0.003 * ((hashtext('NAD_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.04 * 0.010 * ((hashtext('NAD_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      0.189 * 0.008 * ((hashtext('NAD_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.147 * 0.003 * ((hashtext('NAD_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.038 * 0.010 * ((hashtext('NAD_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
     ) OVER (ORDER BY dt) as cum_r
   FROM days
 )
@@ -817,7 +816,7 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================
 
 -- Fatima: Conservative — Holdings-weighted compound return model
--- Allocation: Stocks $14,650 (9%), Bonds $68,002 (41%), Commodities $11,590 (7%), International $4,600 (3%), Cash $66,858 (40%)
+-- Actual allocation from positions+cash: Stocks 11.7%, Bonds 40.9%, Commodities 7.0%, Cash 40.4%
 -- Conservative: heavy bonds/cash → low volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
 WITH days AS (
@@ -827,10 +826,9 @@ WITH days AS (
 returns AS (
   SELECT dt, n,
     SUM(
-      0.09 * 0.008 * ((hashtext('FAT_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.41 * 0.003 * ((hashtext('FAT_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.07 * 0.010 * ((hashtext('FAT_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.03 * 0.012 * ((hashtext('FAT_I' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      0.117 * 0.008 * ((hashtext('FAT_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.409 * 0.003 * ((hashtext('FAT_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.070 * 0.010 * ((hashtext('FAT_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
     ) OVER (ORDER BY dt) as cum_r
   FROM days
 )
@@ -844,8 +842,8 @@ UPDATE performance_history SET value = 165700.00 WHERE user_id = 'user-fatima' A
 UPDATE performance_history SET value = 165269.80 WHERE user_id = 'user-fatima' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
 -- Omar: Aggressive — Holdings-weighted compound return model
--- Allocation: Stocks $44,710 (45%), Crypto $29,491 (30%), Cash $25,600 (25%)
--- Aggressive: heavy stocks + crypto → high volatility with sharp drawdowns
+-- Actual allocation from positions+cash: Stocks 26.5%, Crypto 25.0%, Cash 48.6%
+-- Aggressive: stocks + crypto drive volatility, large cash buffer
 INSERT INTO performance_history (user_id, value, recorded_date)
 WITH days AS (
   SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
@@ -854,8 +852,8 @@ WITH days AS (
 returns AS (
   SELECT dt, n,
     SUM(
-      0.45 * 0.015 * ((hashtext('OMR_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.30 * 0.035 * ((hashtext('OMR_C' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      0.265 * 0.015 * ((hashtext('OMR_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.250 * 0.035 * ((hashtext('OMR_C' || n::text) % 20001 - 10000)::numeric / 10000.0)
     ) OVER (ORDER BY dt) as cum_r
   FROM days
 )
@@ -872,8 +870,8 @@ UPDATE performance_history SET value = 99801.00 WHERE user_id = 'user-omar' AND 
 UPDATE performance_history SET value = 98563.47 WHERE user_id = 'user-omar' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
 -- Layla: Moderate — Holdings-weighted compound return model
--- Allocation: Stocks $22,968 (21%), Bonds $13,130 (12%), Commodities $6,322 (6%), International $6,680 (6%), Cash $61,400 (55%)
--- Moderate balanced: diversified across stocks, bonds, international
+-- Actual allocation from positions+cash: Stocks 33.3%, Bonds 11.9%, Commodities 5.7%, Cash 49.0%
+-- Moderate balanced: diversified equities + bonds + commodities
 INSERT INTO performance_history (user_id, value, recorded_date)
 WITH days AS (
   SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
@@ -882,10 +880,9 @@ WITH days AS (
 returns AS (
   SELECT dt, n,
     SUM(
-      0.21 * 0.012 * ((hashtext('LAY_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.12 * 0.003 * ((hashtext('LAY_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.06 * 0.010 * ((hashtext('LAY_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.06 * 0.012 * ((hashtext('LAY_I' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      0.333 * 0.012 * ((hashtext('LAY_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.119 * 0.003 * ((hashtext('LAY_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.057 * 0.010 * ((hashtext('LAY_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
     ) OVER (ORDER BY dt) as cum_r
   FROM days
 )
