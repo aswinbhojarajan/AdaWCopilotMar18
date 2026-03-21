@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { imgEllipse3627 } from './svg-hgsl2';
 import { TopBar as IOSStatusBar } from '../components/ada/TopBar';
 import AdaIconButtonSvg from './AdaIconButton.svg';
+import { useUser } from '../contexts/UserContext';
 
 function Button12({ children }: React.PropsWithChildren<{}>) {
   return (
@@ -441,14 +442,23 @@ function IconProfile() {
 }
 
 function ButtonProfile({ onClick }: { onClick?: () => void }) {
+  const { activePersona } = useUser();
   return (
     <button
       onClick={onClick}
       className="basis-0 grow h-[36px] min-h-px min-w-px relative rounded-[10px] shrink-0 cursor-pointer hover:opacity-70 transition-opacity"
       data-name="Button"
     >
-      <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start pb-0 pt-[8px] px-[8px] relative size-full">
-        <IconProfile />
+      <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center pb-0 pt-[4px] px-[4px] relative size-full">
+        {activePersona ? (
+          <div className="w-[24px] h-[24px] rounded-full bg-[#2E3A59] flex items-center justify-center">
+            <span className="text-white text-[10px] font-['DM_Sans:Medium',sans-serif] leading-none">
+              {activePersona.firstName.charAt(0)}{activePersona.lastName.charAt(0)}
+            </span>
+          </div>
+        ) : (
+          <IconProfile />
+        )}
       </div>
     </button>
   );
