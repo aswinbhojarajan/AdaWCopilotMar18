@@ -56,7 +56,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(STORAGE_KEY, newId);
     } catch {}
     setIsPickerOpen(false);
-    queryClient.clear();
+    queryClient.removeQueries();
   }, [queryClient]);
 
   const openPicker = useCallback(() => setIsPickerOpen(true), []);

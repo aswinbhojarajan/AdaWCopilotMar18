@@ -1,9 +1,9 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, getStreamHeaders } from './api';
+import { useUser } from '../contexts/UserContext';
 import type { MorningSentinelResponse } from '../types';
 
-const SENTINEL_KEY = ['morning-sentinel'];
 const CACHE_TTL = 4 * 60 * 60 * 1000;
 const STREAM_FALLBACK_DELAY_MS = 500;
 
@@ -49,6 +49,8 @@ async function consumeSentinelStream(
 
 export function useMorningSentinel() {
   const queryClient = useQueryClient();
+  const { userId } = useUser();
+  const sentinelKey = useMemo(() => ['morning-sentinel', userId], [userId]);
   const abortRef = useRef<AbortController | null>(null);
   const streamStartedRef = useRef(false);
 
@@ -58,8 +60,14 @@ export function useMorningSentinel() {
     rawText: '',
   });
 
+  useEffect(() => {
+    abortRef.current?.abort();
+    streamStartedRef.current = false;
+    setStreaming({ isStreaming: false, metrics: null, rawText: '' });
+  }, [userId]);
+
   const query = useQuery({
-    queryKey: SENTINEL_KEY,
+    queryKey: sentinelKey,
     queryFn: () => apiFetch<MorningSentinelResponse>('/api/morning-sentinel'),
     staleTime: CACHE_TTL,
     gcTime: CACHE_TTL,
@@ -83,7 +91,7 @@ export function useMorningSentinel() {
       (chunk) => setStreaming(s => ({ ...s, rawText: s.rawText + chunk })),
       (completedData) => {
         setStreaming({ isStreaming: false, metrics: null, rawText: '' });
-        queryClient.setQueryData(SENTINEL_KEY, completedData);
+        queryClient.setQueryData(sentinelKey, completedData);
       },
       controller.signal,
     ).catch((err) => {
@@ -92,12 +100,12 @@ export function useMorningSentinel() {
         setStreaming(s => ({ ...s, isStreaming: false }));
       }
     });
-  }, [queryClient]);
+  }, [queryClient, sentinelKey]);
 
   useEffect(() => {
     if (query.data || streaming.isStreaming || streamStartedRef.current) return undefined;
 
-    const queryState = queryClient.getQueryState(SENTINEL_KEY);
+    const queryState = queryClient.getQueryState(sentinelKey);
     const isPrefetching = queryState?.fetchStatus === 'fetching';
 
     if (!isPrefetching) {
@@ -106,12 +114,12 @@ export function useMorningSentinel() {
     }
 
     const timer = setTimeout(() => {
-      if (queryClient.getQueryData(SENTINEL_KEY)) return;
+      if (queryClient.getQueryData(sentinelKey)) return;
       startStream();
     }, STREAM_FALLBACK_DELAY_MS);
 
     return () => clearTimeout(timer);
-  }, [query.data, query.fetchStatus, streaming.isStreaming, queryClient, startStream]);
+  }, [query.data, query.fetchStatus, streaming.isStreaming, queryClient, startStream, sentinelKey]);
 
   useEffect(() => {
     if (query.data && streaming.isStreaming) {
@@ -122,9 +130,9 @@ export function useMorningSentinel() {
   }, [query.data, streaming.isStreaming]);
 
   const forceRefresh = useCallback(async () => {
-    queryClient.removeQueries({ queryKey: SENTINEL_KEY });
+    queryClient.removeQueries({ queryKey: sentinelKey });
     startStream(true);
-  }, [queryClient, startStream]);
+  }, [queryClient, startStream, sentinelKey]);
 
   const refetch = useCallback(() => {
     startStream();

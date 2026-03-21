@@ -1,7 +1,7 @@
 const STORAGE_KEY = 'ada-active-user-id';
 const DEFAULT_USER_ID = 'user-abdullah';
 
-function getActiveUserId(): string {
+export function getActiveUserId(): string {
   try {
     return localStorage.getItem(STORAGE_KEY) || DEFAULT_USER_ID;
   } catch {

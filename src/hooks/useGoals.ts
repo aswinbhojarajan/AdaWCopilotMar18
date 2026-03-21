@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from './api';
+import { useUser } from '../contexts/UserContext';
 import type {
   GoalResponse,
   GoalHealthScoreResponse,
@@ -9,22 +10,25 @@ import type {
 } from '../types';
 
 export function useGoals() {
+  const { userId } = useUser();
   return useQuery({
-    queryKey: ['wealth', 'goals'],
+    queryKey: ['wealth', 'goals', userId],
     queryFn: () => apiFetch<GoalResponse[]>('/api/wealth/goals'),
   });
 }
 
 export function useGoalHealthScore() {
+  const { userId } = useUser();
   return useQuery({
-    queryKey: ['wealth', 'goals', 'health-score'],
+    queryKey: ['wealth', 'goals', 'health-score', userId],
     queryFn: () => apiFetch<GoalHealthScoreResponse>('/api/wealth/goals/health-score'),
   });
 }
 
 export function useLifeGapPrompts() {
+  const { userId } = useUser();
   return useQuery({
-    queryKey: ['wealth', 'goals', 'life-gaps'],
+    queryKey: ['wealth', 'goals', 'life-gaps', userId],
     queryFn: () => apiFetch<LifeGapPromptResponse[]>('/api/wealth/goals/life-gaps'),
     staleTime: 5 * 60 * 1000,
   });
@@ -32,6 +36,7 @@ export function useLifeGapPrompts() {
 
 export function useDismissLifeGapPrompt() {
   const queryClient = useQueryClient();
+  const { userId } = useUser();
   return useMutation({
     mutationFn: (promptKey: string) =>
       apiFetch<{ success: boolean }>('/api/wealth/goals/life-gaps/dismiss', {
@@ -40,7 +45,7 @@ export function useDismissLifeGapPrompt() {
         body: JSON.stringify({ promptKey }),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wealth', 'goals', 'life-gaps'] });
+      queryClient.invalidateQueries({ queryKey: ['wealth', 'goals', 'life-gaps', userId] });
     },
   });
 }
@@ -58,6 +63,7 @@ export function useLifeEventSuggestions() {
 
 export function useCreateGoal() {
   const queryClient = useQueryClient();
+  const { userId } = useUser();
   return useMutation({
     mutationFn: (goal: { title: string; targetAmount: number; deadline: string; iconName: string; color: string }) =>
       apiFetch<GoalResponse>('/api/wealth/goals', {
@@ -66,8 +72,8 @@ export function useCreateGoal() {
         body: JSON.stringify(goal),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wealth', 'goals'] });
-      queryClient.invalidateQueries({ queryKey: ['wealth', 'goals', 'health-score'] });
+      queryClient.invalidateQueries({ queryKey: ['wealth', 'goals', userId] });
+      queryClient.invalidateQueries({ queryKey: ['wealth', 'goals', 'health-score', userId] });
     },
   });
 }
