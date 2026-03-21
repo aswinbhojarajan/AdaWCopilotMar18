@@ -18,6 +18,8 @@ interface CompactHoldingsProps {
 export function CompactHoldings({ holdings }: CompactHoldingsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  if (holdings.length === 0) return null;
+
   const topHoldings = holdings.slice(0, 3);
 
   return (
@@ -37,7 +39,7 @@ export function CompactHoldings({ holdings }: CompactHoldingsProps) {
               <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic text-[#555555] text-[14px]">
                 Top Holdings
               </p>
-              {!isExpanded && (
+              {!isExpanded && topHoldings.length > 0 && (
                 <p className="font-['DM_Sans:Regular',sans-serif] leading-[1.3] not-italic text-[#555555] text-[12px] opacity-60">
                   {topHoldings.map((h) => h.symbol).join(', ')} · +
                   {topHoldings[0].changePercent.toFixed(1)}% avg
