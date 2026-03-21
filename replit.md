@@ -45,7 +45,8 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
 
 **Database (PostgreSQL):**
 - 33 tables covering: core app data (users, accounts, portfolios, goals, chat, content), agent architecture (tenants, tenant_configs, instruments, market_quotes, news_items, tool_runs, agent_traces, policy_decisions, conversation_summaries), and execution routing (advisor_action_queue).
-- 8 seeded personas, 8 instruments, market quotes, news items, 1 tenant (bank_demo_uae).
+- 8 seeded personas with full data parity: each has accounts, positions, snapshots, performance history (365 days), goals, alerts, and chat threads. WealthScreen insights (primary insight, diversification score, risk level, suggestions, advisor) are computed server-side from actual portfolio data.
+- 40 instruments, market quotes, news items, 1 tenant (bank_demo_uae).
 
 ## Key Configuration
 - **MODEL**: gpt-5-mini via provider aliases (ada-fast → gpt-5-mini, ada-reason → gpt-5-mini)

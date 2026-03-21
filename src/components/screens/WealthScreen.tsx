@@ -198,6 +198,10 @@ export function WealthScreen({
   const totalValue = overview?.totalValue ?? 0;
   const allocations = allocationsQuery.data ?? [];
   const holdings = holdingsQuery.data ?? [];
+  const insights = overview?.insights;
+
+  const topClass = insights?.topAllocationClass ?? 'equities';
+  const topPct = insights?.topAllocationPercent ?? 0;
 
   return (
     <>
@@ -220,20 +224,20 @@ export function WealthScreen({
               dailyChangePercent={overview?.dailyChangePercent ?? 0}
               performanceData={overview?.performanceData ?? {}}
               defaultTimeFrame="1M"
-              primaryInsight="Your portfolio is 33% concentrated in global equities, driving strong returns but increasing volatility exposure."
+              primaryInsight={insights?.primaryInsight ?? ''}
               insightDetails={[
                 {
                   icon: <AlertTriangle className="size-[20px]" strokeWidth={1.5} />,
                   title: 'Portfolio Concentration Alert',
-                  summary: '33% in global equities, primarily US technology',
+                  summary: `${topPct}% in ${topClass.toLowerCase()}`,
                   fullContent: (
                     <div className="flex flex-col gap-[8px]">
                       <p className="font-['DM_Sans:Light',sans-serif] leading-[1.5] text-[#555555] text-[14px] tracking-[-0.28px]">
-                        Over 33% of your invested wealth is currently concentrated in global equities,
-                        primarily US technology.{' '}
+                        {topPct}% of your invested wealth is currently concentrated in {topClass.toLowerCase()}.{' '}
                         <span className="font-['DM_Sans:Regular',sans-serif]">
-                          This has driven strong returns, but it also increases sensitivity to market
-                          corrections.
+                          {topPct > 50
+                            ? 'This level of concentration increases sensitivity to sector-specific corrections.'
+                            : 'This is within a reasonable range, but monitoring allocation drift is recommended.'}
                         </span>
                       </p>
                     </div>
@@ -244,7 +248,7 @@ export function WealthScreen({
                       onChatSubmit?.('Review my risk exposure', {
                         category: 'TOTAL WEALTH',
                         categoryType: 'RISK ANALYSIS',
-                        title: '33% concentration in global equities',
+                        title: `${topPct}% concentration in ${topClass.toLowerCase()}`,
                         sourceScreen: 'wealth',
                       }),
                   },
@@ -256,7 +260,7 @@ export function WealthScreen({
                   fullContent: (
                     <div className="flex flex-col gap-[8px]">
                       <p className="font-['DM_Sans:Light',sans-serif] leading-[1.5] text-[#555555] text-[14px] tracking-[-0.28px]">
-                        If equity markets experience a 15–20% correction, your portfolio drawdown
+                        If markets experience a 15–20% correction, your portfolio drawdown
                         could exceed your comfort range.{' '}
                         <span className="font-['DM_Sans:Regular',sans-serif]">
                           Diversification into lower-volatility or hedged assets could reduce this
@@ -282,10 +286,10 @@ export function WealthScreen({
             <CompactAssetAllocation allocations={allocations} totalValue={totalValue} />
 
             <PortfolioHealthSummary
-              diversificationScore={82}
-              riskLevel="low-medium"
-              topSuggestion="At 10%, your alternatives allocation is high"
-              additionalSuggestions={['Increasing your fixed income holding could improve stability']}
+              diversificationScore={insights?.diversificationScore ?? 70}
+              riskLevel={insights?.riskLevel ?? 'medium'}
+              topSuggestion={insights?.topSuggestion ?? 'Your allocation looks balanced'}
+              additionalSuggestions={insights?.additionalSuggestions ?? []}
               onChatSubmit={onChatSubmit}
             />
 
@@ -332,8 +336,8 @@ export function WealthScreen({
             />
 
             <CollapsibleAdvisor
-              advisorName="Sarah Mitchell"
-              availability="Available today"
+              advisorName={insights?.advisorName ?? 'Your Advisor'}
+              availability={insights?.advisorAvailability ?? 'Available'}
               onContactAdvisor={() => {}}
             />
           </div>

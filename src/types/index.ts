@@ -176,11 +176,24 @@ export interface HomeSummaryResponse {
   contentCards: (ContentItem & { id: string })[];
 }
 
+export interface WealthInsights {
+  primaryInsight: string;
+  topAllocationClass: string;
+  topAllocationPercent: number;
+  diversificationScore: number;
+  riskLevel: string;
+  topSuggestion: string;
+  additionalSuggestions: string[];
+  advisorName: string;
+  advisorAvailability: string;
+}
+
 export interface WealthOverviewResponse {
   totalValue: number;
   dailyChangeAmount: number;
   dailyChangePercent: number;
   performanceData: Record<string, PerformanceDataPoint[]>;
+  insights: WealthInsights;
 }
 
 export interface AccountResponse {

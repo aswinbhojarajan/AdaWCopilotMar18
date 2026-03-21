@@ -586,3 +586,283 @@ INSERT INTO news_items (id, title, summary, publisher, published_at, url, symbol
   ('news-19', 'Oil prices rise on OPEC+ production cut extension', 'Brent crude climbed to $82/barrel after OPEC+ agreed to extend production cuts through Q2, supporting energy sector stocks.', 'Reuters', NOW() - INTERVAL '6 hours', 'https://example.com/oil-opec', '{XOM,USO,ARAMCO}', '{energy,oil,OPEC}', 'mock'),
   ('news-20', 'Meta launches new AR glasses, stock jumps 4%', 'Meta unveiled its next-generation augmented reality glasses at a hardware event, signaling renewed commitment to its metaverse strategy.', 'The Verge', NOW() - INTERVAL '1 day', 'https://example.com/meta-ar', '{META}', '{technology,AR,product_launch}', 'mock')
 ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- DATA PARITY: Missing positions for Fatima, Omar, Layla
+-- ============================================================
+
+-- Fatima Hassan: Conservative investor — heavy bonds, gold, blue-chip defensives
+INSERT INTO positions (id, account_id, symbol, name, quantity, current_price, cost_basis, asset_class) VALUES
+  ('pos-fat-1', 'acc-fat-2', 'AGG', 'iShares Core Bond ETF', 350, 109.42, 106.00, 'Bonds'),
+  ('pos-fat-2', 'acc-fat-2', 'BND', 'Vanguard Total Bond Market ETF', 250, 73.85, 72.00, 'Bonds'),
+  ('pos-fat-3', 'acc-fat-2', 'TLT', 'iShares 20+ Year Treasury Bond ETF', 120, 92.30, 96.00, 'Bonds'),
+  ('pos-fat-4', 'acc-fat-2', 'GLD', 'SPDR Gold Shares', 55, 210.73, 180.00, 'Commodities'),
+  ('pos-fat-5', 'acc-fat-2', 'JNJ', 'Johnson & Johnson', 50, 158.20, 150.00, 'Stocks'),
+  ('pos-fat-6', 'acc-fat-2', 'PG', 'Procter & Gamble Co.', 40, 165.40, 155.00, 'Stocks'),
+  ('pos-fat-7', 'acc-fat-2', 'VEA', 'Vanguard Developed Markets ETF', 100, 48.70, 45.00, 'Stocks')
+ON CONFLICT (id) DO NOTHING;
+
+-- Omar Khalil: Aggressive investor — tech, crypto, growth stocks
+INSERT INTO positions (id, account_id, symbol, name, quantity, current_price, cost_basis, asset_class) VALUES
+  ('pos-omr-1', 'acc-omr-2', 'TSLA', 'Tesla Inc.', 25, 245.80, 280.00, 'Stocks'),
+  ('pos-omr-2', 'acc-omr-2', 'META', 'Meta Platforms Inc.', 15, 520.30, 400.00, 'Stocks'),
+  ('pos-omr-3', 'acc-omr-2', 'NVDA', 'NVIDIA Corp.', 20, 250.35, 195.00, 'Stocks'),
+  ('pos-omr-4', 'acc-omr-2', 'AMD', 'Advanced Micro Devices', 30, 165.20, 130.00, 'Stocks'),
+  ('pos-omr-5', 'acc-omr-2', 'AMZN', 'Amazon.com Inc.', 25, 192.50, 160.00, 'Stocks'),
+  ('pos-omr-6', 'acc-omr-2', 'BTC', 'Bitcoin', 0.12, 87535.00, 95000.00, 'Crypto'),
+  ('pos-omr-7', 'acc-omr-2', 'ETH', 'Ethereum', 3.5, 2450.00, 3000.00, 'Crypto'),
+  ('pos-omr-8', 'acc-omr-2', 'SOL', 'Solana', 40, 145.80, 170.00, 'Crypto')
+ON CONFLICT (id) DO NOTHING;
+
+-- Layla Mahmoud: Moderate balanced investor — mix of stocks, bonds, some gold
+INSERT INTO positions (id, account_id, symbol, name, quantity, current_price, cost_basis, asset_class) VALUES
+  ('pos-lay-1', 'acc-lay-2', 'SPY', 'SPDR S&P 500 ETF', 30, 520.30, 450.00, 'Stocks'),
+  ('pos-lay-2', 'acc-lay-2', 'AGG', 'iShares Core Bond ETF', 120, 109.42, 107.00, 'Bonds'),
+  ('pos-lay-3', 'acc-lay-2', 'JNJ', 'Johnson & Johnson', 35, 158.20, 148.00, 'Stocks'),
+  ('pos-lay-4', 'acc-lay-2', 'PG', 'Procter & Gamble Co.', 25, 165.40, 152.00, 'Stocks'),
+  ('pos-lay-5', 'acc-lay-2', 'KO', 'Coca-Cola Co.', 80, 62.30, 57.00, 'Stocks'),
+  ('pos-lay-6', 'acc-lay-2', 'GLD', 'SPDR Gold Shares', 30, 210.73, 190.00, 'Commodities'),
+  ('pos-lay-7', 'acc-lay-2', 'AAPL', 'Apple Inc.', 15, 208.63, 175.00, 'Stocks'),
+  ('pos-lay-8', 'acc-lay-2', 'VWO', 'Vanguard EM ETF', 80, 43.20, 40.00, 'Stocks')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- Performance History for Fatima, Omar, Layla (365-day series)
+-- ============================================================
+
+INSERT INTO performance_history (user_id, value, recorded_date)
+SELECT 'user-fatima', 140000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 70.27, d::date
+FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+ON CONFLICT (user_id, recorded_date) DO NOTHING;
+UPDATE performance_history SET value = 165700.00 WHERE user_id = 'user-fatima' AND recorded_date = CURRENT_DATE;
+
+INSERT INTO performance_history (user_id, value, recorded_date)
+SELECT 'user-omar', 82000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 54.93, d::date
+FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+ON CONFLICT (user_id, recorded_date) DO NOTHING;
+UPDATE performance_history SET value = 102100.00 WHERE user_id = 'user-omar' AND recorded_date = CURRENT_DATE;
+
+INSERT INTO performance_history (user_id, value, recorded_date)
+SELECT 'user-layla', 98000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 34.25, d::date
+FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+ON CONFLICT (user_id, recorded_date) DO NOTHING;
+UPDATE performance_history SET value = 110500.00 WHERE user_id = 'user-layla' AND recorded_date = CURRENT_DATE;
+
+-- ============================================================
+-- Goals for Omar and Layla (they had none)
+-- ============================================================
+
+INSERT INTO goals (id, user_id, title, target_amount, current_amount, previous_amount, deadline, icon_name, color, health_status, ai_insight, cta_text) VALUES
+  ('goal-omr-1', 'user-omar', 'Start a business', 150000, 102100.00, 98500.00, 'Jun 2028', 'Target', '#a87174', 'needs-attention',
+   'Heavy crypto exposure is adding volatility. Diversifying could protect your runway toward this goal.', 'How should I de-risk?'),
+  ('goal-omr-2', 'user-omar', 'Emergency fund', 25000, 12800.00, 12000.00, 'Dec 2026', 'Wallet', '#6d3f42', 'needs-attention',
+   'Your emergency fund is just over half funded. Consider redirecting some trading gains here.', 'Help me plan contributions')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO goals (id, user_id, title, target_amount, current_amount, previous_amount, deadline, icon_name, color, health_status, ai_insight, cta_text) VALUES
+  ('goal-lay-1', 'user-layla', 'Children education', 120000, 45000.00, 43200.00, 'Sep 2033', 'GraduationCap', '#6d3f42', 'on-track',
+   'Consistent contributions are keeping you on track. Consider adding a small equity tilt for growth.', 'Review my plan'),
+  ('goal-lay-2', 'user-layla', 'House renovation', 35000, 18500.00, 17200.00, 'Mar 2027', 'Home', '#a87174', 'needs-attention',
+   'You''re slightly behind. Increasing monthly savings by $350 would close the gap.', 'How can I catch up?')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- Alerts for all non-Abdullah personas
+-- ============================================================
+
+-- Fatima alerts
+INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
+  ('alert-fat-1', 'user-fatima', 'PORTFOLIO_ALERT', 'Bond allocation exceeds 60% of portfolio',
+   'Your fixed income holdings now represent 62% of your portfolio, well above the 50% target for conservative profiles.', '15 min ago', TRUE, 'alerts'),
+  ('alert-fat-2', 'user-fatima', 'ADVISOR_MESSAGE', 'Message from your advisor',
+   'Hi Fatima, I''ve prepared a review of your bond ladder strategy. Let''s discuss when you''re free. —Sarah', '3 hours ago', TRUE, 'updates'),
+  ('alert-fat-3', 'user-fatima', 'MARKET_UPDATE', 'Treasury yields decline on economic data',
+   'The 10-year Treasury yield fell to 4.35%, benefiting your long-duration bond positions.', '5 hours ago', FALSE, 'updates'),
+  ('alert-fat-4', 'user-fatima', 'OPPORTUNITY', 'High-grade corporate bonds offering 5.2% yields',
+   'Investment-grade corporate debt provides higher yields than Treasuries with modest additional risk.', 'Yesterday', FALSE, 'opportunities')
+ON CONFLICT (id) DO NOTHING;
+
+-- Omar alerts
+INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
+  ('alert-omr-1', 'user-omar', 'PORTFOLIO_ALERT', 'Crypto allocation down 12% this week',
+   'Your Bitcoin, Ethereum, and Solana positions have declined sharply. Total crypto exposure is now 18% of portfolio.', '8 min ago', TRUE, 'alerts'),
+  ('alert-omr-2', 'user-omar', 'MARKET_UPDATE', 'NVIDIA surges on AI infrastructure demand',
+   'NVDA gained 4.2% today on strong data center revenue guidance. Your position is up $1,050.', '1 hour ago', FALSE, 'updates'),
+  ('alert-omr-3', 'user-omar', 'PORTFOLIO_ALERT', 'Portfolio volatility exceeds risk tolerance',
+   'Your 30-day portfolio volatility is 28%, significantly above the 20% threshold for aggressive profiles.', '4 hours ago', TRUE, 'alerts'),
+  ('alert-omr-4', 'user-omar', 'OPPORTUNITY', 'Tech sector pullback creates entry points',
+   'Several quality tech names are trading below their 50-day moving averages. Consider selective additions.', 'Yesterday', FALSE, 'opportunities'),
+  ('alert-omr-5', 'user-omar', 'ADVISOR_MESSAGE', 'Message from your advisor',
+   'Omar, your crypto losses are creating tax-loss harvesting opportunities. Let''s review before quarter-end. —Sarah', '2 days ago', FALSE, 'updates')
+ON CONFLICT (id) DO NOTHING;
+
+-- Layla alerts
+INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
+  ('alert-lay-1', 'user-layla', 'PORTFOLIO_ALERT', 'Portfolio slightly below target return',
+   'Your portfolio returned -0.29% today, driven by equity weakness. Year-to-date return remains positive at 4.8%.', '20 min ago', TRUE, 'alerts'),
+  ('alert-lay-2', 'user-layla', 'ADVISOR_MESSAGE', 'Message from your advisor',
+   'Hi Layla, your education fund is progressing well. I have some ideas to optimize the allocation. —Sarah', '2 hours ago', TRUE, 'updates'),
+  ('alert-lay-3', 'user-layla', 'MARKET_UPDATE', 'Gold reaches new highs on geopolitical tensions',
+   'Gold prices hit $2,150/oz, benefiting your GLD position. Your commodities allocation gained 2.1%.', '6 hours ago', FALSE, 'updates'),
+  ('alert-lay-4', 'user-layla', 'DOCUMENT', 'Q4 2025 Portfolio Report ready',
+   'Your quarterly performance report is available. Portfolio value: $110,500.', 'Yesterday', FALSE, 'updates')
+ON CONFLICT (id) DO NOTHING;
+
+-- Khalid alerts
+INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
+  ('alert-kha-1', 'user-khalid', 'PORTFOLIO_ALERT', 'Cash allocation at 66% — inflation eroding value',
+   'With SAR 427,000 in cash, inflation is costing you approximately SAR 17,000 per year in purchasing power.', '10 min ago', TRUE, 'alerts'),
+  ('alert-kha-2', 'user-khalid', 'ADVISOR_MESSAGE', 'Message from your advisor',
+   'Khalid, I''ve prepared conservative deployment options for your idle cash. Let me know when to discuss. —Sarah', '1 hour ago', TRUE, 'updates'),
+  ('alert-kha-3', 'user-khalid', 'OPPORTUNITY', 'Saudi government sukuk offering 5.5% yield',
+   'New issuance of government-backed sukuk provides attractive returns with minimal credit risk.', '4 hours ago', FALSE, 'opportunities'),
+  ('alert-kha-4', 'user-khalid', 'MARKET_UPDATE', 'GCC bond yields stabilize after recent volatility',
+   'Regional fixed income markets have calmed, with investment-grade spreads tightening by 15bps this week.', 'Yesterday', FALSE, 'updates')
+ON CONFLICT (id) DO NOTHING;
+
+-- Sara alerts
+INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
+  ('alert-sar-1', 'user-sara', 'PORTFOLIO_ALERT', 'Education fund needs attention',
+   'Rising education costs (6% annually) mean your current contribution pace may fall short by $18,000.', '25 min ago', TRUE, 'alerts'),
+  ('alert-sar-2', 'user-sara', 'ADVISOR_MESSAGE', 'Message from your advisor',
+   'Sara, I have updated projections for your children''s education fund. Good news on the emergency fund! —Sarah', '3 hours ago', TRUE, 'updates'),
+  ('alert-sar-3', 'user-sara', 'MARKET_UPDATE', 'Emerging market bonds see strong inflows',
+   'Your EMB position benefits from renewed interest in EM sovereign debt. Yields remain attractive.', '5 hours ago', FALSE, 'updates'),
+  ('alert-sar-4', 'user-sara', 'OPPORTUNITY', 'Education savings plans with tax advantages',
+   'New tax-advantaged education savings vehicles could accelerate your children''s education fund.', 'Yesterday', FALSE, 'opportunities')
+ON CONFLICT (id) DO NOTHING;
+
+-- Raj alerts
+INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
+  ('alert-raj-1', 'user-raj', 'PORTFOLIO_ALERT', 'Tech concentration at 65% of portfolio',
+   'Your combined tech and crypto exposure represents 65% of your portfolio, creating significant sector concentration risk.', '5 min ago', TRUE, 'alerts'),
+  ('alert-raj-2', 'user-raj', 'PORTFOLIO_ALERT', 'Crypto positions down $4,200 this month',
+   'Bitcoin, Ethereum, and Solana have all declined. Your crypto allocation has dropped from 22% to 18%.', '2 hours ago', TRUE, 'alerts'),
+  ('alert-raj-3', 'user-raj', 'MARKET_UPDATE', 'AMD unveils new AI accelerators',
+   'AMD launched MI400 series targeting AI workloads. Your 80-share position could benefit from the catalyst.', '4 hours ago', FALSE, 'updates'),
+  ('alert-raj-4', 'user-raj', 'ADVISOR_MESSAGE', 'Message from your advisor',
+   'Raj, your recent TSLA sell was well-timed. Let''s discuss redeploying those proceeds more broadly. —Sarah', '1 day ago', FALSE, 'updates'),
+  ('alert-raj-5', 'user-raj', 'OPPORTUNITY', 'Diversification opportunities in quality dividends',
+   'Adding dividend-paying stocks could reduce portfolio volatility while maintaining growth exposure.', '2 days ago', FALSE, 'opportunities')
+ON CONFLICT (id) DO NOTHING;
+
+-- Nadia alerts
+INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
+  ('alert-nad-1', 'user-nadia', 'PORTFOLIO_ALERT', 'Dividend income on track for quarterly target',
+   'Your dividend portfolio has generated $1,245 in income this quarter, on pace to meet your $1,600 target.', '30 min ago', FALSE, 'alerts'),
+  ('alert-nad-2', 'user-nadia', 'ADVISOR_MESSAGE', 'Message from your advisor',
+   'Nadia, your portfolio review is ready. The dividend strategy is performing well. Let''s catch up soon. —Sarah', '2 hours ago', TRUE, 'updates'),
+  ('alert-nad-3', 'user-nadia', 'MARKET_UPDATE', 'Consumer staples outperform as investors seek safety',
+   'Your JNJ, PG, and KO positions benefited from the flight to quality. Combined gain of 1.2% today.', '5 hours ago', FALSE, 'updates'),
+  ('alert-nad-4', 'user-nadia', 'OPPORTUNITY', 'High-dividend international REITs yielding 5.8%',
+   'International real estate investment trusts offer attractive income with geographic diversification.', 'Yesterday', FALSE, 'opportunities')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- Chat Threads for all non-Abdullah personas
+-- ============================================================
+
+-- Fatima threads
+INSERT INTO chat_threads (id, user_id, title, preview, created_at, updated_at) VALUES
+  ('thread-fat-1', 'user-fatima', 'Bond portfolio strategy review',
+   'Your bond ladder is well-structured. Consider adding some shorter-duration positions for liquidity.', NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour'),
+  ('thread-fat-2', 'user-fatima', 'Inflation protection options',
+   'TIPS and I-Bonds can provide direct inflation hedging for your conservative portfolio.', NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO chat_messages (id, thread_id, sender, message, created_at) VALUES
+  ('msg-fat-1-1', 'thread-fat-1', 'user', 'Can you review my bond allocation?', NOW() - INTERVAL '1 hour 10 minutes'),
+  ('msg-fat-1-2', 'thread-fat-1', 'assistant', 'Your bond ladder is well-structured. Consider adding some shorter-duration positions for liquidity.', NOW() - INTERVAL '1 hour'),
+  ('msg-fat-2-1', 'thread-fat-2', 'user', 'How can I protect my savings from inflation?', NOW() - INTERVAL '3 days 1 hour'),
+  ('msg-fat-2-2', 'thread-fat-2', 'assistant', 'TIPS and I-Bonds can provide direct inflation hedging for your conservative portfolio.', NOW() - INTERVAL '3 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Omar threads
+INSERT INTO chat_threads (id, user_id, title, preview, created_at, updated_at) VALUES
+  ('thread-omr-1', 'user-omar', 'Crypto market outlook and strategy',
+   'Given the recent pullback, dollar-cost averaging into quality crypto assets may be prudent.', NOW() - INTERVAL '45 minutes', NOW() - INTERVAL '45 minutes'),
+  ('thread-omr-2', 'user-omar', 'Growth stock opportunities in AI sector',
+   'NVDA and AMD continue to lead AI infrastructure buildout. Consider position sizing relative to your risk tolerance.', NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO chat_messages (id, thread_id, sender, message, created_at) VALUES
+  ('msg-omr-1-1', 'thread-omr-1', 'user', 'My crypto positions are down significantly. What should I do?', NOW() - INTERVAL '50 minutes'),
+  ('msg-omr-1-2', 'thread-omr-1', 'assistant', 'Given the recent pullback, dollar-cost averaging into quality crypto assets may be prudent.', NOW() - INTERVAL '45 minutes'),
+  ('msg-omr-2-1', 'thread-omr-2', 'user', 'Which AI stocks should I focus on?', NOW() - INTERVAL '2 days 1 hour'),
+  ('msg-omr-2-2', 'thread-omr-2', 'assistant', 'NVDA and AMD continue to lead AI infrastructure buildout. Consider position sizing relative to your risk tolerance.', NOW() - INTERVAL '2 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Layla threads
+INSERT INTO chat_threads (id, user_id, title, preview, created_at, updated_at) VALUES
+  ('thread-lay-1', 'user-layla', 'Education savings planning',
+   'A balanced approach with 60% equities and 40% bonds can help grow the fund while managing risk.', NOW() - INTERVAL '2 hours', NOW() - INTERVAL '2 hours'),
+  ('thread-lay-2', 'user-layla', 'Portfolio rebalancing for house renovation goal',
+   'Setting aside a portion in a short-term fixed deposit could help protect your renovation savings.', NOW() - INTERVAL '4 days', NOW() - INTERVAL '4 days')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO chat_messages (id, thread_id, sender, message, created_at) VALUES
+  ('msg-lay-1-1', 'thread-lay-1', 'user', 'How should I invest for my children''s education?', NOW() - INTERVAL '2 hours 15 minutes'),
+  ('msg-lay-1-2', 'thread-lay-1', 'assistant', 'A balanced approach with 60% equities and 40% bonds can help grow the fund while managing risk.', NOW() - INTERVAL '2 hours'),
+  ('msg-lay-2-1', 'thread-lay-2', 'user', 'I want to save for a house renovation. How should I plan?', NOW() - INTERVAL '4 days 1 hour'),
+  ('msg-lay-2-2', 'thread-lay-2', 'assistant', 'Setting aside a portion in a short-term fixed deposit could help protect your renovation savings.', NOW() - INTERVAL '4 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Khalid threads
+INSERT INTO chat_threads (id, user_id, title, preview, created_at, updated_at) VALUES
+  ('thread-kha-1', 'user-khalid', 'Deploying idle cash conservatively',
+   'A laddered approach with government sukuk and high-grade bonds can put your cash to work safely.', NOW() - INTERVAL '30 minutes', NOW() - INTERVAL '30 minutes'),
+  ('thread-kha-2', 'user-khalid', 'Capital preservation in uncertain markets',
+   'Your current bond-heavy allocation provides stability. Adding inflation-linked securities could further protect purchasing power.', NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO chat_messages (id, thread_id, sender, message, created_at) VALUES
+  ('msg-kha-1-1', 'thread-kha-1', 'user', 'I have a lot of cash sitting idle. What should I do with it?', NOW() - INTERVAL '35 minutes'),
+  ('msg-kha-1-2', 'thread-kha-1', 'assistant', 'A laddered approach with government sukuk and high-grade bonds can put your cash to work safely.', NOW() - INTERVAL '30 minutes'),
+  ('msg-kha-2-1', 'thread-kha-2', 'user', 'How can I preserve my capital in these markets?', NOW() - INTERVAL '5 days 1 hour'),
+  ('msg-kha-2-2', 'thread-kha-2', 'assistant', 'Your current bond-heavy allocation provides stability. Adding inflation-linked securities could further protect purchasing power.', NOW() - INTERVAL '5 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Sara threads
+INSERT INTO chat_threads (id, user_id, title, preview, created_at, updated_at) VALUES
+  ('thread-sar-1', 'user-sara', 'Children education fund strategy',
+   'Increasing monthly contributions by $400 and adding a small equity tilt can help close the gap.', NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour'),
+  ('thread-sar-2', 'user-sara', 'Emergency fund completion plan',
+   'You''re 90% funded. Three more months of regular contributions should complete your emergency fund.', NOW() - INTERVAL '6 days', NOW() - INTERVAL '6 days')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO chat_messages (id, thread_id, sender, message, created_at) VALUES
+  ('msg-sar-1-1', 'thread-sar-1', 'user', 'Am I saving enough for my children''s education?', NOW() - INTERVAL '1 hour 20 minutes'),
+  ('msg-sar-1-2', 'thread-sar-1', 'assistant', 'Increasing monthly contributions by $400 and adding a small equity tilt can help close the gap.', NOW() - INTERVAL '1 hour'),
+  ('msg-sar-2-1', 'thread-sar-2', 'user', 'How close am I to completing my emergency fund?', NOW() - INTERVAL '6 days 1 hour'),
+  ('msg-sar-2-2', 'thread-sar-2', 'assistant', 'You''re 90% funded. Three more months of regular contributions should complete your emergency fund.', NOW() - INTERVAL '6 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Raj threads
+INSERT INTO chat_threads (id, user_id, title, preview, created_at, updated_at) VALUES
+  ('thread-raj-1', 'user-raj', 'Managing crypto drawdown and recovery',
+   'Consider rebalancing 10-15% of crypto into diversified ETFs to reduce concentration while maintaining growth exposure.', NOW() - INTERVAL '40 minutes', NOW() - INTERVAL '40 minutes'),
+  ('thread-raj-2', 'user-raj', 'Building a diversified retirement strategy',
+   'At your age, even a small allocation to index funds alongside your active trading can compound significantly.', NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO chat_messages (id, thread_id, sender, message, created_at) VALUES
+  ('msg-raj-1-1', 'thread-raj-1', 'user', 'My crypto portfolio has taken a big hit. How do I recover?', NOW() - INTERVAL '45 minutes'),
+  ('msg-raj-1-2', 'thread-raj-1', 'assistant', 'Consider rebalancing 10-15% of crypto into diversified ETFs to reduce concentration while maintaining growth exposure.', NOW() - INTERVAL '40 minutes'),
+  ('msg-raj-2-1', 'thread-raj-2', 'user', 'Should I start thinking about retirement planning?', NOW() - INTERVAL '1 day 2 hours'),
+  ('msg-raj-2-2', 'thread-raj-2', 'assistant', 'At your age, even a small allocation to index funds alongside your active trading can compound significantly.', NOW() - INTERVAL '1 day')
+ON CONFLICT (id) DO NOTHING;
+
+-- Nadia threads
+INSERT INTO chat_threads (id, user_id, title, preview, created_at, updated_at) VALUES
+  ('thread-nad-1', 'user-nadia', 'Dividend income optimization',
+   'Your current yield is 3.2%. Adding some high-dividend international stocks could boost income to 3.8%.', NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour'),
+  ('thread-nad-2', 'user-nadia', 'Travel fund progress review',
+   'You''re halfway to your travel fund goal. Consistent monthly deposits of $700 will get you there by March 2027.', NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO chat_messages (id, thread_id, sender, message, created_at) VALUES
+  ('msg-nad-1-1', 'thread-nad-1', 'user', 'Can I increase my dividend income without taking on too much risk?', NOW() - INTERVAL '1 hour 15 minutes'),
+  ('msg-nad-1-2', 'thread-nad-1', 'assistant', 'Your current yield is 3.2%. Adding some high-dividend international stocks could boost income to 3.8%.', NOW() - INTERVAL '1 hour'),
+  ('msg-nad-2-1', 'thread-nad-2', 'user', 'How is my travel fund looking?', NOW() - INTERVAL '3 days 1 hour'),
+  ('msg-nad-2-2', 'thread-nad-2', 'assistant', 'You''re halfway to your travel fund goal. Consistent monthly deposits of $700 will get you there by March 2027.', NOW() - INTERVAL '3 days')
+ON CONFLICT (id) DO NOTHING;
