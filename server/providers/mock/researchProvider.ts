@@ -39,4 +39,16 @@ export const mockResearchProvider: ResearchProvider = {
       .slice(0, limit);
     return toolOk('mock_research', 'research_api', results, start);
   },
+
+  async getCompanyFacts(company: string): Promise<ToolResult> {
+    const start = Date.now();
+    const upper = company.toUpperCase();
+    const filing = MOCK_FILINGS.find((f) => f.company === upper);
+    return toolOk('mock_research', 'research_api', {
+      company: upper,
+      facts_available: false,
+      summary: filing?.summary ?? `No XBRL company facts available for ${upper} in mock data`,
+      source_provider: 'mock',
+    }, start);
+  },
 };

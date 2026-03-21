@@ -33,22 +33,30 @@ export const twelveDataMarketProvider: MarketProvider = {
   name: 'twelve_data',
   async getQuotes() { return notImplemented('twelve_data', 'market_api', 'getQuotes'); },
   async getHistoricalPrices() { return notImplemented('twelve_data', 'market_api', 'getHistoricalPrices'); },
+  async getCompanyProfile() { return notImplemented('twelve_data', 'market_api', 'getCompanyProfile'); },
+  async getEarningsCalendar() { return notImplemented('twelve_data', 'market_api', 'getEarningsCalendar'); },
 };
 
 export const fmpMarketProvider: MarketProvider = {
   name: 'fmp',
   async getQuotes() { return notImplemented('fmp', 'market_api', 'getQuotes'); },
   async getHistoricalPrices() { return notImplemented('fmp', 'market_api', 'getHistoricalPrices'); },
+  async getCompanyProfile() { return notImplemented('fmp', 'market_api', 'getCompanyProfile'); },
+  async getEarningsCalendar() { return notImplemented('fmp', 'market_api', 'getEarningsCalendar'); },
 };
 
 export const coinGeckoMarketProvider: MarketProvider = {
   name: 'coingecko',
   async getQuotes() { return notImplemented('coingecko', 'market_api', 'getQuotes'); },
   async getHistoricalPrices() { return notImplemented('coingecko', 'market_api', 'getHistoricalPrices'); },
+  async getCompanyProfile() { return notImplemented('coingecko', 'market_api', 'getCompanyProfile'); },
+  async getEarningsCalendar() { return notImplemented('coingecko', 'market_api', 'getEarningsCalendar'); },
 };
 
 export const yahooFinanceMarketProvider: MarketProvider = {
   name: 'yahoo_finance',
   async getQuotes() { return notImplemented('yahoo_finance', 'market_api', 'getQuotes'); },
   async getHistoricalPrices() { return notImplemented('yahoo_finance', 'market_api', 'getHistoricalPrices'); },
+  async getCompanyProfile() { return notImplemented('yahoo_finance', 'market_api', 'getCompanyProfile'); },
+  async getEarningsCalendar() { return notImplemented('yahoo_finance', 'market_api', 'getEarningsCalendar'); },
 };

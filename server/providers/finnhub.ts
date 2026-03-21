@@ -136,6 +136,87 @@ export const finnhubMarketProvider: MarketProvider = {
       return toolError('finnhub', 'market_api', error instanceof Error ? error.message : 'Unknown error', start);
     }
   },
+
+  async getCompanyProfile(symbol: string): Promise<ToolResult> {
+    const start = Date.now();
+    if (!getApiKey()) {
+      return toolError('finnhub', 'market_api', 'FINNHUB_API_KEY not configured', start);
+    }
+    try {
+      const upper = symbol.toUpperCase();
+      const ck = cacheKey('finnhub', 'profile', upper);
+      const cached = cacheGet<unknown>(ck);
+      if (cached) return toolOk('finnhub', 'market_api', cached.data, start, ['cache_hit:memory']);
+
+      const data = await finnhubFetch('/stock/profile2', { symbol: upper }) as Record<string, unknown>;
+      if (!data || !data.name) {
+        return toolError('finnhub', 'market_api', `No profile data for ${upper}`, start);
+      }
+
+      const profile = {
+        symbol: upper,
+        name: data.name,
+        country: data.country,
+        currency: data.currency,
+        exchange: data.exchange,
+        ipo_date: data.ipo,
+        market_cap: data.marketCapitalization,
+        shares_outstanding: data.shareOutstanding,
+        industry: data.finnhubIndustry,
+        logo: data.logo,
+        weburl: data.weburl,
+        phone: data.phone,
+        source_provider: 'finnhub',
+        as_of: new Date().toISOString(),
+      };
+
+      cacheSet(ck, profile, 'company_profile');
+      return toolOk('finnhub', 'market_api', profile, start);
+    } catch (error) {
+      recordProviderFailure('finnhub');
+      return toolError('finnhub', 'market_api', error instanceof Error ? error.message : 'Unknown error', start);
+    }
+  },
+
+  async getEarningsCalendar(symbol?: string): Promise<ToolResult> {
+    const start = Date.now();
+    if (!getApiKey()) {
+      return toolError('finnhub', 'market_api', 'FINNHUB_API_KEY not configured', start);
+    }
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const futureDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+      const ck = cacheKey('finnhub', 'earnings', symbol ?? 'all', today);
+      const cached = cacheGet<unknown>(ck);
+      if (cached) return toolOk('finnhub', 'market_api', cached.data, start, ['cache_hit:memory']);
+
+      const params: Record<string, string> = { from: today, to: futureDate };
+      if (symbol) params.symbol = symbol.toUpperCase();
+
+      const data = await finnhubFetch('/calendar/earnings', params) as {
+        earningsCalendar?: Array<Record<string, unknown>>;
+      };
+
+      const calendar = (data.earningsCalendar ?? []).map((item) => ({
+        symbol: item.symbol,
+        date: item.date,
+        hour: item.hour,
+        eps_estimate: item.epsEstimate,
+        eps_actual: item.epsActual,
+        revenue_estimate: item.revenueEstimate,
+        revenue_actual: item.revenueActual,
+        quarter: item.quarter,
+        year: item.year,
+        source_provider: 'finnhub',
+      }));
+
+      cacheSet(ck, calendar, 'news', 3_600_000);
+      return toolOk('finnhub', 'market_api', calendar, start);
+    } catch (error) {
+      recordProviderFailure('finnhub');
+      return toolError('finnhub', 'market_api', error instanceof Error ? error.message : 'Unknown error', start);
+    }
+  },
 };
 
 export const finnhubNewsProvider: NewsProvider = {

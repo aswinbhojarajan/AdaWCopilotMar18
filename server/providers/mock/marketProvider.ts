@@ -73,4 +73,38 @@ export const mockMarketProvider: MarketProvider = {
       return toolError('mock_market', 'market_api', error instanceof Error ? error.message : 'Unknown error', start);
     }
   },
+
+  async getCompanyProfile(symbol: string): Promise<ToolResult> {
+    const start = Date.now();
+    try {
+      const upper = symbol.toUpperCase();
+      const { rows } = await pool.query(
+        `SELECT i.symbol, i.name, i.sector, i.geography, i.currency, i.instrument_type, i.exchange
+         FROM instruments i WHERE UPPER(i.symbol) = $1 LIMIT 1`,
+        [upper],
+      );
+      if (rows.length === 0) {
+        return toolOk('mock_market', 'market_api', { symbol: upper, name: upper, source_provider: 'mock' }, start);
+      }
+      const r = rows[0];
+      return toolOk('mock_market', 'market_api', {
+        symbol: upper,
+        name: r.name,
+        sector: r.sector,
+        country: r.geography,
+        currency: r.currency,
+        exchange: r.exchange,
+        instrument_type: r.instrument_type,
+        source_provider: 'mock',
+        as_of: new Date().toISOString(),
+      }, start);
+    } catch (error) {
+      return toolError('mock_market', 'market_api', error instanceof Error ? error.message : 'Unknown error', start);
+    }
+  },
+
+  async getEarningsCalendar(_symbol?: string): Promise<ToolResult> {
+    const start = Date.now();
+    return toolOk('mock_market', 'market_api', [], start, ['Mock earnings calendar returns empty']);
+  },
 };

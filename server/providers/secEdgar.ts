@@ -163,6 +163,72 @@ export const secEdgarResearchProvider: ResearchProvider = {
     return this.getFilings(company, type, 1);
   },
 
+  async getCompanyFacts(company: string): Promise<ToolResult> {
+    const start = Date.now();
+    try {
+      const upper = company.toUpperCase();
+      const ck = cacheKey('sec_edgar', 'facts', upper);
+      const cached = cacheGet<unknown>(ck);
+      if (cached) return toolOk('sec_edgar', 'research_api', cached.data, start, ['cache_hit:memory']);
+
+      const cik = await resolveTickerToCik(upper);
+      if (!cik) {
+        return toolError('sec_edgar', 'research_api', `Could not resolve CIK for ${upper}`, start);
+      }
+
+      const data = await edgarFetch(`${DATA_BASE}/api/xbrl/companyfacts/CIK${cik}.json`) as {
+        entityName?: string;
+        facts?: Record<string, Record<string, {
+          label?: string;
+          description?: string;
+          units?: Record<string, Array<{ val: number; end: string; fy: number; fp: string }>>;
+        }>>;
+      };
+
+      const keyMetrics: Array<{ concept: string; label: string; value: number; period_end: string; unit: string }> = [];
+      const targetConcepts = [
+        'Revenues', 'NetIncomeLoss', 'Assets', 'Liabilities',
+        'StockholdersEquity', 'EarningsPerShareBasic', 'OperatingIncomeLoss',
+      ];
+
+      const usGaap = data.facts?.['us-gaap'];
+      if (usGaap) {
+        for (const concept of targetConcepts) {
+          const factData = usGaap[concept];
+          if (!factData?.units) continue;
+          const unitKey = Object.keys(factData.units)[0];
+          const entries = factData.units[unitKey];
+          if (!entries || entries.length === 0) continue;
+          const latest = entries[entries.length - 1];
+          keyMetrics.push({
+            concept,
+            label: factData.label ?? concept,
+            value: latest.val,
+            period_end: latest.end,
+            unit: unitKey,
+          });
+        }
+      }
+
+      const result = {
+        company: upper,
+        entity_name: data.entityName ?? upper,
+        cik,
+        facts_available: keyMetrics.length > 0,
+        key_metrics: keyMetrics,
+        total_concepts: usGaap ? Object.keys(usGaap).length : 0,
+        source_provider: 'sec_edgar',
+        as_of: new Date().toISOString(),
+      };
+
+      cacheSet(ck, result, 'filing');
+      return toolOk('sec_edgar', 'research_api', result, start);
+    } catch (error) {
+      recordProviderFailure('sec_edgar');
+      return toolError('sec_edgar', 'research_api', error instanceof Error ? error.message : 'Unknown error', start);
+    }
+  },
+
   async searchFilings(query: string, limit = 10): Promise<ToolResult> {
     const start = Date.now();
     try {

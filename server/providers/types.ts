@@ -12,6 +12,8 @@ export interface MarketProvider {
   name: string;
   getQuotes(symbols: string[]): Promise<ToolResult>;
   getHistoricalPrices(symbol: string, days: number): Promise<ToolResult>;
+  getCompanyProfile(symbol: string): Promise<ToolResult>;
+  getEarningsCalendar(symbol?: string): Promise<ToolResult>;
 }
 
 export interface NewsProvider {
@@ -41,6 +43,7 @@ export interface ResearchProvider {
   getFilings(company: string, type?: string, limit?: number): Promise<ToolResult>;
   getLatestFiling(company: string, type: string): Promise<ToolResult>;
   searchFilings(query: string, limit?: number): Promise<ToolResult>;
+  getCompanyFacts(company: string): Promise<ToolResult>;
 }
 
 export interface IdentityProvider {
@@ -55,6 +58,7 @@ export interface ProviderRegistry {
   news: NewsProvider;
   macro: MacroProvider;
   fx: FxProvider;
+  fxLocalized: FxProvider;
   research: ResearchProvider;
   identity: IdentityProvider;
 }

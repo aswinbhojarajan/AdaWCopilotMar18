@@ -133,12 +133,24 @@ export function getProviderRegistry(providerConfig?: Record<string, string>): Pr
   const researchChain = getChainKeys('filing', config).map(resolveResearchProvider);
   const identityChain = getChainKeys('identity', config).map(resolveIdentityProvider);
 
+  const fxLocalizedKey = config.fx_localized
+    ?? process.env.FX_PROVIDER_LOCALIZED
+    ?? 'cbuae';
+  const fxLocalizedChain = [resolveFxProvider(fxLocalizedKey)];
+  if (!fxLocalizedChain.some((p) => p.name === 'frankfurter')) {
+    fxLocalizedChain.push(frankfurterFxProvider);
+  }
+  if (!fxLocalizedChain.some((p) => p.name === 'mock')) {
+    fxLocalizedChain.push(mockFxProvider);
+  }
+
   const registry: ProviderRegistry = {
     portfolio: mockPortfolioProvider,
     market: withFallbackChain(marketChain, 'market'),
     news: withFallbackChain(newsChain, 'news'),
     macro: withFallbackChain(macroChain, 'macro'),
     fx: withFallbackChain(fxChain, 'fx'),
+    fxLocalized: withFallbackChain(fxLocalizedChain, 'fx_localized'),
     research: withFallbackChain(researchChain, 'research'),
     identity: withFallbackChain(identityChain, 'identity'),
   };
