@@ -262,9 +262,9 @@ async function* handleLane0(
     return;
   }
 
-  const totalValue = Number(data.total_value ?? 0);
-  const dailyChange = Number(data.daily_change_amount ?? 0);
-  const dailyChangePct = Number(data.daily_change_percent ?? 0);
+  const totalValue = Number(data.totalValue ?? data.total_value ?? 0);
+  const dailyChange = Number(data.dailyChangeAmount ?? data.daily_change_amount ?? 0);
+  const dailyChangePct = Number(data.dailyChangePercent ?? data.daily_change_percent ?? 0);
   const changeDir = dailyChange >= 0 ? 'up' : 'down';
 
   let narration = '';
