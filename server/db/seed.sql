@@ -936,9 +936,9 @@ ON CONFLICT (id) DO NOTHING;
 -- Omar alerts
 INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
   ('alert-omr-1', 'user-omar', 'PORTFOLIO_ALERT', 'Crypto allocation down 12% this week',
-   'Your Bitcoin, Ethereum, and Solana positions have declined sharply. Total crypto exposure is now 18% of portfolio.', '8 min ago', TRUE, 'alerts'),
+   'Your Bitcoin, Ethereum, and Solana positions have declined sharply. Total crypto exposure is now 25% of portfolio ($24,911).', '8 min ago', TRUE, 'alerts'),
   ('alert-omr-2', 'user-omar', 'MARKET_UPDATE', 'NVIDIA surges on AI infrastructure demand',
-   'NVDA gained 4.2% today on strong data center revenue guidance. Your position is up $1,050.', '1 hour ago', FALSE, 'updates'),
+   'NVDA gained 4.2% today on strong data center revenue guidance. Your 20-share position is up $114.', '1 hour ago', FALSE, 'updates'),
   ('alert-omr-3', 'user-omar', 'PORTFOLIO_ALERT', 'Portfolio volatility exceeds risk tolerance',
    'Your 30-day portfolio volatility is 28%, significantly above the 20% threshold for aggressive profiles.', '4 hours ago', TRUE, 'alerts'),
   ('alert-omr-4', 'user-omar', 'OPPORTUNITY', 'Tech sector pullback creates entry points',
@@ -985,10 +985,10 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Raj alerts
 INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
-  ('alert-raj-1', 'user-raj', 'PORTFOLIO_ALERT', 'Tech concentration at 65% of portfolio',
-   'Your combined tech and crypto exposure represents 65% of your portfolio, creating significant sector concentration risk.', '5 min ago', TRUE, 'alerts'),
+  ('alert-raj-1', 'user-raj', 'PORTFOLIO_ALERT', 'Tech + crypto concentration at 68% of portfolio',
+   'Your combined tech ($71,320) and crypto ($51,451) exposure represents 68% of your portfolio, creating significant sector concentration risk.', '5 min ago', TRUE, 'alerts'),
   ('alert-raj-2', 'user-raj', 'PORTFOLIO_ALERT', 'Crypto positions down $4,200 this month',
-   'Bitcoin, Ethereum, and Solana have all declined. Your crypto allocation has dropped from 22% to 18%.', '2 hours ago', TRUE, 'alerts'),
+   'Bitcoin, Ethereum, and Solana have all declined. Your crypto allocation is 28% of portfolio ($51,451 across 3 assets).', '2 hours ago', TRUE, 'alerts'),
   ('alert-raj-3', 'user-raj', 'MARKET_UPDATE', 'AMD unveils new AI accelerators',
    'AMD launched MI400 series targeting AI workloads. Your 80-share position could benefit from the catalyst.', '4 hours ago', FALSE, 'updates'),
   ('alert-raj-4', 'user-raj', 'ADVISOR_MESSAGE', 'Message from your advisor',

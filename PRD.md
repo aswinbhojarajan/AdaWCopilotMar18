@@ -436,6 +436,19 @@ All providers default to mock. Real providers activate only via explicit env var
 - Sliding-window health tracking (5-min window, min 5 attempts, 50% failure threshold)
 - Cache hit/miss metrics in every `ToolResult`
 
+#### Provider Phase Strategy
+
+| Phase | Scope | Providers Activated | Tool Mappings |
+|---|---|---|---|
+| Phase 1 (Demo) | Mock-only, seeded data | All providers default to mock | `get_market_data` → mock quotes, `get_macro_data` → mock indicators, `lookup_instrument` → mock FIGI |
+| Phase 2 (Pilot) | Live market data, mock others | Finnhub (market primary), Frankfurter (FX primary), CBUAE (FX secondary) | `get_market_data` → Finnhub live, `get_fx_rate` → Frankfurter → CBUAE failover, others remain mock |
+| Phase 3 (Production) | Full live stack | All 6 providers with full failover chains | All tools map to live providers with automatic failover. FRED for macro, SEC EDGAR for filings, OpenFIGI for instrument resolution |
+
+Phase recommendations:
+- **Phase 1**: Current state. All providers return mock data. Suitable for demos and development.
+- **Phase 2**: Activate Finnhub (free tier: 60 calls/min) and Frankfurter (no key required) for real-time market data and FX. Add `MARKET_PROVIDER_PRIMARY=finnhub` and `FX_PROVIDER_PRIMARY=frankfurter` env vars.
+- **Phase 3**: Add API keys for FRED, SEC EDGAR, OpenFIGI, CBUAE. Enable full failover chains. Requires rate limit tuning per provider SLA.
+
 ### Multi-Tenant Configuration
 
 Ada supports multi-tenant configuration via the `tenants` and `tenant_configs` tables. Each tenant can customize:
