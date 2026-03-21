@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import type { ChatMessageRequest, RiskProfile } from '../../shared/types';
-import type { IntentClassification, ToolResult, AdaAnswer } from '../../shared/schemas/agent';
+import type { IntentClassification, ToolResult, AdaAnswer, TenantConfig } from '../../shared/schemas/agent';
+import type { PolicyDecision } from '../../shared/schemas/agent';
 import type { StreamEvent } from './streamTypes';
 import { openai } from './openaiClient';
 import * as intentClassifier from './intentClassifier';
@@ -205,15 +206,29 @@ async function* handleLane0(
   threadId: string,
   messageId: string,
   sanitizedMessage: string,
-  tenantConfig: ReturnType<typeof import('./policyEngine').evaluatePolicy> extends infer T ? T extends { allow_response: boolean } ? Parameters<typeof evaluatePolicy>[0] : never : never,
-  policyDecision: ReturnType<typeof evaluatePolicy>,
+  tenantConfig: TenantConfig,
+  policyDecision: PolicyDecision,
   timings: StepTimings,
   startTime: number,
 ): AsyncGenerator<StreamEvent> {
   const prefetchStart = Date.now();
-  const snapshotResult = await executeFinancialTool('getPortfolioSnapshot', {}, userId, registry, riskLevel);
-  snapshotResult.latency_ms = Date.now() - prefetchStart;
+  const toolPromises: Array<{ name: string; promise: Promise<ToolResult> }> = [
+    { name: 'getPortfolioSnapshot', promise: executeFinancialTool('getPortfolioSnapshot', {}, userId, registry, riskLevel) },
+  ];
+  if (intent.primary_intent === 'portfolio_explain') {
+    toolPromises.push({ name: 'getHoldings', promise: executeFinancialTool('getHoldings', {}, userId, registry, riskLevel) });
+  }
+  const settled = await Promise.all(toolPromises.map(async (j) => {
+    const start = Date.now();
+    const result = await j.promise;
+    result.latency_ms = Date.now() - start;
+    return { name: j.name, result };
+  }));
   timings.tool_execution_ms = Date.now() - prefetchStart;
+
+  const snapshotResult = settled.find(s => s.name === 'getPortfolioSnapshot')!.result;
+  const holdingsResult = settled.find(s => s.name === 'getHoldings')?.result;
+  const allToolResults = settled.map(s => s.result);
 
   const data = snapshotResult.data as Record<string, unknown> | null;
   if (!data || snapshotResult.status !== 'ok') {
@@ -226,9 +241,27 @@ async function* handleLane0(
   const dailyChange = Number(data.daily_change_amount ?? 0);
   const dailyChangePct = Number(data.daily_change_percent ?? 0);
   const changeDir = dailyChange >= 0 ? 'up' : 'down';
-  let narration = `Your portfolio is currently valued at **$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**. It's ${changeDir} **${Math.abs(dailyChangePct).toFixed(2)}%** ($${Math.abs(dailyChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) today.`;
 
-  const guardrailResult = runPostChecks(narration, tenantConfig, policyDecision, [snapshotResult]);
+  let narration = '';
+
+  if (intent.primary_intent === 'portfolio_explain' && holdingsResult?.status === 'ok') {
+    narration = `Your portfolio is currently valued at **$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**. It's ${changeDir} **${Math.abs(dailyChangePct).toFixed(2)}%** ($${Math.abs(dailyChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) today.`;
+
+    const holdings = holdingsResult.data as Array<{ symbol?: string; name?: string; value?: number; daily_change_percent?: number }> | null;
+    if (Array.isArray(holdings) && holdings.length > 0) {
+      narration += '\n\n**Your Holdings:**';
+      for (const h of holdings.slice(0, 10)) {
+        const hVal = Number(h.value ?? 0);
+        const hChg = Number(h.daily_change_percent ?? 0);
+        const hDir = hChg >= 0 ? '+' : '';
+        narration += `\n- **${h.symbol || h.name}**: $${hVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${hDir}${hChg.toFixed(2)}%)`;
+      }
+    }
+  } else {
+    narration = `Your portfolio is currently valued at **$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**. It's ${changeDir} **${Math.abs(dailyChangePct).toFixed(2)}%** ($${Math.abs(dailyChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) today.`;
+  }
+
+  const guardrailResult = runPostChecks(narration, tenantConfig, policyDecision, allToolResults);
   if (!guardrailResult.passed) {
     narration = guardrailResult.sanitizedText;
   }
@@ -238,11 +271,11 @@ async function* handleLane0(
 
   yield { type: 'text', content: narration };
 
-  yield { type: 'suggested_questions', suggestedQuestions: [
-    'How are my holdings performing?',
-    'Is my portfolio well-diversified?',
-    'What market news affects me today?',
-  ] };
+  const suggestions = intent.primary_intent === 'portfolio_explain'
+    ? ['Is my portfolio well-diversified?', 'What are the top movers today?', 'Should I rebalance anything?']
+    : ['How are my holdings performing?', 'Is my portfolio well-diversified?', 'What market news affects me today?'];
+
+  yield { type: 'suggested_questions', suggestedQuestions: suggestions };
 
   const fullResponse = narration;
   memoryService.addToWorkingMemory(threadId, { role: 'assistant', content: fullResponse });
@@ -473,6 +506,7 @@ export async function* orchestrateStream(
 
         if (delta.content) {
           turnBuffer += delta.content;
+          yield { type: 'text', content: delta.content };
         }
 
         if (delta.tool_calls) {
@@ -640,17 +674,17 @@ export async function* orchestrateStream(
     if (!guardrailResult.passed) {
       guardrailInterventions.push(...guardrailResult.interventions);
       fullResponse = guardrailResult.sanitizedText;
+      yield { type: 'text', content: '\n\n---\n' + guardrailResult.sanitizedText };
+    }
+
+    for (const uiEvent of pendingUiEvents) {
+      yield uiEvent;
     }
 
     if (guardrailResult.appendedDisclosures.length > 0) {
       const disclosureText = '\n\n' + guardrailResult.appendedDisclosures.join(' ');
       fullResponse += disclosureText;
-    }
-
-    yield { type: 'text', content: fullResponse };
-
-    for (const uiEvent of pendingUiEvents) {
-      yield uiEvent;
+      yield { type: 'text', content: disclosureText };
     }
 
     const alreadyHasAdvisorWidget = widgets.some(w => w.type === 'advisor_handoff');

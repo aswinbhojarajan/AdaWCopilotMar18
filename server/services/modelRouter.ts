@@ -46,11 +46,13 @@ export interface ModelSelection {
 
 const DETERMINISTIC_INTENTS = new Set<IntentClassification['primary_intent']>([
   'balance_query',
+  'portfolio_explain',
 ]);
 
 const REASONING_INTENTS = new Set<IntentClassification['primary_intent']>([
   'portfolio_health',
   'recommendation_request',
+  'workflow_request',
 ]);
 
 export function buildScorecard(
