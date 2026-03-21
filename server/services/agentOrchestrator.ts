@@ -28,6 +28,7 @@ function mapOldIntentToNew(oldIntent: string): IntentClassification['primary_int
     goals: 'workflow_request',
     market: 'market_news',
     scenario: 'workflow_request',
+    recommendation: 'recommendation_request',
     general: 'other',
   };
   return map[oldIntent] ?? 'other';

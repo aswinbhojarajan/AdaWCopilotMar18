@@ -1,4 +1,4 @@
-export type Intent = 'portfolio' | 'goals' | 'market' | 'scenario' | 'general';
+export type Intent = 'portfolio' | 'goals' | 'market' | 'scenario' | 'recommendation' | 'general';
 
 interface IntentRule {
   intent: Intent;
@@ -6,6 +6,16 @@ interface IntentRule {
 }
 
 const INTENT_RULES: IntentRule[] = [
+  {
+    intent: 'recommendation',
+    keywords: [
+      'recommend', 'suggest investments', 'what should i invest',
+      'should i buy', 'should i sell', 'advise me', 'give me advice',
+      'what do you recommend', 'best investment', 'where should i put my money',
+      'what would you suggest', 'investment advice', 'help me invest',
+      'which stocks', 'which funds', 'what to buy',
+    ],
+  },
   {
     intent: 'scenario',
     keywords: [

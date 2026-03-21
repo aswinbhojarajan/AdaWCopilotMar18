@@ -21,17 +21,20 @@ export async function* processMessageStream(
 export async function processMessageSync(
   userId: string,
   req: ChatMessageRequest,
-): Promise<{ threadId: string; message: { id: string; threadId: string; sender: 'assistant'; message: string; timestamp: string }; suggestedQuestions: string[] }> {
+): Promise<{ threadId: string; message: { id: string; threadId: string; sender: 'assistant'; message: string; timestamp: string; widgets?: { type: string }[] }; suggestedQuestions: string[] }> {
   const threadId = req.threadId ?? `thread-${Date.now()}`;
 
   let fullResponse = '';
   let suggestedQuestions: string[] = [];
+  const widgets: { type: string }[] = [];
 
   for await (const event of processMessageStream(userId, { ...req, threadId })) {
     if (event.type === 'text' && event.content) {
       fullResponse += event.content;
     } else if (event.type === 'suggested_questions' && event.suggestedQuestions) {
       suggestedQuestions = event.suggestedQuestions;
+    } else if (event.type === 'widget' && event.widget) {
+      widgets.push(event.widget);
     }
   }
 
@@ -43,6 +46,7 @@ export async function processMessageSync(
       sender: 'assistant',
       message: fullResponse || "I'm here to help with your portfolio. What would you like to know?",
       timestamp: new Date().toISOString(),
+      ...(widgets.length > 0 ? { widgets } : {}),
     },
     suggestedQuestions,
   };
