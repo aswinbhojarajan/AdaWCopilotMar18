@@ -28,24 +28,22 @@ async function edgarFetch(url: string): Promise<unknown> {
   return data;
 }
 
+let _tickerMapCache: Record<string, { cik_str: number; ticker: string }> | null = null;
+
+async function loadTickerMap(): Promise<Record<string, { cik_str: number; ticker: string }>> {
+  if (_tickerMapCache) return _tickerMapCache;
+  const data = await edgarFetch('https://www.sec.gov/files/company_tickers.json') as Record<string, { cik_str: number; ticker: string }>;
+  _tickerMapCache = data;
+  return data;
+}
+
 async function resolveTickerToCik(ticker: string): Promise<string | null> {
   const upper = ticker.toUpperCase();
   const cached = TICKER_CIK_MAP.get(upper);
   if (cached) return cached;
 
   try {
-    const data = await edgarFetch(`${DATA_BASE}/submissions/CIK${upper}.json`) as { cik?: string };
-    if (data.cik) {
-      const padded = String(data.cik).padStart(10, '0');
-      TICKER_CIK_MAP.set(upper, padded);
-      return padded;
-    }
-  } catch {
-    // ticker-based CIK lookup failed, try company search
-  }
-
-  try {
-    const tickerMap = await edgarFetch('https://www.sec.gov/files/company_tickers.json') as Record<string, { cik_str: number; ticker: string }>;
+    const tickerMap = await loadTickerMap();
     for (const entry of Object.values(tickerMap)) {
       if (entry.ticker?.toUpperCase() === upper) {
         const padded = String(entry.cik_str).padStart(10, '0');
@@ -54,7 +52,7 @@ async function resolveTickerToCik(ticker: string): Promise<string | null> {
       }
     }
   } catch {
-    // fallback also failed
+    // ticker map lookup failed
   }
 
   return null;

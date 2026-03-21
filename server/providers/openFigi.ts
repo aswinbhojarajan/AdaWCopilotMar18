@@ -89,11 +89,22 @@ async function persistToInstruments(resolved: ResolvedInstrument): Promise<boole
     const ticker = resolved.ticker?.toUpperCase();
     if (!ticker) return false;
 
-    await pool.query(
+    const updateResult = await pool.query(
       `UPDATE instruments SET figi = $1, exchange = COALESCE(exchange, $2)
        WHERE UPPER(symbol) = $3 AND (figi IS NULL OR figi = '')`,
       [resolved.figi, resolved.exchange, ticker],
     );
+
+    if (updateResult.rowCount === 0) {
+      await pool.query(
+        `INSERT INTO instruments (symbol, name, asset_class, geography, currency, instrument_type, figi, exchange)
+         VALUES ($1, $2, 'Unknown', 'Global', 'USD', 'equity', $3, $4)
+         ON CONFLICT (symbol) DO UPDATE SET
+           figi = COALESCE(NULLIF(instruments.figi, ''), EXCLUDED.figi),
+           exchange = COALESCE(NULLIF(instruments.exchange, ''), EXCLUDED.exchange)`,
+        [ticker, resolved.name || ticker, resolved.figi, resolved.exchange],
+      );
+    }
 
     const isin = resolved.query?.match(/^[A-Z]{2}[A-Z0-9]{9}\d$/)?.[0];
     if (isin) {

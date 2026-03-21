@@ -58,36 +58,46 @@ export function checkRateLimit(provider: string, max: number, windowMs: number =
   return true;
 }
 
-const healthCounters = new Map<string, { timestamps: number[] }>();
+const healthCounters = new Map<string, { failureTimestamps: number[]; attemptTimestamps: number[] }>();
 const HEALTH_WINDOW_MS = 300_000;
-const FAILURE_THRESHOLD = 5;
+const FAILURE_RATE_THRESHOLD = 0.5;
+const MIN_ATTEMPTS_FOR_DEGRADE = 5;
 
 export function recordProviderSuccess(provider: string): void {
-  const entry = healthCounters.get(provider);
-  if (entry) {
-    const cutoff = Date.now() - HEALTH_WINDOW_MS;
-    entry.timestamps = entry.timestamps.filter((t) => t > cutoff);
+  const now = Date.now();
+  const cutoff = now - HEALTH_WINDOW_MS;
+  let entry = healthCounters.get(provider);
+  if (!entry) {
+    entry = { failureTimestamps: [], attemptTimestamps: [] };
+    healthCounters.set(provider, entry);
   }
+  entry.attemptTimestamps = entry.attemptTimestamps.filter((t) => t > cutoff);
+  entry.failureTimestamps = entry.failureTimestamps.filter((t) => t > cutoff);
+  entry.attemptTimestamps.push(now);
 }
 
 export function recordProviderFailure(provider: string): void {
   const now = Date.now();
+  const cutoff = now - HEALTH_WINDOW_MS;
   let entry = healthCounters.get(provider);
   if (!entry) {
-    entry = { timestamps: [] };
+    entry = { failureTimestamps: [], attemptTimestamps: [] };
     healthCounters.set(provider, entry);
   }
-  const cutoff = now - HEALTH_WINDOW_MS;
-  entry.timestamps = entry.timestamps.filter((t) => t > cutoff);
-  entry.timestamps.push(now);
+  entry.attemptTimestamps = entry.attemptTimestamps.filter((t) => t > cutoff);
+  entry.failureTimestamps = entry.failureTimestamps.filter((t) => t > cutoff);
+  entry.attemptTimestamps.push(now);
+  entry.failureTimestamps.push(now);
 }
 
 export function isProviderHealthy(provider: string): boolean {
   const entry = healthCounters.get(provider);
   if (!entry) return true;
   const cutoff = Date.now() - HEALTH_WINDOW_MS;
-  const recentFailures = entry.timestamps.filter((t) => t > cutoff).length;
-  return recentFailures < FAILURE_THRESHOLD;
+  const recentAttempts = entry.attemptTimestamps.filter((t) => t > cutoff).length;
+  if (recentAttempts < MIN_ATTEMPTS_FOR_DEGRADE) return true;
+  const recentFailures = entry.failureTimestamps.filter((t) => t > cutoff).length;
+  return (recentFailures / recentAttempts) < FAILURE_RATE_THRESHOLD;
 }
 
 export async function fetchWithTimeout(url: string, options: RequestInit & { timeout?: number } = {}): Promise<Response> {
