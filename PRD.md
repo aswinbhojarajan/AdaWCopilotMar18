@@ -1,7 +1,7 @@
 # Ada — AI Wealth Copilot: Product Requirements Document
 
 > **Living document** — update this PRD before and after every build cycle.
-> Last updated: 2026-03-18
+> Last updated: 2026-03-21
 >
 > **Source of truth precedence**: When a mismatch exists between this document and the runtime code/schema, the code is authoritative. Update this PRD to reflect the code, not the other way around.
 >
@@ -283,21 +283,24 @@ Every tab screen follows the same layout:
 
 ### AI Response System
 
-**LLM-powered** — uses OpenAI gpt-5-mini via Replit AI Integrations with a multi-stage pipeline.
+**LLM-powered** — uses OpenAI gpt-5-mini via Replit AI Integrations with a full agent architecture.
 
-The chat system follows a full AI pipeline orchestrated by `chatService.ts`:
+The chat system follows a production-grade agent pipeline orchestrated by `agentOrchestrator.ts`:
 
 ```
-User Message → PII Detection → Intent Classification → RAG Context Building
-    → Memory Retrieval → LLM Call (with tools) → Tool Execution
-    → Response Streaming → Memory Persistence → Audit Logging
+User Message → PII Detection → Session Hydration → Intent Classification
+    → Policy Evaluation → Model Routing → RAG Context Building
+    → Prompt Assembly → Memory Retrieval → LLM Call (with tools)
+    → Multi-Turn Tool Execution → Wealth Engine Calculations
+    → Guardrails (pre-stream) → Response Building → SSE Streaming
+    → Trace Logging → Memory Persistence → Audit Logging
 ```
 
 **Pipeline Stages**:
 
 1. **PII Detection** (`piiDetector.ts`): Scans user input for sensitive data patterns (email, phone, SSN, credit card, passport, IBAN). Detected PII is flagged in the audit log; messages are still processed but flagged.
 
-2. **Intent Classification** (`intentClassifier.ts`): Classifies user messages into domain-specific intents to determine what portfolio context to fetch:
+2. **Intent Classification** (`intentClassifier.ts`): Two-stage classification — first maps to legacy intents, then maps to the `IntentClassification` schema used by the agent pipeline:
 
    | Intent | Triggers | Context Fetched |
    |---|---|---|
@@ -305,43 +308,136 @@ User Message → PII Detection → Intent Classification → RAG Context Buildin
    | `goals` | Goals, savings, retirement, target | Goals, health scores |
    | `market` | Market, bonds, stocks, trends | Holdings, allocations |
    | `scenario` | What if, simulate, model, compare | Holdings, allocations, goals |
+   | `execution_request` | Execute, place order, buy for me, sell for me, go ahead, confirm trade | Routed to RM handoff |
    | `general` | Everything else | Basic portfolio summary |
 
-3. **RAG Pipeline** (`ragService.ts`): Builds rich portfolio context from PostgreSQL based on the classified intent. Queries holdings, allocations, goals, accounts, and recent transactions to inject into the LLM system prompt.
+   Sub-intents are also classified (e.g., `portfolio` → `portfolio_explain` or `portfolio_health`; `market` → `market_news`) for fine-grained policy and routing decisions.
 
-4. **Memory System** (`memoryService.ts`): Three-tier memory architecture:
+3. **Policy Engine** (`policyEngine.ts`): Code-driven policy evaluation per tenant configuration. Evaluates the classified intent against tenant rules to produce a `PolicyDecision` containing:
+   - `advisory_mode`: Whether Ada operates in `education_only` or `full_advisory` mode
+   - `allowed_tools`: Which tools the LLM may invoke for this request
+   - `require_human_review`: Whether the response must include an advisor handoff
+   - `disclosure_profile`: Which disclosure text to append (education, general, execution)
+   - `execution_route`: For execution requests, where to route (rm_handoff, api_webhook, disabled)
+   - Feature flags: `allow_simulator`, `allow_widgets`, `allow_fact_extraction`
+
+4. **Model Router** (`modelRouter.ts`): Selects the AI model based on intent complexity. Currently routes all intents to gpt-5-mini but supports `FAST_MODEL` vs `STRONG_MODEL` configuration for future multi-model routing.
+
+5. **RAG Pipeline** (`ragService.ts`): Builds rich portfolio context from PostgreSQL based on the classified intent. Queries holdings, allocations, goals, accounts, and recent transactions to inject into the LLM system prompt.
+
+6. **Prompt Builder** (`promptBuilder.ts`): Assembles modular system prompts from components:
+   - Persona block (Ada identity, tone, GCC HNW context)
+   - Execution boundary block (hard prohibition on trade execution)
+   - Advisory mode instructions (education-only vs full advisory)
+   - Portfolio context (from RAG pipeline)
+   - Memory context (episodic + semantic)
+   - Tool definitions and usage guidelines
+   - Disclosure requirements per policy
+
+7. **Memory System** (`memoryService.ts`): Three-tier memory architecture:
    - **Working memory**: In-memory conversation turns (per thread, max 20 messages). Provides immediate context.
    - **Episodic memory**: Summarized conversation episodes stored in `episodic_memories` table. Retrieved by relevance to current conversation.
    - **Semantic memory**: Extracted user facts and preferences stored in `semantic_facts` table (e.g., "User plans to retire in 10 years", "User prefers conservative investments"). Persisted via the `extract_user_fact` tool call.
 
-5. **LLM Call** (`aiService.ts`): OpenAI gpt-5-mini with:
+8. **LLM Call** (`aiService.ts`): OpenAI gpt-5-mini with:
    - System prompt containing persona instructions, portfolio context, memories, and available tools.
    - `max_completion_tokens` (not `max_tokens`) for token budget control.
    - Streaming enabled via SSE for progressive text rendering.
 
-6. **Tool Calling**: The LLM can invoke three tools during a response:
+9. **Tool Calling**: The LLM can invoke 8 tools during a response, with multi-turn support (up to 3 rounds of tool calls per request):
 
-   | Tool | Purpose | UI Result |
-   |---|---|---|
-   | `show_simulator` | Triggers interactive financial simulator | Inline simulator component with sliders |
-   | `show_widget` | Embeds a data visualization widget | Inline chart/summary in chat |
-   | `extract_user_fact` | Saves a user preference or fact to semantic memory | Silent persistence (no UI) |
+   | Tool | Category | Purpose | UI Result |
+   |---|---|---|---|
+   | `get_portfolio_snapshot` | Financial | Retrieve portfolio overview with positions | Data injected into response |
+   | `get_holdings_detail` | Financial | Get detailed position-level data | Data injected into response |
+   | `get_market_data` | Financial | Fetch market quotes and analysis | Data injected into response |
+   | `get_news_summary` | Financial | Retrieve market/company news | Data injected into response |
+   | `calculate_wealth_metric` | Financial | Run wealth engine calculations (health, concentration, drift) | Data injected into response |
+   | `route_to_advisor` | Financial | Package execution request for RM handoff | Advisor handoff widget |
+   | `show_simulator` | UI | Triggers interactive financial simulator | Inline simulator component with sliders |
+   | `show_widget` | UI | Embeds a data visualization widget | Inline chart/summary in chat |
+   | `extract_user_fact` | Memory | Saves a user preference or fact to semantic memory | Silent persistence (no UI) |
 
    **Simulator types**: `retirement`, `investment`, `spending`, `tax` — each with domain-specific sliders and calculations rendered by `ScenarioSimulator.tsx`.
 
-   **Widget types**: `allocation_chart`, `holdings_summary`, `goal_progress`, `portfolio_summary` — rendered by `ChatWidgets.tsx` components (`AllocationChartWidget`, `HoldingsSummaryWidget`, `GoalProgressWidget`, `PortfolioSummaryWidget`).
+   **Widget types**: `allocation_chart`, `holdings_summary`, `goal_progress`, `portfolio_summary`, `advisor_handoff` — rendered by `ChatWidgets.tsx` components.
 
-7. **Streaming** (`POST /api/chat/stream`): Responses stream via Server-Sent Events (SSE) with the following event types (defined in `ChatStreamEvent`):
-   - `text` — Incremental text chunks for progressive rendering (`{ type: 'text', content: string }`).
-   - `widget` — Embedded data widget (`{ type: 'widget', widget: { type: string } }`).
-   - `simulator` — Interactive simulator (`{ type: 'simulator', simulator: { type: string, initialValues?: Record<string, number> } }`).
-   - `suggested_questions` — Array of 3 follow-up suggestions (`{ type: 'suggested_questions', suggestedQuestions: string[] }`).
-   - `done` — Stream complete signal.
-   - `error` — Error event if the LLM call fails.
+10. **Wealth Engine** (`wealthEngine.ts`): Deterministic financial calculations that the LLM invokes via the `calculate_wealth_metric` tool:
+    - `portfolio_health`: Overall portfolio health score based on diversification, concentration, and drift
+    - `concentration_risk`: Per-asset-class and per-position concentration analysis
+    - `allocation_drift`: Drift between current and target allocation
+    - `rebalance_preview`: Suggested trades to bring portfolio back to target
 
-8. **Suggested Questions**: The LLM generates 3 contextual follow-up suggestions after each response. These are specific to the conversation context, not generic defaults.
+11. **Guardrails** (`guardrails.ts`): Pre-streaming sanitization applied to every response:
+    - Blocked phrase detection (absolute claims, guaranteed returns)
+    - Execution-claiming language detection (7 regex patterns) with RM-routing replacements
+    - Hard post-check fallback for any surviving execution claims
+    - Education-only advisory enforcement
+    - Security naming compliance
+    - Data freshness warnings
+    - Disclosure injection per policy profile
 
-9. **Audit Logging** (`chat_audit_log` table): Every interaction is logged with: user ID, thread ID, classified intent, PII detection result, model used, token count (prompt + completion), and timestamp.
+12. **Response Builder** (`responseBuilder.ts`): Constructs structured `AdaAnswer` responses conforming to the Zod-validated schema, including headline, summary, citations, recommendations, actions, and render hints. Maps `AdaAnswer` to SSE stream events.
+
+13. **Streaming** (`POST /api/chat/stream`): Responses stream via Server-Sent Events (SSE) with the following event types (defined in `ChatStreamEvent`):
+    - `text` — Incremental text chunks for progressive rendering (`{ type: 'text', content: string }`).
+    - `widget` — Embedded data widget (`{ type: 'widget', widget: { type: string } }`).
+    - `simulator` — Interactive simulator (`{ type: 'simulator', simulator: { type: string, initialValues?: Record<string, number> } }`).
+    - `suggested_questions` — Array of 3 follow-up suggestions (`{ type: 'suggested_questions', suggestedQuestions: string[] }`).
+    - `done` — Stream complete signal.
+    - `error` — Error event if the LLM call fails.
+
+14. **Trace Logging** (`traceLogger.ts`): Persists full agent execution traces to the `agent_traces` and `tool_runs` tables for observability and debugging. Each trace captures: session ID, intent, model used, tool calls with inputs/outputs, latency, token usage, and policy decisions.
+
+15. **Suggested Questions**: The LLM generates 3 contextual follow-up suggestions after each response. These are specific to the conversation context, not generic defaults.
+
+16. **Audit Logging** (`chat_audit_log` table): Every interaction is logged with: user ID, thread ID, classified intent, PII detection result, model used, token count (prompt + completion), and timestamp.
+
+### Execution Guardrails & RM Handoff
+
+Ada operates under a hard execution boundary: it can analyze, recommend, and prepare trade plans, but it **cannot execute trades, place orders, or move funds**. This is enforced at three layers:
+
+1. **System Prompt**: The prompt builder injects an EXECUTION BOUNDARY block instructing the LLM that it cannot execute — only prepare plans for the user's Relationship Manager.
+2. **Guardrails**: 7 regex-based patterns detect execution-claiming language (e.g., "I will execute", "order submitted", "trade confirmed") and replace them with RM-routing language. A hard post-check fallback catches any surviving claims.
+3. **Orchestrator Fallback**: If the LLM receives an `execution_request` intent but doesn't call the `route_to_advisor` tool, the orchestrator forces the handoff automatically (fail-closed).
+
+The `route_to_advisor` tool packages the user's execution request and routes it based on tenant configuration:
+- **rm_handoff** (default): Persists to the `advisor_action_queue` table for the user's assigned RM to review.
+- **api_webhook**: POSTs to a configurable webhook URL, with queue fallback if the webhook fails or is unconfigured.
+- **disabled**: Rejects execution requests with an explanation.
+
+The frontend `AdvisorHandoffWidget` renders differently for execution handoffs (showing RM name, action context, and queue reference) vs. generic advisory handoffs (showing a simpler recommendation card).
+
+### External Data Providers
+
+Ada integrates with 6 external data source providers via a configurable provider chain pattern. Each data domain supports a `primary → secondary → fallback → mock` chain configured via environment variables:
+
+| Domain | Provider | Data Provided |
+|---|---|---|
+| Market Data | Finnhub | Real-time quotes, company profiles, earnings calendars, company news |
+| Macro/Economic | FRED (Federal Reserve) | GDP, CPI, unemployment, fed funds rate, treasury yields |
+| Regulatory | SEC EDGAR | Company submissions, XBRL financial facts, filing search |
+| Identity | OpenFIGI | Instrument resolution (ISIN/CUSIP/ticker → FIGI) with DB persistence |
+| FX Rates | Frankfurter (ECB) | EUR-based cross rates for major currencies |
+| FX Localized | CBUAE | AED-localized FX rates with Frankfurter fallback |
+
+All providers default to mock. Real providers activate only via explicit env var config (`*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK`). Features include:
+- In-memory cache with per-data-type TTLs
+- Rate limiting (per-second for SEC EDGAR, per-minute for others)
+- Sliding-window health tracking (5-min window, min 5 attempts, 50% failure threshold)
+- Cache hit/miss metrics in every `ToolResult`
+
+### Multi-Tenant Configuration
+
+Ada supports multi-tenant configuration via the `tenants` and `tenant_configs` tables. Each tenant can customize:
+- **Advisory mode**: Education-only vs. full advisory
+- **Allowed tools**: Which tools the LLM can invoke
+- **Disclosure requirements**: Which disclaimers to append
+- **Execution routing**: How trade requests are handled (rm_handoff, api_webhook, disabled)
+- **Feature flags**: Simulator, widget, and fact extraction toggles
+- **Locale and currency**: Regional settings
+
+One tenant is seeded: `bank_demo_uae` (UAE-based demo bank with moderate advisory mode).
 
 ### Chat UI Elements
 
@@ -585,7 +681,7 @@ The following endpoints duplicate wealth endpoints at shorter paths:
 
 ## 8. Data Model
 
-### Database: PostgreSQL (23 tables)
+### Database: PostgreSQL (33 tables)
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌──────────────┐
@@ -640,6 +736,20 @@ AI Memory, Audit & Life Planning tables (linked to users):
 │ dismissed_life_gap_prompts │
 └───────────────────────────┘
 
+Agent Architecture tables:
+┌──────────────┐     ┌──────────────┐
+│   tenants     │────>│tenant_configs │
+└──────────────┘     └──────────────┘
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│ instruments   │     │market_quotes  │     │  news_items   │
+└──────────────┘     └──────────────┘     └──────────────┘
+┌──────────────┐     ┌──────────────┐     ┌───────────────────┐
+│  tool_runs    │     │ agent_traces  │     │policy_decisions    │
+└──────────────┘     └──────────────┘     └───────────────────┘
+┌───────────────────────┐     ┌────────────────────────┐
+│conversation_summaries  │     │ advisor_action_queue    │
+└───────────────────────┘     └────────────────────────┘
+
 Standalone tables:
 ┌──────────────┐     ┌──────────────┐
 │content_items  │     │peer_segments  │
@@ -676,6 +786,16 @@ Standalone tables:
 | `semantic_facts` | `id` (TEXT) | user_id (FK), fact, category, source_thread_id (FK), created_at | Extracted user preferences/facts for AI personalization |
 | `chat_audit_log` | `id` (SERIAL) | user_id (FK), thread_id, action, intent, pii_detected, input_preview, model, tokens_used, created_at | AI interaction audit trail |
 | `dismissed_life_gap_prompts` | `id` (SERIAL) | user_id (FK), prompt_key (UNIQUE pair), dismissed_at | Tracks dismissed life-gap prompts per user |
+| `tenants` | `id` (TEXT) | name, display_name, region, locale, base_currency, is_active | Multi-tenant support; 1 seeded (bank_demo_uae) |
+| `tenant_configs` | `id` (SERIAL) | tenant_id (FK), advisory_mode, requires_advisor_handoff, allowed_tools, disclosure_profile, execution_routing_mode, execution_webhook_url, can_prepare_trade_plans | Tenant-level policy configuration |
+| `instruments` | `id` (SERIAL) | symbol, name, asset_class, exchange, isin, figi, sedol | Instrument master data; 8 seeded |
+| `market_quotes` | `id` (SERIAL) | symbol, price, change_pct, volume, source, fetched_at | Market data cache from providers |
+| `news_items` | `id` (SERIAL) | headline, summary, source, url, symbols, published_at | News cache from providers |
+| `tool_runs` | `id` (TEXT) | trace_id, tool_name, input, output, status, started_at, ended_at, latency_ms | Individual tool execution records for tracing |
+| `agent_traces` | `id` (TEXT) | session_id, user_id, thread_id, intent, model, total_latency_ms, tool_count, token_usage, created_at | Full agent execution traces |
+| `policy_decisions` | `id` (TEXT) | trace_id, tenant_id, intent, advisory_mode, allowed_tools, require_human_review, disclosure_profile, execution_route | Policy decisions for each request |
+| `conversation_summaries` | `id` (TEXT) | thread_id, user_id, summary, turn_count, created_at | Compressed conversation summaries |
+| `advisor_action_queue` | `id` (SERIAL) | user_id, advisor_id, action_type, action_payload, status, created_at | Pending execution requests for RM review |
 
 ### Table Name Mapping (Spec vs Actual)
 
@@ -697,7 +817,7 @@ Standalone tables:
 |---|---|
 | Frontend | React 18 + TypeScript, Vite 6, Tailwind CSS v4, TanStack Query v5 |
 | Backend | Express + TypeScript (via `tsx`), port 3001 |
-| Database | PostgreSQL (Replit-managed), 23 tables |
+| Database | PostgreSQL (Replit-managed), 33 tables |
 | AI | OpenAI gpt-5-mini (Replit AI Integrations), streaming SSE |
 | Animations | Framer Motion v11 (`motion/react`), AnimatePresence transitions |
 | Fonts | Crimson Pro, DM Sans (Google Fonts) |
@@ -711,16 +831,27 @@ Standalone tables:
 ```
 Request → Express Router → asyncHandler → Service → Repository → PostgreSQL
                                    │
-                                   ├── AI Pipeline (chat):
-                                   │   PII Detection → Intent Classification → RAG → Memory → LLM → Tools → Streaming
+                                   ├── Agent Pipeline (chat):
+                                   │   PII Detection → Session Hydration → Intent Classification
+                                   │   → Policy Evaluation → Model Routing → RAG → Prompt Assembly
+                                   │   → Memory → LLM → Multi-Turn Tools → Wealth Engine
+                                   │   → Guardrails → Response Building → SSE Streaming
+                                   │   → Trace Logging → Memory Persistence → Audit Logging
+                                   │
+                                   ├── External Providers:
+                                   │   Finnhub, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE
+                                   │   (primary → secondary → fallback → mock chain)
                                    │
                                    └── AI Pipeline (sentinel):
                                        Portfolio Analysis → Anomaly Detection → LLM → SSE Streaming
 ```
 
-- **Repository pattern**: `server/repositories/` — data access layer with direct SQL queries via `pg` pool.
-- **Service layer**: `server/services/` — business logic combining multiple repositories.
-- **AI services**: `aiService.ts` (OpenAI client), `chatService.ts` (orchestration), `intentClassifier.ts`, `ragService.ts`, `memoryService.ts`, `piiDetector.ts`, `goalService.ts`, `morningSentinelService.ts`.
+- **Repository pattern**: `server/repositories/` — data access layer with direct SQL queries via `pg` pool. 6 repositories: user, portfolio, content, chat, poll, agent.
+- **Service layer**: `server/services/` — 17 services covering business logic, agent orchestration, and AI pipelines.
+- **Agent services**: `agentOrchestrator.ts` (core pipeline), `policyEngine.ts` (tenant policies), `modelRouter.ts` (model selection), `promptBuilder.ts` (prompt assembly), `responseBuilder.ts` (structured responses), `traceLogger.ts` (observability), `guardrails.ts` (post-response sanitization), `wealthEngine.ts` (deterministic calculations), `financialTools.ts` (tool definitions + dispatch), `rmHandoffService.ts` (execution routing).
+- **AI services**: `aiService.ts` (OpenAI client), `chatService.ts` (legacy orchestration), `intentClassifier.ts`, `ragService.ts`, `memoryService.ts`, `piiDetector.ts`, `goalService.ts`, `morningSentinelService.ts`.
+- **Provider layer**: `server/providers/` — 6 external data providers with registry, caching, rate limiting, and health tracking.
+- **Shared schemas**: `shared/schemas/agent.ts` — Zod schemas for `AdaAnswer`, `ToolResult`, `PolicyDecision`, `IntentClassification`, and related types.
 - **asyncHandler**: Wraps async route handlers to catch errors and pass to Express error handler.
 - **Global error handler**: Catches unhandled errors, logs the actual message server-side, and returns a generic `500 { error: 'Internal server error' }` response.
 - **SSE streaming**: Two SSE endpoints — `POST /api/chat/stream` (chat) and `GET /api/morning-sentinel/stream` (briefing).
@@ -823,8 +954,16 @@ main.tsx (QueryClient + prefetch)
 | **Chat Memory** | Built | Working (in-memory), episodic (DB), semantic facts (DB) — three-tier architecture |
 | **Notifications** | Built | DB-backed alerts, category filtering, unread indicators |
 | **Client Environment** | Built | Onboarding splash screen (Figma-generated) |
-| **PostgreSQL Database** | Built | 23 tables, 4 personas, full seed data |
-| **REST API** | Built | 25+ endpoints, asyncHandler, global error handler, 2 SSE streams |
+| **Agent Architecture** | Built | Full agent orchestrator with policy engine, model router, prompt builder, response builder, trace logger, guardrails, wealth engine, financial tools |
+| **External Data Providers** | Built | 6 providers (Finnhub, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE) with primary/secondary/fallback/mock chain, caching, rate limiting, health tracking |
+| **Multi-Tenant Config** | Built | Tenant-level policy, advisory mode, allowed tools, disclosure profile, execution routing |
+| **Execution Guardrails** | Built | 3-layer enforcement (system prompt, guardrail regex, orchestrator fallback). Ada never claims execution capability |
+| **RM Handoff** | Built | Execution requests routed to advisor via advisor_action_queue (rm_handoff), webhook (api_webhook), or rejected (disabled) |
+| **Wealth Engine** | Built | Deterministic calculations for portfolio health, concentration risk, allocation drift, rebalance preview |
+| **Structured Responses** | Built | Zod-validated AdaAnswer schema with headline, summary, citations, recommendations, actions, render hints |
+| **Agent Tracing** | Built | Full trace logging to agent_traces + tool_runs tables for observability |
+| **PostgreSQL Database** | Built | 33 tables, 8 personas, full seed data |
+| **REST API** | Built | 34 endpoints, asyncHandler, global error handler, 2 SSE streams |
 | **Loading Skeletons** | Built | All data-fetching screens |
 | **Error States** | Built | All data-fetching screens |
 | **Animations** | Built | Tab transitions (horizontal slide), overlay transitions (slide-up), animated tab indicator |
@@ -865,3 +1004,9 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-18 | T011: TypeScript Validation | Fixed all 112 TypeScript errors. Registered `npm run typecheck` as CI validation. Added typescript, @types/react, @types/react-dom as direct devDependencies. |
 | 2026-03-18 | T012: Morning Sentinel Performance | Prefetch on app init (main.tsx). SSE streaming fallback in useMorningSentinel hook. StreamingSentinel progressive UI component. Server-side deduplication with inFlightRequests Map. 4h cache TTL with gcTime + staleTime. |
 | 2026-03-18 | PRD Update | Comprehensive PRD audit — updated chat section (LLM pipeline), added Morning Sentinel, Goals & Life Planning, AI architecture, streaming, 3 new DB tables (22 total), 8 new API endpoints (25+ total), updated implementation status. |
+| 2026-03-19 | Agent Task #1: DB & Data Foundation | Added 10 new tables (tenants, tenant_configs, instruments, market_quotes, news_items, tool_runs, agent_traces, policy_decisions, conversation_summaries). 8 personas, 8 instruments, market quotes, news items seeded. agentRepository.ts for all agent-related DB operations. Zod schemas in shared/schemas/agent.ts. |
+| 2026-03-19 | Agent Task #2: Agent Architecture & Intelligence | Full agent orchestrator replacing chatService pipeline. Policy engine, model router, prompt builder, response builder, trace logger, guardrails, wealth engine, financial tools (8 tools with multi-turn support). Structured AdaAnswer responses. |
+| 2026-03-19 | Agent Task #3: External Data Providers | 6 external providers: Finnhub (market), FRED (macro), SEC EDGAR (regulatory), OpenFIGI (identity), Frankfurter (FX), CBUAE (FX localized). Provider registry with primary/secondary/fallback/mock chain. In-memory caching, rate limiting, sliding-window health tracking. |
+| 2026-03-20 | Agent Task #5: Verify & Fix Agent Architecture | Fixed intent sub-routing (portfolio_health, portfolio_explain, market_news). Fixed guardrails-before-streaming ordering. Fixed advisor handoff widget deduplication. Verified all 8 tools dispatch correctly. End-to-end pipeline verified. |
+| 2026-03-21 | Agent Task #6: Execution Guardrails & RM Handoff | execution_request intent classification (20+ keywords). 3-layer execution boundary (system prompt, guardrails, orchestrator fallback). rmHandoffService with rm_handoff/api_webhook/disabled routing. route_to_advisor tool. advisor_action_queue table. Enhanced AdvisorHandoffWidget with RM name, action context, queue reference. Tenant config extended with execution_routing_mode, execution_webhook_url, can_prepare_trade_plans. |
+| 2026-03-21 | PRD Update | Updated PRD to reflect agent architecture: 33 tables, 34 endpoints, 17 services, 6 providers, 8 AI tools, execution guardrails, RM handoff, multi-tenant config. |

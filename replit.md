@@ -1,7 +1,7 @@
 # Ada — AI Wealth Copilot
 
 ## Overview
-Ada is a mobile-first AI wealth management copilot prototype designed for GCC HNW investors. It's a full-stack application featuring an Express backend, PostgreSQL database, and a React frontend with an LLM-powered AI chat. The project aims to provide a comprehensive financial assistant with capabilities for portfolio analysis, goal tracking, market insights, and personalized recommendations, built on a robust agent architecture with multi-tenant support and full observability.
+Ada is a mobile-first AI wealth management copilot prototype designed for GCC HNW investors. It's a full-stack application featuring an Express backend, PostgreSQL database, and a React frontend with an LLM-powered AI chat built on a production-grade agent architecture. The project provides a comprehensive financial assistant with capabilities for portfolio analysis, goal tracking, market insights, personalized recommendations, execution guardrails with RM handoff, multi-tenant support, and full agent observability.
 
 ## User Preferences
 Not specified.
@@ -10,49 +10,64 @@ Not specified.
 Ada is built on a full-stack architecture with a React frontend, an Express/TypeScript backend, and a PostgreSQL database.
 
 **Frontend (React 18 + TypeScript):**
-- **UI/UX**: Mobile-first design, Tailwind CSS v4 for styling, custom fonts (Crimson Pro, DM Sans).
+- **UI/UX**: Mobile-first design (max 430px), Tailwind CSS v4 for styling, custom fonts (Crimson Pro, DM Sans).
 - **State Management & Data Fetching**: TanStack Query v5 for API interactions.
 - **Navigation**: useState-based routing for Home, Wealth, Discover, and Collective tabs.
-- **Chat Features**: SSE streaming for real-time text rendering, embedded data widgets, interactive scenario simulators, dynamic suggested questions, and context passing from other screens.
-- **Animations**: Uses AnimatePresence for tab transitions and overlays, and Framer Motion for an animated tab indicator.
+- **Chat Features**: SSE streaming for real-time text rendering, embedded data widgets (allocation chart, holdings summary, goal progress, portfolio summary, advisor handoff), interactive scenario simulators, dynamic suggested questions, and context passing from other screens.
+- **Animations**: AnimatePresence for tab transitions and overlays, Framer Motion for animated tab indicator.
 
 **Backend (Express + TypeScript):**
-- **API**: RESTful API endpoints for health checks, user profiles, home summary, wealth data, notifications, content, and comprehensive chat functionalities including SSE streaming for AI chat.
-- **Agent Orchestrator**: A core service (`agentOrchestrator.ts`) that manages the AI chat pipeline, including PII detection, session hydration, intent classification, policy evaluation, model routing, RAG pipeline, prompt assembly, memory management (working, episodic, semantic), LLM function calling with 8 financial and UI tools, wealth engine calculations, guardrails, response building, and trace logging.
-- **Services**:
-    - `aiService.ts`: Manages OpenAI client and streaming completions.
-    - `financialTools.ts`: Defines and dispatches 8 OpenAI function-calling tools.
-    - `policyEngine.ts`: Evaluates code-driven policies based on tenant configuration and intent.
-    - `wealthEngine.ts`: Provides deterministic financial calculations for portfolio health, concentration, allocation, and drift.
-    - `promptBuilder.ts`: Assembles modular system prompts.
-    - `modelRouter.ts`: Selects AI models based on intent complexity.
-    - `responseBuilder.ts`: Constructs structured `AdaAnswer` responses and maps them to SSE events.
-    - `traceLogger.ts`: Persists agent traces and tool runs to the database.
-    - `guardrails.ts`: Performs post-response sanitization.
-    - `intentClassifier.ts`: Classifies user messages into intents.
-    - `ragService.ts`: Builds portfolio context from user data.
-    - `memoryService.ts`: Manages three-tier memory for conversations.
-    - `piiDetector.ts`: Detects and redacts PII from user input.
-    - `morningSentinelService.ts`: Generates AI-powered daily briefings with anomaly detection.
-- **Data Access Layer**: `repositories/` directory for PostgreSQL queries.
-- **Provider Pattern**: Employs a provider pattern with 7 data provider interfaces (Portfolio, Market, News, Macro, FX, FxLocalized, Research, Identity). Phase 1 external providers: Finnhub (quotes, profiles, earnings, news), FRED (macro indicators), SEC EDGAR (submissions, company facts/XBRL, filing search), OpenFIGI (identity resolution with DB persistence), Frankfurter (ECB FX rates), CBUAE (AED-localized FX with Frankfurter fallback). All providers default to mock — real providers activate only via explicit env var config (`*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK`). Full primary→secondary→fallback→mock chain per domain. `FX_PROVIDER_LOCALIZED` controls UAE-specific FX routing. In-memory cache with per-data-type TTLs; cache hit/miss metrics in every ToolResult. Rate limiting (per-second for SEC EDGAR, per-minute for others) and sliding-window health tracking. Phase 2/3 stubs wired into registry: Marketaux, ECB, Twelve Data, FMP, CoinGecko, Yahoo Finance.
-- **Policy Engine**: Code-driven policy decisions per tenant, controlling advisory mode, allowed tools, disclosure profile, execution routing, and feature flags.
-- **Execution Guardrails & RM Handoff**: Ada cannot execute trades or claim execution capability. System prompt contains a hard execution boundary. Guardrails detect and replace execution-claiming language. Execution requests are classified via `execution_request` intent and always routed to the user's Relationship Manager. The `route_to_advisor` tool packages action requests and persists them to the `advisor_action_queue` table (or POSTs to a webhook for `api_webhook` mode). Tenant config controls routing via `execution_routing_mode` (rm_handoff/api_webhook/disabled), `execution_webhook_url`, and `can_prepare_trade_plans`.
-- **Agent Tracing & Observability**: Detailed logging of tool runs and agent traces for full observability.
-- **Structured Responses**: Uses a standardized `AdaAnswer` schema for structured AI responses, including headline, summary, insights, recommendations, and render hints.
-- **Validation**: Zod for runtime schema validation of AI and policy contracts.
-- **Error Handling**: `asyncHandler` wrapper for Express routes and a global error handler.
+- **API**: 34 RESTful endpoints including 2 SSE streams for AI chat and Morning Sentinel.
+- **Agent Orchestrator** (`agentOrchestrator.ts`): Core service managing the AI chat pipeline — PII detection → session hydration → intent classification → policy evaluation → model routing → RAG → prompt assembly → memory → LLM → multi-turn tool execution → wealth engine → guardrails → response building → SSE streaming → trace logging → memory persistence → audit logging.
+- **17 Services**:
+    - `agentOrchestrator.ts`: Core agent pipeline
+    - `policyEngine.ts`: Tenant-level policy evaluation (advisory mode, allowed tools, disclosure profile, execution routing)
+    - `modelRouter.ts`: AI model selection by intent complexity
+    - `promptBuilder.ts`: Modular system prompt assembly with execution boundary
+    - `responseBuilder.ts`: Zod-validated AdaAnswer construction
+    - `traceLogger.ts`: Agent trace and tool run persistence
+    - `guardrails.ts`: Post-response sanitization (blocked phrases, execution claims, security naming, data freshness, disclosures)
+    - `wealthEngine.ts`: Deterministic financial calculations (portfolio health, concentration, drift, rebalance)
+    - `financialTools.ts`: 9 OpenAI function-calling tools with multi-turn support
+    - `rmHandoffService.ts`: Execution request routing (rm_handoff/api_webhook/disabled)
+    - `aiService.ts`: OpenAI client and streaming completions
+    - `chatService.ts`: Legacy orchestration (replaced by agentOrchestrator)
+    - `intentClassifier.ts`: Two-stage intent classification
+    - `ragService.ts`: Portfolio context building from PostgreSQL
+    - `memoryService.ts`: Three-tier memory (working/episodic/semantic)
+    - `piiDetector.ts`: PII detection and redaction
+    - `goalService.ts`: Goal health scores, life gap analysis, life event suggestions
+    - `morningSentinelService.ts`: AI daily briefing with anomaly detection
+- **6 Repositories**: user, portfolio, content, chat, poll, agent
+- **Provider Pattern**: 6 external data providers (Finnhub, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE) with primary→secondary→fallback→mock chain per domain. In-memory cache, rate limiting, sliding-window health tracking. All default to mock; real providers activate via `*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK` env vars.
+- **Execution Guardrails & RM Handoff**: Ada cannot execute trades or claim execution capability. Enforced at 3 layers: system prompt boundary, guardrail regex (7 patterns + hard post-check), orchestrator fallback. Execution requests routed to RM via `advisor_action_queue` (rm_handoff), webhook (api_webhook), or rejected (disabled). Tenant config controls routing.
+- **Shared Schemas**: `shared/schemas/agent.ts` — Zod schemas for AdaAnswer, ToolResult, PolicyDecision, IntentClassification, TenantConfig.
 
 **Database (PostgreSQL):**
-- Contains 32 tables covering core application data (users, accounts, portfolios, goals, chat, content), agent architecture data (tenants, tenant_configs, instruments, market_quotes, news_items, tool_runs, agent_traces, policy_decisions, conversation_summaries), and execution routing (advisor_action_queue).
-- `schema.sql` defines the schema, and `seed.sql` provides demo data for 8 personas, instruments, market quotes, and news items.
+- 33 tables covering: core app data (users, accounts, portfolios, goals, chat, content), agent architecture (tenants, tenant_configs, instruments, market_quotes, news_items, tool_runs, agent_traces, policy_decisions, conversation_summaries), and execution routing (advisor_action_queue).
+- 8 seeded personas, 8 instruments, market quotes, news items, 1 tenant (bank_demo_uae).
+
+## Key Configuration
+- **MODEL**: gpt-5-mini (both FAST_MODEL and STRONG_MODEL)
+- **Default user**: user-abdullah (DEFAULT_USER_ID in api.ts)
+- **Default tenant**: bank_demo_uae
+- **SSE event types**: text, widget, simulator, suggested_questions, done, error
+- **Execution routing**: defaults to rm_handoff; configurable per tenant
+- **Provider config**: `*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK` env vars; all default to 'mock'
+
+## Documentation
+- **PRD.md**: Living product requirements document (sections 1-12)
+- **CHANGELOG.md**: Detailed change log organized by task
+- **ISSUES.md**: Active issue tracker with severity levels (P0-P4)
+- **BACKLOG.md**: Feature backlog and future phases
+- **MIGRATION_NOTES.md**: Historical migration and refactoring notes
 
 ## External Dependencies
-- **OpenAI**: Used for AI capabilities via Replit AI Integrations, specifically the `gpt-5-mini` model, with streaming SSE for chat and Morning Sentinel.
-- **PostgreSQL**: The primary database, managed by Replit.
-- **Vite**: Frontend build tool and development server.
-- **Tailwind CSS**: Utility-first CSS framework for styling.
-- **TanStack Query**: For data fetching and caching in the frontend.
-- **Zod**: For runtime schema validation.
-- **ESLint & Prettier**: For code linting and formatting.
-- **Framer Motion**: For animations in the frontend.
+- **OpenAI**: AI capabilities via Replit AI Integrations, gpt-5-mini model, SSE streaming
+- **PostgreSQL**: Primary database, managed by Replit
+- **Vite**: Frontend build tool and development server
+- **Tailwind CSS**: Utility-first CSS framework
+- **TanStack Query**: Frontend data fetching and caching
+- **Zod**: Runtime schema validation for agent types
+- **Framer Motion**: Frontend animations
+- **ESLint & Prettier**: Code linting and formatting

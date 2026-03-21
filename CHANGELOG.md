@@ -4,6 +4,127 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Agent Task #6 — Execution Guardrails & RM Handoff
+**Date:** March 21, 2026
+
+### Added
+- **`execution_request` intent type** in `intentClassifier.ts` — 20+ keywords (execute, place order, buy for me, sell for me, go ahead, confirm trade, etc.) with highest priority classification
+- **Execution boundary block** in `promptBuilder.ts` — hard system prompt instruction prohibiting Ada from claiming trade execution capability
+- **7 guardrail regex patterns** in `guardrails.ts` — detect execution-claiming language (e.g., "I will execute", "order submitted", "trade confirmed") and replace with RM-routing language; hard post-check fallback for any surviving claims
+- **`rmHandoffService.ts`** — new service with three routing modes:
+  - `rm_handoff` (default): Persists to `advisor_action_queue` table for RM review
+  - `api_webhook`: POSTs to configurable webhook URL with queue fallback
+  - `disabled`: Rejects execution requests with explanation
+- **`route_to_advisor` tool** in `financialTools.ts` — LLM-callable tool to package execution requests; included in `FINANCIAL_TOOL_DEFINITIONS` with OpenAI function schema
+- **Orchestrator fallback** in `agentOrchestrator.ts` — if LLM receives `execution_request` intent but doesn't call `route_to_advisor`, orchestrator forces handoff automatically (fail-closed)
+- **`advisor_action_queue` table** — stores pending execution requests with user_id, advisor_id, action_type, action_payload, status, timestamps
+- **Enhanced `AdvisorHandoffWidget`** in `ChatWidgets.tsx` — shows RM name, action context, and queue reference for execution handoffs; backward-compatible with generic advisory handoffs
+
+### Changed
+- **`tenant_configs` table** — added `execution_routing_mode` (rm_handoff/api_webhook/disabled), `execution_webhook_url`, `can_prepare_trade_plans` columns
+- **`PolicyDecision` schema** — extended with `execution_route` field
+- **Policy engine** — `execution_request` intent always sets `require_human_review: true` with `execution_route` in decision; `route_to_advisor` added to allowed tools via execution_route profile
+- **Guardrails ordering** — execution pattern checks run before education-only advisory checks
+
+### Verified
+- "Execute a trade for me" → Ada refuses execution, queues to advisor, emits contextual handoff widget with queueId
+- Normal portfolio/market/goal queries unaffected
+- No duplicate advisor widgets in stream
+
+---
+
+## Agent Task #5 — Verify & Fix Agent Architecture
+**Date:** March 20, 2026
+
+### Fixed
+- **Intent sub-routing** — `portfolio_health` and `portfolio_explain` sub-intents now correctly map through `mapOldIntentToNew()` from legacy intent classification
+- **`market_news` sub-intent** — added explicit mapping so market news queries use correct policy evaluation and RAG context
+- **Guardrails-before-streaming** — guardrail sanitization now runs before SSE events are emitted (was running after streaming in some code paths)
+- **Advisor handoff widget deduplication** — orchestrator tracks whether an advisor widget was already emitted by tool execution; prevents duplicate widgets when policy also requires advisor review
+
+### Verified
+- All 8 financial/UI tools dispatch correctly via `financialTools.ts`
+- Multi-turn tool calling works (LLM can call tools, get results, and call more tools up to 3 rounds)
+- Agent traces and tool runs persist to database
+- Policy decisions persist to database
+- End-to-end pipeline verified with live API calls
+
+---
+
+## Agent Task #3 — External Data Source Integration (Phase 1)
+**Date:** March 19, 2026
+
+### Added
+- **Finnhub provider** (`server/providers/finnhub.ts`) — real-time quotes, company profiles, earnings calendars, company news; API key via `FINNHUB_API_KEY` env var
+- **FRED provider** (`server/providers/fred.ts`) — Federal Reserve Economic Data: GDP, CPI, unemployment rate, fed funds rate, 10Y treasury yield; API key via `FRED_API_KEY` env var
+- **SEC EDGAR provider** (`server/providers/secEdgar.ts`) — company submissions, XBRL financial facts, full-text filing search; rate limited to 10 req/sec per SEC policy; User-Agent via `SEC_EDGAR_USER_AGENT` env var
+- **OpenFIGI provider** (`server/providers/openFigi.ts`) — instrument identity resolution (ISIN/CUSIP/ticker → FIGI); results persisted to `instruments` table; API key via `OPENFIGI_API_KEY` env var
+- **Frankfurter provider** (`server/providers/frankfurter.ts`) — ECB-sourced FX rates for major currency pairs; no API key required
+- **CBUAE provider** (`server/providers/cbuae.ts`) — Central Bank of UAE AED-localized FX rates with Frankfurter fallback
+- **Provider registry** (`server/providers/registry.ts`) — configurable chain: `*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK` env vars; all default to 'mock'
+- **In-memory cache** (`server/providers/cache.ts`) — per-data-type TTLs, cache hit/miss metrics in every `ToolResult`
+- **Rate limiting** — per-second (SEC EDGAR) and per-minute (others) limiters
+- **Sliding-window health tracking** — 5-min window, min 5 attempts, 50% failure rate threshold
+- **Phase 2/3 stubs** (`server/providers/stubs.ts`) — wired into registry: Marketaux, ECB, Twelve Data, FMP, CoinGecko, Yahoo Finance
+
+### Changed
+- `financialTools.ts` — tool dispatch integrates with provider registry for `get_market_data`, `get_news_summary`
+- `ToolResult` schema — includes `source_name`, `source_type`, `as_of`, `latency_ms`, and cache metrics
+
+---
+
+## Agent Task #2 — Agent Architecture & Intelligence Overhaul
+**Date:** March 19, 2026
+
+### Added
+- **`agentOrchestrator.ts`** — core agent pipeline replacing `chatService.ts` as the primary chat handler. Full pipeline: PII detection → session hydration → intent classification → policy evaluation → model routing → RAG → prompt assembly → memory → LLM → multi-turn tools → wealth engine → guardrails → response building → streaming → trace logging
+- **`policyEngine.ts`** — code-driven policy evaluation per tenant config. Returns `PolicyDecision` with advisory mode, allowed tools, human review requirements, disclosure profile
+- **`modelRouter.ts`** — selects AI model based on intent complexity; supports FAST_MODEL vs STRONG_MODEL; currently routes all to gpt-5-mini
+- **`promptBuilder.ts`** — modular system prompt assembly from persona, advisory mode, portfolio context, memory, tools, and disclosures
+- **`responseBuilder.ts`** — constructs Zod-validated `AdaAnswer` responses with headline, summary, citations, recommendations, actions, render hints; maps to SSE events
+- **`traceLogger.ts`** — persists agent traces and tool runs to `agent_traces` and `tool_runs` tables
+- **`guardrails.ts`** — post-response sanitization: blocked phrases, security naming, data freshness, disclosures
+- **`wealthEngine.ts`** — deterministic financial calculations: portfolio health, concentration risk, allocation drift, rebalance preview
+- **`financialTools.ts`** — 8 OpenAI function-calling tools: get_portfolio_snapshot, get_holdings_detail, get_market_data, get_news_summary, calculate_wealth_metric, route_to_advisor, show_simulator, show_widget, extract_user_fact
+- **Multi-turn tool calling** — LLM can call tools, get results, and call more tools (up to 3 rounds per request)
+- **Structured `AdaAnswer` schema** (`shared/schemas/agent.ts`) — Zod schemas for all agent types: ToolResult, Citation, RecommendationItem, Action, AdaAnswer, PolicyDecision, IntentClassification, TenantConfig
+
+### Changed
+- `POST /api/chat/stream` — now routes through `agentOrchestrator.runAgentPipeline()` instead of `chatService`
+- Intent classification — two-stage: legacy intent → `IntentClassification` schema mapping via `mapOldIntentToNew()`
+
+---
+
+## Agent Task #1 — Database & Data Foundation for Agent Architecture
+**Date:** March 19, 2026
+
+### Added
+- **10 new database tables** in `schema.sql`:
+  - `tenants` — multi-tenant support with region, locale, base currency
+  - `tenant_configs` — per-tenant policy: advisory mode, allowed tools, disclosure profile, feature flags
+  - `instruments` — instrument master data with symbol, name, asset class, exchange, ISIN, FIGI, SEDOL
+  - `market_quotes` — market data cache with price, change %, volume, source, timestamp
+  - `news_items` — news cache with headline, summary, source, symbols, published date
+  - `tool_runs` — individual tool execution records for agent tracing
+  - `agent_traces` — full agent execution traces with session, intent, model, latency, tokens
+  - `policy_decisions` — policy evaluation records per request
+  - `conversation_summaries` — compressed conversation summaries
+  - `advisor_action_queue` — pending execution requests for RM review (added in Task #6)
+- **Seed data** in `seed.sql`:
+  - 1 tenant: `bank_demo_uae` with full config
+  - 8 personas (4 original + 4 new: Khalid Al-Mansoori, Noura Al-Shamsi, Rashed Al-Maktoum, Amina Al-Dhaheri)
+  - 8 instruments (AAPL, MSFT, NVDA, AGG, GLD, BTC, ETH, AAPL-bond)
+  - Market quotes for all instruments
+  - 3 news items
+- **`agentRepository.ts`** — data access layer for all agent architecture tables
+- **`shared/schemas/agent.ts`** — Zod validation schemas for AdaAnswer, ToolResult, PolicyDecision, IntentClassification, TenantConfig, and related types
+
+### Changed
+- Database table count: 23 → 33
+- Persona count: 4 → 8
+
+---
+
 ## Deployment Fix — Express Wildcard Route
 **Date:** March 18, 2026
 
@@ -463,13 +584,16 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 | Metric | Value |
 |--------|-------|
-| PostgreSQL tables | 23 |
-| API endpoints | 25+ (including 2 SSE streams) |
+| PostgreSQL tables | 33 |
+| API endpoints | 34 (including 2 SSE streams) |
 | React components | 65+ |
 | React hooks | 15+ |
-| Backend services | 8 (ai, chat, intent, rag, memory, pii, goal, sentinel) |
-| Database repositories | 5 |
-| AI tools | 3 (simulator, widget, fact extraction) |
+| Backend services | 17 (agent orchestrator, policy engine, model router, prompt builder, response builder, trace logger, guardrails, wealth engine, financial tools, RM handoff, AI, chat, intent, RAG, memory, PII, goal, sentinel) |
+| Database repositories | 6 (user, portfolio, content, chat, poll, agent) |
+| External data providers | 6 (Finnhub, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE) |
+| AI tools | 9 (portfolio snapshot, holdings detail, market data, news summary, wealth metric, route to advisor, simulator, widget, fact extraction) |
 | Memory tiers | 3 (working, episodic, semantic) |
 | SSE streams | 2 (chat, morning sentinel) |
+| Guardrail checks | 7 (blocked phrases, execution claims ×7 regex, hard post-check, education advisory, security naming, data freshness, disclosures) |
+| Execution enforcement layers | 3 (system prompt, guardrail regex, orchestrator fallback) |
 | TypeScript errors fixed | 112 |
