@@ -370,8 +370,9 @@ async function* handleLane0(
   yield { type: 'suggested_questions', suggestedQuestions: suggestions };
 
   const fullResponse = narration;
+  const widgetsJson = widgets.length > 0 ? JSON.stringify(widgets) : null;
   memoryService.addToWorkingMemory(threadId, { role: 'assistant', content: fullResponse });
-  await contentRepo.insertChatMessageWithWidgets(threadId, 'assistant', fullResponse, null);
+  await contentRepo.insertChatMessageWithWidgets(threadId, 'assistant', fullResponse, widgetsJson);
   await contentRepo.updateThreadPreview(threadId, fullResponse.slice(0, 100));
 
   timings.total_ms = Date.now() - startTime;
@@ -445,22 +446,23 @@ export async function* orchestrateStream(
     inputPreview: piiResult.hasPii ? piiResult.sanitized.slice(0, 100) : req.message.slice(0, 100),
   });
 
+  const intentStart = Date.now();
+  const intent = buildIntentClassification(sanitizedMessage);
+  timings.intent_classification_ms = Date.now() - intentStart;
+
   const sessionStart = Date.now();
-  const [tenantIdResult, userProfileResult, intentResult] = await Promise.all([
+  const [tenantIdResult, userProfileResult] = await Promise.all([
     agentRepo.getUserTenantId(userId),
     userRepo.findUserById(userId),
-    Promise.resolve(buildIntentClassification(sanitizedMessage)),
   ]);
   const tenantId = tenantIdResult;
   const userProfile = userProfileResult;
-  const intent = intentResult;
 
   const tenantConfig = tenantId
     ? (await agentRepo.getTenantConfig(tenantId)) ?? await agentRepo.getDefaultTenantConfig()
     : await agentRepo.getDefaultTenantConfig();
 
   timings.session_hydrate_ms = Date.now() - sessionStart;
-  timings.intent_classification_ms = timings.session_hydrate_ms;
 
   const policyStart = Date.now();
   const riskProfile: RiskProfile | undefined = userProfile?.riskProfile;
@@ -812,10 +814,15 @@ export async function* orchestrateStream(
     }
 
     timings.post_checks_ms = Date.now() - postStart;
-
-    const suggestPromise = generateSuggestedQuestions(conversationHistory, fullResponse, modelSelection.provider_alias);
-
     timings.total_ms = Date.now() - startTime;
+
+    const suggestResult = await generateSuggestedQuestions(conversationHistory, fullResponse, modelSelection.provider_alias);
+    const suggestedQuestions = suggestResult.questions;
+    totalTokens += suggestResult.tokens;
+
+    if (suggestedQuestions.length > 0) {
+      yield { type: 'suggested_questions', suggestedQuestions };
+    }
 
     const traceCtx: TraceContext = {
       conversationId: threadId,
@@ -832,41 +839,32 @@ export async function* orchestrateStream(
       tenantConfig,
       guardrailInterventions,
     });
-
-    const [suggestResult] = await Promise.all([
-      suggestPromise,
-      logAgentTrace({
-        ctx: traceCtx,
-        intent,
-        policyDecision,
-        modelName: modelSelection.model,
-        toolSetExposed: allowedToolNames,
-        toolCallsMade: toolResults,
-        finalAnswer: adaAnswer,
-        responseTimeMs: timings.total_ms,
-        stepTimings: timings,
-        guardrailInterventions,
-        escalationDecisions,
-        routeDecision: route,
-        scorecard,
-      }).catch(() => {}),
-      memoryService.logAudit({
-        userId,
-        threadId,
-        action: 'response_generated',
-        intent: intent.primary_intent,
-        model: modelSelection.model,
-        tokensUsed: totalTokens,
-      }).catch(() => {}),
-    ]);
-
-    const suggestedQuestions = suggestResult.questions;
-    totalTokens += suggestResult.tokens;
     adaAnswer.suggested_questions = suggestedQuestions;
 
-    if (suggestedQuestions.length > 0) {
-      yield { type: 'suggested_questions', suggestedQuestions };
-    }
+    logAgentTrace({
+      ctx: traceCtx,
+      intent,
+      policyDecision,
+      modelName: modelSelection.model,
+      toolSetExposed: allowedToolNames,
+      toolCallsMade: toolResults,
+      finalAnswer: adaAnswer,
+      responseTimeMs: timings.total_ms,
+      stepTimings: timings,
+      guardrailInterventions,
+      escalationDecisions,
+      routeDecision: route,
+      scorecard,
+    }).catch(() => {});
+
+    memoryService.logAudit({
+      userId,
+      threadId,
+      action: 'response_generated',
+      intent: intent.primary_intent,
+      model: modelSelection.model,
+      tokensUsed: totalTokens,
+    }).catch(() => {});
 
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
