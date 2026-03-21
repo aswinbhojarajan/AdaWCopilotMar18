@@ -301,6 +301,7 @@ export async function* orchestrateStream(
   const guardrailInterventions: string[] = [];
   const escalationDecisions: string[] = [];
   let totalTokens = 0;
+  const pendingUiEvents: StreamEvent[] = [];
 
   try {
     const llmStart = Date.now();
@@ -416,11 +417,11 @@ export async function* orchestrateStream(
         try { args = JSON.parse(tc.arguments); } catch { /* empty */ }
 
         if (tc.name === 'show_simulator') {
-          yield { type: 'simulator', simulator: { type: args.type as string, initialValues: args.initialValues as Record<string, number> | undefined } };
+          pendingUiEvents.push({ type: 'simulator', simulator: { type: args.type as string, initialValues: args.initialValues as Record<string, number> | undefined } });
           widgets.push({ type: 'simulator' });
           uiResults.push({ role: 'tool' as const, tool_call_id: tc.id, content: JSON.stringify({ success: true, displayed: true }) });
         } else if (tc.name === 'show_widget') {
-          yield { type: 'widget', widget: { type: args.type as string } };
+          pendingUiEvents.push({ type: 'widget', widget: { type: args.type as string } });
           widgets.push({ type: args.type as string });
           uiResults.push({ role: 'tool' as const, tool_call_id: tc.id, content: JSON.stringify({ success: true, displayed: true }) });
         } else if (tc.name === 'extract_user_fact') {
@@ -455,6 +456,10 @@ export async function* orchestrateStream(
     }
 
     yield { type: 'text', content: fullResponse };
+
+    for (const uiEvent of pendingUiEvents) {
+      yield uiEvent;
+    }
 
     if (guardrailResult.appendedDisclosures.length > 0) {
       const disclosureText = '\n\n' + guardrailResult.appendedDisclosures.join(' ');
