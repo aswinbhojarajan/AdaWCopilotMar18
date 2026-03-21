@@ -178,10 +178,13 @@ INSERT INTO peer_segments (asset_class, user_percent, peer_percent, color) VALUE
   ('Alternatives', 10, 15, '#8b5a5d')
 ON CONFLICT DO NOTHING;
 
--- Performance History (Abdullah - 1 year of daily data)
+-- Performance History (Abdullah - 1 year, moderate growth with moderate volatility)
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-abdullah',
-       78000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 46.19,
+       78000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 46.19
+         + 1200 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.08)
+         + 800 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.23)
+         + 400 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.41),
        d::date
 FROM generate_series(
   CURRENT_DATE - INTERVAL '365 days',
@@ -190,7 +193,6 @@ FROM generate_series(
 ) AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 
--- Update the most recent performance_history entry to match snapshot
 UPDATE performance_history
 SET value = 94830.19
 WHERE user_id = 'user-abdullah' AND recorded_date = CURRENT_DATE;
@@ -538,27 +540,50 @@ INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount,
   ('txn-nad-4', 'acc-nad-2', 'buy', 'XOM', 15, 102.00, 1530.00, NOW() - INTERVAL '40 days')
 ON CONFLICT (id) DO NOTHING;
 
--- Performance History for new personas (abbreviated - last 90 days representative data)
+-- Khalid: Conservative, low volatility, slow steady growth
 INSERT INTO performance_history (user_id, value, recorded_date)
-SELECT 'user-khalid', 640000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 109.89, d::date
+SELECT 'user-khalid',
+       640000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 109.89
+         + 600 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.06)
+         + 300 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.15),
+       d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 650000.00 WHERE user_id = 'user-khalid' AND recorded_date = CURRENT_DATE;
 
+-- Sara: Moderate, balanced growth with some fluctuation
 INSERT INTO performance_history (user_id, value, recorded_date)
-SELECT 'user-sara', 145000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 77.94, d::date
+SELECT 'user-sara',
+       145000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 77.94
+         + 1500 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.09)
+         + 900 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.28)
+         + 500 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.5),
+       d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 173500.00 WHERE user_id = 'user-sara' AND recorded_date = CURRENT_DATE;
 
+-- Raj: Aggressive, high volatility with drawdowns and sharp recoveries
 INSERT INTO performance_history (user_id, value, recorded_date)
-SELECT 'user-raj', 160000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 72.47, d::date
+SELECT 'user-raj',
+       160000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 72.47
+         + 5000 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.07)
+         + 3500 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.19)
+         + 2000 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.35)
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 180 AND 210 THEN 8000 ELSE 0 END
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 300 AND 320 THEN 5500 ELSE 0 END,
+       d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 186500.00 WHERE user_id = 'user-raj' AND recorded_date = CURRENT_DATE;
 
+-- Nadia: Moderate-conservative, steady with low volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
-SELECT 'user-nadia', 245000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 83.42, d::date
+SELECT 'user-nadia',
+       245000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 83.42
+         + 1000 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.07)
+         + 600 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.2),
+       d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 275500.00 WHERE user_id = 'user-nadia' AND recorded_date = CURRENT_DATE;
@@ -630,20 +655,38 @@ ON CONFLICT (id) DO NOTHING;
 -- Performance History for Fatima, Omar, Layla (365-day series)
 -- ============================================================
 
+-- Fatima: Conservative, low volatility, gentle upward trend
 INSERT INTO performance_history (user_id, value, recorded_date)
-SELECT 'user-fatima', 140000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 70.27, d::date
+SELECT 'user-fatima',
+       140000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 70.27
+         + 700 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.05)
+         + 400 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.13),
+       d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 165700.00 WHERE user_id = 'user-fatima' AND recorded_date = CURRENT_DATE;
 
+-- Omar: Aggressive, high volatility with sharp swings and drawdowns
 INSERT INTO performance_history (user_id, value, recorded_date)
-SELECT 'user-omar', 82000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 54.93, d::date
+SELECT 'user-omar',
+       82000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 54.93
+         + 4000 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.08)
+         + 2800 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.22)
+         + 1500 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.37)
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 150 AND 175 THEN 6000 ELSE 0 END,
+       d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 102100.00 WHERE user_id = 'user-omar' AND recorded_date = CURRENT_DATE;
 
+-- Layla: Moderate, balanced volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
-SELECT 'user-layla', 98000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 34.25, d::date
+SELECT 'user-layla',
+       98000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 34.25
+         + 1100 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.07)
+         + 700 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.2)
+         + 400 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.38),
+       d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 110500.00 WHERE user_id = 'user-layla' AND recorded_date = CURRENT_DATE;
