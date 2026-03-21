@@ -1,7 +1,10 @@
 import OpenAI from 'openai';
 import type { Intent } from './intentClassifier';
 import type { PortfolioContext } from './ragService';
-import { openai, MODEL } from './openaiClient';
+import { openai } from './openaiClient';
+import { resolveModel } from './modelRouter';
+
+const MODEL = resolveModel('ada-fast');
 
 export { openai, MODEL };
 

@@ -1,5 +1,6 @@
 import { saveAgentTrace, saveToolRun } from '../repositories/agentRepository';
 import type { IntentClassification, PolicyDecision, AdaAnswer, ToolResult } from '../../shared/schemas/agent';
+import type { RouteDecision, RequestScorecard } from './modelRouter';
 
 export interface TraceContext {
   conversationId: string;
@@ -30,10 +31,32 @@ export async function logAgentTrace(params: {
   stepTimings: StepTimings;
   guardrailInterventions: string[];
   escalationDecisions: string[];
+  routeDecision?: RouteDecision;
+  scorecard?: RequestScorecard;
 }): Promise<number> {
   const timingsRecord: Record<string, number> = {};
   for (const [k, v] of Object.entries(params.stepTimings)) {
     if (v !== undefined) timingsRecord[k] = v;
+  }
+
+  if (params.routeDecision) {
+    timingsRecord['__lane'] = params.routeDecision.lane === 'lane0' ? 0 : params.routeDecision.lane === 'lane1' ? 1 : 2;
+    timingsRecord['__max_tokens'] = params.routeDecision.max_tokens;
+    timingsRecord['__temperature_x100'] = Math.round(params.routeDecision.temperature * 100);
+  }
+
+  const modelLabel = params.routeDecision
+    ? `${params.modelName} [${params.routeDecision.lane}/${params.routeDecision.provider_alias}]`
+    : params.modelName;
+
+  const reasoningEffort = params.scorecard?.reasoning_effort ?? params.intent.reasoning_effort;
+
+  const escalations = [...params.escalationDecisions];
+  if (params.routeDecision) {
+    escalations.unshift(`Route: ${params.routeDecision.lane} — ${params.routeDecision.rationale.join('; ')}`);
+  }
+  if (params.scorecard) {
+    escalations.unshift(`Scorecard: risk=${params.scorecard.risk_level}, deterministic=${params.scorecard.requires_deterministic_math}, tools=${params.scorecard.tool_count_estimate}, channel=${params.scorecard.channel}`);
   }
 
   return saveAgentTrace({
@@ -43,15 +66,15 @@ export async function logAgentTrace(params: {
     user_id: params.ctx.userId,
     intent_classification: params.intent.primary_intent,
     policy_decision: params.policyDecision,
-    model_name: params.modelName,
-    reasoning_effort: params.intent.reasoning_effort,
+    model_name: modelLabel,
+    reasoning_effort: reasoningEffort,
     tool_set_exposed: params.toolSetExposed,
     tool_calls_made: params.toolCallsMade,
     final_answer: params.finalAnswer,
     response_time_ms: params.responseTimeMs,
     step_timings: timingsRecord,
     guardrail_interventions: params.guardrailInterventions,
-    escalation_decisions: params.escalationDecisions,
+    escalation_decisions: escalations,
   });
 }
 

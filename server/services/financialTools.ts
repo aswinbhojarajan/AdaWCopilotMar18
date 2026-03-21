@@ -1,7 +1,36 @@
 import type OpenAI from 'openai';
 import type { ProviderRegistry } from '../providers/types';
 import type { ToolResult } from '../../shared/schemas/agent';
+import type { ToolGroup } from './modelRouter';
 import * as wealthEngine from './wealthEngine';
+
+const TOOL_GROUP_MAP: Record<string, ToolGroup> = {
+  getPortfolioSnapshot: 'financial_data',
+  getHoldings: 'financial_data',
+  getQuotes: 'market_intel',
+  getHoldingsRelevantNews: 'market_intel',
+  calculatePortfolioHealth: 'financial_data',
+  route_to_advisor: 'crm_actions',
+  show_simulator: 'ui_actions',
+  show_widget: 'ui_actions',
+  extract_user_fact: 'ui_actions',
+};
+
+export function getToolGroup(toolName: string): ToolGroup | undefined {
+  return TOOL_GROUP_MAP[toolName];
+}
+
+export function filterToolNamesByGroups(
+  toolNames: string[],
+  allowedGroups: ToolGroup[],
+): string[] {
+  if (allowedGroups.length === 0) return [];
+  const groupSet = new Set<ToolGroup>(allowedGroups);
+  return toolNames.filter(name => {
+    const group = TOOL_GROUP_MAP[name];
+    return group !== undefined && groupSet.has(group);
+  });
+}
 
 export const FINANCIAL_TOOL_DEFINITIONS: OpenAI.ChatCompletionTool[] = [
   {

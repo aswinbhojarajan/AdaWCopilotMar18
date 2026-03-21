@@ -22,16 +22,16 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
 - **17 Services**:
     - `agentOrchestrator.ts`: Core agent pipeline
     - `policyEngine.ts`: Tenant-level policy evaluation (advisory mode, allowed tools, disclosure profile, execution routing)
-    - `modelRouter.ts`: AI model selection by intent complexity
+    - `modelRouter.ts`: Lane-based multi-model routing (Lane 0 deterministic, Lane 1 fast, Lane 2 reasoning) with request scorecards, provider aliases, per-lane token/temperature budgets
     - `promptBuilder.ts`: Modular system prompt assembly with execution boundary
     - `responseBuilder.ts`: Zod-validated AdaAnswer construction
-    - `traceLogger.ts`: Agent trace and tool run persistence
+    - `traceLogger.ts`: Agent trace and tool run persistence with lane metadata, scorecard, and route decision telemetry
     - `guardrails.ts`: Post-response sanitization (blocked phrases, execution claims, security naming, data freshness, disclosures)
     - `wealthEngine.ts`: Deterministic financial calculations (portfolio health, concentration, drift, rebalance)
-    - `financialTools.ts`: 9 OpenAI function-calling tools with multi-turn support
+    - `financialTools.ts`: 9 OpenAI function-calling tools with multi-turn support, tool group mapping (financial_data/market_intel/ui_actions/crm_actions), lane-based filtering
     - `rmHandoffService.ts`: Execution request routing (rm_handoff/api_webhook/disabled)
     - `aiService.ts`: OpenAI client and streaming completions
-    - `chatService.ts`: Legacy orchestration (replaced by agentOrchestrator)
+    - `streamTypes.ts`: StreamEvent type definition for SSE events
     - `intentClassifier.ts`: Two-stage intent classification
     - `ragService.ts`: Portfolio context building from PostgreSQL
     - `memoryService.ts`: Three-tier memory (working/episodic/semantic)
@@ -48,7 +48,7 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
 - 8 seeded personas, 8 instruments, market quotes, news items, 1 tenant (bank_demo_uae).
 
 ## Key Configuration
-- **MODEL**: gpt-5-mini (both FAST_MODEL and STRONG_MODEL)
+- **MODEL**: gpt-5-mini via provider aliases (ada-fast → gpt-5-mini, ada-reason → gpt-5-mini)
 - **Default user**: user-abdullah (DEFAULT_USER_ID in api.ts)
 - **Default tenant**: bank_demo_uae
 - **SSE event types**: text, widget, simulator, suggested_questions, done, error

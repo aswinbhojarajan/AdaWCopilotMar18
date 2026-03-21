@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
 import type { ChatMessageRequest, RiskProfile } from '../../shared/types';
 import type { IntentClassification, ToolResult, AdaAnswer } from '../../shared/schemas/agent';
-import type { StreamEvent } from './chatService';
-import { openai, MODEL } from './openaiClient';
+import type { StreamEvent } from './streamTypes';
+import { openai } from './openaiClient';
 import * as intentClassifier from './intentClassifier';
 import * as ragService from './ragService';
 import * as memoryService from './memoryService';
@@ -14,8 +14,22 @@ import { getProviderRegistry } from '../providers/registry';
 import type { ProviderRegistry } from '../providers/types';
 import { evaluatePolicy } from './policyEngine';
 import { buildAgentPrompt } from './promptBuilder';
-import { selectModel } from './modelRouter';
-import { getToolDefinitions, executeFinancialTool, isFinancialTool, FINANCIAL_TOOL_DEFINITIONS, UI_TOOL_DEFINITIONS } from './financialTools';
+import {
+  selectModel,
+  buildScorecard,
+  routeRequest,
+  resolveModel,
+  type RequestScorecard,
+  type RouteDecision,
+} from './modelRouter';
+import {
+  getToolDefinitions,
+  executeFinancialTool,
+  isFinancialTool,
+  filterToolNamesByGroups,
+  FINANCIAL_TOOL_DEFINITIONS,
+  UI_TOOL_DEFINITIONS,
+} from './financialTools';
 import { buildAdaAnswer } from './responseBuilder';
 import { runPostChecks } from './guardrails';
 import { logAgentTrace, logToolRun } from './traceLogger';
@@ -181,6 +195,111 @@ async function prefetchToolData(
   return { results, enrichment };
 }
 
+async function* handleLane0(
+  userId: string,
+  intent: IntentClassification,
+  registry: ProviderRegistry,
+  riskLevel: string,
+  scorecard: RequestScorecard,
+  route: RouteDecision,
+  threadId: string,
+  messageId: string,
+  sanitizedMessage: string,
+  tenantConfig: ReturnType<typeof import('./policyEngine').evaluatePolicy> extends infer T ? T extends { allow_response: boolean } ? Parameters<typeof evaluatePolicy>[0] : never : never,
+  policyDecision: ReturnType<typeof evaluatePolicy>,
+  timings: StepTimings,
+  startTime: number,
+): AsyncGenerator<StreamEvent> {
+  const prefetchStart = Date.now();
+  const snapshotResult = await executeFinancialTool('getPortfolioSnapshot', {}, userId, registry, riskLevel);
+  snapshotResult.latency_ms = Date.now() - prefetchStart;
+  timings.tool_execution_ms = Date.now() - prefetchStart;
+
+  const data = snapshotResult.data as Record<string, unknown> | null;
+  if (!data || snapshotResult.status !== 'ok') {
+    yield { type: 'text', content: 'I was unable to retrieve your portfolio data right now. Please try again shortly.' };
+    yield { type: 'done' };
+    return;
+  }
+
+  const totalValue = Number(data.total_value ?? 0);
+  const dailyChange = Number(data.daily_change_amount ?? 0);
+  const dailyChangePct = Number(data.daily_change_percent ?? 0);
+  const changeDir = dailyChange >= 0 ? 'up' : 'down';
+  let narration = `Your portfolio is currently valued at **$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**. It's ${changeDir} **${Math.abs(dailyChangePct).toFixed(2)}%** ($${Math.abs(dailyChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) today.`;
+
+  const guardrailResult = runPostChecks(narration, tenantConfig, policyDecision, [snapshotResult]);
+  if (!guardrailResult.passed) {
+    narration = guardrailResult.sanitizedText;
+  }
+  if (guardrailResult.appendedDisclosures.length > 0) {
+    narration += '\n\n' + guardrailResult.appendedDisclosures.join(' ');
+  }
+
+  yield { type: 'text', content: narration };
+
+  yield { type: 'suggested_questions', suggestedQuestions: [
+    'How are my holdings performing?',
+    'Is my portfolio well-diversified?',
+    'What market news affects me today?',
+  ] };
+
+  const fullResponse = narration;
+  memoryService.addToWorkingMemory(threadId, { role: 'assistant', content: fullResponse });
+  await contentRepo.insertChatMessageWithWidgets(threadId, 'assistant', fullResponse, null);
+  await contentRepo.updateThreadPreview(threadId, fullResponse.slice(0, 100));
+
+  timings.total_ms = Date.now() - startTime;
+
+  const traceCtx: TraceContext = { conversationId: threadId, messageId, tenantId: tenantConfig.tenant_id, userId };
+  logAgentTrace({
+    ctx: traceCtx,
+    intent,
+    policyDecision,
+    modelName: 'deterministic',
+    toolSetExposed: [],
+    toolCallsMade: [snapshotResult],
+    responseTimeMs: timings.total_ms,
+    stepTimings: timings,
+    guardrailInterventions: [],
+    escalationDecisions: [],
+    routeDecision: route,
+    scorecard,
+  }).catch(() => {});
+
+  yield { type: 'done' };
+}
+
+async function generateSuggestedQuestions(
+  conversationHistory: OpenAI.ChatCompletionMessageParam[],
+  fullResponse: string,
+  providerAlias: string,
+): Promise<{ questions: string[]; tokens: number }> {
+  const suggestMessages: OpenAI.ChatCompletionMessageParam[] = [
+    { role: 'system', content: 'Based on the conversation, generate exactly 3 short follow-up questions the user might want to ask next. Return ONLY a JSON array of 3 strings, no other text.' },
+    ...conversationHistory,
+    { role: 'assistant', content: fullResponse },
+  ];
+
+  try {
+    const suggestResponse = await openai.chat.completions.create({
+      model: resolveModel('ada-fast'),
+      messages: suggestMessages,
+      max_completion_tokens: 256,
+    });
+    const suggestContent = suggestResponse.choices[0]?.message?.content || '';
+    const jsonMatch = suggestContent.match(/\[[\s\S]*\]/);
+    const questions = jsonMatch ? (JSON.parse(jsonMatch[0]) as string[]).slice(0, 3) : [];
+    const tokens = suggestResponse.usage?.total_tokens ?? 0;
+    return { questions, tokens };
+  } catch {
+    return {
+      questions: ['Tell me more about my portfolio', 'How is the market doing?', 'What should I focus on?'],
+      tokens: 0,
+    };
+  }
+}
+
 export async function* orchestrateStream(
   userId: string,
   req: ChatMessageRequest,
@@ -202,20 +321,21 @@ export async function* orchestrateStream(
   });
 
   const sessionStart = Date.now();
-  const [tenantId, userProfile] = await Promise.all([
+  const [tenantIdResult, userProfileResult, intentResult] = await Promise.all([
     agentRepo.getUserTenantId(userId),
     userRepo.findUserById(userId),
+    Promise.resolve(buildIntentClassification(sanitizedMessage)),
   ]);
+  const tenantId = tenantIdResult;
+  const userProfile = userProfileResult;
+  const intent = intentResult;
 
   const tenantConfig = tenantId
     ? (await agentRepo.getTenantConfig(tenantId)) ?? await agentRepo.getDefaultTenantConfig()
     : await agentRepo.getDefaultTenantConfig();
 
   timings.session_hydrate_ms = Date.now() - sessionStart;
-
-  const intentStart = Date.now();
-  const intent = buildIntentClassification(sanitizedMessage);
-  timings.intent_classification_ms = Date.now() - intentStart;
+  timings.intent_classification_ms = timings.session_hydrate_ms;
 
   const policyStart = Date.now();
   const riskProfile: RiskProfile | undefined = userProfile?.riskProfile;
@@ -233,18 +353,38 @@ export async function* orchestrateStream(
     // non-blocking
   }
 
+  const channel = req.context?.sourceScreen ?? 'chat';
+  const scorecard = buildScorecard(intent, channel);
+  const route = routeRequest(scorecard, policyDecision);
+
   const registry = getProviderRegistry(tenantConfig.provider_config);
+  const riskLevel = riskProfile?.level ?? 'moderate';
+
+  await contentRepo.ensureChatThread(userId, threadId, req.message.slice(0, 60));
+  await contentRepo.insertChatMessage(threadId, 'user', req.message);
+  memoryService.addToWorkingMemory(threadId, { role: 'user', content: sanitizedMessage });
+
+  if (route.lane === 'lane0') {
+    yield* handleLane0(
+      userId, intent, registry, riskLevel, scorecard, route,
+      threadId, messageId, sanitizedMessage,
+      tenantConfig, policyDecision, timings, startTime,
+    );
+    return;
+  }
 
   const getToolName = (t: OpenAI.ChatCompletionTool): string => t.type === 'function' ? t.function.name : '';
   const allToolNames = [
     ...FINANCIAL_TOOL_DEFINITIONS.map(getToolName),
     ...UI_TOOL_DEFINITIONS.map(getToolName),
   ];
-  const allowedToolNames = allToolNames.filter(t => policyDecision.allowed_tools.includes(t));
+  const policyFilteredTools = allToolNames.filter(t => policyDecision.allowed_tools.includes(t));
+  const allowedToolNames = route.tool_groups.length > 0
+    ? filterToolNamesByGroups(policyFilteredTools, route.tool_groups)
+    : policyFilteredTools;
   const tools = getToolDefinitions(allowedToolNames);
 
-  const modelSelection = selectModel(intent, policyDecision, intent.suggested_tools.length);
-  const riskLevel = riskProfile?.level ?? 'moderate';
+  const modelSelection = selectModel(intent, policyDecision, intent.suggested_tools.length, channel);
 
   const prefetchStart = Date.now();
   const [portfolioContext, episodicMemories, semanticFacts, prefetched] = await Promise.all([
@@ -291,10 +431,6 @@ export async function* orchestrateStream(
     toolNames: allowedToolNames,
   });
 
-  await contentRepo.ensureChatThread(userId, threadId, req.message.slice(0, 60));
-  await contentRepo.insertChatMessage(threadId, 'user', req.message);
-  memoryService.addToWorkingMemory(threadId, { role: 'user', content: sanitizedMessage });
-
   const conversationHistory = memoryService.getWorkingMemory(threadId);
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
@@ -314,6 +450,7 @@ export async function* orchestrateStream(
     const MAX_TOOL_TURNS = 3;
     let currentMessages = [...messages];
     let turnCount = 0;
+    let isLastTurn = false;
 
     while (turnCount < MAX_TOOL_TURNS) {
       turnCount++;
@@ -365,11 +502,14 @@ export async function* orchestrateStream(
 
       fullResponse += turnBuffer;
 
-      if (toolCalls.length === 0) break;
+      if (toolCalls.length === 0) {
+        isLastTurn = true;
+        break;
+      }
 
       const assistantMsg: OpenAI.ChatCompletionAssistantMessageParam = {
         role: 'assistant',
-        content: fullResponse || null,
+        content: turnBuffer || null,
         tool_calls: toolCalls.map(tc => ({
           id: tc.id,
           type: 'function' as const,
@@ -412,7 +552,7 @@ export async function* orchestrateStream(
               advisorName: handoffResult.advisorName,
               actionContext: (args.summary as string) ?? undefined,
               queueId: handoffResult.queueId,
-            } as { type: string },
+            },
           });
           widgets.push({ type: 'advisor_handoff' });
           escalationDecisions.push(`Execution routed to advisor: ${handoffResult.message}`);
@@ -491,7 +631,6 @@ export async function* orchestrateStream(
       }
 
       currentMessages = [...currentMessages, assistantMsg, ...orderedToolResults];
-      fullResponse = '';
     }
 
     timings.llm_generation_ms = Date.now() - llmStart;
@@ -503,16 +642,15 @@ export async function* orchestrateStream(
       fullResponse = guardrailResult.sanitizedText;
     }
 
+    if (guardrailResult.appendedDisclosures.length > 0) {
+      const disclosureText = '\n\n' + guardrailResult.appendedDisclosures.join(' ');
+      fullResponse += disclosureText;
+    }
+
     yield { type: 'text', content: fullResponse };
 
     for (const uiEvent of pendingUiEvents) {
       yield uiEvent;
-    }
-
-    if (guardrailResult.appendedDisclosures.length > 0) {
-      const disclosureText = '\n\n' + guardrailResult.appendedDisclosures.join(' ');
-      fullResponse += disclosureText;
-      yield { type: 'text', content: disclosureText };
     }
 
     const alreadyHasAdvisorWidget = widgets.some(w => w.type === 'advisor_handoff');
@@ -535,7 +673,7 @@ export async function* orchestrateStream(
             advisorName: fallbackHandoff.advisorName,
             actionContext: sanitizedMessage,
             queueId: fallbackHandoff.queueId,
-          } as { type: string },
+          },
         };
         widgets.push({ type: 'advisor_handoff' });
       }
@@ -549,42 +687,7 @@ export async function* orchestrateStream(
 
     timings.post_checks_ms = Date.now() - postStart;
 
-    const suggestMessages: OpenAI.ChatCompletionMessageParam[] = [
-      { role: 'system', content: 'Based on the conversation, generate exactly 3 short follow-up questions the user might want to ask next. Return ONLY a JSON array of 3 strings, no other text.' },
-      ...conversationHistory,
-      { role: 'assistant', content: fullResponse },
-    ];
-
-    let suggestedQuestions: string[] = [];
-    try {
-      const suggestResponse = await openai.chat.completions.create({
-        model: MODEL,
-        messages: suggestMessages,
-        max_completion_tokens: 256,
-      });
-      const suggestContent = suggestResponse.choices[0]?.message?.content || '';
-      const jsonMatch = suggestContent.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        suggestedQuestions = (JSON.parse(jsonMatch[0]) as string[]).slice(0, 3);
-      }
-      if (suggestResponse.usage) totalTokens += suggestResponse.usage.total_tokens;
-    } catch {
-      suggestedQuestions = ['Tell me more about my portfolio', 'How is the market doing?', 'What should I focus on?'];
-    }
-
-    if (suggestedQuestions.length > 0) {
-      yield { type: 'suggested_questions', suggestedQuestions };
-    }
-
-    const adaAnswer = buildAdaAnswer({
-      intent,
-      policyDecision,
-      llmText: fullResponse,
-      toolResults,
-      tenantConfig,
-      guardrailInterventions,
-    });
-    adaAnswer.suggested_questions = suggestedQuestions;
+    const suggestPromise = generateSuggestedQuestions(conversationHistory, fullResponse, modelSelection.provider_alias);
 
     timings.total_ms = Date.now() - startTime;
 
@@ -595,8 +698,18 @@ export async function* orchestrateStream(
       userId,
     };
 
-    try {
-      await logAgentTrace({
+    const adaAnswer = buildAdaAnswer({
+      intent,
+      policyDecision,
+      llmText: fullResponse,
+      toolResults,
+      tenantConfig,
+      guardrailInterventions,
+    });
+
+    const [suggestResult] = await Promise.all([
+      suggestPromise,
+      logAgentTrace({
         ctx: traceCtx,
         intent,
         policyDecision,
@@ -608,19 +721,26 @@ export async function* orchestrateStream(
         stepTimings: timings,
         guardrailInterventions,
         escalationDecisions,
-      });
-    } catch {
-      // non-blocking
-    }
+        routeDecision: route,
+        scorecard,
+      }).catch(() => {}),
+      memoryService.logAudit({
+        userId,
+        threadId,
+        action: 'response_generated',
+        intent: intent.primary_intent,
+        model: modelSelection.model,
+        tokensUsed: totalTokens,
+      }).catch(() => {}),
+    ]);
 
-    await memoryService.logAudit({
-      userId,
-      threadId,
-      action: 'response_generated',
-      intent: intent.primary_intent,
-      model: modelSelection.model,
-      tokensUsed: totalTokens,
-    });
+    const suggestedQuestions = suggestResult.questions;
+    totalTokens += suggestResult.tokens;
+    adaAnswer.suggested_questions = suggestedQuestions;
+
+    if (suggestedQuestions.length > 0) {
+      yield { type: 'suggested_questions', suggestedQuestions };
+    }
 
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

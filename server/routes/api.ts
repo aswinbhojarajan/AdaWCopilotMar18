@@ -4,9 +4,11 @@ import * as portfolioRepo from '../repositories/portfolioRepository';
 import * as contentRepo from '../repositories/contentRepository';
 import * as pollRepo from '../repositories/pollRepository';
 import * as portfolioService from '../services/portfolioService';
-import * as chatService from '../services/chatService';
 import * as goalService from '../services/goalService';
 import * as morningSentinelService from '../services/morningSentinelService';
+import * as memoryService from '../services/memoryService';
+import * as intentClassifier from '../services/intentClassifier';
+import { orchestrateStream } from '../services/agentOrchestrator';
 import type { ChatMessageRequest, PollVoteRequest, LifeEventType } from '../../shared/types';
 
 const router = Router();
@@ -163,7 +165,7 @@ router.post('/chat/message', asyncHandler(async (req, res) => {
     res.status(400).json({ error: 'message is required' });
     return;
   }
-  const result = await chatService.processMessageSync(DEFAULT_USER_ID, body);
+  const result = await processMessageSync(DEFAULT_USER_ID, body);
   res.json(result);
 }));
 
@@ -181,7 +183,7 @@ router.post('/chat/stream', asyncHandler(async (req, res) => {
 
   res.flushHeaders();
 
-  const stream = chatService.processMessageStream(DEFAULT_USER_ID, body);
+  const stream = orchestrateStream(DEFAULT_USER_ID, body);
 
   for await (const event of stream) {
     res.write(`data: ${JSON.stringify(event)}\n\n`);
@@ -276,7 +278,7 @@ router.post('/chat/:threadId/messages', asyncHandler(async (req, res) => {
     return;
   }
 
-  const result = await chatService.processMessageSync(DEFAULT_USER_ID, {
+  const result = await processMessageSync(DEFAULT_USER_ID, {
     ...body,
     threadId,
   });
@@ -286,8 +288,71 @@ router.post('/chat/:threadId/messages', asyncHandler(async (req, res) => {
 
 router.post('/chat/:threadId/close', asyncHandler(async (req, res) => {
   const threadId = req.params.threadId as string;
-  await chatService.finalizeSession(DEFAULT_USER_ID, threadId);
+  await finalizeSession(DEFAULT_USER_ID, threadId);
   res.json({ success: true });
 }));
+
+async function processMessageSync(
+  userId: string,
+  req: ChatMessageRequest,
+): Promise<{ threadId: string; message: { id: string; threadId: string; sender: 'assistant'; message: string; timestamp: string; widgets?: { type: string }[]; simulator?: { type: string; initialValues?: Record<string, number> } }; suggestedQuestions: string[] }> {
+  const threadId = req.threadId ?? `thread-${Date.now()}`;
+
+  let fullResponse = '';
+  let suggestedQuestions: string[] = [];
+  const widgets: { type: string }[] = [];
+  let simulator: { type: string; initialValues?: Record<string, number> } | undefined;
+
+  for await (const event of orchestrateStream(userId, { ...req, threadId })) {
+    if (event.type === 'text' && event.content) {
+      fullResponse += event.content;
+    } else if (event.type === 'suggested_questions' && event.suggestedQuestions) {
+      suggestedQuestions = event.suggestedQuestions;
+    } else if (event.type === 'widget' && event.widget) {
+      widgets.push(event.widget as { type: string });
+    } else if (event.type === 'simulator' && event.simulator) {
+      simulator = event.simulator;
+    }
+  }
+
+  return {
+    threadId,
+    message: {
+      id: `msg-${Date.now()}`,
+      threadId,
+      sender: 'assistant',
+      message: fullResponse || "I'm here to help with your portfolio. What would you like to know?",
+      timestamp: new Date().toISOString(),
+      ...(widgets.length > 0 ? { widgets } : {}),
+      ...(simulator ? { simulator } : {}),
+    },
+    suggestedQuestions,
+  };
+}
+
+async function finalizeSession(userId: string, threadId: string): Promise<void> {
+  const workingMem = memoryService.getWorkingMemory(threadId);
+
+  if (workingMem.length >= 2) {
+    try {
+      const conversationText = workingMem.map(t => t.content).join(' ');
+      const topics = intentClassifier.extractTopics(conversationText);
+      const summary = workingMem
+        .map(t => `${t.role}: ${t.content.slice(0, 100)}`)
+        .join(' | ');
+      await memoryService.saveEpisodicMemory(userId, threadId, summary, topics);
+    } catch {
+      // episodic save is best-effort
+    }
+  }
+
+  memoryService.clearWorkingMemory(threadId);
+
+  await memoryService.logAudit({
+    userId,
+    threadId,
+    action: 'session_closed',
+  });
+}
 
 export default router;
