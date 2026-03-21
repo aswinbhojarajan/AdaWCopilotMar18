@@ -7,7 +7,7 @@ import type { HomeSummaryResponse, WealthOverviewResponse, WealthInsights } from
 export async function getHomeSummary(userId: string): Promise<HomeSummaryResponse> {
   const user = (await userRepo.findUserById(userId)) ?? (await userRepo.getDefaultUser());
   const snapshot = await portfolioRepo.getLatestSnapshot(userId);
-  const sparkline = portfolioRepo.getHomeSparkline(userId);
+  const sparkline = await portfolioRepo.getHomeSparkline(userId);
   const alerts = await contentRepo.getAlertsByUserId(userId);
   const attentionCount = alerts.filter((a) => a.unread).length;
   const contentCards = await contentRepo.getHomeContent(userId);

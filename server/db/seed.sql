@@ -22,7 +22,7 @@ ON CONFLICT (user_id) DO NOTHING;
 -- Accounts (Abdullah)
 INSERT INTO accounts (id, user_id, institution_name, logo_color, logo_text, account_type, balance, last_synced, status) VALUES
   ('acc-abd-1', 'user-abdullah', 'HSBC', '#DB0011', 'HSBC', 'savings', 18966.04, '2 min ago', 'synced'),
-  ('acc-abd-2', 'user-abdullah', 'Interactive Brokers', '#DA1F26', 'IB', 'brokerage', 66381.13, '5 min ago', 'synced'),
+  ('acc-abd-2', 'user-abdullah', 'Interactive Brokers', '#DA1F26', 'IB', 'brokerage', 64656.88, '5 min ago', 'synced'),
   ('acc-abd-3', 'user-abdullah', 'WIO Bank', '#6C63FF', 'WIO', 'checking', 9483.02, 'Just now', 'synced')
 ON CONFLICT (id) DO NOTHING;
 
@@ -35,7 +35,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Accounts (Omar)
 INSERT INTO accounts (id, user_id, institution_name, logo_color, logo_text, account_type, balance, last_synced, status) VALUES
   ('acc-omr-1', 'user-omar', 'ADCB', '#0066CC', 'ADCB', 'checking', 12800.00, '3 min ago', 'synced'),
-  ('acc-omr-2', 'user-omar', 'Robinhood', '#00C805', 'RH', 'brokerage', 89300.00, '2 min ago', 'synced')
+  ('acc-omr-2', 'user-omar', 'Robinhood', '#00C805', 'RH', 'brokerage', 87001.00, '2 min ago', 'synced')
 ON CONFLICT (id) DO NOTHING;
 
 -- Accounts (Layla)
@@ -46,7 +46,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Positions (Abdullah's brokerage)
 INSERT INTO positions (id, account_id, symbol, name, quantity, current_price, cost_basis, asset_class) VALUES
-  ('pos-abd-1', 'acc-abd-2', 'NVDA', 'NVIDIA Corp.', 15, 250.35, 180.00, 'Stocks'),
+  ('pos-abd-1', 'acc-abd-2', 'NVDA', 'NVIDIA Corp.', 15, 135.40, 90.00, 'Stocks'),
   ('pos-abd-2', 'acc-abd-2', 'AAPL', 'Apple Inc.', 12, 208.63, 165.00, 'Stocks'),
   ('pos-abd-3', 'acc-abd-2', 'BTC', 'Bitcoin', 0.0195, 87535.00, 62000.00, 'Crypto'),
   ('pos-abd-4', 'acc-abd-2', 'MSFT', 'Microsoft Corp.', 8, 420.50, 320.00, 'Stocks'),
@@ -57,13 +57,13 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Portfolio Snapshots (Abdullah)
 INSERT INTO portfolio_snapshots (id, user_id, total_value, daily_change_amount, daily_change_percent, recorded_at) VALUES
-  ('snap-abd-1', 'user-abdullah', 94830.19, 758.64, 0.8, NOW())
+  ('snap-abd-1', 'user-abdullah', 93105.94, 744.85, 0.8, NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- Portfolio Snapshots (other personas)
 INSERT INTO portfolio_snapshots (id, user_id, total_value, daily_change_amount, daily_change_percent, recorded_at) VALUES
   ('snap-fat-1', 'user-fatima', 165700.00, 430.20, 0.26, NOW()),
-  ('snap-omr-1', 'user-omar', 102100.00, 1250.00, 1.24, NOW()),
+  ('snap-omr-1', 'user-omar', 99801.00, 1237.53, 1.24, NOW()),
   ('snap-lay-1', 'user-layla', 110500.00, -320.50, -0.29, NOW())
 ON CONFLICT (id) DO NOTHING;
 
@@ -90,11 +90,11 @@ INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, catego
   ('alert-abd-3', 'user-abdullah', 'MARKET_UPDATE', 'Federal Reserve signals pause on rate cuts',
    'The Fed maintained its cautious stance, keeping rates unchanged through Q2 2026.', '6 hours ago', FALSE, 'updates'),
   ('alert-abd-4', 'user-abdullah', 'DOCUMENT', 'Q4 2025 Portfolio Report ready',
-   'Your quarterly performance report is now available. Portfolio value: $94,830.19.', '8 hours ago', FALSE, 'updates'),
+   'Your quarterly performance report is now available. Portfolio value: $93,105.94.', '8 hours ago', FALSE, 'updates'),
   ('alert-abd-5', 'user-abdullah', 'OPPORTUNITY', 'Emerging market bonds offer 6.8% yields',
    'High-quality sovereign debt in stable economies now offers attractive income.', 'Yesterday', FALSE, 'opportunities'),
-  ('alert-abd-6', 'user-abdullah', 'PORTFOLIO_ALERT', 'Portfolio up $758 today on equity gains',
-   'Your portfolio gained $758.64 (+0.8%) today, driven by your 55% stock allocation.', 'Yesterday', FALSE, 'alerts'),
+  ('alert-abd-6', 'user-abdullah', 'PORTFOLIO_ALERT', 'Portfolio up $745 today on equity gains',
+   'Your portfolio gained $744.85 (+0.8%) today, driven by your equity allocation.', 'Yesterday', FALSE, 'alerts'),
   ('alert-abd-7', 'user-abdullah', 'EVENT', 'Reminder: Estate planning consultation',
    'Your scheduled consultation with our estate planning specialist is tomorrow at 2:00 PM.', '2 days ago', FALSE, 'updates')
 ON CONFLICT (id) DO NOTHING;
@@ -179,13 +179,17 @@ INSERT INTO peer_segments (asset_class, user_percent, peer_percent, color) VALUE
   ('Alternatives', 10, 15, '#8b5a5d')
 ON CONFLICT (asset_class) DO NOTHING;
 
--- Performance History (Abdullah - 1 year, moderate growth with moderate volatility)
+-- Performance History (Abdullah - 1 year, moderate growth with market-like volatility)
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-abdullah',
-       78000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 46.19
-         + 1200 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.08)
-         + 800 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.23)
-         + 400 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.41),
+       76500 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 45.37
+         + 1400 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
+         + 650 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 1.2)
+         + 380 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.31)
+         + 220 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.73) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.11)
+         + 150 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.47 + 0.5)
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 95 AND 110 THEN 1800 ELSE 0 END
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 240 AND 255 THEN 1200 ELSE 0 END,
        d::date
 FROM generate_series(
   CURRENT_DATE - INTERVAL '365 days',
@@ -195,8 +199,11 @@ FROM generate_series(
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 
 UPDATE performance_history
-SET value = 94830.19
+SET value = 93105.94
 WHERE user_id = 'user-abdullah' AND recorded_date = CURRENT_DATE;
+UPDATE performance_history
+SET value = 92361.09
+WHERE user_id = 'user-abdullah' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
 -- Poll Questions
 INSERT INTO poll_questions (id, question, created_at) VALUES
@@ -341,7 +348,7 @@ ON CONFLICT (symbol) DO NOTHING;
 
 -- Market Quotes (seeded for all 40 instruments)
 INSERT INTO market_quotes (symbol, price, change, change_percent, volume, high, low, open_price, previous_close, source_provider, as_of) VALUES
-  ('NVDA', 250.35, 5.82, 2.38, 45200000, 254.10, 246.60, 248.60, 244.53, 'mock', NOW()),
+  ('NVDA', 135.40, 3.15, 2.38, 45200000, 137.43, 133.37, 134.50, 132.25, 'mock', NOW()),
   ('AAPL', 208.63, -1.24, -0.59, 32100000, 211.75, 207.10, 209.50, 209.87, 'mock', NOW()),
   ('MSFT', 420.50, 3.15, 0.75, 18700000, 426.81, 414.21, 419.56, 417.35, 'mock', NOW()),
   ('GOOGL', 175.20, 2.10, 1.21, 22300000, 177.83, 172.57, 174.57, 173.10, 'mock', NOW()),
@@ -465,12 +472,12 @@ ON CONFLICT (id) DO NOTHING;
 -- Storyline: Heavy tech/crypto exposure, recent drawdown in crypto, very active trading
 INSERT INTO accounts (id, user_id, institution_name, logo_color, logo_text, account_type, balance, last_synced, status) VALUES
   ('acc-raj-1', 'user-raj', 'Binance', '#F0B90B', 'BN', 'brokerage', 35200.00, '1 min ago', 'synced'),
-  ('acc-raj-2', 'user-raj', 'Interactive Brokers', '#DA1F26', 'IB', 'brokerage', 142800.00, '2 min ago', 'synced'),
+  ('acc-raj-2', 'user-raj', 'Interactive Brokers', '#DA1F26', 'IB', 'brokerage', 137627.25, '2 min ago', 'synced'),
   ('acc-raj-3', 'user-raj', 'WIO Bank', '#6C63FF', 'WIO', 'checking', 8500.00, 'Just now', 'synced')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO positions (id, account_id, symbol, name, quantity, current_price, cost_basis, asset_class) VALUES
-  ('pos-raj-1', 'acc-raj-2', 'NVDA', 'NVIDIA Corp.', 45, 250.35, 180.00, 'Stocks'),
+  ('pos-raj-1', 'acc-raj-2', 'NVDA', 'NVIDIA Corp.', 45, 135.40, 90.00, 'Stocks'),
   ('pos-raj-2', 'acc-raj-2', 'AMD', 'Advanced Micro Devices', 80, 165.20, 120.00, 'Stocks'),
   ('pos-raj-3', 'acc-raj-2', 'TSLA', 'Tesla Inc.', 25, 245.80, 280.00, 'Stocks'),
   ('pos-raj-4', 'acc-raj-2', 'META', 'Meta Platforms Inc.', 18, 520.30, 350.00, 'Stocks'),
@@ -483,11 +490,11 @@ INSERT INTO positions (id, account_id, symbol, name, quantity, current_price, co
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO portfolio_snapshots (id, user_id, total_value, daily_change_amount, daily_change_percent, recorded_at) VALUES
-  ('snap-raj-1', 'user-raj', 186500.00, -3420.80, -1.80, NOW())
+  ('snap-raj-1', 'user-raj', 181327.25, -3263.89, -1.80, NOW())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO goals (id, user_id, title, target_amount, current_amount, previous_amount, deadline, icon_name, color, health_status, ai_insight, cta_text) VALUES
-  ('goal-raj-1', 'user-raj', 'Early retirement', 500000, 186500.00, 192000.00, 'Dec 2038', 'Target', '#a87174', 'needs-attention',
+  ('goal-raj-1', 'user-raj', 'Early retirement', 500000, 181327.25, 186827.25, 'Dec 2038', 'Target', '#a87174', 'needs-attention',
    'Recent crypto drawdown has set back progress. Consider diversifying to reduce volatility impact.', 'How to recover?')
 ON CONFLICT (id) DO NOTHING;
 
@@ -541,53 +548,73 @@ INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount,
   ('txn-nad-4', 'acc-nad-2', 'buy', 'XOM', 15, 102.00, 1530.00, NOW() - INTERVAL '40 days')
 ON CONFLICT (id) DO NOTHING;
 
--- Khalid: Conservative, low volatility, slow steady growth
+-- Khalid: Conservative, low volatility, slow steady growth with mild corrections
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-khalid',
-       640000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 109.89
-         + 600 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.06)
-         + 300 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.15),
+       638000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 32.88
+         + 800 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.042)
+         + 350 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.14 + 0.7)
+         + 180 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.28)
+         + 120 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.61) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.09)
+         + 80 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.23 + 2.1)
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 160 AND 170 THEN 900 ELSE 0 END,
        d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 650000.00 WHERE user_id = 'user-khalid' AND recorded_date = CURRENT_DATE;
+UPDATE performance_history SET value = 651230.50 WHERE user_id = 'user-khalid' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Sara: Moderate, balanced growth with some fluctuation
+-- Sara: Moderate, balanced growth with realistic fluctuations
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-sara',
-       145000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 77.94
-         + 1500 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.09)
-         + 900 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.28)
-         + 500 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.5),
+       143000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 83.29
+         + 1800 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.058)
+         + 750 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.19 + 0.9)
+         + 420 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.34)
+         + 280 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.82) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.13)
+         + 190 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.61 + 1.4)
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 120 AND 132 THEN 1500 ELSE 0 END
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 280 AND 290 THEN 1100 ELSE 0 END,
        d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 173500.00 WHERE user_id = 'user-sara' AND recorded_date = CURRENT_DATE;
+UPDATE performance_history SET value = 172607.70 WHERE user_id = 'user-sara' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Raj: Aggressive, high volatility with drawdowns and sharp recoveries
+-- Raj: Aggressive, high volatility with sharp drawdowns and recoveries
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-raj',
-       160000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 72.47
-         + 5000 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.07)
-         + 3500 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.19)
-         + 2000 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.35)
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 180 AND 210 THEN 8000 ELSE 0 END
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 300 AND 320 THEN 5500 ELSE 0 END,
+       155000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 71.86
+         + 5500 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.048)
+         + 2800 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.15 + 0.6)
+         + 1600 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.29)
+         + 1100 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.67) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.12)
+         + 700 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.33 + 1.8)
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 80 AND 100 THEN 7500 ELSE 0 END
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 180 AND 210 THEN 9000 ELSE 0 END
+         + CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 210 AND 230 THEN 4000 ELSE 0 END
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 300 AND 320 THEN 6000 ELSE 0 END,
        d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
-UPDATE performance_history SET value = 186500.00 WHERE user_id = 'user-raj' AND recorded_date = CURRENT_DATE;
+UPDATE performance_history SET value = 181327.25 WHERE user_id = 'user-raj' AND recorded_date = CURRENT_DATE;
+UPDATE performance_history SET value = 184591.14 WHERE user_id = 'user-raj' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Nadia: Moderate-conservative, steady with low volatility
+-- Nadia: Moderate-conservative, steady dividend growth with mild volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-nadia',
-       245000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 83.42
-         + 1000 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.07)
-         + 600 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.2),
+       244000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 86.16
+         + 1200 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.046)
+         + 500 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.16 + 1.5)
+         + 280 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.32)
+         + 180 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.71) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.1)
+         + 110 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.38 + 0.3)
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 200 AND 210 THEN 1000 ELSE 0 END,
        d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 275500.00 WHERE user_id = 'user-nadia' AND recorded_date = CURRENT_DATE;
+UPDATE performance_history SET value = 274394.80 WHERE user_id = 'user-nadia' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
 -- News Items (20 seeded articles tied to instrument symbols)
 INSERT INTO news_items (id, title, summary, publisher, published_at, url, symbols, relevance_tags, source_provider) VALUES
@@ -632,7 +659,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO positions (id, account_id, symbol, name, quantity, current_price, cost_basis, asset_class) VALUES
   ('pos-omr-1', 'acc-omr-2', 'TSLA', 'Tesla Inc.', 25, 245.80, 280.00, 'Stocks'),
   ('pos-omr-2', 'acc-omr-2', 'META', 'Meta Platforms Inc.', 15, 520.30, 400.00, 'Stocks'),
-  ('pos-omr-3', 'acc-omr-2', 'NVDA', 'NVIDIA Corp.', 20, 250.35, 195.00, 'Stocks'),
+  ('pos-omr-3', 'acc-omr-2', 'NVDA', 'NVIDIA Corp.', 20, 135.40, 90.00, 'Stocks'),
   ('pos-omr-4', 'acc-omr-2', 'AMD', 'Advanced Micro Devices', 30, 165.20, 130.00, 'Stocks'),
   ('pos-omr-5', 'acc-omr-2', 'AMZN', 'Amazon.com Inc.', 25, 192.50, 160.00, 'Stocks'),
   ('pos-omr-6', 'acc-omr-2', 'BTC', 'Bitcoin', 0.12, 87535.00, 95000.00, 'Crypto'),
@@ -656,48 +683,64 @@ ON CONFLICT (id) DO NOTHING;
 -- Performance History for Fatima, Omar, Layla (365-day series)
 -- ============================================================
 
--- Fatima: Conservative, low volatility, gentle upward trend
+-- Fatima: Conservative, low volatility, gentle upward trend with minor dips
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-fatima',
-       140000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 70.27
-         + 700 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.05)
-         + 400 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.13),
+       139000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 73.01
+         + 900 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.039)
+         + 400 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.13 + 0.8)
+         + 200 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.27)
+         + 130 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.58) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.08)
+         + 90 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.15 + 1.7)
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 180 AND 188 THEN 700 ELSE 0 END,
        d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 165700.00 WHERE user_id = 'user-fatima' AND recorded_date = CURRENT_DATE;
+UPDATE performance_history SET value = 165269.80 WHERE user_id = 'user-fatima' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Omar: Aggressive, high volatility with sharp swings and drawdowns
+-- Omar: Aggressive, high volatility with sharp swings and multiple drawdowns
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-omar',
-       82000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 54.93
-         + 4000 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.08)
-         + 2800 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.22)
-         + 1500 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.37)
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 150 AND 175 THEN 6000 ELSE 0 END,
+       80000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 54.25
+         + 4200 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.055)
+         + 2200 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.16 + 0.4)
+         + 1300 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.31)
+         + 900 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.69) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.11)
+         + 600 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.27 + 2.3)
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 70 AND 85 THEN 5000 ELSE 0 END
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 150 AND 175 THEN 7000 ELSE 0 END
+         + CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 175 AND 195 THEN 3500 ELSE 0 END
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 310 AND 325 THEN 4000 ELSE 0 END,
        d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
-UPDATE performance_history SET value = 102100.00 WHERE user_id = 'user-omar' AND recorded_date = CURRENT_DATE;
+UPDATE performance_history SET value = 99801.00 WHERE user_id = 'user-omar' AND recorded_date = CURRENT_DATE;
+UPDATE performance_history SET value = 98563.47 WHERE user_id = 'user-omar' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Layla: Moderate, balanced volatility
+-- Layla: Moderate, balanced volatility with seasonal patterns
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-layla',
-       98000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 34.25
-         + 1100 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.07)
-         + 700 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.2)
-         + 400 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.38),
+       96000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 39.73
+         + 1300 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.047)
+         + 550 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.15 + 1.1)
+         + 320 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.29)
+         + 210 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.63) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.1)
+         + 140 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.41 + 0.8)
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 140 AND 150 THEN 1300 ELSE 0 END
+         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 260 AND 272 THEN 1000 ELSE 0 END,
        d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 110500.00 WHERE user_id = 'user-layla' AND recorded_date = CURRENT_DATE;
+UPDATE performance_history SET value = 110820.50 WHERE user_id = 'user-layla' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
 -- ============================================================
 -- Goals for Omar and Layla (they had none)
 -- ============================================================
 
 INSERT INTO goals (id, user_id, title, target_amount, current_amount, previous_amount, deadline, icon_name, color, health_status, ai_insight, cta_text) VALUES
-  ('goal-omr-1', 'user-omar', 'Start a business', 150000, 102100.00, 98500.00, 'Jun 2028', 'Target', '#a87174', 'needs-attention',
+  ('goal-omr-1', 'user-omar', 'Start a business', 150000, 99801.00, 96500.00, 'Jun 2028', 'Target', '#a87174', 'needs-attention',
    'Heavy crypto exposure is adding volatility. Diversifying could protect your runway toward this goal.', 'How should I de-risk?'),
   ('goal-omr-2', 'user-omar', 'Emergency fund', 25000, 12800.00, 12000.00, 'Dec 2026', 'Wallet', '#6d3f42', 'needs-attention',
    'Your emergency fund is just over half funded. Consider redirecting some trading gains here.', 'Help me plan contributions')

@@ -58,13 +58,13 @@ Eight seeded personas exist in the database with full data parity. **Abdullah Al
 
 | ID | Name | Risk Profile | Score | Portfolio Value | Key Traits |
 |---|---|---|---|---|---|
-| `user-abdullah` | Abdullah Al-Rashid | Moderate | 62 | $94,830.19 | Default user. 3 accounts (HSBC, Interactive Brokers, WIO Bank). 7 positions. 2 goals (house deposit, education fund). Tech-heavy allocation (48%). |
+| `user-abdullah` | Abdullah Al-Rashid | Moderate | 62 | $93,105.94 | Default user. 3 accounts (HSBC, Interactive Brokers, WIO Bank). 7 positions. 2 goals (house deposit, education fund). Cash-heavy allocation (66%) with deploy-to-income advisory scenarios. |
 | `user-fatima` | Fatima Hassan | Conservative | 35 | $165,700.00 | 2 accounts (Emirates NBD, Vanguard). 1 goal (retirement). Lower risk tolerance. |
-| `user-omar` | Omar Khalil | Aggressive | 85 | $102,100.00 | 2 accounts (ADCB, Robinhood). Growth-focused. Highest risk score. Performance history includes drawdowns. |
+| `user-omar` | Omar Khalil | Aggressive | 85 | $99,801.00 | 2 accounts (ADCB, Robinhood). Growth-focused. Highest risk score. Performance history includes drawdowns. |
 | `user-layla` | Layla Mahmoud | Moderate | 55 | $110,500.00 | 2 accounts (Mashreq Bank, Charles Schwab). Balanced profile. Negative daily change. |
 | `user-khalid` | Khalid Al-Mansouri | Conservative | 28 | $650,000.00 | 3 accounts (Saudi National Bank, Riyad Bank, Saxo Bank). 1 goal (preserve capital). Cash-heavy allocation. |
 | `user-sara` | Sara Al-Fahad | Moderate | 58 | $173,500.00 | 2 accounts (Emirates NBD, Interactive Brokers). 3 goals (children education, emergency fund, family vacation). |
-| `user-raj` | Raj Patel | Aggressive | 92 | $186,500.00 | 3 accounts (Binance, Interactive Brokers, WIO Bank). 1 goal (early retirement). Performance history includes drawdowns. Negative daily change (-1.80%). |
+| `user-raj` | Raj Patel | Aggressive | 92 | $181,327.25 | 3 accounts (Binance, Interactive Brokers, WIO Bank). 1 goal (early retirement). Performance history includes drawdowns. Negative daily change (-1.80%). |
 | `user-nadia` | Nadia Khoury | Moderate | 48 | $275,500.00 | 3 accounts (FAB, HSBC, Mashreq Bank). 2 goals (retirement income, travel fund). Dividend-focused portfolio. |
 
 All personas share the same advisor: **Sarah Mitchell** (Senior Wealth Advisor, `advisor-sarah`).

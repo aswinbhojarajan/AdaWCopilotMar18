@@ -325,17 +325,22 @@ export async function createAccount(
   };
 }
 
-export function getHomeSparkline(_userId: string): SparklinePoint[] {
-  return [
-    { value: 129000 },
-    { value: 129500 },
-    { value: 129200 },
-    { value: 130000 },
-    { value: 130200 },
-    { value: 130500 },
-    { value: 130800 },
-    { value: 131230.19 },
-  ];
+export async function getHomeSparkline(userId: string): Promise<SparklinePoint[]> {
+  const { rows } = await pool.query(
+    `SELECT value FROM performance_history
+     WHERE user_id = $1 AND recorded_date >= CURRENT_DATE - INTERVAL '7 days'
+     ORDER BY recorded_date ASC`,
+    [userId],
+  );
+  if (rows.length >= 2) {
+    return rows.map((r) => ({ value: Number(r.value) }));
+  }
+  const snapshot = await getLatestSnapshot(userId);
+  const base = snapshot.totalValue * 0.995;
+  const step = (snapshot.totalValue - base) / 7;
+  return Array.from({ length: 8 }, (_, i) => ({
+    value: Math.round((base + step * i) * 100) / 100,
+  }));
 }
 
 export async function getPerformanceHistory(

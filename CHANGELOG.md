@@ -4,6 +4,25 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Task #10 — Comprehensive Data Realism & Market Alignment
+**Date:** March 21, 2026
+
+### Fixed
+- **NVDA price corrected** from $250.35 to $135.40 (post-split realistic price); cost_basis updated to $90.00
+- **Portfolio values cascaded** — Abdullah ($93,105.94), Omar ($99,801.00), Raj ($181,327.25) reflect corrected NVDA price through positions, account balances, snapshots, goals, and alerts
+- **Hardcoded sparkline replaced** — `portfolioRepository.ts` `getHomeSparkline()` now queries `performance_history` table for real 7-day data instead of returning hardcoded ~$129K values; falls back to computed synthetic data from snapshot when insufficient history exists
+
+### Changed
+- **Performance history overhauled** — all 8 personas now use multi-frequency formulas (6 harmonic components + amplitude modulation + realistic drawdown periods for aggressive personas) replacing simple sin/cos waves
+- **PRD persona table updated** — portfolio values and trait descriptions now match actual seeded data
+
+### Validated
+- All 70 persona parity tests pass after all data changes
+- Allocation totals reconcile with snapshot values for all personas
+- TypeScript compiles clean with no errors
+
+---
+
 ## Task #9 — Full Persona Data Parity & Personalization
 **Date:** March 21, 2026
 
