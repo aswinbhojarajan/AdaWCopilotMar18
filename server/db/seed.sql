@@ -185,28 +185,31 @@ INSERT INTO peer_segments (asset_class, user_percent, peer_percent, color) VALUE
   ('Alternatives', 10, 15, '#8b5a5d')
 ON CONFLICT (asset_class) DO NOTHING;
 
--- Performance History (Abdullah - Holdings-weighted asset-class return model)
+-- Performance History (Abdullah - Holdings-weighted compound return model)
 -- Allocation: Stocks $7,449 (8%), Bonds $14,225 (15%), Crypto $5,382 (6%), Commodities $3,793 (4%), Cash $62,258 (66%)
--- Each component amplitude = allocation_value × asset_class_annual_volatility
+-- Daily returns: deterministic hash-based pseudo-random per asset class, weighted by allocation, compounded via cumulative sum
+-- No trigonometric functions — returns derived from hashtext() for deterministic reproducibility
 INSERT INTO performance_history (user_id, value, recorded_date)
+WITH days AS (
+  SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
+  FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+),
+returns AS (
+  SELECT dt, n,
+    SUM(
+      0.08 * 0.012 * ((hashtext('ABD_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.15 * 0.003 * ((hashtext('ABD_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.06 * 0.030 * ((hashtext('ABD_C' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.04 * 0.010 * ((hashtext('ABD_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
+    ) OVER (ORDER BY dt) as cum_r
+  FROM days
+)
 SELECT 'user-abdullah',
-       76500 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 45.37
-         + 7449 * 0.15 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
-         + 7449 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 1.2)
-         + 14225 * 0.03 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.031)
-         + 14225 * 0.02 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.089)
-         + 5382 * 0.35 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.093)
-         + 5382 * 0.20 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.37)
-         + 3793 * 0.12 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.044)
-         + 3793 * 0.07 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.22)
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 95 AND 110 THEN 1800 ELSE 0 END
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 240 AND 255 THEN 1200 ELSE 0 END,
-       d::date
-FROM generate_series(
-  CURRENT_DATE - INTERVAL '365 days',
-  CURRENT_DATE,
-  '1 day'
-) AS d
+  76500 + n * 45.37 + 93106 * cum_r
+    - CASE WHEN n BETWEEN 95 AND 110 THEN 1800 ELSE 0 END
+    - CASE WHEN n BETWEEN 240 AND 255 THEN 1200 ELSE 0 END,
+  dt
+FROM returns
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 
 UPDATE performance_history
@@ -255,12 +258,18 @@ ON CONFLICT (id) DO NOTHING;
 -- Transactions (Abdullah)
 INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
   ('txn-abd-1', 'acc-abd-2', 'buy', 'NVDA', 5, 235.00, 1175.00, NOW() - INTERVAL '15 days'),
+  ('txn-abd-1b', 'acc-abd-2', 'buy', 'NVDA', 10, 85.00, 850.00, NOW() - INTERVAL '300 days'),
   ('txn-abd-2', 'acc-abd-2', 'buy', 'AAPL', 4, 200.00, 800.00, NOW() - INTERVAL '30 days'),
+  ('txn-abd-2b', 'acc-abd-2', 'buy', 'AAPL', 8, 170.00, 1360.00, NOW() - INTERVAL '270 days'),
   ('txn-abd-3', 'acc-abd-2', 'buy', 'MSFT', 3, 410.00, 1230.00, NOW() - INTERVAL '45 days'),
+  ('txn-abd-3b', 'acc-abd-2', 'buy', 'MSFT', 5, 380.00, 1900.00, NOW() - INTERVAL '240 days'),
   ('txn-abd-4', 'acc-abd-2', 'dividend', 'AAPL', NULL, NULL, 36.00, NOW() - INTERVAL '8 days'),
   ('txn-abd-5', 'acc-abd-1', 'deposit', NULL, NULL, NULL, 5000.00, NOW() - INTERVAL '20 days'),
   ('txn-abd-6', 'acc-abd-2', 'buy', 'GLD', 5, 200.00, 1000.00, NOW() - INTERVAL '60 days'),
+  ('txn-abd-6b', 'acc-abd-2', 'buy', 'GLD', 13, 185.00, 2405.00, NOW() - INTERVAL '260 days'),
   ('txn-abd-7', 'acc-abd-2', 'buy', 'AGG', 30, 107.00, 3210.00, NOW() - INTERVAL '90 days'),
+  ('txn-abd-7b', 'acc-abd-2', 'buy', 'AGG', 50, 104.00, 5200.00, NOW() - INTERVAL '210 days'),
+  ('txn-abd-7c', 'acc-abd-2', 'buy', 'AGG', 50, 102.50, 5125.00, NOW() - INTERVAL '320 days'),
   ('txn-abd-8', 'acc-abd-2', 'buy', 'BTC', 0.0195, 62000.00, 1209.00, NOW() - INTERVAL '120 days'),
   ('txn-abd-9', 'acc-abd-2', 'buy', 'ETH', 1.5, 1800.00, 2700.00, NOW() - INTERVAL '100 days')
 ON CONFLICT (id) DO NOTHING;
@@ -268,9 +277,13 @@ ON CONFLICT (id) DO NOTHING;
 -- Transactions (Fatima)
 INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
   ('txn-fat-1', 'acc-fat-2', 'buy', 'AGG', 50, 108.00, 5400.00, NOW() - INTERVAL '20 days'),
+  ('txn-fat-1b', 'acc-fat-2', 'buy', 'AGG', 150, 105.00, 15750.00, NOW() - INTERVAL '250 days'),
+  ('txn-fat-1c', 'acc-fat-2', 'buy', 'AGG', 150, 103.50, 15525.00, NOW() - INTERVAL '330 days'),
   ('txn-fat-2', 'acc-fat-2', 'dividend', 'AGG', NULL, NULL, 125.00, NOW() - INTERVAL '5 days'),
   ('txn-fat-3', 'acc-fat-1', 'deposit', NULL, NULL, NULL, 8000.00, NOW() - INTERVAL '10 days'),
   ('txn-fat-4', 'acc-fat-2', 'buy', 'BND', 40, 72.50, 2900.00, NOW() - INTERVAL '40 days'),
+  ('txn-fat-4b', 'acc-fat-2', 'buy', 'BND', 110, 71.00, 7810.00, NOW() - INTERVAL '220 days'),
+  ('txn-fat-4c', 'acc-fat-2', 'buy', 'BND', 100, 70.50, 7050.00, NOW() - INTERVAL '300 days'),
   ('txn-fat-5', 'acc-fat-2', 'buy', 'TLT', 120, 96.00, 11520.00, NOW() - INTERVAL '60 days'),
   ('txn-fat-6', 'acc-fat-2', 'buy', 'GLD', 55, 180.00, 9900.00, NOW() - INTERVAL '80 days'),
   ('txn-fat-7', 'acc-fat-2', 'buy', 'JNJ', 50, 150.00, 7500.00, NOW() - INTERVAL '90 days'),
@@ -283,7 +296,9 @@ INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount,
   ('txn-omr-1', 'acc-omr-2', 'buy', 'TSLA', 15, 255.00, 3825.00, NOW() - INTERVAL '12 days'),
   ('txn-omr-2', 'acc-omr-2', 'sell', 'AMZN', 8, 188.00, 1504.00, NOW() - INTERVAL '3 days'),
   ('txn-omr-3', 'acc-omr-2', 'buy', 'META', 10, 505.00, 5050.00, NOW() - INTERVAL '25 days'),
-  ('txn-omr-4', 'acc-omr-2', 'buy', 'BTC', 0.1, 85000.00, 8500.00, NOW() - INTERVAL '50 days'),
+  ('txn-omr-3b', 'acc-omr-2', 'buy', 'META', 5, 400.00, 2000.00, NOW() - INTERVAL '200 days'),
+  ('txn-omr-4', 'acc-omr-2', 'buy', 'BTC', 0.10, 85000.00, 8500.00, NOW() - INTERVAL '50 days'),
+  ('txn-omr-4b', 'acc-omr-2', 'buy', 'BTC', 0.02, 95000.00, 1900.00, NOW() - INTERVAL '280 days'),
   ('txn-omr-5', 'acc-omr-1', 'deposit', NULL, NULL, NULL, 3000.00, NOW() - INTERVAL '7 days'),
   ('txn-omr-6', 'acc-omr-2', 'buy', 'NVDA', 20, 90.00, 1800.00, NOW() - INTERVAL '180 days'),
   ('txn-omr-7', 'acc-omr-2', 'buy', 'AMD', 30, 130.00, 3900.00, NOW() - INTERVAL '60 days'),
@@ -297,6 +312,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
   ('txn-lay-1', 'acc-lay-2', 'buy', 'JNJ', 20, 155.00, 3100.00, NOW() - INTERVAL '18 days'),
   ('txn-lay-2', 'acc-lay-2', 'buy', 'PG', 15, 160.00, 2400.00, NOW() - INTERVAL '35 days'),
+  ('txn-lay-2b', 'acc-lay-2', 'buy', 'PG', 10, 152.00, 1520.00, NOW() - INTERVAL '200 days'),
   ('txn-lay-3', 'acc-lay-2', 'dividend', 'KO', NULL, NULL, 85.00, NOW() - INTERVAL '6 days'),
   ('txn-lay-4', 'acc-lay-1', 'deposit', NULL, NULL, NULL, 4000.00, NOW() - INTERVAL '14 days'),
   ('txn-lay-5', 'acc-lay-2', 'buy', 'SPY', 30, 450.00, 13500.00, NOW() - INTERVAL '150 days'),
@@ -626,81 +642,109 @@ INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount,
   ('txn-nad-14', 'acc-nad-2', 'buy', 'XOM', 25, 95.00, 2375.00, NOW() - INTERVAL '170 days')
 ON CONFLICT (id) DO NOTHING;
 
--- Khalid: Conservative — Holdings-weighted asset-class return model
+-- Khalid: Conservative — Holdings-weighted compound return model
 -- Allocation: Stocks $17,930 (3%), Bonds $92,297 (14%), Commodities $17,912 (3%), Cash $521,861 (80%)
 -- Conservative: bonds/cash dominate → very low volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
+WITH days AS (
+  SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
+  FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+),
+returns AS (
+  SELECT dt, n,
+    SUM(
+      0.03 * 0.012 * ((hashtext('KHA_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.14 * 0.003 * ((hashtext('KHA_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.03 * 0.010 * ((hashtext('KHA_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
+    ) OVER (ORDER BY dt) as cum_r
+  FROM days
+)
 SELECT 'user-khalid',
-       638000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 32.88
-         + 17930 * 0.08 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
-         + 17930 * 0.05 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 0.7)
-         + 92297 * 0.02 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.031)
-         + 92297 * 0.01 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.089)
-         + 17912 * 0.08 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.044)
-         + 17912 * 0.04 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.22)
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 160 AND 170 THEN 900 ELSE 0 END,
-       d::date
-FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+  638000 + n * 32.88 + 650000 * cum_r
+    - CASE WHEN n BETWEEN 160 AND 170 THEN 900 ELSE 0 END,
+  dt
+FROM returns
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 650000.00 WHERE user_id = 'user-khalid' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 651230.50 WHERE user_id = 'user-khalid' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Sara: Moderate — Holdings-weighted asset-class return model
+-- Sara: Moderate — Holdings-weighted compound return model
 -- Allocation: Stocks $54,960 (32%), Bonds $30,200 (17%), Commodities $13,580 (8%), Cash $74,760 (43%)
 -- Balanced moderate: stocks and bonds drive volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
+WITH days AS (
+  SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
+  FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+),
+returns AS (
+  SELECT dt, n,
+    SUM(
+      0.32 * 0.012 * ((hashtext('SAR_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.17 * 0.003 * ((hashtext('SAR_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.08 * 0.010 * ((hashtext('SAR_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
+    ) OVER (ORDER BY dt) as cum_r
+  FROM days
+)
 SELECT 'user-sara',
-       143000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 83.29
-         + 54960 * 0.12 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
-         + 54960 * 0.08 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 0.9)
-         + 30200 * 0.03 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.031)
-         + 30200 * 0.02 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.089)
-         + 13580 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.044)
-         + 13580 * 0.06 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.22)
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 120 AND 132 THEN 1500 ELSE 0 END
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 280 AND 290 THEN 1100 ELSE 0 END,
-       d::date
-FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+  143000 + n * 83.29 + 173500 * cum_r
+    - CASE WHEN n BETWEEN 120 AND 132 THEN 1500 ELSE 0 END
+    - CASE WHEN n BETWEEN 280 AND 290 THEN 1100 ELSE 0 END,
+  dt
+FROM returns
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 173500.00 WHERE user_id = 'user-sara' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 172607.70 WHERE user_id = 'user-sara' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Raj: Aggressive — Holdings-weighted asset-class return model
+-- Raj: Aggressive — Holdings-weighted compound return model
 -- Allocation: Stocks $68,927 (38%), Crypto $52,325 (29%), Cash $60,075 (33%)
 -- Aggressive: heavy stocks + crypto → high volatility with drawdowns
 INSERT INTO performance_history (user_id, value, recorded_date)
+WITH days AS (
+  SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
+  FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+),
+returns AS (
+  SELECT dt, n,
+    SUM(
+      0.38 * 0.015 * ((hashtext('RAJ_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.29 * 0.035 * ((hashtext('RAJ_C' || n::text) % 20001 - 10000)::numeric / 10000.0)
+    ) OVER (ORDER BY dt) as cum_r
+  FROM days
+)
 SELECT 'user-raj',
-       155000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 71.86
-         + 68927 * 0.15 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
-         + 68927 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 0.6)
-         + 52325 * 0.35 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.093)
-         + 52325 * 0.20 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.37)
-         + 52325 * 0.12 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.33 + 1.8)
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 80 AND 100 THEN 7500 ELSE 0 END
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 180 AND 210 THEN 9000 ELSE 0 END
-         + CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 210 AND 230 THEN 4000 ELSE 0 END
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 300 AND 320 THEN 6000 ELSE 0 END,
-       d::date
-FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+  155000 + n * 71.86 + 181327 * cum_r
+    - CASE WHEN n BETWEEN 80 AND 100 THEN 7500 ELSE 0 END
+    - CASE WHEN n BETWEEN 180 AND 210 THEN 9000 ELSE 0 END
+    + CASE WHEN n BETWEEN 210 AND 230 THEN 4000 ELSE 0 END
+    - CASE WHEN n BETWEEN 300 AND 320 THEN 6000 ELSE 0 END,
+  dt
+FROM returns
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 181327.25 WHERE user_id = 'user-raj' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 184591.14 WHERE user_id = 'user-raj' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Nadia: Moderate-conservative — Holdings-weighted asset-class return model
+-- Nadia: Moderate-conservative — Holdings-weighted compound return model
 -- Allocation: Stocks $44,615 (16%), Bonds $40,460 (15%), Commodities $10,537 (4%), Cash $179,888 (65%)
 -- Dividend-focused: stock component emphasizes stable dividend payers, lower vol
 INSERT INTO performance_history (user_id, value, recorded_date)
+WITH days AS (
+  SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
+  FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+),
+returns AS (
+  SELECT dt, n,
+    SUM(
+      0.16 * 0.008 * ((hashtext('NAD_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.15 * 0.003 * ((hashtext('NAD_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.04 * 0.010 * ((hashtext('NAD_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
+    ) OVER (ORDER BY dt) as cum_r
+  FROM days
+)
 SELECT 'user-nadia',
-       244000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 86.16
-         + 44615 * 0.08 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
-         + 44615 * 0.05 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 1.5)
-         + 40460 * 0.02 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.031)
-         + 40460 * 0.015 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.089)
-         + 10537 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.044)
-         + 10537 * 0.06 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.22)
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 200 AND 210 THEN 1000 ELSE 0 END,
-       d::date
-FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+  244000 + n * 86.16 + 275500 * cum_r
+    - CASE WHEN n BETWEEN 200 AND 210 THEN 1000 ELSE 0 END,
+  dt
+FROM returns
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 275500.00 WHERE user_id = 'user-nadia' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 274394.80 WHERE user_id = 'user-nadia' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
@@ -772,62 +816,85 @@ ON CONFLICT (id) DO NOTHING;
 -- Performance History for Fatima, Omar, Layla (365-day series)
 -- ============================================================
 
--- Fatima: Conservative — Holdings-weighted asset-class return model
+-- Fatima: Conservative — Holdings-weighted compound return model
 -- Allocation: Stocks $14,650 (9%), Bonds $68,002 (41%), Commodities $11,590 (7%), International $4,600 (3%), Cash $66,858 (40%)
 -- Conservative: heavy bonds/cash → low volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
+WITH days AS (
+  SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
+  FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+),
+returns AS (
+  SELECT dt, n,
+    SUM(
+      0.09 * 0.008 * ((hashtext('FAT_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.41 * 0.003 * ((hashtext('FAT_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.07 * 0.010 * ((hashtext('FAT_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.03 * 0.012 * ((hashtext('FAT_I' || n::text) % 20001 - 10000)::numeric / 10000.0)
+    ) OVER (ORDER BY dt) as cum_r
+  FROM days
+)
 SELECT 'user-fatima',
-       139000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 73.01
-         + 14650 * 0.08 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
-         + 14650 * 0.05 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 0.8)
-         + 68002 * 0.02 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.031)
-         + 68002 * 0.015 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.089)
-         + 11590 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.044)
-         + 4600 * 0.12 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.063)
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 180 AND 188 THEN 700 ELSE 0 END,
-       d::date
-FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+  139000 + n * 73.01 + 165700 * cum_r
+    - CASE WHEN n BETWEEN 180 AND 188 THEN 700 ELSE 0 END,
+  dt
+FROM returns
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 165700.00 WHERE user_id = 'user-fatima' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 165269.80 WHERE user_id = 'user-fatima' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Omar: Aggressive — Holdings-weighted asset-class return model
+-- Omar: Aggressive — Holdings-weighted compound return model
 -- Allocation: Stocks $44,710 (45%), Crypto $29,491 (30%), Cash $25,600 (25%)
 -- Aggressive: heavy stocks + crypto → high volatility with sharp drawdowns
 INSERT INTO performance_history (user_id, value, recorded_date)
+WITH days AS (
+  SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
+  FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+),
+returns AS (
+  SELECT dt, n,
+    SUM(
+      0.45 * 0.015 * ((hashtext('OMR_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.30 * 0.035 * ((hashtext('OMR_C' || n::text) % 20001 - 10000)::numeric / 10000.0)
+    ) OVER (ORDER BY dt) as cum_r
+  FROM days
+)
 SELECT 'user-omar',
-       80000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 54.25
-         + 44710 * 0.15 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
-         + 44710 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 0.4)
-         + 29491 * 0.35 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.093)
-         + 29491 * 0.20 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.37)
-         + 29491 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.27 + 2.3)
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 70 AND 85 THEN 5000 ELSE 0 END
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 150 AND 175 THEN 7000 ELSE 0 END
-         + CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 175 AND 195 THEN 3500 ELSE 0 END
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 310 AND 325 THEN 4000 ELSE 0 END,
-       d::date
-FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+  80000 + n * 54.25 + 99801 * cum_r
+    - CASE WHEN n BETWEEN 70 AND 85 THEN 5000 ELSE 0 END
+    - CASE WHEN n BETWEEN 150 AND 175 THEN 7000 ELSE 0 END
+    + CASE WHEN n BETWEEN 175 AND 195 THEN 3500 ELSE 0 END
+    - CASE WHEN n BETWEEN 310 AND 325 THEN 4000 ELSE 0 END,
+  dt
+FROM returns
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 99801.00 WHERE user_id = 'user-omar' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 98563.47 WHERE user_id = 'user-omar' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Layla: Moderate — Holdings-weighted asset-class return model
+-- Layla: Moderate — Holdings-weighted compound return model
 -- Allocation: Stocks $22,968 (21%), Bonds $13,130 (12%), Commodities $6,322 (6%), International $6,680 (6%), Cash $61,400 (55%)
 -- Moderate balanced: diversified across stocks, bonds, international
 INSERT INTO performance_history (user_id, value, recorded_date)
+WITH days AS (
+  SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
+  FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+),
+returns AS (
+  SELECT dt, n,
+    SUM(
+      0.21 * 0.012 * ((hashtext('LAY_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.12 * 0.003 * ((hashtext('LAY_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.06 * 0.010 * ((hashtext('LAY_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.06 * 0.012 * ((hashtext('LAY_I' || n::text) % 20001 - 10000)::numeric / 10000.0)
+    ) OVER (ORDER BY dt) as cum_r
+  FROM days
+)
 SELECT 'user-layla',
-       96000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 39.73
-         + 22968 * 0.12 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
-         + 22968 * 0.08 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 1.1)
-         + 13130 * 0.03 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.031)
-         + 13130 * 0.02 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.089)
-         + 6322 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.044)
-         + 6680 * 0.12 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.063 + 0.8)
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 140 AND 150 THEN 1300 ELSE 0 END
-         - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 260 AND 272 THEN 1000 ELSE 0 END,
-       d::date
-FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
+  96000 + n * 39.73 + 110500 * cum_r
+    - CASE WHEN n BETWEEN 140 AND 150 THEN 1300 ELSE 0 END
+    - CASE WHEN n BETWEEN 260 AND 272 THEN 1000 ELSE 0 END,
+  dt
+FROM returns
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 110500.00 WHERE user_id = 'user-layla' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 110820.50 WHERE user_id = 'user-layla' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
@@ -856,8 +923,8 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Fatima alerts
 INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
-  ('alert-fat-1', 'user-fatima', 'PORTFOLIO_ALERT', 'Bond allocation exceeds 60% of portfolio',
-   'Your fixed income holdings now represent 62% of your portfolio, well above the 50% target for conservative profiles.', '15 min ago', TRUE, 'alerts'),
+  ('alert-fat-1', 'user-fatima', 'PORTFOLIO_ALERT', 'Bond allocation at 41% — consider rebalancing',
+   'Your fixed income holdings represent 41% of your portfolio ($67,836 across AGG, BND, TLT). Combined with 40% cash, 81% of your portfolio is in low-risk assets.', '15 min ago', TRUE, 'alerts'),
   ('alert-fat-2', 'user-fatima', 'ADVISOR_MESSAGE', 'Message from your advisor',
    'Hi Fatima, I''ve prepared a review of your bond ladder strategy. Let''s discuss when you''re free. —Sarah', '3 hours ago', TRUE, 'updates'),
   ('alert-fat-3', 'user-fatima', 'MARKET_UPDATE', 'Treasury yields decline on economic data',
@@ -894,8 +961,8 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Khalid alerts
 INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
-  ('alert-kha-1', 'user-khalid', 'PORTFOLIO_ALERT', 'Cash allocation at 66% — inflation eroding value',
-   'With SAR 427,000 in cash, inflation is costing you approximately SAR 17,000 per year in purchasing power.', '10 min ago', TRUE, 'alerts'),
+  ('alert-kha-1', 'user-khalid', 'PORTFOLIO_ALERT', 'Cash allocation at 81% — inflation eroding value',
+   'With SAR 527,000 in cash, inflation is costing you approximately SAR 21,000 per year in purchasing power.', '10 min ago', TRUE, 'alerts'),
   ('alert-kha-2', 'user-khalid', 'ADVISOR_MESSAGE', 'Message from your advisor',
    'Khalid, I''ve prepared conservative deployment options for your idle cash. Let me know when to discuss. —Sarah', '1 hour ago', TRUE, 'updates'),
   ('alert-kha-3', 'user-khalid', 'OPPORTUNITY', 'Saudi government sukuk offering 5.5% yield',
