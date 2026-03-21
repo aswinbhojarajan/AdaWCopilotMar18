@@ -171,12 +171,13 @@ INSERT INTO content_items (id, category, category_type, title, context_title, de
 ON CONFLICT (id) DO NOTHING;
 
 -- Peer Segments
+DELETE FROM peer_segments;
 INSERT INTO peer_segments (asset_class, user_percent, peer_percent, color) VALUES
   ('Equities', 55, 45, '#d9b3b5'),
   ('Fixed Income', 15, 25, '#6d3f42'),
   ('Cash', 20, 15, '#a87174'),
   ('Alternatives', 10, 15, '#8b5a5d')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (asset_class) DO NOTHING;
 
 -- Performance History (Abdullah - 1 year, moderate growth with moderate volatility)
 INSERT INTO performance_history (user_id, value, recorded_date)

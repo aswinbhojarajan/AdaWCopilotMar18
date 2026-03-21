@@ -123,6 +123,17 @@ CREATE TABLE IF NOT EXISTS peer_segments (
   color TEXT NOT NULL
 );
 
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'peer_segments_asset_class_key'
+  ) THEN
+    DELETE FROM peer_segments a USING peer_segments b
+      WHERE a.id > b.id AND a.asset_class = b.asset_class;
+    ALTER TABLE peer_segments ADD CONSTRAINT peer_segments_asset_class_key UNIQUE (asset_class);
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS chat_threads (
   id TEXT PRIMARY KEY,
   user_id TEXT REFERENCES users(id),

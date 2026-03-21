@@ -12,7 +12,7 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
 **Frontend (React 18 + TypeScript):**
 - **UI/UX**: Mobile-first design (max 430px), Tailwind CSS v4 for styling, custom fonts (Crimson Pro, DM Sans).
 - **State Management & Data Fetching**: TanStack Query v5 for API interactions.
-- **Navigation**: useState-based routing for Home, Wealth, Discover, and Collective tabs.
+- **Navigation**: The app boots into a Summit Bank "client environment" shell (dummy bank home screen). The Ada experience is launched by tapping the Ada logo (red/maroon circular icon) in the header. Inside Ada: useState-based routing for Home, Wealth, Discover, and Collective tabs (Collective is under the "MORE" bottom nav).
 - **Chat Features**: SSE streaming for real-time text rendering, embedded data widgets (allocation chart, holdings summary, goal progress, portfolio summary, advisor handoff), interactive scenario simulators, dynamic suggested questions, and context passing from other screens.
 - **Animations**: AnimatePresence for tab transitions and overlays, Framer Motion for animated tab indicator.
 
