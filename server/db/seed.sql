@@ -185,15 +185,20 @@ INSERT INTO peer_segments (asset_class, user_percent, peer_percent, color) VALUE
   ('Alternatives', 10, 15, '#8b5a5d')
 ON CONFLICT (asset_class) DO NOTHING;
 
--- Performance History (Abdullah - 1 year, moderate growth with market-like volatility)
+-- Performance History (Abdullah - Holdings-weighted asset-class return model)
+-- Allocation: Stocks $7,449 (8%), Bonds $14,225 (15%), Crypto $5,382 (6%), Commodities $3,793 (4%), Cash $62,258 (66%)
+-- Each component amplitude = allocation_value × asset_class_annual_volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-abdullah',
        76500 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 45.37
-         + 1400 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
-         + 650 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 1.2)
-         + 380 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.31)
-         + 220 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.73) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.11)
-         + 150 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.47 + 0.5)
+         + 7449 * 0.15 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
+         + 7449 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 1.2)
+         + 14225 * 0.03 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.031)
+         + 14225 * 0.02 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.089)
+         + 5382 * 0.35 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.093)
+         + 5382 * 0.20 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.37)
+         + 3793 * 0.12 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.044)
+         + 3793 * 0.07 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.22)
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 95 AND 110 THEN 1800 ELSE 0 END
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 240 AND 255 THEN 1200 ELSE 0 END,
        d::date
@@ -621,15 +626,18 @@ INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount,
   ('txn-nad-14', 'acc-nad-2', 'buy', 'XOM', 25, 95.00, 2375.00, NOW() - INTERVAL '170 days')
 ON CONFLICT (id) DO NOTHING;
 
--- Khalid: Conservative, low volatility, slow steady growth with mild corrections
+-- Khalid: Conservative — Holdings-weighted asset-class return model
+-- Allocation: Stocks $17,930 (3%), Bonds $92,297 (14%), Commodities $17,912 (3%), Cash $521,861 (80%)
+-- Conservative: bonds/cash dominate → very low volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-khalid',
        638000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 32.88
-         + 800 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.042)
-         + 350 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.14 + 0.7)
-         + 180 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.28)
-         + 120 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.61) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.09)
-         + 80 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.23 + 2.1)
+         + 17930 * 0.08 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
+         + 17930 * 0.05 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 0.7)
+         + 92297 * 0.02 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.031)
+         + 92297 * 0.01 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.089)
+         + 17912 * 0.08 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.044)
+         + 17912 * 0.04 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.22)
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 160 AND 170 THEN 900 ELSE 0 END,
        d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
@@ -637,15 +645,18 @@ ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 650000.00 WHERE user_id = 'user-khalid' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 651230.50 WHERE user_id = 'user-khalid' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Sara: Moderate, balanced growth with realistic fluctuations
+-- Sara: Moderate — Holdings-weighted asset-class return model
+-- Allocation: Stocks $54,960 (32%), Bonds $30,200 (17%), Commodities $13,580 (8%), Cash $74,760 (43%)
+-- Balanced moderate: stocks and bonds drive volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-sara',
        143000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 83.29
-         + 1800 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.058)
-         + 750 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.19 + 0.9)
-         + 420 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.34)
-         + 280 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.82) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.13)
-         + 190 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.61 + 1.4)
+         + 54960 * 0.12 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
+         + 54960 * 0.08 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 0.9)
+         + 30200 * 0.03 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.031)
+         + 30200 * 0.02 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.089)
+         + 13580 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.044)
+         + 13580 * 0.06 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.22)
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 120 AND 132 THEN 1500 ELSE 0 END
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 280 AND 290 THEN 1100 ELSE 0 END,
        d::date
@@ -654,15 +665,17 @@ ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 173500.00 WHERE user_id = 'user-sara' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 172607.70 WHERE user_id = 'user-sara' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Raj: Aggressive, high volatility with sharp drawdowns and recoveries
+-- Raj: Aggressive — Holdings-weighted asset-class return model
+-- Allocation: Stocks $68,927 (38%), Crypto $52,325 (29%), Cash $60,075 (33%)
+-- Aggressive: heavy stocks + crypto → high volatility with drawdowns
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-raj',
        155000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 71.86
-         + 5500 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.048)
-         + 2800 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.15 + 0.6)
-         + 1600 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.29)
-         + 1100 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.67) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.12)
-         + 700 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.33 + 1.8)
+         + 68927 * 0.15 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
+         + 68927 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 0.6)
+         + 52325 * 0.35 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.093)
+         + 52325 * 0.20 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.37)
+         + 52325 * 0.12 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.33 + 1.8)
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 80 AND 100 THEN 7500 ELSE 0 END
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 180 AND 210 THEN 9000 ELSE 0 END
          + CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 210 AND 230 THEN 4000 ELSE 0 END
@@ -673,15 +686,18 @@ ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 181327.25 WHERE user_id = 'user-raj' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 184591.14 WHERE user_id = 'user-raj' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Nadia: Moderate-conservative, steady dividend growth with mild volatility
+-- Nadia: Moderate-conservative — Holdings-weighted asset-class return model
+-- Allocation: Stocks $44,615 (16%), Bonds $40,460 (15%), Commodities $10,537 (4%), Cash $179,888 (65%)
+-- Dividend-focused: stock component emphasizes stable dividend payers, lower vol
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-nadia',
        244000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 86.16
-         + 1200 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.046)
-         + 500 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.16 + 1.5)
-         + 280 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.32)
-         + 180 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.71) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.1)
-         + 110 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.38 + 0.3)
+         + 44615 * 0.08 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
+         + 44615 * 0.05 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 1.5)
+         + 40460 * 0.02 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.031)
+         + 40460 * 0.015 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.089)
+         + 10537 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.044)
+         + 10537 * 0.06 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.22)
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 200 AND 210 THEN 1000 ELSE 0 END,
        d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
@@ -756,15 +772,18 @@ ON CONFLICT (id) DO NOTHING;
 -- Performance History for Fatima, Omar, Layla (365-day series)
 -- ============================================================
 
--- Fatima: Conservative, low volatility, gentle upward trend with minor dips
+-- Fatima: Conservative — Holdings-weighted asset-class return model
+-- Allocation: Stocks $14,650 (9%), Bonds $68,002 (41%), Commodities $11,590 (7%), International $4,600 (3%), Cash $66,858 (40%)
+-- Conservative: heavy bonds/cash → low volatility
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-fatima',
        139000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 73.01
-         + 900 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.039)
-         + 400 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.13 + 0.8)
-         + 200 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.27)
-         + 130 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.58) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.08)
-         + 90 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.15 + 1.7)
+         + 14650 * 0.08 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
+         + 14650 * 0.05 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 0.8)
+         + 68002 * 0.02 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.031)
+         + 68002 * 0.015 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.089)
+         + 11590 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.044)
+         + 4600 * 0.12 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.063)
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 180 AND 188 THEN 700 ELSE 0 END,
        d::date
 FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
@@ -772,15 +791,17 @@ ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 165700.00 WHERE user_id = 'user-fatima' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 165269.80 WHERE user_id = 'user-fatima' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Omar: Aggressive, high volatility with sharp swings and multiple drawdowns
+-- Omar: Aggressive — Holdings-weighted asset-class return model
+-- Allocation: Stocks $44,710 (45%), Crypto $29,491 (30%), Cash $25,600 (25%)
+-- Aggressive: heavy stocks + crypto → high volatility with sharp drawdowns
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-omar',
        80000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 54.25
-         + 4200 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.055)
-         + 2200 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.16 + 0.4)
-         + 1300 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.31)
-         + 900 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.69) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.11)
-         + 600 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.27 + 2.3)
+         + 44710 * 0.15 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
+         + 44710 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 0.4)
+         + 29491 * 0.35 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.093)
+         + 29491 * 0.20 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.37)
+         + 29491 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.27 + 2.3)
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 70 AND 85 THEN 5000 ELSE 0 END
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 150 AND 175 THEN 7000 ELSE 0 END
          + CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 175 AND 195 THEN 3500 ELSE 0 END
@@ -791,15 +812,18 @@ ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 99801.00 WHERE user_id = 'user-omar' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 98563.47 WHERE user_id = 'user-omar' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Layla: Moderate, balanced volatility with seasonal patterns
+-- Layla: Moderate — Holdings-weighted asset-class return model
+-- Allocation: Stocks $22,968 (21%), Bonds $13,130 (12%), Commodities $6,322 (6%), International $6,680 (6%), Cash $61,400 (55%)
+-- Moderate balanced: diversified across stocks, bonds, international
 INSERT INTO performance_history (user_id, value, recorded_date)
 SELECT 'user-layla',
        96000 + (ROW_NUMBER() OVER (ORDER BY d))::numeric * 39.73
-         + 1300 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.047)
-         + 550 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.15 + 1.1)
-         + 320 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.29)
-         + 210 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.63) * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.1)
-         + 140 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 1.41 + 0.8)
+         + 22968 * 0.12 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.052)
+         + 22968 * 0.08 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.17 + 1.1)
+         + 13130 * 0.03 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.031)
+         + 13130 * 0.02 * cos((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.089)
+         + 6322 * 0.10 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.044)
+         + 6680 * 0.12 * sin((ROW_NUMBER() OVER (ORDER BY d))::numeric * 0.063 + 0.8)
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 140 AND 150 THEN 1300 ELSE 0 END
          - CASE WHEN (ROW_NUMBER() OVER (ORDER BY d)) BETWEEN 260 AND 272 THEN 1000 ELSE 0 END,
        d::date
