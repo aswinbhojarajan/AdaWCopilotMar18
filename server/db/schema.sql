@@ -259,6 +259,10 @@ CREATE TABLE IF NOT EXISTS tenant_configs (
   language TEXT NOT NULL DEFAULT 'en',
   blocked_phrases TEXT[] NOT NULL DEFAULT '{}',
   data_freshness_threshold_seconds INTEGER NOT NULL DEFAULT 300,
+  execution_routing_mode TEXT NOT NULL DEFAULT 'rm_handoff'
+    CHECK (execution_routing_mode IN ('rm_handoff', 'api_webhook', 'disabled')),
+  execution_webhook_url TEXT,
+  can_prepare_trade_plans BOOLEAN NOT NULL DEFAULT TRUE,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -388,5 +392,31 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='goals' AND column_name='cta_text') THEN
     ALTER TABLE goals ADD COLUMN cta_text TEXT NOT NULL DEFAULT 'View details';
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS advisor_action_queue (
+  id SERIAL PRIMARY KEY,
+  tenant_id TEXT REFERENCES tenants(id),
+  user_id TEXT REFERENCES users(id),
+  advisor_id TEXT,
+  conversation_id TEXT,
+  action_type TEXT NOT NULL,
+  action_details JSONB NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'acknowledged', 'completed', 'rejected')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tenant_configs' AND column_name='execution_routing_mode') THEN
+    ALTER TABLE tenant_configs ADD COLUMN execution_routing_mode TEXT NOT NULL DEFAULT 'rm_handoff' CHECK (execution_routing_mode IN ('rm_handoff', 'api_webhook', 'disabled'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tenant_configs' AND column_name='execution_webhook_url') THEN
+    ALTER TABLE tenant_configs ADD COLUMN execution_webhook_url TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tenant_configs' AND column_name='can_prepare_trade_plans') THEN
+    ALTER TABLE tenant_configs ADD COLUMN can_prepare_trade_plans BOOLEAN NOT NULL DEFAULT TRUE;
   END IF;
 END $$;

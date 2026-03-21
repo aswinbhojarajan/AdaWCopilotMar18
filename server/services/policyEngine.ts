@@ -18,6 +18,7 @@ const ALL_TOOLS = [
   'getQuotes',
   'getHoldingsRelevantNews',
   'calculatePortfolioHealth',
+  'route_to_advisor',
   'show_simulator',
   'show_widget',
   'extract_user_fact',
@@ -28,6 +29,7 @@ const PROFILE_TOOL_MAP: Record<string, string[]> = {
   market_read: ['getQuotes'],
   news_read: ['getHoldingsRelevantNews'],
   health_compute: ['calculatePortfolioHealth'],
+  execution_route: ['route_to_advisor'],
   workflow_light: ['show_simulator', 'show_widget', 'extract_user_fact'],
 };
 
@@ -40,7 +42,7 @@ export function evaluatePolicy(
   const responseMode = resolveResponseMode(tenantConfig, intent);
   const recommendationMode = resolveRecommendationMode(tenantConfig, intent);
   const requireDisclosures = true;
-  const { requireReview, escalationReason } = checkEscalation(tenantConfig, intent, riskProfile);
+  const { requireReview, escalationReason, executionRoute } = checkEscalation(tenantConfig, intent, riskProfile);
 
   return {
     allow_response: true,
@@ -50,6 +52,7 @@ export function evaluatePolicy(
     require_disclosures: requireDisclosures,
     require_human_review: requireReview,
     escalation_reason: escalationReason,
+    execution_route: executionRoute,
   };
 }
 
@@ -104,7 +107,15 @@ function checkEscalation(
   config: TenantConfig,
   intent: IntentClassification,
   riskProfile?: RiskProfile,
-): { requireReview: boolean; escalationReason?: string } {
+): { requireReview: boolean; escalationReason?: string; executionRoute?: TenantConfig['execution_routing_mode'] } {
+  if (intent.primary_intent === 'execution_request') {
+    return {
+      requireReview: true,
+      escalationReason: 'Trade/execution requests must be reviewed and executed by your advisor',
+      executionRoute: config.execution_routing_mode,
+    };
+  }
+
   if (intent.primary_intent === 'recommendation_request' && config.requires_advisor_handoff_for_specific_advice) {
     return { requireReview: true, escalationReason: 'Specific investment advice requires advisor review' };
   }

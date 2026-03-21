@@ -21,6 +21,7 @@ import { runPostChecks } from './guardrails';
 import { logAgentTrace, logToolRun } from './traceLogger';
 import type { StepTimings, TraceContext } from './traceLogger';
 import * as wealthEngine from './wealthEngine';
+import { routeToAdvisor } from './rmHandoffService';
 
 function mapOldIntentToNew(oldIntent: string, message: string): IntentClassification['primary_intent'] {
   const lower = message.toLowerCase();
@@ -38,6 +39,7 @@ function mapOldIntentToNew(oldIntent: string, message: string): IntentClassifica
     market: 'market_news',
     scenario: 'workflow_request',
     recommendation: 'recommendation_request',
+    execution_request: 'execution_request',
     general: 'other',
   };
   return map[oldIntent] ?? 'other';
@@ -74,6 +76,9 @@ function inferSuggestedTools(intent: IntentClassification['primary_intent'], mes
       break;
     case 'recommendation_request':
       tools.push('calculatePortfolioHealth', 'getPortfolioSnapshot', 'getHoldings');
+      break;
+    case 'execution_request':
+      tools.push('route_to_advisor', 'getPortfolioSnapshot');
       break;
     default:
       tools.push('getPortfolioSnapshot');
@@ -372,8 +377,49 @@ export async function* orchestrateStream(
         })),
       };
 
-      const financialCalls = toolCalls.filter(tc => isFinancialTool(tc.name));
+      const rmCalls = toolCalls.filter(tc => tc.name === 'route_to_advisor');
+      const financialCalls = toolCalls.filter(tc => isFinancialTool(tc.name) && tc.name !== 'route_to_advisor');
       const uiCalls = toolCalls.filter(tc => !isFinancialTool(tc.name));
+
+      const rmResults: Array<{ role: 'tool'; tool_call_id: string; content: string }> = [];
+      for (const tc of rmCalls) {
+        let args: Record<string, unknown> = {};
+        try { args = JSON.parse(tc.arguments); } catch { /* empty */ }
+        const toolStart = Date.now();
+        const handoffResult = await routeToAdvisor({
+          tenantId: tenantConfig.tenant_id,
+          userId,
+          conversationId: threadId,
+          actionType: (args.action_type as string) ?? 'other',
+          actionDetails: { summary: args.summary, ...(args.details as Record<string, unknown> ?? {}) },
+        }, tenantConfig);
+
+        const toolResult: ToolResult = {
+          status: handoffResult.success ? 'ok' : 'error',
+          source_name: 'rm_handoff',
+          source_type: 'execution_routing',
+          as_of: new Date().toISOString(),
+          latency_ms: Date.now() - toolStart,
+          data: handoffResult,
+        };
+        toolResults.push(toolResult);
+
+        if (handoffResult.success) {
+          pendingUiEvents.push({
+            type: 'widget',
+            widget: {
+              type: 'advisor_handoff',
+              advisorName: handoffResult.advisorName,
+              actionContext: (args.summary as string) ?? undefined,
+              queueId: handoffResult.queueId,
+            } as { type: string },
+          });
+          widgets.push({ type: 'advisor_handoff' });
+          escalationDecisions.push(`Execution routed to advisor: ${handoffResult.message}`);
+        }
+
+        rmResults.push({ role: 'tool' as const, tool_call_id: tc.id, content: JSON.stringify(handoffResult) });
+      }
 
       const financialResults = await Promise.all(
         financialCalls.map(async (tc) => {
@@ -436,9 +482,11 @@ export async function* orchestrateStream(
 
       const orderedToolResults: OpenAI.ChatCompletionMessageParam[] = [];
       for (const tc of toolCalls) {
+        const rr = rmResults.find(r => r.tool_call_id === tc.id);
         const fr = financialResults.find(r => r.tool_call_id === tc.id);
         const ur = uiResults.find(r => r.tool_call_id === tc.id);
-        if (fr) orderedToolResults.push(fr);
+        if (rr) orderedToolResults.push(rr);
+        else if (fr) orderedToolResults.push(fr);
         else if (ur) orderedToolResults.push(ur);
       }
 
@@ -467,7 +515,33 @@ export async function* orchestrateStream(
       yield { type: 'text', content: disclosureText };
     }
 
-    if (policyDecision.require_human_review) {
+    const alreadyHasAdvisorWidget = widgets.some(w => w.type === 'advisor_handoff');
+
+    if (intent.primary_intent === 'execution_request' && !alreadyHasAdvisorWidget) {
+      const fallbackHandoff = await routeToAdvisor({
+        tenantId: tenantConfig.tenant_id,
+        userId,
+        conversationId: threadId,
+        actionType: 'other',
+        actionDetails: { summary: sanitizedMessage, source: 'fallback_enforcement' },
+      }, tenantConfig);
+
+      if (fallbackHandoff.success) {
+        escalationDecisions.push(`Execution fallback routing: ${fallbackHandoff.message}`);
+        yield {
+          type: 'widget',
+          widget: {
+            type: 'advisor_handoff',
+            advisorName: fallbackHandoff.advisorName,
+            actionContext: sanitizedMessage,
+            queueId: fallbackHandoff.queueId,
+          } as { type: string },
+        };
+        widgets.push({ type: 'advisor_handoff' });
+      }
+    }
+
+    if (policyDecision.require_human_review && !alreadyHasAdvisorWidget && !widgets.some(w => w.type === 'advisor_handoff')) {
       escalationDecisions.push(policyDecision.escalation_reason || 'Advisor review required');
       yield { type: 'widget', widget: { type: 'advisor_handoff' } };
       widgets.push({ type: 'advisor_handoff' });

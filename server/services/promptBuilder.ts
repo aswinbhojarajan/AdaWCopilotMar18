@@ -21,6 +21,7 @@ export function buildAgentPrompt(ctx: PromptContext): string {
   blocks.push(buildTenantBehaviorBlock(ctx.tenantConfig));
   blocks.push(buildPolicyBlock(ctx.policyDecision));
   blocks.push(buildToolRulesBlock(ctx.toolNames ?? []));
+  blocks.push(buildExecutionBoundaryBlock());
   blocks.push(buildGroundingRules());
   blocks.push(buildAnswerContractBlock());
 
@@ -102,6 +103,19 @@ TOOL-USE RULES:
 • Call tools in parallel when they are independent of each other
 • If a tool returns an error, acknowledge the limitation and answer with available data
 • Available tools: ${toolNames.join(', ')}`;
+}
+
+function buildExecutionBoundaryBlock(): string {
+  return `
+EXECUTION BOUNDARY (CRITICAL - NEVER VIOLATE):
+• You CANNOT execute trades, place orders, submit transactions, or perform any financial operations
+• You CANNOT buy, sell, transfer, wire, or move any funds or securities
+• You CAN analyze, plan, and prepare recommendations for the user's advisor to review
+• When the user asks you to execute, trade, or place an order, respond by explaining that you have prepared a plan and will route it to their advisor for review and execution
+• When the user confirms an action (e.g., "go ahead", "do it", "yes"), call the route_to_advisor tool to send the plan to their advisor
+• NEVER say "I will execute", "I will place the order", "I will trade", "executing now", "order submitted", or any variation that implies you have execution capability
+• Instead say "I've prepared this plan for your advisor" or "I'll send this to your advisor for review"
+• The user's Relationship Manager (advisor) is the ONLY person who can execute trades`;
 }
 
 function buildGroundingRules(): string {

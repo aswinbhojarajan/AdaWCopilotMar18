@@ -36,14 +36,15 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
     - `morningSentinelService.ts`: Generates AI-powered daily briefings with anomaly detection.
 - **Data Access Layer**: `repositories/` directory for PostgreSQL queries.
 - **Provider Pattern**: Employs a provider pattern with 7 data provider interfaces (Portfolio, Market, News, Macro, FX, FxLocalized, Research, Identity). Phase 1 external providers: Finnhub (quotes, profiles, earnings, news), FRED (macro indicators), SEC EDGAR (submissions, company facts/XBRL, filing search), OpenFIGI (identity resolution with DB persistence), Frankfurter (ECB FX rates), CBUAE (AED-localized FX with Frankfurter fallback). All providers default to mock — real providers activate only via explicit env var config (`*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK`). Full primary→secondary→fallback→mock chain per domain. `FX_PROVIDER_LOCALIZED` controls UAE-specific FX routing. In-memory cache with per-data-type TTLs; cache hit/miss metrics in every ToolResult. Rate limiting (per-second for SEC EDGAR, per-minute for others) and sliding-window health tracking. Phase 2/3 stubs wired into registry: Marketaux, ECB, Twelve Data, FMP, CoinGecko, Yahoo Finance.
-- **Policy Engine**: Code-driven policy decisions per tenant, controlling advisory mode, allowed tools, disclosure profile, and feature flags.
+- **Policy Engine**: Code-driven policy decisions per tenant, controlling advisory mode, allowed tools, disclosure profile, execution routing, and feature flags.
+- **Execution Guardrails & RM Handoff**: Ada cannot execute trades or claim execution capability. System prompt contains a hard execution boundary. Guardrails detect and replace execution-claiming language. Execution requests are classified via `execution_request` intent and always routed to the user's Relationship Manager. The `route_to_advisor` tool packages action requests and persists them to the `advisor_action_queue` table (or POSTs to a webhook for `api_webhook` mode). Tenant config controls routing via `execution_routing_mode` (rm_handoff/api_webhook/disabled), `execution_webhook_url`, and `can_prepare_trade_plans`.
 - **Agent Tracing & Observability**: Detailed logging of tool runs and agent traces for full observability.
 - **Structured Responses**: Uses a standardized `AdaAnswer` schema for structured AI responses, including headline, summary, insights, recommendations, and render hints.
 - **Validation**: Zod for runtime schema validation of AI and policy contracts.
 - **Error Handling**: `asyncHandler` wrapper for Express routes and a global error handler.
 
 **Database (PostgreSQL):**
-- Contains 31 tables covering core application data (users, accounts, portfolios, goals, chat, content) and agent architecture data (tenants, tenant_configs, instruments, market_quotes, news_items, tool_runs, agent_traces, policy_decisions, conversation_summaries).
+- Contains 32 tables covering core application data (users, accounts, portfolios, goals, chat, content), agent architecture data (tenants, tenant_configs, instruments, market_quotes, news_items, tool_runs, agent_traces, policy_decisions, conversation_summaries), and execution routing (advisor_action_queue).
 - `schema.sql` defines the schema, and `seed.sql` provides demo data for 8 personas, instruments, market quotes, and news items.
 
 ## External Dependencies

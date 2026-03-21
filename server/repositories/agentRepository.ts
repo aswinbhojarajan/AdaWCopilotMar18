@@ -7,7 +7,8 @@ export async function getTenantConfig(tenantId: string): Promise<TenantConfig | 
             can_generate_recommendations, can_generate_next_best_actions,
             requires_advisor_handoff_for_specific_advice, disclosure_profile,
             allowed_tool_profiles, provider_config, feature_flags,
-            tone, language, blocked_phrases, data_freshness_threshold_seconds
+            tone, language, blocked_phrases, data_freshness_threshold_seconds,
+            execution_routing_mode, execution_webhook_url, can_prepare_trade_plans
      FROM tenant_configs WHERE tenant_id = $1`,
     [tenantId],
   );
@@ -30,6 +31,9 @@ export async function getTenantConfig(tenantId: string): Promise<TenantConfig | 
     language: String(r.language),
     blocked_phrases: (r.blocked_phrases as string[]) ?? [],
     data_freshness_threshold_seconds: Number(r.data_freshness_threshold_seconds),
+    execution_routing_mode: (r.execution_routing_mode as TenantConfig['execution_routing_mode']) ?? 'rm_handoff',
+    execution_webhook_url: r.execution_webhook_url ? String(r.execution_webhook_url) : null,
+    can_prepare_trade_plans: r.can_prepare_trade_plans != null ? Boolean(r.can_prepare_trade_plans) : true,
   };
 }
 
@@ -46,13 +50,16 @@ export async function getDefaultTenantConfig(): Promise<TenantConfig> {
       can_generate_next_best_actions: true,
       requires_advisor_handoff_for_specific_advice: true,
       disclosure_profile: 'uae_affluent_v1',
-      allowed_tool_profiles: ['portfolio_read', 'market_read', 'news_read', 'macro_read', 'fx_read', 'health_compute', 'workflow_light'],
+      allowed_tool_profiles: ['portfolio_read', 'market_read', 'news_read', 'macro_read', 'fx_read', 'health_compute', 'workflow_light', 'execution_route'],
       provider_config: {},
       feature_flags: { enable_agent_tracing: true, enable_advisor_handoff: true, enable_recommendations: false, enable_wealth_engine: true },
       tone: 'professional',
       language: 'en',
       blocked_phrases: [],
       data_freshness_threshold_seconds: 300,
+      execution_routing_mode: 'rm_handoff',
+      execution_webhook_url: null,
+      can_prepare_trade_plans: true,
     };
   }
   return config;

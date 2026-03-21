@@ -23,6 +23,9 @@ export interface SimulatorConfig {
 
 export interface ChatWidget {
   type: 'allocation_chart' | 'holdings_summary' | 'goal_progress' | 'portfolio_summary' | 'advisor_handoff';
+  advisorName?: string;
+  actionContext?: string;
+  queueId?: number;
 }
 
 export interface Message {

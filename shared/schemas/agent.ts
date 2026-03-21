@@ -29,7 +29,7 @@ export const RecommendationItemSchema = z.object({
 export type RecommendationItem = z.infer<typeof RecommendationItemSchema>;
 
 export const ActionSchema = z.object({
-  type: z.enum(['advisor_handoff', 'watchlist', 'alert', 'view_portfolio', 'none']),
+  type: z.enum(['advisor_handoff', 'execution_handoff', 'watchlist', 'alert', 'view_portfolio', 'none']),
   label: z.string(),
   payload: z.record(z.string(), z.unknown()).optional(),
 });
@@ -44,6 +44,7 @@ export const AdaAnswerSchema = z.object({
     'portfolio_health',
     'market_news',
     'recommendation_request',
+    'execution_request',
     'workflow_request',
     'support',
     'other',
@@ -88,6 +89,7 @@ export const PolicyDecisionSchema = z.object({
   require_disclosures: z.boolean(),
   require_human_review: z.boolean(),
   escalation_reason: z.string().optional(),
+  execution_route: z.enum(['rm_handoff', 'api_webhook', 'disabled']).optional(),
 });
 export type PolicyDecision = z.infer<typeof PolicyDecisionSchema>;
 
@@ -98,6 +100,7 @@ export const IntentClassificationSchema = z.object({
     'portfolio_health',
     'market_news',
     'recommendation_request',
+    'execution_request',
     'workflow_request',
     'support',
     'other',
@@ -150,6 +153,9 @@ export const TenantConfigSchema = z.object({
   language: z.string().default('en'),
   blocked_phrases: z.array(z.string()).default([]),
   data_freshness_threshold_seconds: z.number().default(300),
+  execution_routing_mode: z.enum(['rm_handoff', 'api_webhook', 'disabled']).default('rm_handoff'),
+  execution_webhook_url: z.string().nullable().default(null),
+  can_prepare_trade_plans: z.boolean().default(true),
 });
 export type TenantConfig = z.infer<typeof TenantConfigSchema>;
 

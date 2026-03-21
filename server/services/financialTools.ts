@@ -75,6 +75,33 @@ export const FINANCIAL_TOOL_DEFINITIONS: OpenAI.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'route_to_advisor',
+      description: 'Route an action request to the user\'s advisor (Relationship Manager) for review and execution. Call this when the user confirms they want to proceed with a trade, rebalance, transfer, or any financial action. You CANNOT execute trades yourself — this tool sends the plan to the advisor.',
+      parameters: {
+        type: 'object',
+        properties: {
+          action_type: {
+            type: 'string',
+            enum: ['rebalance', 'buy', 'sell', 'transfer', 'allocation_change', 'other'],
+            description: 'The type of action the user wants to execute',
+          },
+          summary: {
+            type: 'string',
+            description: 'A brief summary of what the user wants to do (e.g., "Rebalance portfolio to 60% equities, 30% bonds, 10% cash")',
+          },
+          details: {
+            type: 'object',
+            description: 'Detailed action parameters (instruments, quantities, target allocations, etc.)',
+            additionalProperties: true,
+          },
+        },
+        required: ['action_type', 'summary'],
+      },
+    },
+  },
 ];
 
 export const UI_TOOL_DEFINITIONS: OpenAI.ChatCompletionTool[] = [

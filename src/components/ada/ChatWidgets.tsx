@@ -139,7 +139,15 @@ function PortfolioSummaryWidget() {
   );
 }
 
-function AdvisorHandoffWidget() {
+function AdvisorHandoffWidget({ advisorName, actionContext, queueId }: { advisorName?: string; actionContext?: string; queueId?: number }) {
+  const isExecutionHandoff = !!actionContext;
+  const title = isExecutionHandoff
+    ? `Plan Sent to ${advisorName || 'Your Advisor'}`
+    : 'Advisor Review Recommended';
+  const description = isExecutionHandoff
+    ? `Your request has been sent to ${advisorName || 'your advisor'} for review and execution.${queueId ? ` Reference: #${queueId}` : ''}`
+    : 'This topic would benefit from a conversation with your dedicated advisor for personalized guidance.';
+
   return (
     <div className="bg-[#FFF8F0] border border-[#E5C9A8] rounded-[12px] p-[16px] my-[8px]">
       <div className="flex items-start gap-[10px]">
@@ -149,12 +157,17 @@ function AdvisorHandoffWidget() {
           </svg>
         </div>
         <div className="flex-1">
-          <h4 className="text-[13px] text-[#441316] font-medium mb-[4px]">Advisor Review Recommended</h4>
+          <h4 className="text-[13px] text-[#441316] font-medium mb-[4px]">{title}</h4>
+          {actionContext && (
+            <p className="text-[12px] text-[#441316] bg-[#FFF0E0] rounded-[6px] px-[8px] py-[4px] mb-[8px]">
+              {actionContext}
+            </p>
+          )}
           <p className="text-[12px] text-[#555555] mb-[10px]">
-            This topic would benefit from a conversation with your dedicated advisor for personalized guidance.
+            {description}
           </p>
           <button className="bg-[#441316] text-white text-[12px] font-medium px-[16px] py-[8px] rounded-[8px]">
-            Contact Your Advisor
+            Contact {advisorName || 'Your Advisor'}
           </button>
         </div>
       </div>
@@ -186,7 +199,7 @@ export function ChatWidgetRenderer({ widget }: { widget: ChatWidget }) {
     case 'portfolio_summary':
       return <PortfolioSummaryWidget />;
     case 'advisor_handoff':
-      return <AdvisorHandoffWidget />;
+      return <AdvisorHandoffWidget advisorName={widget.advisorName} actionContext={widget.actionContext} queueId={widget.queueId} />;
     default:
       return null;
   }

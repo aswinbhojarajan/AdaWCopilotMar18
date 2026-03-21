@@ -1,4 +1,4 @@
-export type Intent = 'portfolio' | 'goals' | 'market' | 'scenario' | 'recommendation' | 'general';
+export type Intent = 'portfolio' | 'goals' | 'market' | 'scenario' | 'recommendation' | 'execution_request' | 'general';
 
 interface IntentRule {
   intent: Intent;
@@ -6,6 +6,17 @@ interface IntentRule {
 }
 
 const INTENT_RULES: IntentRule[] = [
+  {
+    intent: 'execution_request',
+    keywords: [
+      'execute', 'place order', 'place the order', 'go ahead', 'do it',
+      'confirm trade', 'confirm the trade', 'rebalance now', 'buy for me',
+      'sell for me', 'make the trade', 'execute the trade', 'proceed with',
+      'yes, go ahead', 'yes go ahead', 'approve the', 'submit the order',
+      'process the trade', 'carry out', 'move forward with the trade',
+      'yes please execute', 'please execute', 'transfer now', 'wire the funds',
+    ],
+  },
   {
     intent: 'recommendation',
     keywords: [

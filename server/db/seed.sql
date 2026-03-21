@@ -276,15 +276,16 @@ INSERT INTO tenants (id, name, jurisdiction, status) VALUES
   ('bank_demo_uae', 'Demo Bank UAE', 'UAE', 'active')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO tenant_configs (tenant_id, jurisdiction, advisory_mode, can_name_securities, can_compare_products, can_generate_recommendations, can_generate_next_best_actions, requires_advisor_handoff_for_specific_advice, disclosure_profile, allowed_tool_profiles, provider_config, feature_flags, tone, language)
+INSERT INTO tenant_configs (tenant_id, jurisdiction, advisory_mode, can_name_securities, can_compare_products, can_generate_recommendations, can_generate_next_best_actions, requires_advisor_handoff_for_specific_advice, disclosure_profile, allowed_tool_profiles, provider_config, feature_flags, tone, language, execution_routing_mode, can_prepare_trade_plans)
 VALUES (
   'bank_demo_uae', 'UAE', 'personalized_insights_only',
   TRUE, FALSE, FALSE, TRUE, TRUE,
   'uae_affluent_v1',
-  '{portfolio_read,market_read,news_read,macro_read,fx_read,health_compute,workflow_light}',
+  '{portfolio_read,market_read,news_read,macro_read,fx_read,health_compute,workflow_light,execution_route}',
   '{"market_primary":"mock","news_primary":"mock","macro_primary":"mock","fx_primary":"mock","filing_primary":"mock","identity_primary":"mock"}',
   '{"enable_agent_tracing":true,"enable_advisor_handoff":true,"enable_recommendations":false,"enable_wealth_engine":true}',
-  'professional', 'en'
+  'professional', 'en',
+  'rm_handoff', TRUE
 )
 ON CONFLICT (tenant_id) DO NOTHING;
 
