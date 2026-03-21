@@ -4,6 +4,74 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Task #9 — Full Persona Data Parity & Personalization
+**Date:** March 21, 2026
+
+### Added
+- **Full data parity for all 8 personas** — each persona now has accounts, positions, portfolio snapshots, 365-day volatile performance history, goals, alerts, and chat threads
+- **365-day performance history** with risk-profile-appropriate volatility curves: conservative personas show steady growth, aggressive personas (Omar, Raj) include drawdown periods
+- **Server-side `computeWealthInsights()`** in `portfolioService.ts` — computes `primaryInsight`, `diversificationScore`, `riskLevel`, `topAllocationClass`, `topAllocationPercent`, and `advisorName` from actual portfolio data
+- **70-test suite** in `tests/persona-parity.test.ts` covering all 8 personas: positions exist, performance history length, goals exist, alerts exist, chat threads exist, allocation totals reconcile with snapshots
+- **`npm run test:parity`** script for running the persona parity tests
+
+### Changed
+- `WealthScreen.tsx` — insights now driven by server-side computed data rather than hardcoded values
+- `seed.sql` — expanded with complete position, snapshot, performance, goal, alert, and chat data for Khalid, Sara, Raj, and Nadia; existing personas (Fatima, Omar, Layla) enriched with missing data
+
+---
+
+## Task #8 — User Switching & Multi-Persona Demo
+**Date:** March 21, 2026
+
+### Added
+- **`UserContext` provider** — React context managing the active user ID with localStorage persistence
+- **`PersonaPicker` bottom sheet** — UI component for switching between 8 demo personas, triggered from the header
+- **`GET /api/users`** endpoint — returns all seeded demo personas for the picker
+- **`X-User-ID` header** — sent on all API and SSE stream calls to identify the active user
+
+### Changed
+- **All 11 React Query hooks** updated to include `userId` in their `queryKey` arrays for per-user data isolation
+- **`queryClient.removeQueries()`** called on user switch to force fresh data fetching
+- **`server/routes/api.ts`** — `getUserId(req)` helper extracts user from `X-User-ID` header with fallback to `DEFAULT_USER_ID`
+
+### Fixed
+- **Wealth tab crash** for non-Abdullah users — missing null checks on portfolio data
+- **Blank Wealth tab** after user switching — query keys not properly scoped to user
+
+---
+
+## Task #7 — Multi-Model Routing with Lane-Based Control Plane
+**Date:** March 21, 2026
+
+### Added
+- **Lane-based routing** in `modelRouter.ts` with three lanes:
+  - **Lane 0 (Deterministic)**: Portfolio lookups, balance checks — handled by wealth engine without LLM calls
+  - **Lane 1 (Fast)**: Simple queries using `ada-fast` provider alias with lower token budgets
+  - **Lane 2 (Reasoning)**: Complex analysis using `ada-reason` provider alias with higher token budgets
+- **Request scorecard** system — evaluates token estimate, tool count, context window size, and complexity signals to select the optimal lane
+- **Provider aliases** — `ada-fast` and `ada-reason` both map to `gpt-5-mini` (configurable for future model differentiation)
+- **Per-lane configuration** — token budgets and temperature settings per lane
+- **Lane metadata in traces** — `traceLogger.ts` captures lane selection, scorecard values, and route decision rationale
+
+### Changed
+- `agentOrchestrator.ts` — integrated lane-based routing into the pipeline
+- `traceLogger.ts` — extended trace schema with lane metadata fields
+
+### Fixed
+- **Lane 0 portfolio text showing $0.00** — deterministic responses now correctly format portfolio values
+
+---
+
+## Bug Fix — Collective Tab Peer Comparison Duplicates
+**Date:** March 21, 2026
+
+### Fixed
+- **`peer_segments` table producing 400 duplicate rows** — no UNIQUE constraint on `asset_class` column allowed ~100 server restarts to each insert 4 rows
+- Added `DO $$` migration block to add `UNIQUE` constraint on `peer_segments(asset_class)` idempotently
+- Seed now uses `DELETE FROM peer_segments` followed by `INSERT ... ON CONFLICT (asset_class) DO NOTHING` to prevent duplicates on restart
+
+---
+
 ## Agent Task #6 — Execution Guardrails & RM Handoff
 **Date:** March 21, 2026
 

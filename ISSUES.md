@@ -31,7 +31,7 @@
 | ID | Title | Description | Component | Date Opened |
 |----|-------|-------------|-----------|-------------|
 | ISS-001 | PII stored in plain text in chat_messages | User messages containing PII (email, phone, SSN, credit card, passport, IBAN) are detected and redacted before sending to the LLM, but the raw original message is persisted to `chat_messages` table. No encryption at rest or retention/purge policy exists. | `server/services/piiDetector.ts`, `chat_messages` table | 2026-03-21 |
-| ISS-002 | No authentication layer | All API endpoints are unauthenticated. User identity is hardcoded to `user-abdullah` via `DEFAULT_USER_ID` in `api.ts`. Any client can access any user's data. | `server/routes/api.ts` | 2026-03-21 |
+| ISS-002 | No authentication layer | All API endpoints are unauthenticated. User identity is sent via `X-User-ID` header (demo mode) with fallback to `user-abdullah`. Any client can set any user ID. User switching is built but no auth/authorization layer exists. | `server/routes/api.ts` | 2026-03-21 |
 | ISS-003 | No rate limiting on API endpoints | Express API has no rate limiting. Vulnerable to brute-force requests, especially on the LLM-backed endpoints (`/api/chat/stream`, `/api/morning-sentinel/stream`) which incur OpenAI API costs. | `server/index.ts`, `server/routes/api.ts` | 2026-03-21 |
 
 ### P2 — Medium
@@ -39,13 +39,13 @@
 | ID | Title | Description | Component | Date Opened |
 |----|-------|-------------|-----------|-------------|
 | ISS-004 | All external providers default to mock | The 6 external data providers (Finnhub, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE) all default to mock data. Real financial data requires manually setting env vars per provider. Users see simulated data unless configured. | `server/providers/registry.ts` | 2026-03-21 |
-| ISS-005 | Model router uses single model for all intents | `modelRouter.ts` currently sends all intents to gpt-5-mini regardless of complexity. No differentiation between simple queries (balance check) and complex analysis (scenario modeling). | `server/services/modelRouter.ts` | 2026-03-21 |
+| ~~ISS-005~~ | ~~Model router uses single model for all intents~~ | Resolved — lane-based routing now differentiates Lane 0 (deterministic), Lane 1 (fast), Lane 2 (reasoning). See Task #7. | `server/services/modelRouter.ts` | 2026-03-21 |
 | ISS-006 | Advisor action queue has no UI for advisors | Execution requests are persisted to `advisor_action_queue` but there is no advisor-facing dashboard to review, approve, or act on queued items. Queue grows without consumption. | `advisor_action_queue` table | 2026-03-21 |
 | ISS-007 | Wealth engine uses mock target allocations | `wealthEngine.ts` uses hardcoded target allocations for drift and rebalance calculations instead of reading from a user-specific target allocation profile. | `server/services/wealthEngine.ts` | 2026-03-21 |
 | ISS-008 | No CSRF protection | Express server has CORS enabled but no CSRF token validation. | `server/index.ts` | 2026-03-21 |
 | ISS-009 | Memory system has no eviction policy | Working memory caps at 20 messages per thread, but episodic and semantic memories grow unbounded. No TTL, no pruning, no size limits on DB-stored memories. | `server/services/memoryService.ts` | 2026-03-21 |
-| ISS-010 | Single-user hardcoded default | `DEFAULT_USER_ID = 'user-abdullah'` is used across all API routes. User switching requires code change. | `server/routes/api.ts` | 2026-03-21 |
-| ISS-011 | chatService.ts is legacy dead code | The original `chatService.ts` pipeline is fully replaced by `agentOrchestrator.ts` but remains in the codebase. It is not called at runtime but adds maintenance burden and confusion. | `server/services/chatService.ts` | 2026-03-21 |
+| ~~ISS-010~~ | ~~Single-user hardcoded default~~ | Resolved — user switching built via PersonaPicker + X-User-ID header. `DEFAULT_USER_ID` retained as fallback only. See Task #8. | `server/routes/api.ts` | 2026-03-21 |
+| ~~ISS-011~~ | ~~chatService.ts is legacy dead code~~ | Resolved — `chatService.ts` has been deleted from the codebase. | — | 2026-03-21 |
 | ISS-012 | Webhook mode has no retry logic | When `execution_routing_mode` is `api_webhook`, failed webhook POSTs fall back to the queue but there is no retry mechanism, no exponential backoff, and no dead-letter queue. | `server/services/rmHandoffService.ts` | 2026-03-21 |
 
 ### P3 — Low
@@ -82,3 +82,7 @@
 | — | Guardrails running after streaming | Moved guardrail checks before SSE emission | 2026-03-20 |
 | — | Duplicate advisor widgets | Added handoff tracking in orchestrator | 2026-03-20 |
 | — | Duplicate /api/health endpoint | Consolidated to single registration | 2026-03-18 |
+| ISS-005 | Model router single model | Lane-based routing with 3 lanes (deterministic/fast/reasoning) | 2026-03-21 |
+| ISS-010 | Single-user hardcoded default | User switching via PersonaPicker + X-User-ID header | 2026-03-21 |
+| ISS-011 | chatService.ts dead code | File deleted from codebase | 2026-03-21 |
+| — | Collective tab 400 duplicate rows | UNIQUE constraint on peer_segments(asset_class) + seed cleanup | 2026-03-21 |

@@ -54,14 +54,18 @@ High-net-worth individuals (HNWI) and affluent investors in the GCC region who w
 
 ### Demo Personas
 
-Four seeded personas exist in the database. **Abdullah Al-Rashid** is the default user and the primary demo persona.
+Eight seeded personas exist in the database with full data parity. **Abdullah Al-Rashid** is the default user and the primary demo persona. Each persona has accounts, positions, a 365-day volatile performance history (risk-profile-appropriate curves with drawdowns for aggressive personas), goals, alerts, and chat threads. User switching is supported via the PersonaPicker bottom sheet; all API calls include the selected user's ID via the `X-User-ID` header.
 
 | ID | Name | Risk Profile | Score | Portfolio Value | Key Traits |
 |---|---|---|---|---|---|
 | `user-abdullah` | Abdullah Al-Rashid | Moderate | 62 | $94,830.19 | Default user. 3 accounts (HSBC, Interactive Brokers, WIO Bank). 7 positions. 2 goals (house deposit, education fund). Tech-heavy allocation (48%). |
 | `user-fatima` | Fatima Hassan | Conservative | 35 | $165,700.00 | 2 accounts (Emirates NBD, Vanguard). 1 goal (retirement). Lower risk tolerance. |
-| `user-omar` | Omar Khalil | Aggressive | 85 | $102,100.00 | 2 accounts (ADCB, Robinhood). Growth-focused. Highest risk score. |
+| `user-omar` | Omar Khalil | Aggressive | 85 | $102,100.00 | 2 accounts (ADCB, Robinhood). Growth-focused. Highest risk score. Performance history includes drawdowns. |
 | `user-layla` | Layla Mahmoud | Moderate | 55 | $110,500.00 | 2 accounts (Mashreq Bank, Charles Schwab). Balanced profile. Negative daily change. |
+| `user-khalid` | Khalid Al-Mansoori | Conservative | 30 | ~$200,000 | Cash-heavy allocation (~81%). Very conservative investor. |
+| `user-sara` | Sara Al-Fahim | Moderate | 58 | ~$150,000 | Balanced portfolio. Moderate risk tolerance. |
+| `user-raj` | Raj Patel | Aggressive | 82 | ~$120,000 | Growth-focused with aggressive allocation. Performance history includes drawdowns. |
+| `user-nadia` | Nadia Al-Sayed | Moderate | 50 | ~$180,000 | Dividend-focused portfolio. Moderate risk tolerance. |
 
 All personas share the same advisor: **Sarah Mitchell** (Senior Wealth Advisor, `advisor-sarah`).
 
@@ -321,7 +325,12 @@ User Message → PII Detection → Session Hydration → Intent Classification
    - `execution_route`: For execution requests, where to route (rm_handoff, api_webhook, disabled)
    - Feature flags: `allow_simulator`, `allow_widgets`, `allow_fact_extraction`
 
-4. **Model Router** (`modelRouter.ts`): Selects the AI model based on intent complexity. Currently routes all intents to gpt-5-mini but supports `FAST_MODEL` vs `STRONG_MODEL` configuration for future multi-model routing.
+4. **Model Router** (`modelRouter.ts`): Lane-based multi-model routing with three lanes:
+   - **Lane 0 (Deterministic)**: Portfolio lookups, balance checks — handled by the wealth engine without LLM calls
+   - **Lane 1 (Fast)**: Simple queries using `ada-fast` (→ gpt-5-mini) with lower token budgets
+   - **Lane 2 (Reasoning)**: Complex analysis using `ada-reason` (→ gpt-5-mini) with higher token budgets
+   
+   Route selection uses a request scorecard (token estimate, tool count, context window, complexity signals). Provider aliases (`ada-fast`, `ada-reason`) map to underlying models. Per-lane token and temperature budgets are configurable. Lane metadata is logged in agent traces.
 
 5. **RAG Pipeline** (`ragService.ts`): Builds rich portfolio context from PostgreSQL based on the classified intent. Queries holdings, allocations, goals, accounts, and recent transactions to inject into the LLM system prompt.
 
@@ -974,7 +983,9 @@ main.tsx (QueryClient + prefetch)
 | **Poll Voting** | Built | Optimistic UI, server-persisted, atomic transactions |
 | **Pull-to-Refresh** | Built | Home, Wealth, Discover, Collective screens |
 | **TypeScript Validation** | Built | `tsc --noEmit` passes cleanly, registered as CI validation |
-| **User Switching** | Not built | Backend hardcoded to `user-abdullah` |
+| **User Switching** | Built | PersonaPicker bottom sheet, X-User-ID header, per-user query isolation, localStorage persistence |
+| **Multi-Model Routing** | Built | Lane-based control plane (Lane 0 deterministic, Lane 1 fast, Lane 2 reasoning) with request scorecards and provider aliases |
+| **Full Persona Data Parity** | Built | 8 personas with positions, 365-day performance history, goals, alerts, chat threads; server-side computed wealth insights |
 | **Authentication** | Not built | No auth layer |
 | **Real Account Linking** | Not built | Mock flow only |
 | **Push Notifications** | Not built | — |
@@ -1010,3 +1021,8 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-20 | Agent Task #5: Verify & Fix Agent Architecture | Fixed intent sub-routing (portfolio_health, portfolio_explain, market_news). Fixed guardrails-before-streaming ordering. Fixed advisor handoff widget deduplication. Verified all 8 tools dispatch correctly. End-to-end pipeline verified. |
 | 2026-03-21 | Agent Task #6: Execution Guardrails & RM Handoff | execution_request intent classification (20+ keywords). 3-layer execution boundary (system prompt, guardrails, orchestrator fallback). rmHandoffService with rm_handoff/api_webhook/disabled routing. route_to_advisor tool. advisor_action_queue table. Enhanced AdvisorHandoffWidget with RM name, action context, queue reference. Tenant config extended with execution_routing_mode, execution_webhook_url, can_prepare_trade_plans. |
 | 2026-03-21 | PRD Update | Updated PRD to reflect agent architecture: 33 tables, 34 endpoints, 17 services, 6 providers, 8 AI tools, execution guardrails, RM handoff, multi-tenant config. |
+| 2026-03-21 | Task #7: Multi-Model Routing | Lane-based control plane with 3 lanes (deterministic/fast/reasoning). Request scorecards for route selection. Provider aliases (ada-fast, ada-reason → gpt-5-mini). Per-lane token/temperature budgets. Lane metadata in agent traces. |
+| 2026-03-21 | Task #8: User Switching | PersonaPicker bottom sheet for switching between 8 personas. X-User-ID header on all API calls. UserContext provider with localStorage persistence. Per-user React Query isolation (userId in all queryKeys + removeQueries on switch). Fixed Wealth tab crash for non-Abdullah users. |
+| 2026-03-21 | Task #9: Full Persona Data Parity | All 8 personas seeded with: accounts, positions, portfolio snapshots, 365-day volatile performance history (risk-profile-appropriate curves with drawdowns for aggressive personas), goals, alerts, chat threads. Server-side `computeWealthInsights()` for diversification score, risk level, top allocation. Allocation totals reconcile with snapshots. 70-test suite in `tests/persona-parity.test.ts`. |
+| 2026-03-21 | Bug Fix: Collective Duplicates | Fixed `peer_segments` table producing 400 duplicate rows on restart. Added UNIQUE constraint on `asset_class`. Seed uses DELETE + ON CONFLICT(asset_class) DO NOTHING. |
+| 2026-03-21 | PRD Update | Updated personas from 4 to 8, model router to lane-based, marked user switching/multi-model/persona parity as built, added Tasks #7-#9 and bug fix to changelog. |

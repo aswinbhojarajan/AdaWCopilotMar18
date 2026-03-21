@@ -100,15 +100,10 @@ RM-facing features for the Relationship Manager persona:
 - Advisor auth with separate role/permissions
 
 ### BL-007: Multi-Model Routing
-**Status:** Proposed
+**Status:** Complete
 **Priority:** Should Have
 
-Optimize cost and quality with model differentiation:
-- Fast model (GPT-4o-mini equivalent) for simple queries: balance checks, basic portfolio info
-- Strong model (GPT-4o/Claude equivalent) for complex analysis: scenario modeling, multi-step reasoning
-- Configurable per tenant
-- Model performance tracking and A/B testing
-- Fallback chain if primary model is unavailable
+~~Optimize cost and quality with model differentiation.~~ Implemented as lane-based control plane with 3 lanes (deterministic/fast/reasoning), request scorecards, provider aliases, and per-lane token budgets. See Task #7.
 
 ### BL-008: Multi-Tenant Expansion
 **Status:** Proposed
@@ -123,14 +118,10 @@ Scale beyond the demo tenant:
 - Tenant-specific disclosure and compliance profiles
 
 ### BL-009: User Switching & Multi-Persona Demo
-**Status:** Proposed
+**Status:** Complete
 **Priority:** Should Have
 
-Enable switching between the 8 seeded personas:
-- User selector in the UI (demo mode)
-- Each persona shows different portfolio, risk profile, goals
-- Demonstrate Ada's personalization across different investor types
-- Preserve per-user memory and conversation history
+~~Enable switching between the 8 seeded personas.~~ Implemented with PersonaPicker bottom sheet, X-User-ID header, per-user React Query isolation, localStorage persistence, and full persona data parity (365-day performance history, goals, alerts, chat threads for all 8 personas). See Tasks #8 and #9.
 
 ### BL-010: Webhook Reliability for Execution Routing
 **Status:** Proposed
@@ -332,4 +323,8 @@ Enterprise integration layer:
 | — | Morning Sentinel Performance Optimization | 2026-03-18 |
 | — | Tab Transition Animations | 2026-03-18 |
 | — | TypeScript Validation Framework | 2026-03-18 |
+| BL-007 | Multi-Model Routing (Lane-Based Control Plane) | 2026-03-21 |
+| BL-009 | User Switching & Multi-Persona Demo | 2026-03-21 |
+| — | Full Persona Data Parity (8 personas) | 2026-03-21 |
+| — | Collective Tab Peer Comparison Fix | 2026-03-21 |
 | — | PRD Creation & Updates | 2026-03-18/21 |
