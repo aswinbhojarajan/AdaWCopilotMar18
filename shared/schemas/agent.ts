@@ -192,6 +192,7 @@ export const MacroIndicatorSchema = z.object({
   frequency: z.string().optional(),
   source_provider: z.string(),
   as_of: z.string(),
+  summary: z.string().optional(),
 });
 export type MacroIndicator = z.infer<typeof MacroIndicatorSchema>;
 
