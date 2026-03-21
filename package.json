@@ -93,6 +93,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npx vitest run tests/",
+    "test:parity": "npx vitest run tests/persona-parity.test.ts"
   }
 }
