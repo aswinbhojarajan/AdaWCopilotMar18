@@ -47,6 +47,8 @@ export interface ModelSelection {
 const DETERMINISTIC_INTENTS = new Set<IntentClassification['primary_intent']>([
   'balance_query',
   'portfolio_explain',
+  'goal_progress',
+  'allocation_breakdown',
 ]);
 
 const REASONING_INTENTS = new Set<IntentClassification['primary_intent']>([

@@ -44,13 +44,20 @@ function mapOldIntentToNew(oldIntent: string, message: string): IntentClassifica
   if (oldIntent === 'portfolio') {
     const healthKeywords = ['health', 'healthy', 'risk', 'diversif', 'concentrated', 'rebalance', 'well-balanced', 'well balanced'];
     if (healthKeywords.some(k => lower.includes(k))) return 'portfolio_health';
+    const allocationKeywords = ['allocation', 'asset class', 'breakdown', 'split', 'how is my money allocated', 'where is my money'];
+    if (allocationKeywords.some(k => lower.includes(k))) return 'allocation_breakdown';
     const balanceKeywords = ['balance', 'total value', 'how much', 'what\'s my', 'net worth', 'account value'];
     if (balanceKeywords.some(k => lower.includes(k))) return 'balance_query';
     return 'portfolio_explain';
   }
 
+  if (oldIntent === 'goals') {
+    const progressKeywords = ['progress', 'how am i doing', 'on track', 'status', 'how close', 'goal update', 'show me my goals', 'my goals'];
+    if (progressKeywords.some(k => lower.includes(k))) return 'goal_progress';
+    return 'goal_progress';
+  }
+
   const map: Record<string, IntentClassification['primary_intent']> = {
-    goals: 'workflow_request',
     market: 'market_news',
     scenario: 'workflow_request',
     recommendation: 'recommendation_request',
@@ -81,6 +88,12 @@ function inferSuggestedTools(intent: IntentClassification['primary_intent'], mes
       break;
     case 'portfolio_explain':
       tools.push('getPortfolioSnapshot', 'getHoldings');
+      break;
+    case 'allocation_breakdown':
+      tools.push('getPortfolioSnapshot', 'getHoldings');
+      break;
+    case 'goal_progress':
+      tools.push('getPortfolioSnapshot');
       break;
     case 'portfolio_health':
       tools.push('calculatePortfolioHealth', 'getPortfolioSnapshot', 'getHoldings');
@@ -135,6 +148,7 @@ function buildIntentClassification(message: string): IntentClassification {
 
 const PREFETCH_INTENTS = new Set<IntentClassification['primary_intent']>([
   'balance_query', 'portfolio_explain', 'portfolio_health', 'recommendation_request',
+  'allocation_breakdown',
 ]);
 
 async function prefetchToolData(
@@ -212,18 +226,29 @@ async function* handleLane0(
   startTime: number,
 ): AsyncGenerator<StreamEvent> {
   const prefetchStart = Date.now();
+  const needsHoldings = intent.primary_intent === 'portfolio_explain' || intent.primary_intent === 'allocation_breakdown';
+  const needsGoals = intent.primary_intent === 'goal_progress';
+
   const toolPromises: Array<{ name: string; promise: Promise<ToolResult> }> = [
     { name: 'getPortfolioSnapshot', promise: executeFinancialTool('getPortfolioSnapshot', {}, userId, registry, riskLevel) },
   ];
-  if (intent.primary_intent === 'portfolio_explain') {
+  if (needsHoldings) {
     toolPromises.push({ name: 'getHoldings', promise: executeFinancialTool('getHoldings', {}, userId, registry, riskLevel) });
   }
-  const settled = await Promise.all(toolPromises.map(async (j) => {
-    const start = Date.now();
-    const result = await j.promise;
-    result.latency_ms = Date.now() - start;
-    return { name: j.name, result };
-  }));
+
+  const goalsPromise = needsGoals
+    ? import('../repositories/portfolioRepository').then(repo => repo.getGoalsByUserId(userId))
+    : Promise.resolve(null);
+
+  const [settled, goalsData] = await Promise.all([
+    Promise.all(toolPromises.map(async (j) => {
+      const start = Date.now();
+      const result = await j.promise;
+      result.latency_ms = Date.now() - start;
+      return { name: j.name, result };
+    })),
+    goalsPromise,
+  ]);
   timings.tool_execution_ms = Date.now() - prefetchStart;
 
   const snapshotResult = settled.find(s => s.name === 'getPortfolioSnapshot')!.result;
@@ -243,9 +268,60 @@ async function* handleLane0(
   const changeDir = dailyChange >= 0 ? 'up' : 'down';
 
   let narration = '';
+  let suggestions: string[] = [];
+  const widgets: { type: string; [key: string]: unknown }[] = [];
 
-  if (intent.primary_intent === 'portfolio_explain' && holdingsResult?.status === 'ok') {
-    narration = `Your portfolio is currently valued at **$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**. It's ${changeDir} **${Math.abs(dailyChangePct).toFixed(2)}%** ($${Math.abs(dailyChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) today.`;
+  const fmtUsd = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  if (intent.primary_intent === 'goal_progress' && goalsData) {
+    const goals = goalsData as Array<{ title?: string; target_amount?: number; current_amount?: number; deadline?: string; icon_name?: string; color?: string }>;
+    if (goals.length === 0) {
+      narration = 'You don\'t have any goals set up yet. Would you like to create one?';
+    } else {
+      narration = `You have **${goals.length} goal${goals.length > 1 ? 's' : ''}** in progress:`;
+      for (const g of goals) {
+        const target = Number(g.target_amount ?? 0);
+        const current = Number(g.current_amount ?? 0);
+        const pct = target > 0 ? Math.round((current / target) * 100) : 0;
+        narration += `\n- **${g.title}**: ${fmtUsd(current)} / ${fmtUsd(target)} (${pct}% complete)`;
+      }
+    }
+    widgets.push({
+      type: 'goal_progress',
+      goals: (goalsData as Array<Record<string, unknown>>).map(g => ({
+        title: g.title, target_amount: g.target_amount,
+        current_amount: g.current_amount, deadline: g.deadline,
+      })),
+    });
+    suggestions = ['How can I accelerate my savings?', 'What happens if I miss my deadline?', 'Create a new goal'];
+
+  } else if (intent.primary_intent === 'allocation_breakdown' && holdingsResult?.status === 'ok') {
+    const holdings = holdingsResult.data as Array<{ symbol?: string; name?: string; value?: number; asset_class?: string }> | null;
+    narration = `Your portfolio is valued at **${fmtUsd(totalValue)}**. Here's your allocation breakdown:`;
+
+    if (Array.isArray(holdings) && holdings.length > 0) {
+      const byClass: Record<string, number> = {};
+      for (const h of holdings) {
+        const cls = (h.asset_class as string) || 'Other';
+        byClass[cls] = (byClass[cls] ?? 0) + Number(h.value ?? 0);
+      }
+      const sorted = Object.entries(byClass).sort((a, b) => b[1] - a[1]);
+      for (const [cls, val] of sorted) {
+        const pct = totalValue > 0 ? ((val / totalValue) * 100).toFixed(1) : '0.0';
+        narration += `\n- **${cls}**: ${fmtUsd(val)} (${pct}%)`;
+      }
+      widgets.push({
+        type: 'allocation_chart',
+        allocations: sorted.map(([asset_class, value]) => ({
+          asset_class, value,
+          percentage: totalValue > 0 ? Number(((value / totalValue) * 100).toFixed(1)) : 0,
+        })),
+      });
+    }
+    suggestions = ['Is my allocation balanced?', 'Should I diversify more?', 'What does a healthy allocation look like?'];
+
+  } else if (intent.primary_intent === 'portfolio_explain' && holdingsResult?.status === 'ok') {
+    narration = `Your portfolio is currently valued at **${fmtUsd(totalValue)}**. It's ${changeDir} **${Math.abs(dailyChangePct).toFixed(2)}%** (${fmtUsd(Math.abs(dailyChange))}) today.`;
 
     const holdings = holdingsResult.data as Array<{ symbol?: string; name?: string; value?: number; daily_change_percent?: number }> | null;
     if (Array.isArray(holdings) && holdings.length > 0) {
@@ -254,11 +330,27 @@ async function* handleLane0(
         const hVal = Number(h.value ?? 0);
         const hChg = Number(h.daily_change_percent ?? 0);
         const hDir = hChg >= 0 ? '+' : '';
-        narration += `\n- **${h.symbol || h.name}**: $${hVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${hDir}${hChg.toFixed(2)}%)`;
+        narration += `\n- **${h.symbol || h.name}**: ${fmtUsd(hVal)} (${hDir}${hChg.toFixed(2)}%)`;
       }
     }
+    widgets.push({
+      type: 'holdings_summary',
+      holdings: (holdings ?? []).slice(0, 10).map(h => ({
+        symbol: h.symbol, name: h.name, value: h.value,
+        daily_change_percent: h.daily_change_percent,
+      })),
+    });
+    suggestions = ['Is my portfolio well-diversified?', 'What are the top movers today?', 'Should I rebalance anything?'];
+
   } else {
-    narration = `Your portfolio is currently valued at **$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}**. It's ${changeDir} **${Math.abs(dailyChangePct).toFixed(2)}%** ($${Math.abs(dailyChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) today.`;
+    narration = `Your portfolio is currently valued at **${fmtUsd(totalValue)}**. It's ${changeDir} **${Math.abs(dailyChangePct).toFixed(2)}%** (${fmtUsd(Math.abs(dailyChange))}) today.`;
+    widgets.push({
+      type: 'portfolio_summary',
+      total_value: totalValue,
+      daily_change_amount: dailyChange,
+      daily_change_percent: dailyChangePct,
+    });
+    suggestions = ['How are my holdings performing?', 'Is my portfolio well-diversified?', 'What market news affects me today?'];
   }
 
   const guardrailResult = runPostChecks(narration, tenantConfig, policyDecision, allToolResults);
@@ -271,9 +363,9 @@ async function* handleLane0(
 
   yield { type: 'text', content: narration };
 
-  const suggestions = intent.primary_intent === 'portfolio_explain'
-    ? ['Is my portfolio well-diversified?', 'What are the top movers today?', 'Should I rebalance anything?']
-    : ['How are my holdings performing?', 'Is my portfolio well-diversified?', 'What market news affects me today?'];
+  for (const w of widgets) {
+    yield { type: 'widget', widget: w };
+  }
 
   yield { type: 'suggested_questions', suggestedQuestions: suggestions };
 
