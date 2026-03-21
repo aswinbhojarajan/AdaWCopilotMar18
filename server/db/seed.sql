@@ -81,10 +81,16 @@ INSERT INTO goals (id, user_id, title, target_amount, current_amount, previous_a
    'You''re on track for your retirement goal. Keep up the consistent contributions.', 'Review my plan')
 ON CONFLICT (id) DO NOTHING;
 
+-- Clean up existing alerts and content for consistency updates
+DELETE FROM alerts WHERE user_id = 'user-abdullah';
+DELETE FROM content_items WHERE id IN ('ci-1', 'ci-2', 'ci-3');
+DELETE FROM chat_messages WHERE thread_id IN ('thread-abd-1', 'thread-abd-2', 'thread-abd-3');
+DELETE FROM chat_threads WHERE user_id = 'user-abdullah';
+
 -- Alerts (Abdullah)
 INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
-  ('alert-abd-1', 'user-abdullah', 'PORTFOLIO_ALERT', 'Stock allocation reached 55% of portfolio',
-   'Your equity holdings now represent 55% of your portfolio, above your peers'' average of 45%.', '12 min ago', TRUE, 'alerts'),
+  ('alert-abd-1', 'user-abdullah', 'PORTFOLIO_ALERT', 'Cash allocation at 66% of portfolio',
+   'Your cash holdings now represent 66% of your portfolio. Consider deploying idle cash into income-generating assets.', '12 min ago', TRUE, 'alerts'),
   ('alert-abd-2', 'user-abdullah', 'ADVISOR_MESSAGE', 'Message from your advisor',
    'Hi Abdullah, I''ve reviewed your Q4 performance. Let''s schedule a call. —Khalid', '2 hours ago', TRUE, 'updates'),
   ('alert-abd-3', 'user-abdullah', 'MARKET_UPDATE', 'Federal Reserve signals pause on rate cuts',
@@ -101,8 +107,8 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Content Items (Home cards)
 INSERT INTO content_items (id, category, category_type, title, description, timestamp, button_text, secondary_button_text, image, sources_count, topic_label_color, target_screen) VALUES
-  ('ci-1', 'PORTFOLIO RISK ALERT', 'PORTFOLIO RISK ALERT', 'Your growth stocks allocation has moved above target',
-   'Current exposure is 33%, above your 20–30% target range.', '2 hours ago', 'What''s changed?', NULL, NULL, NULL, NULL, 'home'),
+  ('ci-1', 'PORTFOLIO RISK ALERT', 'PORTFOLIO RISK ALERT', 'Your cash allocation is well above target',
+   'Cash at 66% of portfolio — consider deploying into income-generating assets.', '2 hours ago', 'What''s changed?', NULL, NULL, NULL, NULL, 'home'),
   ('ci-2', 'MARKET OPPORTUNITY INSIGHT', 'MARKET OPPORTUNITY INSIGHT', 'GCC bonds are seeing renewed investor demand',
    'Yields remain attractive for short-dated bonds.', '5 hours ago', 'Explore GCC bond opportunities', NULL, NULL, NULL, NULL, 'home'),
   ('ci-3', 'NEWS', 'NEWS', 'Markets jump on an unexpected year-end surge.',
@@ -224,7 +230,7 @@ INSERT INTO chat_threads (id, user_id, title, preview, created_at, updated_at) V
   ('thread-abd-1', 'user-abdullah', 'Portfolio rebalancing and asset allocation',
    'If you want, I can estimate the new risk/return profile for you.', NOW() - INTERVAL '52 minutes', NOW() - INTERVAL '52 minutes'),
   ('thread-abd-2', 'user-abdullah', 'Portfolio concentration and risk management',
-   'Your tech exposure is 48%, compared to your target range of 30–40%.', NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
+   'Your cash allocation is 66%, well above the typical 20–30% range for a moderate portfolio.', NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
   ('thread-abd-3', 'user-abdullah', 'Portfolio diversification and hedging against macroeconomic risks',
    'Silver jumps above $32/oz amid global debt concerns.', NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days')
 ON CONFLICT (id) DO NOTHING;
@@ -232,11 +238,11 @@ ON CONFLICT (id) DO NOTHING;
 -- Chat Messages (Abdullah)
 INSERT INTO chat_messages (id, thread_id, sender, message, created_at) VALUES
   ('msg-abd-1-1', 'thread-abd-1', 'user', 'I want to review my portfolio rebalancing options.', NOW() - INTERVAL '55 minutes'),
-  ('msg-abd-1-2', 'thread-abd-1', 'assistant', 'Your technology allocation currently stands at 48% (AAPL, MSFT, AMZN), which exceeds your target range of 35-40%. I recommend rebalancing 8-10% into diversified equities or fixed income. Would you like me to prepare a detailed rebalancing plan?', NOW() - INTERVAL '54 minutes'),
+  ('msg-abd-1-2', 'thread-abd-1', 'assistant', 'Your portfolio currently holds 66% in cash across savings, checking, and uninvested brokerage funds. With equities at only 8% (NVDA, AAPL, MSFT), there is room to deploy capital into growth or income assets. Would you like me to prepare a deployment plan?', NOW() - INTERVAL '54 minutes'),
   ('msg-abd-1-3', 'thread-abd-1', 'user', 'What about my risk/return profile?', NOW() - INTERVAL '53 minutes'),
   ('msg-abd-1-4', 'thread-abd-1', 'assistant', 'If you want, I can estimate the new risk/return profile for you.', NOW() - INTERVAL '52 minutes'),
   ('msg-abd-2-1', 'thread-abd-2', 'user', 'How concentrated is my portfolio?', NOW() - INTERVAL '2 days 1 hour'),
-  ('msg-abd-2-2', 'thread-abd-2', 'assistant', 'Your tech exposure is 48%, compared to your target range of 30-40%. This represents significant concentration risk. Would you like to explore diversification options?', NOW() - INTERVAL '2 days'),
+  ('msg-abd-2-2', 'thread-abd-2', 'assistant', 'Your cash allocation is 66%, well above the typical 20-30% range for a moderate investor. Deploying even 20% of idle cash into a diversified mix of equities and bonds could improve returns. Would you like to explore deployment options?', NOW() - INTERVAL '2 days'),
   ('msg-abd-3-1', 'thread-abd-3', 'user', 'What hedging options do I have?', NOW() - INTERVAL '3 days 1 hour'),
   ('msg-abd-3-2', 'thread-abd-3', 'assistant', 'Silver jumps above $32/oz amid global debt concerns. Consider commodities and precious metals as a hedge against macroeconomic uncertainty.', NOW() - INTERVAL '3 days')
 ON CONFLICT (id) DO NOTHING;
@@ -249,7 +255,9 @@ INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount,
   ('txn-abd-4', 'acc-abd-2', 'dividend', 'AAPL', NULL, NULL, 36.00, NOW() - INTERVAL '8 days'),
   ('txn-abd-5', 'acc-abd-1', 'deposit', NULL, NULL, NULL, 5000.00, NOW() - INTERVAL '20 days'),
   ('txn-abd-6', 'acc-abd-2', 'buy', 'GLD', 5, 200.00, 1000.00, NOW() - INTERVAL '60 days'),
-  ('txn-abd-7', 'acc-abd-2', 'buy', 'AGG', 30, 107.00, 3210.00, NOW() - INTERVAL '90 days')
+  ('txn-abd-7', 'acc-abd-2', 'buy', 'AGG', 30, 107.00, 3210.00, NOW() - INTERVAL '90 days'),
+  ('txn-abd-8', 'acc-abd-2', 'buy', 'BTC', 0.0195, 62000.00, 1209.00, NOW() - INTERVAL '120 days'),
+  ('txn-abd-9', 'acc-abd-2', 'buy', 'ETH', 1.5, 1800.00, 2700.00, NOW() - INTERVAL '100 days')
 ON CONFLICT (id) DO NOTHING;
 
 -- Transactions (Fatima)
@@ -257,7 +265,12 @@ INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount,
   ('txn-fat-1', 'acc-fat-2', 'buy', 'AGG', 50, 108.00, 5400.00, NOW() - INTERVAL '20 days'),
   ('txn-fat-2', 'acc-fat-2', 'dividend', 'AGG', NULL, NULL, 125.00, NOW() - INTERVAL '5 days'),
   ('txn-fat-3', 'acc-fat-1', 'deposit', NULL, NULL, NULL, 8000.00, NOW() - INTERVAL '10 days'),
-  ('txn-fat-4', 'acc-fat-2', 'buy', 'BND', 40, 72.50, 2900.00, NOW() - INTERVAL '40 days')
+  ('txn-fat-4', 'acc-fat-2', 'buy', 'BND', 40, 72.50, 2900.00, NOW() - INTERVAL '40 days'),
+  ('txn-fat-5', 'acc-fat-2', 'buy', 'TLT', 120, 96.00, 11520.00, NOW() - INTERVAL '60 days'),
+  ('txn-fat-6', 'acc-fat-2', 'buy', 'GLD', 55, 180.00, 9900.00, NOW() - INTERVAL '80 days'),
+  ('txn-fat-7', 'acc-fat-2', 'buy', 'JNJ', 50, 150.00, 7500.00, NOW() - INTERVAL '90 days'),
+  ('txn-fat-8', 'acc-fat-2', 'buy', 'PG', 40, 155.00, 6200.00, NOW() - INTERVAL '100 days'),
+  ('txn-fat-9', 'acc-fat-2', 'buy', 'VEA', 100, 45.00, 4500.00, NOW() - INTERVAL '110 days')
 ON CONFLICT (id) DO NOTHING;
 
 -- Transactions (Omar)
@@ -266,7 +279,13 @@ INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount,
   ('txn-omr-2', 'acc-omr-2', 'sell', 'AMZN', 8, 188.00, 1504.00, NOW() - INTERVAL '3 days'),
   ('txn-omr-3', 'acc-omr-2', 'buy', 'META', 10, 505.00, 5050.00, NOW() - INTERVAL '25 days'),
   ('txn-omr-4', 'acc-omr-2', 'buy', 'BTC', 0.1, 85000.00, 8500.00, NOW() - INTERVAL '50 days'),
-  ('txn-omr-5', 'acc-omr-1', 'deposit', NULL, NULL, NULL, 3000.00, NOW() - INTERVAL '7 days')
+  ('txn-omr-5', 'acc-omr-1', 'deposit', NULL, NULL, NULL, 3000.00, NOW() - INTERVAL '7 days'),
+  ('txn-omr-6', 'acc-omr-2', 'buy', 'NVDA', 20, 90.00, 1800.00, NOW() - INTERVAL '180 days'),
+  ('txn-omr-7', 'acc-omr-2', 'buy', 'AMD', 30, 130.00, 3900.00, NOW() - INTERVAL '60 days'),
+  ('txn-omr-8', 'acc-omr-2', 'buy', 'AMZN', 33, 160.00, 5280.00, NOW() - INTERVAL '90 days'),
+  ('txn-omr-9', 'acc-omr-2', 'buy', 'ETH', 3.5, 3000.00, 10500.00, NOW() - INTERVAL '70 days'),
+  ('txn-omr-10', 'acc-omr-2', 'buy', 'SOL', 40, 170.00, 6800.00, NOW() - INTERVAL '45 days'),
+  ('txn-omr-11', 'acc-omr-2', 'buy', 'TSLA', 10, 280.00, 2800.00, NOW() - INTERVAL '120 days')
 ON CONFLICT (id) DO NOTHING;
 
 -- Transactions (Layla)
@@ -274,7 +293,14 @@ INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount,
   ('txn-lay-1', 'acc-lay-2', 'buy', 'JNJ', 20, 155.00, 3100.00, NOW() - INTERVAL '18 days'),
   ('txn-lay-2', 'acc-lay-2', 'buy', 'PG', 15, 160.00, 2400.00, NOW() - INTERVAL '35 days'),
   ('txn-lay-3', 'acc-lay-2', 'dividend', 'KO', NULL, NULL, 85.00, NOW() - INTERVAL '6 days'),
-  ('txn-lay-4', 'acc-lay-1', 'deposit', NULL, NULL, NULL, 4000.00, NOW() - INTERVAL '14 days')
+  ('txn-lay-4', 'acc-lay-1', 'deposit', NULL, NULL, NULL, 4000.00, NOW() - INTERVAL '14 days'),
+  ('txn-lay-5', 'acc-lay-2', 'buy', 'SPY', 30, 450.00, 13500.00, NOW() - INTERVAL '150 days'),
+  ('txn-lay-6', 'acc-lay-2', 'buy', 'AGG', 120, 107.00, 12840.00, NOW() - INTERVAL '120 days'),
+  ('txn-lay-7', 'acc-lay-2', 'buy', 'GLD', 30, 190.00, 5700.00, NOW() - INTERVAL '90 days'),
+  ('txn-lay-8', 'acc-lay-2', 'buy', 'KO', 80, 57.00, 4560.00, NOW() - INTERVAL '100 days'),
+  ('txn-lay-9', 'acc-lay-2', 'buy', 'AAPL', 15, 175.00, 2625.00, NOW() - INTERVAL '60 days'),
+  ('txn-lay-10', 'acc-lay-2', 'buy', 'VWO', 80, 40.00, 3200.00, NOW() - INTERVAL '130 days'),
+  ('txn-lay-11', 'acc-lay-2', 'buy', 'JNJ', 15, 148.00, 2220.00, NOW() - INTERVAL '140 days')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
@@ -535,17 +561,64 @@ INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount,
   ('txn-kha-1', 'acc-kha-3', 'buy', 'AGG', 100, 108.00, 10800.00, NOW() - INTERVAL '30 days'),
   ('txn-kha-2', 'acc-kha-3', 'buy', 'GLD', 25, 195.00, 4875.00, NOW() - INTERVAL '60 days'),
   ('txn-kha-3', 'acc-kha-1', 'deposit', NULL, NULL, NULL, 50000.00, NOW() - INTERVAL '14 days'),
+  ('txn-kha-4', 'acc-kha-3', 'buy', 'AGG', 350, 106.50, 37275.00, NOW() - INTERVAL '200 days'),
+  ('txn-kha-5', 'acc-kha-3', 'buy', 'BND', 320, 72.10, 23072.00, NOW() - INTERVAL '180 days'),
+  ('txn-kha-6', 'acc-kha-3', 'buy', 'TLT', 180, 98.50, 17730.00, NOW() - INTERVAL '160 days'),
+  ('txn-kha-7', 'acc-kha-3', 'buy', 'JNJ', 45, 162.00, 7290.00, NOW() - INTERVAL '140 days'),
+  ('txn-kha-8', 'acc-kha-3', 'buy', 'KO', 60, 58.00, 3480.00, NOW() - INTERVAL '120 days'),
+  ('txn-kha-9', 'acc-kha-3', 'buy', 'PG', 30, 150.00, 4500.00, NOW() - INTERVAL '100 days'),
+  ('txn-kha-10', 'acc-kha-3', 'buy', 'GLD', 60, 178.00, 10680.00, NOW() - INTERVAL '150 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Transactions (Sara)
+INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
   ('txn-sar-1', 'acc-sar-2', 'buy', 'SPY', 20, 510.00, 10200.00, NOW() - INTERVAL '15 days'),
   ('txn-sar-2', 'acc-sar-2', 'buy', 'EMB', 50, 87.00, 4350.00, NOW() - INTERVAL '45 days'),
   ('txn-sar-3', 'acc-sar-2', 'dividend', 'AAPL', NULL, NULL, 48.00, NOW() - INTERVAL '7 days'),
+  ('txn-sar-4', 'acc-sar-2', 'buy', 'AAPL', 20, 175.00, 3500.00, NOW() - INTERVAL '90 days'),
+  ('txn-sar-5', 'acc-sar-2', 'buy', 'AGG', 200, 107.00, 21400.00, NOW() - INTERVAL '120 days'),
+  ('txn-sar-6', 'acc-sar-2', 'buy', 'GLD', 40, 190.00, 7600.00, NOW() - INTERVAL '100 days'),
+  ('txn-sar-7', 'acc-sar-2', 'buy', 'V', 15, 240.00, 3600.00, NOW() - INTERVAL '60 days'),
+  ('txn-sar-8', 'acc-sar-2', 'buy', 'VNQ', 60, 82.00, 4920.00, NOW() - INTERVAL '80 days'),
+  ('txn-sar-9', 'acc-sar-2', 'buy', 'VWO', 150, 40.50, 6075.00, NOW() - INTERVAL '110 days'),
+  ('txn-sar-10', 'acc-sar-2', 'buy', 'SPY', 65, 445.00, 28925.00, NOW() - INTERVAL '150 days'),
+  ('txn-sar-11', 'acc-sar-2', 'buy', 'EMB', 50, 88.00, 4400.00, NOW() - INTERVAL '130 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Transactions (Raj)
+INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
   ('txn-raj-1', 'acc-raj-1', 'buy', 'SOL', 50, 175.00, 8750.00, NOW() - INTERVAL '20 days'),
   ('txn-raj-2', 'acc-raj-2', 'sell', 'TSLA', 10, 260.00, 2600.00, NOW() - INTERVAL '5 days'),
   ('txn-raj-3', 'acc-raj-2', 'buy', 'NVDA', 15, 240.00, 3600.00, NOW() - INTERVAL '10 days'),
   ('txn-raj-4', 'acc-raj-1', 'buy', 'BTC', 0.05, 92000.00, 4600.00, NOW() - INTERVAL '35 days'),
+  ('txn-raj-5', 'acc-raj-2', 'buy', 'AMD', 80, 120.00, 9600.00, NOW() - INTERVAL '90 days'),
+  ('txn-raj-6', 'acc-raj-2', 'buy', 'AMZN', 22, 155.00, 3410.00, NOW() - INTERVAL '80 days'),
+  ('txn-raj-7', 'acc-raj-2', 'buy', 'META', 18, 350.00, 6300.00, NOW() - INTERVAL '70 days'),
+  ('txn-raj-8', 'acc-raj-2', 'buy', 'NFLX', 12, 520.00, 6240.00, NOW() - INTERVAL '60 days'),
+  ('txn-raj-9', 'acc-raj-2', 'buy', 'QQQ', 50, 380.00, 19000.00, NOW() - INTERVAL '120 days'),
+  ('txn-raj-10', 'acc-raj-2', 'buy', 'TSLA', 35, 280.00, 9800.00, NOW() - INTERVAL '100 days'),
+  ('txn-raj-11', 'acc-raj-2', 'buy', 'NVDA', 30, 90.00, 2700.00, NOW() - INTERVAL '180 days'),
+  ('txn-raj-12', 'acc-raj-1', 'buy', 'BTC', 0.10, 95000.00, 9500.00, NOW() - INTERVAL '150 days'),
+  ('txn-raj-13', 'acc-raj-1', 'buy', 'ETH', 8.5, 3200.00, 27200.00, NOW() - INTERVAL '140 days'),
+  ('txn-raj-14', 'acc-raj-1', 'buy', 'SOL', 70, 180.00, 12600.00, NOW() - INTERVAL '110 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- Transactions (Nadia)
+INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
   ('txn-nad-1', 'acc-nad-2', 'buy', 'JNJ', 20, 155.00, 3100.00, NOW() - INTERVAL '25 days'),
   ('txn-nad-2', 'acc-nad-2', 'dividend', 'KO', NULL, NULL, 112.00, NOW() - INTERVAL '10 days'),
   ('txn-nad-3', 'acc-nad-2', 'dividend', 'PG', NULL, NULL, 97.50, NOW() - INTERVAL '12 days'),
-  ('txn-nad-4', 'acc-nad-2', 'buy', 'XOM', 15, 102.00, 1530.00, NOW() - INTERVAL '40 days')
+  ('txn-nad-4', 'acc-nad-2', 'buy', 'XOM', 15, 102.00, 1530.00, NOW() - INTERVAL '40 days'),
+  ('txn-nad-5', 'acc-nad-2', 'buy', 'AGG', 250, 108.00, 27000.00, NOW() - INTERVAL '150 days'),
+  ('txn-nad-6', 'acc-nad-2', 'buy', 'DIS', 55, 125.00, 6875.00, NOW() - INTERVAL '80 days'),
+  ('txn-nad-7', 'acc-nad-2', 'buy', 'GLD', 50, 175.00, 8750.00, NOW() - INTERVAL '100 days'),
+  ('txn-nad-8', 'acc-nad-2', 'buy', 'JNJ', 60, 145.00, 8700.00, NOW() - INTERVAL '130 days'),
+  ('txn-nad-9', 'acc-nad-2', 'buy', 'JPM', 35, 165.00, 5775.00, NOW() - INTERVAL '90 days'),
+  ('txn-nad-10', 'acc-nad-2', 'buy', 'KO', 100, 55.00, 5500.00, NOW() - INTERVAL '120 days'),
+  ('txn-nad-11', 'acc-nad-2', 'buy', 'LQD', 120, 110.50, 13260.00, NOW() - INTERVAL '140 days'),
+  ('txn-nad-12', 'acc-nad-2', 'buy', 'PG', 65, 148.00, 9620.00, NOW() - INTERVAL '110 days'),
+  ('txn-nad-13', 'acc-nad-2', 'buy', 'VEA', 100, 44.00, 4400.00, NOW() - INTERVAL '160 days'),
+  ('txn-nad-14', 'acc-nad-2', 'buy', 'XOM', 25, 95.00, 2375.00, NOW() - INTERVAL '170 days')
 ON CONFLICT (id) DO NOTHING;
 
 -- Khalid: Conservative, low volatility, slow steady growth with mild corrections

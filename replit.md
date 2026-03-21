@@ -39,7 +39,14 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
     - `goalService.ts`: Goal health scores, life gap analysis, life event suggestions
     - `morningSentinelService.ts`: AI daily briefing with anomaly detection
 - **6 Repositories**: user, portfolio, content, chat, poll, agent
-- **Provider Pattern**: 6 external data providers (Finnhub, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE) with primary→secondary→fallback→mock chain per domain. In-memory cache, rate limiting, sliding-window health tracking. All default to mock; real providers activate via `*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK` env vars.
+- **Provider Pattern**: 6 external data providers with priority chain per domain:
+    - **Stock/Market Data**: Finnhub (primary) → mock fallback. Env: `MARKET_PROVIDER_*`
+    - **Macro/Economic**: FRED (primary) → mock fallback. Env: `MACRO_PROVIDER_*`
+    - **Company Filings**: SEC EDGAR (primary) → mock fallback. Env: `FILINGS_PROVIDER_*`
+    - **Instrument Lookup**: OpenFIGI (primary) → mock fallback. Env: `INSTRUMENT_PROVIDER_*`
+    - **FX Rates**: Frankfurter (primary) → CBUAE (secondary) → mock fallback. Env: `FX_PROVIDER_*`
+    - **Regional Rates**: CBUAE (primary) → mock fallback. Env: `REGIONAL_PROVIDER_*`
+    Each provider implements: in-memory cache (configurable TTL), rate limiting, sliding-window health tracking, automatic failover. All default to mock; real providers activate via `*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK` env vars.
 - **Execution Guardrails & RM Handoff**: Ada cannot execute trades or claim execution capability. Enforced at 3 layers: system prompt boundary, guardrail regex (7 patterns + hard post-check), orchestrator fallback. Execution requests routed to RM via `advisor_action_queue` (rm_handoff), webhook (api_webhook), or rejected (disabled). Tenant config controls routing.
 - **Shared Schemas**: `shared/schemas/agent.ts` — Zod schemas for AdaAnswer, ToolResult, PolicyDecision, IntentClassification, TenantConfig.
 
