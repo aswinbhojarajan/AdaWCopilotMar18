@@ -1,8 +1,11 @@
-import React, { useState, useCallback, Suspense, lazy, useTransition } from 'react';
+import React, { useState, useCallback, useEffect, Suspense, lazy, useTransition } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { HomeScreen } from './components/screens/HomeScreen';
 import { TopBar, Header, Navigation, BottomBar } from './components/ada';
 import type { TabType, ViewType, ChatContext, Message } from './types';
+import { useUser } from './contexts/UserContext';
+import { PersonaPicker } from './components/ada/PersonaPicker';
+import { getStreamHeaders } from './hooks/api';
 
 const HomeEmptyScreen = lazy(() => import('./components/screens/HomeEmptyScreen').then(m => ({ default: m.HomeEmptyScreen })));
 const DiscoverScreen = lazy(() => import('./components/screens/DiscoverScreen').then(m => ({ default: m.DiscoverScreen })));
@@ -27,6 +30,7 @@ const fadeVariants = {
 
 
 export default function App() {
+  const { userId, isPickerOpen, openPicker, closePicker } = useUser();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [currentView, setCurrentView] = useState<ViewType>('client-environment');
   const [chatMessage, setChatMessage] = useState<string>('');
@@ -44,6 +48,19 @@ export default function App() {
   const [pendingWealthScroll, setPendingWealthScroll] = useState(false);
 
   const [, startTransition] = useTransition();
+
+  const prevUserRef = React.useRef(userId);
+  useEffect(() => {
+    if (prevUserRef.current !== userId) {
+      prevUserRef.current = userId;
+      setChatMessage('');
+      setChatContext(undefined);
+      setMessages([]);
+      setActiveThreadId(undefined);
+      setActiveTab('home');
+      setCurrentView('home');
+    }
+  }, [userId]);
 
   const navigateTo = useCallback((view: ViewType, tab?: TabType) => {
     startTransition(() => {
@@ -148,7 +165,7 @@ export default function App() {
           onChatHistoryClick={() => navigateTo('chat-history')}
           onBack={() => {
             if (activeThreadId) {
-              fetch(`/api/chat/${activeThreadId}/close`, { method: 'POST' }).catch(() => {});
+              fetch(`/api/chat/${activeThreadId}/close`, { method: 'POST', headers: getStreamHeaders() }).catch(() => {});
             }
             setChatMessage('');
             setChatContext(undefined);
@@ -184,6 +201,7 @@ export default function App() {
       return (
         <ClientEnvironment
           onNavigateToAda={() => navigateTo('home', 'home')}
+          onProfileClick={openPicker}
         />
       );
     }
@@ -262,6 +280,8 @@ export default function App() {
             )}
           </AnimatePresence>
         </Suspense>
+
+        <PersonaPicker isOpen={isPickerOpen} onClose={closePicker} />
       </div>
     </div>
   );

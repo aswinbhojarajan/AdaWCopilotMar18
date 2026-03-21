@@ -15,29 +15,44 @@ const router = Router();
 
 const DEFAULT_USER_ID = 'user-abdullah';
 
+function getUserId(req: Request): string {
+  const header = req.headers['x-user-id'];
+  if (typeof header === 'string' && header.trim()) return header.trim();
+  return DEFAULT_USER_ID;
+}
+
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => {
     fn(req, res, next).catch(next);
   };
 }
 
-router.get('/me', asyncHandler(async (_req, res) => {
-  const user = (await userRepo.findUserById(DEFAULT_USER_ID)) ?? (await userRepo.getDefaultUser());
+router.get('/users', asyncHandler(async (_req, res) => {
+  const users = await userRepo.getAllDemoUsers();
+  res.json(users);
+}));
+
+router.get('/me', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const user = (await userRepo.findUserById(userId)) ?? (await userRepo.getDefaultUser());
   res.json(user);
 }));
 
-router.get('/home/summary', asyncHandler(async (_req, res) => {
-  const summary = await portfolioService.getHomeSummary(DEFAULT_USER_ID);
+router.get('/home/summary', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const summary = await portfolioService.getHomeSummary(userId);
   res.json(summary);
 }));
 
 router.get('/morning-sentinel', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
   const forceRefresh = req.query.refresh === 'true';
-  const briefing = await morningSentinelService.generateBriefing(DEFAULT_USER_ID, forceRefresh);
+  const briefing = await morningSentinelService.generateBriefing(userId, forceRefresh);
   res.json(briefing);
 }));
 
 router.get('/morning-sentinel/stream', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
   const forceRefresh = req.query.refresh === 'true';
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -49,7 +64,7 @@ router.get('/morning-sentinel/stream', asyncHandler(async (req, res) => {
   let closed = false;
   req.on('close', () => { closed = true; });
 
-  const stream = morningSentinelService.generateBriefingStream(DEFAULT_USER_ID, forceRefresh);
+  const stream = morningSentinelService.generateBriefingStream(userId, forceRefresh);
 
   for await (const event of stream) {
     if (closed) break;
@@ -59,60 +74,69 @@ router.get('/morning-sentinel/stream', asyncHandler(async (req, res) => {
   res.end();
 }));
 
-router.get('/wealth/overview', asyncHandler(async (_req, res) => {
-  const overview = await portfolioService.getWealthOverview(DEFAULT_USER_ID);
+router.get('/wealth/overview', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const overview = await portfolioService.getWealthOverview(userId);
   res.json(overview);
 }));
 
-router.get('/wealth/allocation', asyncHandler(async (_req, res) => {
-  const allocations = await portfolioRepo.getAllocationsByUserId(DEFAULT_USER_ID);
+router.get('/wealth/allocation', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const allocations = await portfolioRepo.getAllocationsByUserId(userId);
   res.json(allocations);
 }));
 
-router.get('/wealth/holdings', asyncHandler(async (_req, res) => {
-  const holdings = await portfolioRepo.getHoldingsByUserId(DEFAULT_USER_ID);
+router.get('/wealth/holdings', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const holdings = await portfolioRepo.getHoldingsByUserId(userId);
   res.json(holdings);
 }));
 
-router.get('/wealth/goals', asyncHandler(async (_req, res) => {
-  const goals = await portfolioRepo.getGoalsByUserId(DEFAULT_USER_ID);
+router.get('/wealth/goals', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const goals = await portfolioRepo.getGoalsByUserId(userId);
   res.json(goals);
 }));
 
-router.get('/wealth/goals/health-score', asyncHandler(async (_req, res) => {
-  const goals = await portfolioRepo.getGoalsByUserId(DEFAULT_USER_ID);
+router.get('/wealth/goals/health-score', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const goals = await portfolioRepo.getGoalsByUserId(userId);
   const score = goalService.calculateGoalHealthScore(goals);
   res.json(score);
 }));
 
-router.get('/wealth/goals/life-gaps', asyncHandler(async (_req, res) => {
-  const goals = await portfolioRepo.getGoalsByUserId(DEFAULT_USER_ID);
-  const prompts = await goalService.generateLifeGapPrompts(DEFAULT_USER_ID, goals);
+router.get('/wealth/goals/life-gaps', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const goals = await portfolioRepo.getGoalsByUserId(userId);
+  const prompts = await goalService.generateLifeGapPrompts(userId, goals);
   res.json(prompts);
 }));
 
 router.post('/wealth/goals/life-gaps/dismiss', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
   const { promptKey } = req.body as { promptKey: string };
   if (!promptKey) {
     res.status(400).json({ error: 'promptKey is required' });
     return;
   }
-  await goalService.dismissPrompt(DEFAULT_USER_ID, promptKey);
+  await goalService.dismissPrompt(userId, promptKey);
   res.json({ success: true });
 }));
 
 router.post('/wealth/goals/life-event', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
   const { eventType } = req.body as { eventType: LifeEventType };
   if (!eventType) {
     res.status(400).json({ error: 'eventType is required' });
     return;
   }
-  const goals = await portfolioRepo.getGoalsByUserId(DEFAULT_USER_ID);
+  const goals = await portfolioRepo.getGoalsByUserId(userId);
   const suggestions = await goalService.generateLifeEventSuggestions(eventType, goals);
   res.json(suggestions);
 }));
 
 router.post('/wealth/goals', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
   const { title, targetAmount, deadline, iconName, color } = req.body as {
     title: string;
     targetAmount: number;
@@ -124,7 +148,7 @@ router.post('/wealth/goals', asyncHandler(async (req, res) => {
     res.status(400).json({ error: 'title, targetAmount, and deadline are required' });
     return;
   }
-  const goal = await goalService.createGoalFromSuggestion(DEFAULT_USER_ID, {
+  const goal = await goalService.createGoalFromSuggestion(userId, {
     title,
     targetAmount,
     deadline,
@@ -134,42 +158,48 @@ router.post('/wealth/goals', asyncHandler(async (req, res) => {
   res.status(201).json(goal);
 }));
 
-router.get('/wealth/accounts', asyncHandler(async (_req, res) => {
-  const accounts = await portfolioRepo.getAccountsByUserId(DEFAULT_USER_ID);
+router.get('/wealth/accounts', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const accounts = await portfolioRepo.getAccountsByUserId(userId);
   res.json(accounts);
 }));
 
 router.post('/wealth/accounts', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
   const { institutionName, accountType } = req.body as { institutionName: string; accountType: string };
   if (!institutionName || !accountType) {
     res.status(400).json({ error: 'institutionName and accountType are required' });
     return;
   }
-  const account = await portfolioRepo.createAccount(DEFAULT_USER_ID, institutionName, accountType);
+  const account = await portfolioRepo.createAccount(userId, institutionName, accountType);
   res.status(201).json(account);
 }));
 
-router.get('/notifications', asyncHandler(async (_req, res) => {
-  const alerts = await contentRepo.getAlertsByUserId(DEFAULT_USER_ID);
+router.get('/notifications', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const alerts = await contentRepo.getAlertsByUserId(userId);
   res.json(alerts);
 }));
 
-router.get('/chat/threads', asyncHandler(async (_req, res) => {
-  const threads = await contentRepo.getChatThreadsByUserId(DEFAULT_USER_ID);
+router.get('/chat/threads', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const threads = await contentRepo.getChatThreadsByUserId(userId);
   res.json(threads);
 }));
 
 router.post('/chat/message', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
   const body = req.body as ChatMessageRequest;
   if (!body.message) {
     res.status(400).json({ error: 'message is required' });
     return;
   }
-  const result = await processMessageSync(DEFAULT_USER_ID, body);
+  const result = await processMessageSync(userId, body);
   res.json(result);
 }));
 
 router.post('/chat/stream', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
   const body = req.body as ChatMessageRequest;
   if (!body.message) {
     res.status(400).json({ error: 'message is required' });
@@ -183,7 +213,7 @@ router.post('/chat/stream', asyncHandler(async (req, res) => {
 
   res.flushHeaders();
 
-  const stream = orchestrateStream(DEFAULT_USER_ID, body);
+  const stream = orchestrateStream(userId, body);
 
   for await (const event of stream) {
     res.write(`data: ${JSON.stringify(event)}\n\n`);
@@ -192,33 +222,39 @@ router.post('/chat/stream', asyncHandler(async (req, res) => {
   res.end();
 }));
 
-router.get('/portfolio', asyncHandler(async (_req, res) => {
-  const overview = await portfolioService.getWealthOverview(DEFAULT_USER_ID);
+router.get('/portfolio', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const overview = await portfolioService.getWealthOverview(userId);
   res.json(overview);
 }));
 
-router.get('/holdings', asyncHandler(async (_req, res) => {
-  const holdings = await portfolioRepo.getHoldingsByUserId(DEFAULT_USER_ID);
+router.get('/holdings', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const holdings = await portfolioRepo.getHoldingsByUserId(userId);
   res.json(holdings);
 }));
 
-router.get('/allocations', asyncHandler(async (_req, res) => {
-  const allocations = await portfolioRepo.getAllocationsByUserId(DEFAULT_USER_ID);
+router.get('/allocations', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const allocations = await portfolioRepo.getAllocationsByUserId(userId);
   res.json(allocations);
 }));
 
-router.get('/goals', asyncHandler(async (_req, res) => {
-  const goals = await portfolioRepo.getGoalsByUserId(DEFAULT_USER_ID);
+router.get('/goals', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const goals = await portfolioRepo.getGoalsByUserId(userId);
   res.json(goals);
 }));
 
-router.get('/accounts', asyncHandler(async (_req, res) => {
-  const accounts = await portfolioRepo.getAccountsByUserId(DEFAULT_USER_ID);
+router.get('/accounts', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const accounts = await portfolioRepo.getAccountsByUserId(userId);
   res.json(accounts);
 }));
 
-router.get('/collective/peers', asyncHandler(async (_req, res) => {
-  const peers = await contentRepo.getPeerComparisons(DEFAULT_USER_ID);
+router.get('/collective/peers', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const peers = await contentRepo.getPeerComparisons(userId);
   res.json(peers);
 }));
 
@@ -236,12 +272,14 @@ router.get('/content/discover', asyncHandler(async (req, res) => {
   res.json(items);
 }));
 
-router.get('/polls', asyncHandler(async (_req, res) => {
-  const polls = await pollRepo.getActivePolls(DEFAULT_USER_ID);
+router.get('/polls', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const polls = await pollRepo.getActivePolls(userId);
   res.json(polls);
 }));
 
 router.post('/polls/:pollId/vote', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
   const pollId = req.params.pollId as string;
   const body = req.body as PollVoteRequest;
   if (!body.optionId) {
@@ -249,7 +287,7 @@ router.post('/polls/:pollId/vote', asyncHandler(async (req, res) => {
     return;
   }
   try {
-    const poll = await pollRepo.vote(pollId, DEFAULT_USER_ID, body.optionId);
+    const poll = await pollRepo.vote(pollId, userId, body.optionId);
     if (!poll) {
       res.status(404).json({ error: 'Poll not found' });
       return;
@@ -265,12 +303,14 @@ router.post('/polls/:pollId/vote', asyncHandler(async (req, res) => {
 }));
 
 router.get('/chat/:threadId/messages', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
   const threadId = req.params.threadId as string;
-  const messages = await contentRepo.getChatMessagesByThreadId(threadId, DEFAULT_USER_ID);
+  const messages = await contentRepo.getChatMessagesByThreadId(threadId, userId);
   res.json(messages);
 }));
 
 router.post('/chat/:threadId/messages', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
   const threadId = req.params.threadId as string;
   const body = req.body as ChatMessageRequest;
   if (!body.message) {
@@ -278,7 +318,7 @@ router.post('/chat/:threadId/messages', asyncHandler(async (req, res) => {
     return;
   }
 
-  const result = await processMessageSync(DEFAULT_USER_ID, {
+  const result = await processMessageSync(userId, {
     ...body,
     threadId,
   });
@@ -287,8 +327,9 @@ router.post('/chat/:threadId/messages', asyncHandler(async (req, res) => {
 }));
 
 router.post('/chat/:threadId/close', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
   const threadId = req.params.threadId as string;
-  await finalizeSession(DEFAULT_USER_ID, threadId);
+  await finalizeSession(userId, threadId);
   res.json({ success: true });
 }));
 

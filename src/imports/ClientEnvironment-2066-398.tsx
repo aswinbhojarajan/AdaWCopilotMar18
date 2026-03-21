@@ -440,32 +440,33 @@ function IconProfile() {
   );
 }
 
-function ButtonProfile() {
+function ButtonProfile({ onClick }: { onClick?: () => void }) {
   return (
-    <div
-      className="basis-0 grow h-[36px] min-h-px min-w-px relative rounded-[10px] shrink-0"
+    <button
+      onClick={onClick}
+      className="basis-0 grow h-[36px] min-h-px min-w-px relative rounded-[10px] shrink-0 cursor-pointer hover:opacity-70 transition-opacity"
       data-name="Button"
     >
       <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start pb-0 pt-[8px] px-[8px] relative size-full">
         <IconProfile />
       </div>
-    </div>
+    </button>
   );
 }
 
-function Container({ onAdaClick }: { onAdaClick?: () => void }) {
+function Container({ onAdaClick, onProfileClick }: { onAdaClick?: () => void; onProfileClick?: () => void }) {
   return (
     <div className="h-[36px] relative shrink-0 w-[124px]" data-name="Container">
       <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex gap-[6px] items-center relative size-full">
         <Button onClick={onAdaClick} />
         <Button1 />
-        <ButtonProfile />
+        <ButtonProfile onClick={onProfileClick} />
       </div>
     </div>
   );
 }
 
-function Container1({ onAdaClick }: { onAdaClick?: () => void }) {
+function Container1({ onAdaClick, onProfileClick }: { onAdaClick?: () => void; onProfileClick?: () => void }) {
   return (
     <div
       className="sticky bg-white left-0 top-0 w-full z-10 h-[114px] overflow-hidden"
@@ -474,7 +475,7 @@ function Container1({ onAdaClick }: { onAdaClick?: () => void }) {
       <IOSStatusBar />
       <div className="flex h-[70px] items-center justify-between pb-[18px] pt-0 px-[20px]">
         <Group12 />
-        <Container onAdaClick={onAdaClick} />
+        <Container onAdaClick={onAdaClick} onProfileClick={onProfileClick} />
       </div>
     </div>
   );
@@ -2181,7 +2182,7 @@ function Container47() {
   );
 }
 
-export default function ClientEnvironment({ onNavigateToAda }: { onNavigateToAda?: () => void }) {
+export default function ClientEnvironment({ onNavigateToAda, onProfileClick }: { onNavigateToAda?: () => void; onProfileClick?: () => void }) {
   return (
     <div
       className="bg-white relative shadow-[0px_25px_50px_-12px_rgba(0,0,0,0.25)] w-full h-full overflow-hidden"
@@ -2190,7 +2191,7 @@ export default function ClientEnvironment({ onNavigateToAda }: { onNavigateToAda
       {/* Scrollable content area */}
       <div className="absolute inset-0 overflow-y-auto pb-[66px]">
         <div className="absolute bg-[#0d1e32] h-[271px] left-0 top-[114px] w-full" />
-        <Container1 onAdaClick={onNavigateToAda} />
+        <Container1 onAdaClick={onNavigateToAda} onProfileClick={onProfileClick} />
         <Container36 />
         <Container47 />
       </div>

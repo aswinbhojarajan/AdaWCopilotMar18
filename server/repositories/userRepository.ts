@@ -20,6 +20,37 @@ export async function getDefaultUser(): Promise<User> {
   return user;
 }
 
+export interface DemoPersona {
+  id: string;
+  firstName: string;
+  lastName: string;
+  riskLevel: string;
+  portfolioValue: number;
+}
+
+export async function getAllDemoUsers(): Promise<DemoPersona[]> {
+  const { rows } = await pool.query(
+    `SELECT u.id, u.first_name, u.last_name,
+            COALESCE(rp.level, 'moderate') as risk_level,
+            COALESCE(ps.total_value, 0) as portfolio_value
+     FROM users u
+     LEFT JOIN risk_profiles rp ON rp.user_id = u.id
+     LEFT JOIN LATERAL (
+       SELECT total_value FROM portfolio_snapshots
+       WHERE user_id = u.id ORDER BY recorded_at DESC LIMIT 1
+     ) ps ON true
+     WHERE u.id LIKE 'user-%'
+     ORDER BY u.first_name ASC`,
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    firstName: String(r.first_name),
+    lastName: String(r.last_name),
+    riskLevel: String(r.risk_level),
+    portfolioValue: Number(r.portfolio_value),
+  }));
+}
+
 function mapRowToUser(row: Record<string, unknown>): User {
   const riskProfile: RiskProfile = {
     level: (row.level as RiskProfile['level']) ?? 'moderate',

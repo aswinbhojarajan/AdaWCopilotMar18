@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TopBar, ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon } from '../ada';
 import type { Message, ChatContext, ChatWidget } from '../../types';
+import { getStreamHeaders } from '../../hooks/api';
 
 interface ChatScreenProps {
   initialMessage?: string;
@@ -34,7 +35,7 @@ function useStreamingChat() {
     try {
       const res = await fetch('/api/chat/stream', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getStreamHeaders(),
         body: JSON.stringify({
           message,
           threadId,
@@ -216,7 +217,7 @@ export function ChatScreen({
   useEffect(() => {
     if (existingThreadId && messages.length === 0) {
       setIsLoadingThread(true);
-      fetch(`/api/chat/${existingThreadId}/messages`)
+      fetch(`/api/chat/${existingThreadId}/messages`, { headers: getStreamHeaders() })
         .then(res => res.json())
         .then((data: Array<{ id: string; sender: string; message: string; widgets?: ChatWidget[] }>) => {
           const loaded: Message[] = data.map(m => ({

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getStreamHeaders } from './api';
 
 interface UseApiResult<T> {
   data: T | null;
@@ -27,7 +28,7 @@ export function useApi<T>(url: string | null): UseApiResult<T> {
     setLoading(true);
     setError(null);
 
-    fetch(url)
+    fetch(url, { headers: getStreamHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();

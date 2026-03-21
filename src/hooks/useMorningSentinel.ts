@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiFetch } from './api';
+import { apiFetch, getStreamHeaders } from './api';
 import type { MorningSentinelResponse } from '../types';
 
 const SENTINEL_KEY = ['morning-sentinel'];
@@ -20,7 +20,7 @@ async function consumeSentinelStream(
   onComplete: (data: MorningSentinelResponse) => void,
   abortSignal?: AbortSignal,
 ) {
-  const res = await fetch(url, { signal: abortSignal });
+  const res = await fetch(url, { signal: abortSignal, headers: getStreamHeaders() });
   if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
 
   const reader = res.body.getReader();

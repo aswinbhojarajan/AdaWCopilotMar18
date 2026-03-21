@@ -49,7 +49,8 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
 
 ## Key Configuration
 - **MODEL**: gpt-5-mini via provider aliases (ada-fast → gpt-5-mini, ada-reason → gpt-5-mini)
-- **Default user**: user-abdullah (DEFAULT_USER_ID in api.ts)
+- **Default user**: user-abdullah (fallback when no X-User-ID header provided)
+- **User switching**: Frontend sends `X-User-ID` header on all API/stream calls; backend `getUserId(req)` extracts it with fallback to default. `GET /api/users` returns all 8 demo personas. `UserContext` provider persists selection to localStorage, `PersonaPicker` bottom sheet for switching. Data isolation via `queryClient.clear()` + state reset on switch.
 - **Default tenant**: bank_demo_uae
 - **SSE event types**: text, widget, simulator, suggested_questions, done, error
 - **Execution routing**: defaults to rm_handoff; configurable per tenant
