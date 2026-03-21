@@ -19,7 +19,13 @@ const DEFAULT_TTLS: Record<string, number> = {
 let hits = 0;
 let misses = 0;
 
-export function cacheGet<T>(key: string): { data: T; cachedAt: string } | null {
+export interface CacheResult<T> {
+  data: T;
+  cachedAt: string;
+  cacheHit: true;
+}
+
+export function cacheGet<T>(key: string): CacheResult<T> | null {
   const entry = store.get(key) as CacheEntry<T> | undefined;
   if (!entry) {
     misses++;
@@ -31,7 +37,7 @@ export function cacheGet<T>(key: string): { data: T; cachedAt: string } | null {
     return null;
   }
   hits++;
-  return { data: entry.data, cachedAt: entry.cachedAt };
+  return { data: entry.data, cachedAt: entry.cachedAt, cacheHit: true };
 }
 
 export function cacheSet<T>(key: string, data: T, dataType?: string, ttlMs?: number): void {
@@ -47,8 +53,19 @@ export function cacheKey(provider: string, ...parts: (string | number | undefine
   return `${provider}:${parts.filter(Boolean).join(':')}`;
 }
 
-export function getCacheStats(): { hits: number; misses: number; size: number } {
-  return { hits, misses, size: store.size };
+export function getCacheStats(): { hits: number; misses: number; size: number; hit_rate: string } {
+  const total = hits + misses;
+  return {
+    hits,
+    misses,
+    size: store.size,
+    hit_rate: total > 0 ? `${Math.round((hits / total) * 100)}%` : 'N/A',
+  };
+}
+
+export function cacheMetadataWarnings(): string[] {
+  const stats = getCacheStats();
+  return [`cache_stats:hits=${stats.hits},misses=${stats.misses},size=${stats.size},rate=${stats.hit_rate}`];
 }
 
 export function clearCache(): void {

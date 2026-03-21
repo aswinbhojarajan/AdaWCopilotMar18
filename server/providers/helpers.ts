@@ -1,6 +1,12 @@
 import type { ToolResult } from '../../shared/schemas/agent';
+import { getCacheStats } from './cache';
 
 export function toolOk(sourceName: string, sourceType: string, data: unknown, startMs: number, warnings?: string[]): ToolResult {
+  const stats = getCacheStats();
+  const allWarnings = [
+    ...(warnings ?? []),
+    `cache:hits=${stats.hits},misses=${stats.misses},size=${stats.size}`,
+  ];
   return {
     status: 'ok',
     source_name: sourceName,
@@ -8,7 +14,7 @@ export function toolOk(sourceName: string, sourceType: string, data: unknown, st
     as_of: new Date().toISOString(),
     latency_ms: Date.now() - startMs,
     data,
-    ...(warnings && warnings.length > 0 ? { warnings } : {}),
+    warnings: allWarnings,
   };
 }
 

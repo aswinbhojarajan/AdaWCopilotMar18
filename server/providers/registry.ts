@@ -13,6 +13,14 @@ import { secEdgarResearchProvider } from './secEdgar';
 import { openFigiIdentityProvider } from './openFigi';
 import { frankfurterFxProvider } from './frankfurter';
 import { cbuaeFxProvider } from './cbuae';
+import {
+  marketauxNewsProvider,
+  ecbMacroProvider,
+  twelveDataMarketProvider,
+  fmpMarketProvider,
+  coinGeckoMarketProvider,
+  yahooFinanceMarketProvider,
+} from './stubs';
 import { isProviderHealthy } from './helpers';
 
 const _registryCache = new Map<string, ProviderRegistry>();
@@ -23,68 +31,92 @@ function configKey(providerConfig?: Record<string, string>): string {
   return sorted.join('|');
 }
 
-function withFallback<T extends { name: string }>(
-  primary: T,
-  fallback: T,
+function withFallbackChain<T extends { name: string }>(
+  providers: T[],
   domain: string,
 ): T {
+  if (providers.length === 0) throw new Error(`No providers configured for ${domain}`);
+  if (providers.length === 1) return providers[0];
+
+  const primary = providers[0];
+
   const handler: ProxyHandler<T> = {
     get(target, prop, receiver) {
       const val = Reflect.get(target, prop, receiver);
       if (typeof val !== 'function') return val;
       return async (...args: unknown[]) => {
-        if (!isProviderHealthy(primary.name)) {
-          console.warn(`[${domain}] ${primary.name} unhealthy, using fallback ${fallback.name}`);
-          const fn = Reflect.get(fallback, prop, fallback) as (...a: unknown[]) => Promise<ToolResult>;
-          const result = await fn.apply(fallback, args) as ToolResult;
-          result.warnings = [...(result.warnings ?? []), `fallback_from:${primary.name}`, `reason:unhealthy`];
-          return result;
-        }
-        try {
-          const result = await (val as (...a: unknown[]) => Promise<ToolResult>).apply(target, args);
-          if (result && typeof result === 'object' && 'status' in result) {
-            const r = result as ToolResult;
-            if (r.status === 'error') {
-              console.warn(`[${domain}] ${primary.name} returned error, trying fallback ${fallback.name}`);
-              const fn = Reflect.get(fallback, prop, fallback) as (...a: unknown[]) => Promise<ToolResult>;
-              const fbResult = await fn.apply(fallback, args) as ToolResult;
-              fbResult.warnings = [...(fbResult.warnings ?? []), `fallback_from:${primary.name}`, `primary_error:${r.error ?? 'unknown'}`];
-              return fbResult;
-            }
+        for (let i = 0; i < providers.length; i++) {
+          const provider = providers[i];
+          const isPrimary = i === 0;
+          const providerName = provider.name;
+
+          if (!isPrimary && !isProviderHealthy(providerName)) {
+            continue;
           }
-          return result;
-        } catch (err) {
-          console.warn(`[${domain}] ${primary.name} threw, using fallback ${fallback.name}: ${err instanceof Error ? err.message : 'unknown'}`);
-          const fn = Reflect.get(fallback, prop, fallback) as (...a: unknown[]) => Promise<ToolResult>;
-          const result = await fn.apply(fallback, args) as ToolResult;
-          result.warnings = [...(result.warnings ?? []), `fallback_from:${primary.name}`];
-          return result;
+
+          if (isPrimary && !isProviderHealthy(providerName)) {
+            console.warn(`[${domain}] ${providerName} unhealthy, skipping to next in chain`);
+            continue;
+          }
+
+          try {
+            const fn = Reflect.get(provider, prop, provider) as (...a: unknown[]) => Promise<ToolResult>;
+            const result = await fn.apply(provider, args) as ToolResult;
+
+            if (result.status === 'error' && i < providers.length - 1) {
+              console.warn(`[${domain}] ${providerName} returned error, trying next provider in chain`);
+              continue;
+            }
+
+            if (!isPrimary) {
+              result.warnings = [
+                ...(result.warnings ?? []),
+                `fallback_chain:${providers.slice(0, i + 1).map((p) => p.name).join('->')}`,
+                `primary_skipped:${primary.name}`,
+              ];
+            }
+
+            return result;
+          } catch (err) {
+            console.warn(`[${domain}] ${providerName} threw: ${err instanceof Error ? err.message : 'unknown'}`);
+            if (i < providers.length - 1) continue;
+            throw err;
+          }
         }
+
+        const lastProvider = providers[providers.length - 1];
+        const fn = Reflect.get(lastProvider, prop, lastProvider) as (...a: unknown[]) => Promise<ToolResult>;
+        const result = await fn.apply(lastProvider, args) as ToolResult;
+        result.warnings = [
+          ...(result.warnings ?? []),
+          `fallback_chain:all_providers_failed_or_unhealthy`,
+        ];
+        return result;
       };
     },
   };
   return new Proxy(primary, handler);
 }
 
-function autoDetectProvider(domain: string): string {
-  switch (domain) {
-    case 'market':
-      return process.env.FINNHUB_API_KEY ? 'finnhub' : 'mock';
-    case 'news':
-      return process.env.FINNHUB_API_KEY ? 'finnhub' : 'mock';
-    case 'macro':
-      return process.env.FRED_API_KEY ? 'fred' : 'mock';
-    case 'fx':
-      return 'frankfurter';
-    case 'fx_localized':
-      return 'cbuae';
-    case 'research':
-      return 'sec_edgar';
-    case 'identity':
-      return 'openfigi';
-    default:
-      return 'mock';
-  }
+function getChainKeys(domain: string, config: Record<string, string>): string[] {
+  const envPrefix = domain.toUpperCase();
+
+  const primary = config[`${domain}_primary`]
+    ?? process.env[`${envPrefix}_PROVIDER_PRIMARY`]
+    ?? 'mock';
+  const secondary = config[`${domain}_secondary`]
+    ?? process.env[`${envPrefix}_PROVIDER_SECONDARY`]
+    ?? undefined;
+  const fallback = config[`${domain}_fallback`]
+    ?? process.env[`${envPrefix}_PROVIDER_FALLBACK`]
+    ?? undefined;
+
+  const chain = [primary];
+  if (secondary && secondary !== primary) chain.push(secondary);
+  if (fallback && !chain.includes(fallback)) chain.push(fallback);
+  if (!chain.includes('mock')) chain.push('mock');
+
+  return chain;
 }
 
 export function getProviderRegistry(providerConfig?: Record<string, string>): ProviderRegistry {
@@ -94,21 +126,21 @@ export function getProviderRegistry(providerConfig?: Record<string, string>): Pr
 
   const config = providerConfig ?? {};
 
-  const marketKey = config.market_primary ?? process.env.MARKET_PROVIDER_PRIMARY ?? autoDetectProvider('market');
-  const newsKey = config.news_primary ?? process.env.NEWS_PROVIDER_PRIMARY ?? autoDetectProvider('news');
-  const macroKey = config.macro_primary ?? process.env.MACRO_PROVIDER_PRIMARY ?? autoDetectProvider('macro');
-  const fxKey = config.fx_primary ?? process.env.FX_PROVIDER_PRIMARY ?? autoDetectProvider('fx');
-  const researchKey = config.filing_primary ?? process.env.FILING_PROVIDER_PRIMARY ?? autoDetectProvider('research');
-  const identityKey = config.identity_primary ?? process.env.IDENTITY_PROVIDER_PRIMARY ?? autoDetectProvider('identity');
+  const marketChain = getChainKeys('market', config).map(resolveMarketProvider);
+  const newsChain = getChainKeys('news', config).map(resolveNewsProvider);
+  const macroChain = getChainKeys('macro', config).map(resolveMacroProvider);
+  const fxChain = getChainKeys('fx', config).map(resolveFxProvider);
+  const researchChain = getChainKeys('filing', config).map(resolveResearchProvider);
+  const identityChain = getChainKeys('identity', config).map(resolveIdentityProvider);
 
   const registry: ProviderRegistry = {
     portfolio: mockPortfolioProvider,
-    market: withFallback(resolveMarketProvider(marketKey), mockMarketProvider, 'market'),
-    news: withFallback(resolveNewsProvider(newsKey), mockNewsProvider, 'news'),
-    macro: withFallback(resolveMacroProvider(macroKey), mockMacroProvider, 'macro'),
-    fx: withFallback(resolveFxProvider(fxKey), mockFxProvider, 'fx'),
-    research: withFallback(resolveResearchProvider(researchKey), mockResearchProvider, 'research'),
-    identity: withFallback(resolveIdentityProvider(identityKey), mockIdentityProvider, 'identity'),
+    market: withFallbackChain(marketChain, 'market'),
+    news: withFallbackChain(newsChain, 'news'),
+    macro: withFallbackChain(macroChain, 'macro'),
+    fx: withFallbackChain(fxChain, 'fx'),
+    research: withFallbackChain(researchChain, 'research'),
+    identity: withFallbackChain(identityChain, 'identity'),
   };
 
   _registryCache.set(key, registry);
@@ -123,6 +155,14 @@ function resolveMarketProvider(key: string): MarketProvider {
   switch (key) {
     case 'finnhub':
       return finnhubMarketProvider;
+    case 'twelve_data':
+      return twelveDataMarketProvider;
+    case 'fmp':
+      return fmpMarketProvider;
+    case 'coingecko':
+      return coinGeckoMarketProvider;
+    case 'yahoo_finance':
+      return yahooFinanceMarketProvider;
     case 'mock':
       return mockMarketProvider;
     default:
@@ -135,6 +175,8 @@ function resolveNewsProvider(key: string): NewsProvider {
   switch (key) {
     case 'finnhub':
       return finnhubNewsProvider;
+    case 'marketaux':
+      return marketauxNewsProvider;
     case 'mock':
       return mockNewsProvider;
     default:
@@ -147,6 +189,8 @@ function resolveMacroProvider(key: string): MacroProvider {
   switch (key) {
     case 'fred':
       return fredMacroProvider;
+    case 'ecb':
+      return ecbMacroProvider;
     case 'mock':
       return mockMacroProvider;
     default:
