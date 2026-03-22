@@ -3,6 +3,7 @@ DO $$
 DECLARE
   deprecated_ids TEXT[] := ARRAY['user-fatima', 'user-omar', 'user-layla', 'user-sara', 'user-nadia'];
 BEGIN
+  DELETE FROM action_contexts WHERE user_id = ANY(deprecated_ids);
   DELETE FROM chat_audit_log WHERE user_id = ANY(deprecated_ids);
   DELETE FROM tool_runs WHERE user_id = ANY(deprecated_ids);
   DELETE FROM agent_traces WHERE user_id = ANY(deprecated_ids);

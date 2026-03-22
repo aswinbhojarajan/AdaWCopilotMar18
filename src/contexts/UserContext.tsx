@@ -44,6 +44,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       .then((data) => {
         setPersonas(data);
         setIsLoading(false);
+        const valid = data.some(p => p.id === userId);
+        if (!valid && data.length > 0) {
+          const fallbackId = data[0].id;
+          setUserId(fallbackId);
+          try { localStorage.setItem(STORAGE_KEY, fallbackId); } catch {}
+        }
       })
       .catch(() => setIsLoading(false));
   }, []);
