@@ -58,13 +58,13 @@ Three seeded personas exist in the database with full data parity. **Abdullah Al
 
 | ID | Name | Risk Profile | Score | Portfolio Value | Key Traits |
 |---|---|---|---|---|---|
-| `user-abdullah` | Abdullah Al-Rashid | Moderate | 62 | $93,105.94 | Default user. 3 accounts (HSBC $18,505.94, Interactive Brokers $66,100.00, WIO Bank $8,500.00). 7 positions. 2 goals (house deposit, education fund). Cash-heavy allocation (66%) with deploy-to-income advisory scenarios. Performance range: $76K–$93K. |
-| `user-khalid` | Khalid Al-Mansouri | Conservative | 28 | $650,000.00 | 3 accounts (Saudi National Bank $250,000, Riyad Bank $200,000, Saxo Bank $200,000). 1 goal (preserve capital). Cash-heavy allocation. Performance range: $638K–$651K. |
+| `user-abdullah` | Abdullah Al-Rashid | Moderate | 62 | $93,105.94 | Default user. 3 accounts (HSBC $18,966.04, Interactive Brokers $64,656.88, WIO Bank $9,483.02). 7 positions. 2 goals (house deposit, education fund). Cash-heavy allocation (66%) with deploy-to-income advisory scenarios. Performance range: $76K–$93K. |
+| `user-khalid` | Khalid Al-Mansouri | Conservative | 28 | $650,000.00 | 3 accounts (Saudi National Bank $285,000, Riyad Bank $142,000, Saxo Bank $223,000). 1 goal (preserve capital). Cash-heavy allocation. Performance range: $638K–$651K. |
 | `user-raj` | Raj Patel | Aggressive | 92 | $181,327.25 | 3 accounts (Binance $52,000, Interactive Brokers $120,827.25, WIO Bank $8,500). 1 goal (early retirement). Performance history includes drawdowns. Negative daily change (-1.80%). Performance range: $150K–$184K. |
 
 All personas share the same advisor: **Sarah Mitchell** (Senior Wealth Advisor, `advisor-sarah`).
 
-Previously 8 personas existed (Abdullah, Fatima, Omar, Layla, Khalid, Sara, Raj, Nadia). Reduced to 3 in Task #12 to improve demo focus and data quality. The removed personas (Fatima Hassan, Omar Khalil, Layla Mahmoud, Sara Al-Fahad, Nadia Khoury) were deleted via `TRUNCATE users CASCADE` and full reseed.
+Previously 8 personas existed (Abdullah, Fatima, Omar, Layla, Khalid, Sara, Raj, Nadia). Reduced to 3 in Task #12 to improve demo focus and data quality. The removed personas (Fatima Hassan, Omar Khalil, Layla Mahmoud, Sara Al-Fahad, Nadia Khoury) were removed from `seed.sql` and the database was reseeded.
 
 ---
 

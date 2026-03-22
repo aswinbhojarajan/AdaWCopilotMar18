@@ -11,16 +11,16 @@ For each persona, verify that every account's `balance` is greater than or equal
 
 ```sql
 SELECT
-  u.name,
-  a.institution,
+  u.first_name || ' ' || u.last_name AS name,
+  a.institution_name,
   a.balance AS account_balance,
   COALESCE(SUM(p.quantity * p.current_price), 0) AS position_total,
   a.balance - COALESCE(SUM(p.quantity * p.current_price), 0) AS cash_remainder
 FROM users u
 JOIN accounts a ON a.user_id = u.id
 LEFT JOIN positions p ON p.account_id = a.id
-GROUP BY u.name, a.institution, a.balance
-ORDER BY u.name, a.institution;
+GROUP BY u.first_name, u.last_name, a.institution_name, a.balance
+ORDER BY name, a.institution_name;
 ```
 
 **Pass criteria**: `cash_remainder >= 0` for all rows. A negative value means the account cannot cover its positions.
@@ -33,7 +33,7 @@ For each position, verify that `cost_basis` equals the weighted average price of
 
 ```sql
 SELECT
-  u.name,
+  u.first_name || ' ' || u.last_name AS name,
   p.symbol,
   p.cost_basis AS position_cost_basis,
   ROUND(SUM(t.price * t.quantity) / SUM(t.quantity), 2) AS weighted_avg_price,
@@ -42,9 +42,9 @@ FROM users u
 JOIN accounts a ON a.user_id = u.id
 JOIN positions p ON p.account_id = a.id
 JOIN transactions t ON t.account_id = a.id AND t.symbol = p.symbol AND t.type = 'buy'
-GROUP BY u.name, p.symbol, p.cost_basis
+GROUP BY u.first_name, u.last_name, p.symbol, p.cost_basis
 HAVING ABS(p.cost_basis - ROUND(SUM(t.price * t.quantity) / SUM(t.quantity), 2)) > 0.01
-ORDER BY u.name, p.symbol;
+ORDER BY name, p.symbol;
 ```
 
 **Pass criteria**: Query returns zero rows (no discrepancies greater than $0.01).
@@ -57,7 +57,7 @@ For each position, verify that the net quantity (buys minus sells) from transact
 
 ```sql
 SELECT
-  u.name,
+  u.first_name || ' ' || u.last_name AS name,
   p.symbol,
   p.quantity AS position_qty,
   SUM(CASE WHEN t.type = 'buy' THEN t.quantity ELSE -t.quantity END) AS net_transaction_qty,
@@ -66,9 +66,9 @@ FROM users u
 JOIN accounts a ON a.user_id = u.id
 JOIN positions p ON p.account_id = a.id
 JOIN transactions t ON t.account_id = a.id AND t.symbol = p.symbol
-GROUP BY u.name, p.symbol, p.quantity
+GROUP BY u.first_name, u.last_name, p.symbol, p.quantity
 HAVING ABS(p.quantity - SUM(CASE WHEN t.type = 'buy' THEN t.quantity ELSE -t.quantity END)) > 0.001
-ORDER BY u.name, p.symbol;
+ORDER BY name, p.symbol;
 ```
 
 **Pass criteria**: Query returns zero rows.
@@ -81,7 +81,7 @@ Verify that performance history values stay within realistic bounds for each per
 
 ```sql
 SELECT
-  u.name,
+  u.first_name || ' ' || u.last_name AS name,
   ps.total_value AS current_value,
   MIN(ph.value) AS min_history,
   MAX(ph.value) AS max_history,
@@ -90,8 +90,8 @@ SELECT
 FROM users u
 JOIN portfolio_snapshots ps ON ps.user_id = u.id
 JOIN performance_history ph ON ph.user_id = u.id
-GROUP BY u.name, ps.total_value
-ORDER BY u.name;
+GROUP BY u.first_name, u.last_name, ps.total_value
+ORDER BY name;
 ```
 
 **Pass criteria**:
@@ -109,16 +109,16 @@ Verify that each persona's portfolio snapshot `total_value` equals the sum of al
 
 ```sql
 SELECT
-  u.name,
+  u.first_name || ' ' || u.last_name AS name,
   ps.total_value AS snapshot_total,
   SUM(a.balance) AS account_sum,
   ABS(ps.total_value - SUM(a.balance)) AS discrepancy
 FROM users u
 JOIN portfolio_snapshots ps ON ps.user_id = u.id
 JOIN accounts a ON a.user_id = u.id
-GROUP BY u.name, ps.total_value
+GROUP BY u.first_name, u.last_name, ps.total_value
 HAVING ABS(ps.total_value - SUM(a.balance)) > 0.01
-ORDER BY u.name;
+ORDER BY name;
 ```
 
 **Pass criteria**: Query returns zero rows.
@@ -131,8 +131,8 @@ Verify that goal `current_amount` values are reasonable relative to portfolio va
 
 ```sql
 SELECT
-  u.name,
-  g.name AS goal_name,
+  u.first_name || ' ' || u.last_name AS name,
+  g.title AS goal_name,
   g.current_amount,
   g.target_amount,
   ps.total_value AS portfolio_value,
@@ -140,7 +140,7 @@ SELECT
 FROM users u
 JOIN goals g ON g.user_id = u.id
 JOIN portfolio_snapshots ps ON ps.user_id = u.id
-ORDER BY u.name, g.name;
+ORDER BY name, g.title;
 ```
 
 **Pass criteria**:
@@ -152,20 +152,24 @@ ORDER BY u.name, g.name;
 
 ## 7. Allocation Totals Reconciliation
 
-Verify that asset allocation percentages sum to 100% for each persona.
+Verify that the total value of positions per account does not exceed account balance, and that allocation percentages (computed from position values vs snapshot total) are reasonable.
 
 ```sql
 SELECT
-  u.name,
-  SUM(aa.percentage) AS total_pct
+  u.first_name || ' ' || u.last_name AS name,
+  p.asset_class,
+  SUM(p.quantity * p.current_price) AS class_value,
+  ps.total_value,
+  ROUND(SUM(p.quantity * p.current_price) / ps.total_value * 100, 1) AS allocation_pct
 FROM users u
-JOIN asset_allocations aa ON aa.user_id = u.id
-GROUP BY u.name
-HAVING ABS(SUM(aa.percentage) - 100) > 0.1
-ORDER BY u.name;
+JOIN accounts a ON a.user_id = u.id
+JOIN positions p ON p.account_id = a.id
+JOIN portfolio_snapshots ps ON ps.user_id = u.id
+GROUP BY u.first_name, u.last_name, p.asset_class, ps.total_value
+ORDER BY name, allocation_pct DESC;
 ```
 
-**Pass criteria**: Query returns zero rows (all sum to 100% within 0.1% tolerance).
+**Pass criteria**: All `allocation_pct` values are positive, and they sum to less than or equal to 100% per persona (remainder is cash).
 
 ---
 
@@ -196,7 +200,7 @@ Verify that transaction prices are within a reasonable range of the position's c
 
 ```sql
 SELECT
-  u.name,
+  u.first_name || ' ' || u.last_name AS name,
   t.symbol,
   t.type,
   t.price AS transaction_price,
@@ -220,7 +224,7 @@ Verify that each persona has all required data entities.
 
 ```sql
 SELECT
-  u.name,
+  u.first_name || ' ' || u.last_name AS name,
   (SELECT COUNT(*) FROM accounts WHERE user_id = u.id) AS accounts,
   (SELECT COUNT(*) FROM positions p JOIN accounts a ON p.account_id = a.id WHERE a.user_id = u.id) AS positions,
   (SELECT COUNT(*) FROM portfolio_snapshots WHERE user_id = u.id) AS snapshots,
@@ -230,7 +234,7 @@ SELECT
   (SELECT COUNT(*) FROM chat_threads WHERE user_id = u.id) AS chat_threads
 FROM users u
 WHERE u.id LIKE 'user-%'
-ORDER BY u.name;
+ORDER BY name;
 ```
 
 **Pass criteria**:
