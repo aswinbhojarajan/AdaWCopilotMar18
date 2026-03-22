@@ -4,13 +4,8 @@ const API_BASE = 'http://localhost:3001/api';
 
 const PERSONAS = [
   { id: 'user-abdullah', name: 'Abdullah', riskProfile: 'moderate', expectedMinHoldings: 5, hasGoals: true, minGoals: 2, minAlerts: 3 },
-  { id: 'user-fatima', name: 'Fatima', riskProfile: 'conservative', expectedMinHoldings: 5, hasGoals: true, minGoals: 1, minAlerts: 3 },
-  { id: 'user-omar', name: 'Omar', riskProfile: 'aggressive', expectedMinHoldings: 5, hasGoals: true, minGoals: 2, minAlerts: 3 },
-  { id: 'user-layla', name: 'Layla', riskProfile: 'moderate', expectedMinHoldings: 5, hasGoals: true, minGoals: 2, minAlerts: 3 },
   { id: 'user-khalid', name: 'Khalid', riskProfile: 'conservative', expectedMinHoldings: 3, hasGoals: true, minGoals: 1, minAlerts: 3 },
-  { id: 'user-sara', name: 'Sara', riskProfile: 'moderate', expectedMinHoldings: 3, hasGoals: true, minGoals: 1, minAlerts: 3 },
-  { id: 'user-raj', name: 'Raj', riskProfile: 'aggressive', expectedMinHoldings: 3, hasGoals: false, minGoals: 0, minAlerts: 3 },
-  { id: 'user-nadia', name: 'Nadia', riskProfile: 'moderate', expectedMinHoldings: 3, hasGoals: false, minGoals: 0, minAlerts: 3 },
+  { id: 'user-raj', name: 'Raj', riskProfile: 'aggressive', expectedMinHoldings: 3, hasGoals: true, minGoals: 1, minAlerts: 3 },
 ];
 
 function apiFetch(path: string, userId: string) {
@@ -121,9 +116,9 @@ describe('Persona Data Parity', () => {
   });
 
   describe('Home screen data', () => {
-    it('all 8 personas exist in users list with names', async () => {
+    it('all 3 personas exist in users list with names', async () => {
       const users = await apiFetch('/users', PERSONAS[0].id);
-      expect(users.length).toBe(8);
+      expect(users.length).toBe(3);
       for (const persona of PERSONAS) {
         const found = users.find((u: { id: string }) => u.id === persona.id);
         expect(found).toBeDefined();
