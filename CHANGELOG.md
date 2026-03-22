@@ -4,6 +4,50 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Comprehensive Data Audit — Data Integrity Fixes
+**Date:** March 22, 2026
+
+### Fixed
+- **Performance history curves catastrophically broken** — unbounded cumulative random walk produced unrealistic values (Abdullah min -$32K, Raj min -$895K). Replaced with normalized bounded formula: `amplitude × norm_r` where `norm_r = cum_r / GREATEST(MAX(ABS(cum_r)) OVER (), 0.0001)`. Amplitudes: Abdullah ±$4K ($76K–$93K), Khalid ±$2.5K ($638K–$651K), Raj ±$12K ($150K–$184K)
+- **Raj Binance balance underflow** — balance was $35,200 but crypto positions totaled $51,451.25. Raised balance to $52,000
+- **NVDA transaction prices incorrect** — recent transactions showed $235/$240 (pre-split prices) causing impossible 42–44% 10-day drops. Corrected to $138/$130 (consistent with $135.40 market price)
+- **7 cost_basis mismatches** — position cost_basis values did not match weighted averages of their transaction prices. Fixed: Abdullah AAPL ($148.50→$150.00), MSFT ($328.20→$325.00), GLD ($186.50→$185.00), AGG ($102.30→$100.00), NVDA ($90.00→$102.67); Khalid AGG ($99.50→$100.00), GLD ($184.50→$185.00); Raj BTC ($42,500→$43,166.67), SOL ($95.20→$97.50), NVDA ($90.00→$103.33)
+
+### Validated
+- All 29 parity tests pass
+- TypeScript compiles clean
+
+---
+
+## Task #12 — Reduce to 3 Demo Personas
+**Date:** March 22, 2026
+
+### Changed
+- **Persona count reduced from 8 to 3** — retained Abdullah Al-Rashid (Moderate/$93K), Khalid Al-Mansouri (Conservative/$650K), Raj Patel (Aggressive/$181K). Removed Fatima Hassan, Omar Khalil, Layla Mahmoud, Sara Al-Fahad, Nadia Khoury
+- **Seed data cleaned** — removed all seed SQL for deleted personas (accounts, positions, snapshots, performance history, goals, alerts, chat threads). TRUNCATE users CASCADE + full reseed procedure
+- **UserContext auto-heal** — if localStorage contains an invalid user ID (from a removed persona), the context automatically resets to `user-abdullah`
+- **Parity tests updated** — reduced from 70 tests (8 personas) to 29 tests (3 personas)
+- **PersonaPicker** — updated to show 3 personas instead of 8
+
+### Validated
+- All 29 parity tests pass
+- Persona switching works correctly for all 3 personas
+- TypeScript compiles clean
+
+---
+
+## Task #11 — Portfolio Health Field Mismatch Fix
+**Date:** March 21, 2026
+
+### Fixed
+- **`portfolioRepository.ts` field mapping error** — `diversificationScore` was mapped to the wrong database column, and `riskLevel` returned an incorrect value. Corrected field mappings so Wealth tab portfolio health summary displays accurate data
+
+### Validated
+- Portfolio health data renders correctly for all personas
+- TypeScript compiles clean
+
+---
+
 ## Task #10 — Comprehensive Data Realism & Market Alignment
 **Date:** March 21, 2026
 
@@ -17,7 +61,7 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 - **PRD persona table updated** — portfolio values and trait descriptions now match actual seeded data
 
 ### Validated
-- All 70 persona parity tests pass after all data changes
+- All persona parity tests pass after all data changes (later reduced to 29 tests when persona count was reduced to 3)
 - Allocation totals reconcile with snapshot values for all personas
 - TypeScript compiles clean with no errors
 

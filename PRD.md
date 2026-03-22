@@ -1,7 +1,7 @@
 # Ada — AI Wealth Copilot: Product Requirements Document
 
 > **Living document** — update this PRD before and after every build cycle.
-> Last updated: 2026-03-21
+> Last updated: 2026-03-22
 >
 > **Source of truth precedence**: When a mismatch exists between this document and the runtime code/schema, the code is authoritative. Update this PRD to reflect the code, not the other way around.
 >
@@ -54,20 +54,17 @@ High-net-worth individuals (HNWI) and affluent investors in the GCC region who w
 
 ### Demo Personas
 
-Eight seeded personas exist in the database with full data parity. **Abdullah Al-Rashid** is the default user and the primary demo persona. Each persona has accounts, positions, a 365-day volatile performance history (risk-profile-appropriate curves with drawdowns for aggressive personas), goals, alerts, and chat threads. User switching is supported via the PersonaPicker bottom sheet; all API calls include the selected user's ID via the `X-User-ID` header.
+Three seeded personas exist in the database with full data parity. **Abdullah Al-Rashid** is the default user and the primary demo persona. Each persona has accounts, positions, a 365-day performance history (bounded, risk-profile-appropriate curves using normalized cumulative random walk), goals, alerts, and chat threads. User switching is supported via the PersonaPicker bottom sheet; all API calls include the selected user's ID via the `X-User-ID` header.
 
 | ID | Name | Risk Profile | Score | Portfolio Value | Key Traits |
 |---|---|---|---|---|---|
-| `user-abdullah` | Abdullah Al-Rashid | Moderate | 62 | $93,105.94 | Default user. 3 accounts (HSBC, Interactive Brokers, WIO Bank). 7 positions. 2 goals (house deposit, education fund). Cash-heavy allocation (66%) with deploy-to-income advisory scenarios. |
-| `user-fatima` | Fatima Hassan | Conservative | 35 | $165,700.00 | 2 accounts (Emirates NBD, Vanguard). 1 goal (retirement). Lower risk tolerance. |
-| `user-omar` | Omar Khalil | Aggressive | 85 | $99,801.00 | 2 accounts (ADCB, Robinhood). Growth-focused. Highest risk score. Performance history includes drawdowns. |
-| `user-layla` | Layla Mahmoud | Moderate | 55 | $110,500.00 | 2 accounts (Mashreq Bank, Charles Schwab). Balanced profile. Negative daily change. |
-| `user-khalid` | Khalid Al-Mansouri | Conservative | 28 | $650,000.00 | 3 accounts (Saudi National Bank, Riyad Bank, Saxo Bank). 1 goal (preserve capital). Cash-heavy allocation. |
-| `user-sara` | Sara Al-Fahad | Moderate | 58 | $173,500.00 | 2 accounts (Emirates NBD, Interactive Brokers). 3 goals (children education, emergency fund, family vacation). |
-| `user-raj` | Raj Patel | Aggressive | 92 | $181,327.25 | 3 accounts (Binance, Interactive Brokers, WIO Bank). 1 goal (early retirement). Performance history includes drawdowns. Negative daily change (-1.80%). |
-| `user-nadia` | Nadia Khoury | Moderate | 48 | $275,500.00 | 3 accounts (FAB, HSBC, Mashreq Bank). 2 goals (retirement income, travel fund). Dividend-focused portfolio. |
+| `user-abdullah` | Abdullah Al-Rashid | Moderate | 62 | $93,105.94 | Default user. 3 accounts (HSBC $18,505.94, Interactive Brokers $66,100.00, WIO Bank $8,500.00). 7 positions. 2 goals (house deposit, education fund). Cash-heavy allocation (66%) with deploy-to-income advisory scenarios. Performance range: $76K–$93K. |
+| `user-khalid` | Khalid Al-Mansouri | Conservative | 28 | $650,000.00 | 3 accounts (Saudi National Bank $250,000, Riyad Bank $200,000, Saxo Bank $200,000). 1 goal (preserve capital). Cash-heavy allocation. Performance range: $638K–$651K. |
+| `user-raj` | Raj Patel | Aggressive | 92 | $181,327.25 | 3 accounts (Binance $52,000, Interactive Brokers $120,827.25, WIO Bank $8,500). 1 goal (early retirement). Performance history includes drawdowns. Negative daily change (-1.80%). Performance range: $150K–$184K. |
 
 All personas share the same advisor: **Sarah Mitchell** (Senior Wealth Advisor, `advisor-sarah`).
+
+Previously 8 personas existed (Abdullah, Fatima, Omar, Layla, Khalid, Sara, Raj, Nadia). Reduced to 3 in Task #12 to improve demo focus and data quality. The removed personas (Fatima Hassan, Omar Khalil, Layla Mahmoud, Sara Al-Fahad, Nadia Khoury) were deleted via `TRUNCATE users CASCADE` and full reseed.
 
 ---
 
@@ -984,7 +981,7 @@ main.tsx (QueryClient + prefetch)
 | **Wealth Engine** | Built | Deterministic calculations for portfolio health, concentration risk, allocation drift, rebalance preview |
 | **Structured Responses** | Built | Zod-validated AdaAnswer schema with headline, summary, citations, recommendations, actions, render hints |
 | **Agent Tracing** | Built | Full trace logging to agent_traces + tool_runs tables for observability |
-| **PostgreSQL Database** | Built | 33 tables, 8 personas, full seed data |
+| **PostgreSQL Database** | Built | 33 tables, 3 personas, full seed data |
 | **REST API** | Built | 34 endpoints, asyncHandler, global error handler, 2 SSE streams |
 | **Loading Skeletons** | Built | All data-fetching screens |
 | **Error States** | Built | All data-fetching screens |
@@ -998,7 +995,7 @@ main.tsx (QueryClient + prefetch)
 | **TypeScript Validation** | Built | `tsc --noEmit` passes cleanly, registered as CI validation |
 | **User Switching** | Built | PersonaPicker bottom sheet, X-User-ID header, per-user query isolation, localStorage persistence |
 | **Multi-Model Routing** | Built | Lane-based control plane (Lane 0 deterministic, Lane 1 fast, Lane 2 reasoning) with request scorecards and provider aliases |
-| **Full Persona Data Parity** | Built | 8 personas with positions, 365-day performance history, goals, alerts, chat threads; server-side computed wealth insights |
+| **Full Persona Data Parity** | Built | 3 personas with positions, 365-day performance history, goals, alerts, chat threads; server-side computed wealth insights. Cost basis values match weighted transaction averages. Performance history uses bounded normalized formula. |
 | **Authentication** | Not built | No auth layer |
 | **Real Account Linking** | Not built | Mock flow only |
 | **Push Notifications** | Not built | — |
@@ -1039,3 +1036,8 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-21 | Task #9: Full Persona Data Parity | All 8 personas seeded with: accounts, positions, portfolio snapshots, 365-day volatile performance history (risk-profile-appropriate curves with drawdowns for aggressive personas), goals, alerts, chat threads. Server-side `computeWealthInsights()` for diversification score, risk level, top allocation. Allocation totals reconcile with snapshots. 70-test suite in `tests/persona-parity.test.ts`. |
 | 2026-03-21 | Bug Fix: Collective Duplicates | Fixed `peer_segments` table producing 400 duplicate rows on restart. Added UNIQUE constraint on `asset_class`. Seed uses DELETE + ON CONFLICT(asset_class) DO NOTHING. |
 | 2026-03-21 | PRD Update | Updated personas from 4 to 8, model router to lane-based, marked user switching/multi-model/persona parity as built, added Tasks #7-#9 and bug fix to changelog. |
+| 2026-03-21 | Task #10: Data Realism | NVDA price corrected ($250→$135.40). Performance history overhauled with deterministic hash-based compound return models. Portfolio values cascaded. Hardcoded sparkline replaced with DB-backed data. |
+| 2026-03-21 | Task #11: Portfolio Health Fix | Fixed `portfolioRepository.ts` field mismatch — `diversificationScore` was mapped to wrong column, `riskLevel` returned incorrect value. |
+| 2026-03-22 | Task #12: Reduce to 3 Personas | Removed 5 personas (Fatima, Omar, Layla, Sara, Nadia). Retained Abdullah (Moderate), Khalid (Conservative), Raj (Aggressive). Updated UserContext with auto-heal for invalid stored user IDs. Parity tests reduced from 70 to 29. |
+| 2026-03-22 | Data Audit | Comprehensive data integrity fixes: (1) Performance history formula replaced with bounded normalized cumulative walk (amplitude × norm_r); (2) Raj Binance balance $35,200→$52,000 to cover $51,451 crypto positions; (3) NVDA transaction prices corrected $235/$240→$138/$130; (4) All 24 cost_basis values reconciled with weighted transaction averages (7 mismatches fixed). |
+| 2026-03-22 | PRD Update | Updated persona table from 8→3, updated portfolio values and account balances, updated implementation status, added Task #10–#12 and data audit to change log. |

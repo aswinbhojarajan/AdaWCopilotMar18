@@ -1,7 +1,7 @@
 # Backlog — Ada AI Wealth Copilot
 
 > **Living document** — update as new features are proposed, prioritized, or completed.
-> Last updated: 2026-03-21
+> Last updated: 2026-03-22
 
 ---
 
@@ -121,7 +121,7 @@ Scale beyond the demo tenant:
 **Status:** Complete
 **Priority:** Should Have
 
-~~Enable switching between the 8 seeded personas.~~ Implemented with PersonaPicker bottom sheet, X-User-ID header, per-user React Query isolation, localStorage persistence, and full persona data parity (365-day performance history, goals, alerts, chat threads for all 8 personas). See Tasks #8 and #9.
+~~Enable switching between the 8 seeded personas.~~ Implemented with PersonaPicker bottom sheet, X-User-ID header, per-user React Query isolation, localStorage persistence, and full persona data parity (365-day performance history, goals, alerts, chat threads). Persona count later reduced from 8 to 3 (Abdullah/Khalid/Raj) in Task #12 for improved demo focus. See Tasks #8, #9, and #12.
 
 ### BL-010: Webhook Reliability for Execution Routing
 **Status:** Proposed
@@ -328,3 +328,7 @@ Enterprise integration layer:
 | — | Full Persona Data Parity (8 personas) | 2026-03-21 |
 | — | Collective Tab Peer Comparison Fix | 2026-03-21 |
 | — | PRD Creation & Updates | 2026-03-18/21 |
+| — | Data Realism & Market Alignment (Task #10) | 2026-03-21 |
+| — | Portfolio Health Field Mismatch Fix (Task #11) | 2026-03-21 |
+| — | Reduce to 3 Personas (Task #12) | 2026-03-22 |
+| — | Comprehensive Data Integrity Audit | 2026-03-22 |

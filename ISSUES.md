@@ -1,7 +1,7 @@
 # Issues — Ada AI Wealth Copilot
 
 > **Living document** — update continuously as issues are discovered, resolved, or reprioritized.
-> Last updated: 2026-03-21
+> Last updated: 2026-03-22
 
 ---
 
@@ -58,7 +58,7 @@
 | ISS-016 | Morning Sentinel cache is in-memory only | Sentinel briefing cache uses an in-memory Map, so it resets on every server restart. In production with autoscale, each instance has its own cache. | `server/services/morningSentinelService.ts` | 2026-03-21 |
 | ISS-017 | Provider health metrics not exposed | Provider health tracking (sliding window) runs internally but there's no API endpoint or dashboard to view provider health status. | `server/providers/registry.ts` | 2026-03-21 |
 | ISS-018 | No structured error responses from agent pipeline | When the agent pipeline fails mid-execution (e.g., tool error, LLM timeout), the error SSE event contains a generic message without trace ID or diagnostic context. | `server/services/agentOrchestrator.ts` | 2026-03-21 |
-| ISS-019 | Seed data uses fixed dates | Some seed data (content items, alerts) has hardcoded dates that may appear stale over time. | `server/db/seed.sql` | 2026-03-21 |
+| ~~ISS-019~~ | ~~Seed data uses fixed dates~~ | Resolved — performance history now uses `CURRENT_DATE` with `generate_series` for dynamic date generation. Content items and alerts still use fixed dates but are less time-sensitive. | `server/db/seed.sql` | 2026-03-21 |
 
 ### P4 — Trivial
 
@@ -86,3 +86,9 @@
 | ISS-010 | Single-user hardcoded default | User switching via PersonaPicker + X-User-ID header | 2026-03-21 |
 | ISS-011 | chatService.ts dead code | File deleted from codebase | 2026-03-21 |
 | — | Collective tab 400 duplicate rows | UNIQUE constraint on peer_segments(asset_class) + seed cleanup | 2026-03-21 |
+| ISS-019 | Seed data uses fixed dates | Performance history uses dynamic `CURRENT_DATE` generation; core date staleness resolved | 2026-03-22 |
+| — | Performance history unbounded values | Replaced unbounded cumulative walk with normalized bounded formula (amplitude × norm_r) | 2026-03-22 |
+| — | Raj Binance balance underflow | Raised balance $35,200→$52,000 to cover $51,451 crypto positions | 2026-03-22 |
+| — | NVDA transaction prices incorrect | Corrected $235/$240→$138/$130 (post-split realistic prices) | 2026-03-22 |
+| — | 7 cost_basis mismatches | Reconciled all 24 position cost_basis values with weighted transaction averages | 2026-03-22 |
+| — | Portfolio health field mismatch | Fixed diversificationScore and riskLevel field mappings in portfolioRepository.ts | 2026-03-21 |
