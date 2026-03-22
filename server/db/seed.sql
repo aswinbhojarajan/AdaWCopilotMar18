@@ -84,7 +84,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Clean up existing alerts and content for consistency updates
 DELETE FROM alerts WHERE user_id = 'user-abdullah';
 DELETE FROM content_items WHERE id IN ('ci-1', 'ci-2', 'ci-3');
-DELETE FROM chat_messages WHERE thread_id IN ('thread-abd-1', 'thread-abd-2', 'thread-abd-3');
+DELETE FROM chat_messages WHERE thread_id IN (SELECT id FROM chat_threads WHERE user_id = 'user-abdullah');
 DELETE FROM chat_threads WHERE user_id = 'user-abdullah';
 
 -- Alerts (Abdullah)
