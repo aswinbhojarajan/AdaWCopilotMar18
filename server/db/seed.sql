@@ -935,7 +935,7 @@ INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, catego
   ('alert-omr-1', 'user-omar', 'PORTFOLIO_ALERT', 'Crypto allocation down 12% this week',
    'Your Bitcoin, Ethereum, and Solana positions have declined sharply. Total crypto exposure is now 25% of portfolio ($24,911).', '8 min ago', TRUE, 'alerts'),
   ('alert-omr-2', 'user-omar', 'MARKET_UPDATE', 'NVIDIA surges on AI infrastructure demand',
-   'NVDA gained 4.2% today on strong data center revenue guidance. Your 20-share position is up $114.', '1 hour ago', FALSE, 'updates'),
+   'NVDA gained 4.2% today on strong data center revenue guidance. Your 20-share position gained $114 today (20 × $135.40 × 4.2%).', '1 hour ago', FALSE, 'updates'),
   ('alert-omr-3', 'user-omar', 'PORTFOLIO_ALERT', 'Portfolio volatility exceeds risk tolerance',
    'Your 30-day portfolio volatility is 28%, significantly above the 20% threshold for aggressive profiles.', '4 hours ago', TRUE, 'alerts'),
   ('alert-omr-4', 'user-omar', 'OPPORTUNITY', 'Tech sector pullback creates entry points',
