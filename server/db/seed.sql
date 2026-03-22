@@ -51,12 +51,12 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Positions (Abdullah's brokerage)
 INSERT INTO positions (id, account_id, symbol, name, quantity, current_price, cost_basis, asset_class) VALUES
-  ('pos-abd-1', 'acc-abd-2', 'NVDA', 'NVIDIA Corp.', 15, 135.40, 90.00, 'Stocks'),
-  ('pos-abd-2', 'acc-abd-2', 'AAPL', 'Apple Inc.', 12, 208.63, 165.00, 'Stocks'),
+  ('pos-abd-1', 'acc-abd-2', 'NVDA', 'NVIDIA Corp.', 15, 135.40, 102.67, 'Stocks'),
+  ('pos-abd-2', 'acc-abd-2', 'AAPL', 'Apple Inc.', 12, 208.63, 180.00, 'Stocks'),
   ('pos-abd-3', 'acc-abd-2', 'BTC', 'Bitcoin', 0.0195, 87535.00, 62000.00, 'Crypto'),
-  ('pos-abd-4', 'acc-abd-2', 'MSFT', 'Microsoft Corp.', 8, 420.50, 320.00, 'Stocks'),
-  ('pos-abd-5', 'acc-abd-2', 'AGG', 'iShares Core Bond ETF', 130, 109.42, 105.00, 'Bonds'),
-  ('pos-abd-6', 'acc-abd-2', 'GLD', 'SPDR Gold Shares', 18, 210.73, 185.00, 'Commodities'),
+  ('pos-abd-4', 'acc-abd-2', 'MSFT', 'Microsoft Corp.', 8, 420.50, 391.25, 'Stocks'),
+  ('pos-abd-5', 'acc-abd-2', 'AGG', 'iShares Core Bond ETF', 130, 109.42, 104.12, 'Bonds'),
+  ('pos-abd-6', 'acc-abd-2', 'GLD', 'SPDR Gold Shares', 18, 210.73, 189.17, 'Commodities'),
   ('pos-abd-7', 'acc-abd-2', 'ETH', 'Ethereum', 1.5, 2450.00, 1800.00, 'Crypto')
 ON CONFLICT (id) DO NOTHING;
 
@@ -179,15 +179,14 @@ INSERT INTO peer_segments (asset_class, user_percent, peer_percent, color) VALUE
   ('Alternatives', 10, 15, '#8b5a5d')
 ON CONFLICT (asset_class) DO NOTHING;
 
--- Performance History (Abdullah - Holdings-weighted compound return model)
--- Actual allocation from positions+cash: Stocks 8.5%, Bonds 15.3%, Crypto 5.8%, Commodities 4.1%, Cash 66.4%
--- Daily returns: hashtext()-based pseudo-random per asset class, weighted by actual allocation, compounded via cumulative sum
+-- Performance History (Abdullah - Moderate investor, gradual growth with bounded noise)
+-- Start ~$76,500, end ~$93,106. Amplitude ±$4,000. Normalized cumulative walk ensures bounded values.
 INSERT INTO performance_history (user_id, value, recorded_date)
 WITH days AS (
   SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
   FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ),
-returns AS (
+raw_walk AS (
   SELECT dt, n,
     SUM(
       0.085 * 0.012 * ((hashtext('ABD_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
@@ -196,13 +195,18 @@ returns AS (
       + 0.041 * 0.010 * ((hashtext('ABD_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
     ) OVER (ORDER BY dt) as cum_r
   FROM days
+),
+normalized AS (
+  SELECT dt, n, cum_r,
+    cum_r / GREATEST(MAX(ABS(cum_r)) OVER (), 0.0001) as norm_r
+  FROM raw_walk
 )
 SELECT 'user-abdullah',
-  76500 + n * 45.37 + 93106 * cum_r
+  76500 + n * 45.37 + 4000 * norm_r
     - CASE WHEN n BETWEEN 95 AND 110 THEN 1800 ELSE 0 END
     - CASE WHEN n BETWEEN 240 AND 255 THEN 1200 ELSE 0 END,
   dt
-FROM returns
+FROM normalized
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 
 UPDATE performance_history
@@ -250,7 +254,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Transactions (Abdullah)
 INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
-  ('txn-abd-1', 'acc-abd-2', 'buy', 'NVDA', 5, 235.00, 1175.00, NOW() - INTERVAL '15 days'),
+  ('txn-abd-1', 'acc-abd-2', 'buy', 'NVDA', 5, 138.00, 690.00, NOW() - INTERVAL '15 days'),
   ('txn-abd-1b', 'acc-abd-2', 'buy', 'NVDA', 10, 85.00, 850.00, NOW() - INTERVAL '300 days'),
   ('txn-abd-2', 'acc-abd-2', 'buy', 'AAPL', 4, 200.00, 800.00, NOW() - INTERVAL '30 days'),
   ('txn-abd-2b', 'acc-abd-2', 'buy', 'AAPL', 8, 170.00, 1360.00, NOW() - INTERVAL '270 days'),
@@ -405,10 +409,10 @@ INSERT INTO accounts (id, user_id, institution_name, logo_color, logo_text, acco
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO positions (id, account_id, symbol, name, quantity, current_price, cost_basis, asset_class) VALUES
-  ('pos-kha-1', 'acc-kha-3', 'AGG', 'iShares Core Bond ETF', 450, 109.42, 106.50, 'Bonds'),
+  ('pos-kha-1', 'acc-kha-3', 'AGG', 'iShares Core Bond ETF', 450, 109.42, 106.83, 'Bonds'),
   ('pos-kha-2', 'acc-kha-3', 'BND', 'Vanguard Total Bond Market ETF', 320, 73.85, 72.10, 'Bonds'),
   ('pos-kha-3', 'acc-kha-3', 'TLT', 'iShares 20+ Year Treasury Bond ETF', 180, 92.30, 98.50, 'Bonds'),
-  ('pos-kha-4', 'acc-kha-3', 'GLD', 'SPDR Gold Shares', 85, 210.73, 178.00, 'Commodities'),
+  ('pos-kha-4', 'acc-kha-3', 'GLD', 'SPDR Gold Shares', 85, 210.73, 183.00, 'Commodities'),
   ('pos-kha-5', 'acc-kha-3', 'JNJ', 'Johnson & Johnson', 45, 158.20, 162.00, 'Stocks'),
   ('pos-kha-6', 'acc-kha-3', 'PG', 'Procter & Gamble Co.', 30, 165.40, 150.00, 'Stocks'),
   ('pos-kha-7', 'acc-kha-3', 'KO', 'Coca-Cola Co.', 60, 62.30, 58.00, 'Stocks')
@@ -426,20 +430,20 @@ ON CONFLICT (id) DO NOTHING;
 -- Raj Patel: Self-directed active trader (tech-overexposed millennial)
 -- Storyline: Heavy tech/crypto exposure, recent drawdown in crypto, very active trading
 INSERT INTO accounts (id, user_id, institution_name, logo_color, logo_text, account_type, balance, last_synced, status) VALUES
-  ('acc-raj-1', 'user-raj', 'Binance', '#F0B90B', 'BN', 'brokerage', 35200.00, '1 min ago', 'synced'),
-  ('acc-raj-2', 'user-raj', 'Interactive Brokers', '#DA1F26', 'IB', 'brokerage', 137627.25, '2 min ago', 'synced'),
+  ('acc-raj-1', 'user-raj', 'Binance', '#F0B90B', 'BN', 'brokerage', 52000.00, '1 min ago', 'synced'),
+  ('acc-raj-2', 'user-raj', 'Interactive Brokers', '#DA1F26', 'IB', 'brokerage', 120827.25, '2 min ago', 'synced'),
   ('acc-raj-3', 'user-raj', 'WIO Bank', '#6C63FF', 'WIO', 'checking', 8500.00, 'Just now', 'synced')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO positions (id, account_id, symbol, name, quantity, current_price, cost_basis, asset_class) VALUES
-  ('pos-raj-1', 'acc-raj-2', 'NVDA', 'NVIDIA Corp.', 45, 135.40, 90.00, 'Stocks'),
+  ('pos-raj-1', 'acc-raj-2', 'NVDA', 'NVIDIA Corp.', 45, 135.40, 103.33, 'Stocks'),
   ('pos-raj-2', 'acc-raj-2', 'AMD', 'Advanced Micro Devices', 80, 165.20, 120.00, 'Stocks'),
   ('pos-raj-3', 'acc-raj-2', 'TSLA', 'Tesla Inc.', 25, 245.80, 280.00, 'Stocks'),
   ('pos-raj-4', 'acc-raj-2', 'META', 'Meta Platforms Inc.', 18, 520.30, 350.00, 'Stocks'),
   ('pos-raj-5', 'acc-raj-2', 'QQQ', 'Invesco QQQ Trust', 50, 495.60, 380.00, 'Stocks'),
-  ('pos-raj-6', 'acc-raj-1', 'BTC', 'Bitcoin', 0.15, 87535.00, 95000.00, 'Crypto'),
+  ('pos-raj-6', 'acc-raj-1', 'BTC', 'Bitcoin', 0.15, 87535.00, 94000.00, 'Crypto'),
   ('pos-raj-7', 'acc-raj-1', 'ETH', 'Ethereum', 8.5, 2450.00, 3200.00, 'Crypto'),
-  ('pos-raj-8', 'acc-raj-1', 'SOL', 'Solana', 120, 145.80, 180.00, 'Crypto'),
+  ('pos-raj-8', 'acc-raj-1', 'SOL', 'Solana', 120, 145.80, 177.92, 'Crypto'),
   ('pos-raj-9', 'acc-raj-2', 'NFLX', 'Netflix Inc.', 12, 685.40, 520.00, 'Stocks'),
   ('pos-raj-10', 'acc-raj-2', 'AMZN', 'Amazon.com Inc.', 22, 192.50, 155.00, 'Stocks')
 ON CONFLICT (id) DO NOTHING;
@@ -471,7 +475,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
   ('txn-raj-1', 'acc-raj-1', 'buy', 'SOL', 50, 175.00, 8750.00, NOW() - INTERVAL '20 days'),
   ('txn-raj-2', 'acc-raj-2', 'sell', 'TSLA', 10, 260.00, 2600.00, NOW() - INTERVAL '5 days'),
-  ('txn-raj-3', 'acc-raj-2', 'buy', 'NVDA', 15, 240.00, 3600.00, NOW() - INTERVAL '10 days'),
+  ('txn-raj-3', 'acc-raj-2', 'buy', 'NVDA', 15, 130.00, 1950.00, NOW() - INTERVAL '10 days'),
   ('txn-raj-4', 'acc-raj-1', 'buy', 'BTC', 0.05, 92000.00, 4600.00, NOW() - INTERVAL '35 days'),
   ('txn-raj-5', 'acc-raj-2', 'buy', 'AMD', 80, 120.00, 9600.00, NOW() - INTERVAL '90 days'),
   ('txn-raj-6', 'acc-raj-2', 'buy', 'AMZN', 22, 155.00, 3410.00, NOW() - INTERVAL '80 days'),
@@ -485,15 +489,14 @@ INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount,
   ('txn-raj-14', 'acc-raj-1', 'buy', 'SOL', 70, 180.00, 12600.00, NOW() - INTERVAL '110 days')
 ON CONFLICT (id) DO NOTHING;
 
--- Khalid: Conservative — Holdings-weighted compound return model
--- Actual allocation from positions+cash: Stocks 2.4%, Bonds 13.8%, Commodities 2.8%, Cash 81.0%
--- Conservative: massive cash buffer → very low volatility
+-- Khalid: Conservative — Normalized bounded walk for stable portfolio
+-- Start ~$638,000, end ~$650,000. Amplitude ±$2,500. Very low volatility.
 INSERT INTO performance_history (user_id, value, recorded_date)
 WITH days AS (
   SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
   FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ),
-returns AS (
+raw_walk AS (
   SELECT dt, n,
     SUM(
       0.024 * 0.012 * ((hashtext('KHA_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
@@ -501,40 +504,49 @@ returns AS (
       + 0.028 * 0.010 * ((hashtext('KHA_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
     ) OVER (ORDER BY dt) as cum_r
   FROM days
+),
+normalized AS (
+  SELECT dt, n, cum_r,
+    cum_r / GREATEST(MAX(ABS(cum_r)) OVER (), 0.0001) as norm_r
+  FROM raw_walk
 )
 SELECT 'user-khalid',
-  638000 + n * 32.88 + 650000 * cum_r
+  638000 + n * 32.88 + 2500 * norm_r
     - CASE WHEN n BETWEEN 160 AND 170 THEN 900 ELSE 0 END,
   dt
-FROM returns
+FROM normalized
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 650000.00 WHERE user_id = 'user-khalid' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 651230.50 WHERE user_id = 'user-khalid' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
--- Raj: Aggressive — Holdings-weighted compound return model
--- Actual allocation from positions+cash: Stocks 39.7%, Crypto 28.4%, Cash 31.9%
--- Aggressive: heavy stocks + crypto → high volatility with drawdowns
+-- Raj: Aggressive — Normalized bounded walk with high amplitude
+-- Start ~$155,000, end ~$181,327. Amplitude ±$12,000. Multiple drawdown events.
 INSERT INTO performance_history (user_id, value, recorded_date)
 WITH days AS (
   SELECT d::date as dt, ROW_NUMBER() OVER (ORDER BY d) as n
   FROM generate_series(CURRENT_DATE - INTERVAL '365 days', CURRENT_DATE, '1 day') AS d
 ),
-returns AS (
+raw_walk AS (
   SELECT dt, n,
     SUM(
       0.397 * 0.015 * ((hashtext('RAJ_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
       + 0.284 * 0.035 * ((hashtext('RAJ_C' || n::text) % 20001 - 10000)::numeric / 10000.0)
     ) OVER (ORDER BY dt) as cum_r
   FROM days
+),
+normalized AS (
+  SELECT dt, n, cum_r,
+    cum_r / GREATEST(MAX(ABS(cum_r)) OVER (), 0.0001) as norm_r
+  FROM raw_walk
 )
 SELECT 'user-raj',
-  155000 + n * 71.86 + 181327 * cum_r
+  155000 + n * 71.86 + 12000 * norm_r
     - CASE WHEN n BETWEEN 80 AND 100 THEN 7500 ELSE 0 END
     - CASE WHEN n BETWEEN 180 AND 210 THEN 9000 ELSE 0 END
     + CASE WHEN n BETWEEN 210 AND 230 THEN 4000 ELSE 0 END
     - CASE WHEN n BETWEEN 300 AND 320 THEN 6000 ELSE 0 END,
   dt
-FROM returns
+FROM normalized
 ON CONFLICT (user_id, recorded_date) DO NOTHING;
 UPDATE performance_history SET value = 181327.25 WHERE user_id = 'user-raj' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history SET value = 184591.14 WHERE user_id = 'user-raj' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
