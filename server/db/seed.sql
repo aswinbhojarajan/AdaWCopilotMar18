@@ -84,6 +84,8 @@ ON CONFLICT (id) DO NOTHING;
 -- Clean up existing alerts and content for consistency updates
 DELETE FROM alerts WHERE user_id = 'user-abdullah';
 DELETE FROM content_items WHERE id IN ('ci-1', 'ci-2', 'ci-3');
+DELETE FROM semantic_facts WHERE source_thread_id IN (SELECT id FROM chat_threads WHERE user_id = 'user-abdullah');
+DELETE FROM episodic_memories WHERE thread_id IN (SELECT id FROM chat_threads WHERE user_id = 'user-abdullah');
 DELETE FROM chat_messages WHERE thread_id IN (SELECT id FROM chat_threads WHERE user_id = 'user-abdullah');
 DELETE FROM chat_threads WHERE user_id = 'user-abdullah';
 
