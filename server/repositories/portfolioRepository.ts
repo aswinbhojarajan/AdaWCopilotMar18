@@ -59,6 +59,9 @@ export async function getHoldingsByUserId(userId: string): Promise<HoldingRespon
 }
 
 export interface EnrichedHolding extends HoldingResponse {
+  current_price: number;
+  cost_basis: number;
+  market_value: number;
   assetClass: string;
   sector?: string;
   geography: string;
@@ -91,6 +94,9 @@ export async function getEnrichedHoldingsByUserId(userId: string): Promise<Enric
       symbol: String(r.symbol),
       name: String(r.name),
       quantity: qty,
+      current_price: price,
+      cost_basis: cost,
+      market_value: Math.round(value * 100) / 100,
       value: Math.round(value * 100) / 100,
       changePercent: Math.round(changePercent * 10) / 10,
       changeAmount: Math.round(changeAmount * 100) / 100,

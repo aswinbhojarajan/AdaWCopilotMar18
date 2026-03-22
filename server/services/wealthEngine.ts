@@ -53,11 +53,18 @@ interface Holding {
 function parseHoldings(toolResult: ToolResult): Holding[] {
   if (toolResult.status !== 'ok' || !toolResult.data) return [];
   const d = toolResult.data as Record<string, unknown>;
-  const holdings = (d.holdings ?? d) as Holding[];
+  const holdings = (d.holdings ?? d) as Array<Record<string, unknown>>;
   if (!Array.isArray(holdings)) return [];
   return holdings.map(h => ({
-    ...h,
-    market_value: h.market_value ?? (Number(h.quantity) * Number(h.current_price)),
+    symbol: String(h.symbol ?? ''),
+    name: String(h.name ?? ''),
+    quantity: Number(h.quantity ?? 0),
+    current_price: Number(h.current_price ?? h.currentPrice ?? 0),
+    cost_basis: Number(h.cost_basis ?? h.costBasis ?? 0),
+    asset_class: String(h.asset_class ?? h.assetClass ?? 'Other'),
+    sector: h.sector ? String(h.sector) : undefined,
+    geography: h.geography ? String(h.geography) : undefined,
+    market_value: Number(h.market_value ?? h.value ?? 0) || (Number(h.quantity ?? 0) * Number(h.current_price ?? h.currentPrice ?? 0)),
   }));
 }
 
@@ -65,8 +72,8 @@ function parseSnapshot(toolResult: ToolResult): { total_value: number; cash_valu
   if (toolResult.status !== 'ok' || !toolResult.data) return { total_value: 0, cash_value: 0 };
   const d = toolResult.data as Record<string, unknown>;
   return {
-    total_value: Number(d.total_value ?? 0),
-    cash_value: Number(d.cash_value ?? 0),
+    total_value: Number(d.total_value ?? d.totalValue ?? 0),
+    cash_value: Number(d.cash_value ?? d.cashValue ?? 0),
   };
 }
 
@@ -76,7 +83,7 @@ export function calculateHealthScore(
   riskLevel: string,
 ): HealthScoreResult {
   const holdings = parseHoldings(holdingsResult);
-  const { total_value, cash_value } = parseSnapshot(snapshotResult);
+  const { total_value, cash_value: explicitCash } = parseSnapshot(snapshotResult);
 
   if (holdings.length === 0 || total_value === 0) {
     return { score: 50, label: 'Needs Setup', components: { diversification: 50, cash_buffer: 50, concentration_risk: 50, risk_alignment: 50, position_count: 50 }, strengths: [], concerns: ['No holdings data available'] };
@@ -84,6 +91,7 @@ export function calculateHealthScore(
 
   const values = holdings.map(h => h.market_value ?? 0);
   const totalInvested = values.reduce((s, v) => s + v, 0);
+  const cash_value = explicitCash > 0 ? explicitCash : Math.max(0, total_value - totalInvested);
 
   const diversificationScore = computeDiversification(holdings, totalInvested);
   const cashBufferScore = computeCashBuffer(cash_value, total_value, riskLevel);
@@ -250,8 +258,9 @@ export function analyzeConcentration(holdingsResult: ToolResult): ConcentrationA
 
 export function computeAllocationBreakdown(holdingsResult: ToolResult, snapshotResult: ToolResult): AllocationBreakdown {
   const holdings = parseHoldings(holdingsResult);
-  const { total_value, cash_value } = parseSnapshot(snapshotResult);
+  const { total_value, cash_value: explicitCash } = parseSnapshot(snapshotResult);
   const investedValue = holdings.reduce((s, h) => s + (h.market_value ?? 0), 0);
+  const cash_value = explicitCash > 0 ? explicitCash : Math.max(0, total_value - investedValue);
 
   const byClass: Record<string, { value: number; pct: number }> = {};
   const byGeo: Record<string, { value: number; pct: number }> = {};
