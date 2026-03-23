@@ -155,7 +155,7 @@ export async function generateJsonCompletion(systemPrompt: string, userPrompt: s
         { role: 'user', content: userPrompt },
       ],
       max_completion_tokens: 512,
-    }, { timeoutMs: 10000, retries: 1 });
+    }, { timeoutMs: 10000, retries: 1, providerAlias: 'ada-fast' });
     return response.choices[0]?.message?.content || '[]';
   } catch (err) {
     console.error('AI JSON generation error:', err);
@@ -188,7 +188,7 @@ export async function* streamChatCompletion(
       tools: TOOLS,
       stream: true,
       max_completion_tokens: 8192,
-    }, { timeoutMs: 15000 });
+    }, { timeoutMs: 15000, providerAlias: 'ada-fast' });
 
     let fullContent = '';
     const toolCalls: { id: string; name: string; arguments: string }[] = [];
@@ -276,7 +276,7 @@ export async function* streamChatCompletion(
         messages: toolResults,
         stream: true,
         max_completion_tokens: 8192,
-      }, { timeoutMs: 15000 });
+      }, { timeoutMs: 15000, providerAlias: 'ada-fast' });
 
       for await (const chunk of followUp) {
         const delta = chunk.choices[0]?.delta;
@@ -301,7 +301,7 @@ export async function* streamChatCompletion(
         model: MODEL,
         messages: suggestMessages,
         max_completion_tokens: 256,
-      }, { timeoutMs: 8000, retries: 1 });
+      }, { timeoutMs: 8000, retries: 1, providerAlias: 'ada-fast' });
 
       const suggestContent = suggestResponse.choices[0]?.message?.content || '';
       const jsonMatch = suggestContent.match(/\[[\s\S]*\]/);

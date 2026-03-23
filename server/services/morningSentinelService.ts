@@ -205,7 +205,7 @@ export async function* generateBriefingStream(userId: string, forceRefresh = fal
       ],
       max_completion_tokens: 2048,
       stream: true,
-    }, { timeoutMs: 15000 });
+    }, { timeoutMs: 15000, providerAlias: 'ada-fast' });
 
     let fullContent = '';
     for await (const chunk of stream) {
@@ -305,7 +305,7 @@ async function generateBriefingInternal(userId: string, cacheKey: string): Promi
         { role: 'user', content: systemPrompt },
       ],
       max_completion_tokens: 2048,
-    }, { timeoutMs: 15000, retries: 2 });
+    }, { timeoutMs: 15000, retries: 2, providerAlias: 'ada-fast' });
 
     const content = response.choices[0]?.message?.content || '';
 
