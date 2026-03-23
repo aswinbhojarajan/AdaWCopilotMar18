@@ -135,7 +135,7 @@ export function routeRequest(
     rationale: isFastPath ? ['Fast-path: simple lookup with pre-fetched data'] : ['Standard query — fast lane'],
     provider_alias: 'ada-fast',
     tool_groups: ['financial_data', 'market_intel', 'ui_actions'],
-    max_tokens: isFastPath ? 1024 : (scorecard.reasoning_effort === 'low' ? 2048 : 4096),
+    max_tokens: scorecard.reasoning_effort === 'low' ? 2048 : 4096,
     temperature: 0.3,
     reasoning_effort: scorecard.reasoning_effort,
     fast_path: isFastPath,

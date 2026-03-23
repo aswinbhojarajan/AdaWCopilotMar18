@@ -12,12 +12,12 @@ const INTENT_CACHE_TTL_MS = 5 * 60 * 1000;
 interface CachedIntent { intent: Intent; confidence: number; ts: number }
 const intentCache = new Map<string, CachedIntent>();
 
-function getMessageHash(message: string): string {
-  return createHash('md5').update(message.toLowerCase().trim()).digest('hex');
+function getMessageHash(message: string, userId: string): string {
+  return createHash('md5').update(`${userId}:${message.toLowerCase().trim()}`).digest('hex');
 }
 
-function getCachedIntent(message: string): { intent: Intent; confidence: number } | null {
-  const hash = getMessageHash(message);
+function getCachedIntent(message: string, userId: string): { intent: Intent; confidence: number } | null {
+  const hash = getMessageHash(message, userId);
   const entry = intentCache.get(hash);
   if (!entry) return null;
   if (Date.now() - entry.ts > INTENT_CACHE_TTL_MS) {
@@ -27,8 +27,8 @@ function getCachedIntent(message: string): { intent: Intent; confidence: number 
   return { intent: entry.intent, confidence: entry.confidence };
 }
 
-function setCachedIntent(message: string, intent: Intent, confidence: number): void {
-  const hash = getMessageHash(message);
+function setCachedIntent(message: string, userId: string, intent: Intent, confidence: number): void {
+  const hash = getMessageHash(message, userId);
   if (intentCache.size >= INTENT_CACHE_MAX) {
     const firstKey = intentCache.keys().next().value;
     if (firstKey) intentCache.delete(firstKey);
@@ -54,8 +54,9 @@ Respond with ONLY a JSON object: {"intent":"<intent>","confidence":<0.0-1.0>}
 Do not include any other text.`;
 }
 
-export async function classifyIntentAsync(message: string): Promise<{ intent: Intent; confidence: number }> {
-  const cached = getCachedIntent(message);
+export async function classifyIntentAsync(message: string, userId?: string): Promise<{ intent: Intent; confidence: number }> {
+  const uid = userId ?? 'anonymous';
+  const cached = getCachedIntent(message, uid);
   if (cached) {
     console.log('[IntentClassifier] Cache hit: intent=%s confidence=%s', cached.intent, cached.confidence);
     return cached;
@@ -75,7 +76,7 @@ export async function classifyIntentAsync(message: string): Promise<{ intent: In
     if (!content) {
       console.log('[IntentClassifier] LLM returned empty content');
       const fallback = classifyIntentFallback(message);
-      setCachedIntent(message, fallback, 0.5);
+      setCachedIntent(message, uid, fallback, 0.5);
       return { intent: fallback, confidence: 0.5 };
     }
 
@@ -83,7 +84,7 @@ export async function classifyIntentAsync(message: string): Promise<{ intent: In
     if (!jsonMatch) {
       console.log('[IntentClassifier] LLM response not JSON:', content.slice(0, 80));
       const fallback = classifyIntentFallback(message);
-      setCachedIntent(message, fallback, 0.5);
+      setCachedIntent(message, uid, fallback, 0.5);
       return { intent: fallback, confidence: 0.5 };
     }
 
@@ -92,18 +93,18 @@ export async function classifyIntentAsync(message: string): Promise<{ intent: In
     const confidence = typeof parsed.confidence === 'number' ? Math.min(1, Math.max(0, parsed.confidence)) : 0.8;
 
     if (VALID_INTENTS.includes(intent)) {
-      setCachedIntent(message, intent, confidence);
+      setCachedIntent(message, uid, intent, confidence);
       return { intent, confidence };
     }
 
     console.log('[IntentClassifier] LLM returned invalid intent:', parsed.intent);
     const fallback = classifyIntentFallback(message);
-    setCachedIntent(message, fallback, 0.5);
+    setCachedIntent(message, uid, fallback, 0.5);
     return { intent: fallback, confidence: 0.5 };
   } catch (err) {
     console.error('[IntentClassifier] LLM classification failed, using fallback:', (err as Error).message);
     const fallback = classifyIntentFallback(message);
-    setCachedIntent(message, fallback, 0.4);
+    setCachedIntent(message, uid, fallback, 0.4);
     return { intent: fallback, confidence: 0.4 };
   }
 }

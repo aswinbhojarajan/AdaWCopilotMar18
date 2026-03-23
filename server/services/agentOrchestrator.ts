@@ -139,8 +139,8 @@ function extractSymbols(message: string): string[] {
   return matches.filter(m => !commonWords.has(m));
 }
 
-async function buildIntentClassification(message: string): Promise<IntentClassification> {
-  const { intent: oldIntent, confidence: llmConfidence } = await intentClassifier.classifyIntentAsync(message);
+async function buildIntentClassification(message: string, userId?: string): Promise<IntentClassification> {
+  const { intent: oldIntent, confidence: llmConfidence } = await intentClassifier.classifyIntentAsync(message, userId);
   const primaryIntent = mapOldIntentToNew(oldIntent, message);
   const effort = inferReasoningEffort(primaryIntent, message);
   const symbols = extractSymbols(message);
@@ -330,7 +330,7 @@ export async function* orchestrateStream(
   });
 
   const intentStart = Date.now();
-  const intent = await buildIntentClassification(sanitizedMessage);
+  const intent = await buildIntentClassification(sanitizedMessage, userId);
   timings.intent_classification_ms = Date.now() - intentStart;
   console.log('[Orchestrator] intent=%s confidence=%s lane=%s ms=%d', intent.primary_intent, intent.confidence, intent.suggested_tools.length > 0 ? 'lane1+' : 'tbd', timings.intent_classification_ms);
 
@@ -498,6 +498,7 @@ export async function* orchestrateStream(
     let currentMessages = [...messages];
     let turnCount = 0;
     let isLastTurn = false;
+    let earlySuggestPromise: ReturnType<typeof generateSuggestedQuestions> | null = null;
 
     while (turnCount < MAX_TOOL_TURNS) {
       turnCount++;
@@ -560,6 +561,9 @@ export async function* orchestrateStream(
         if (delta.content) {
           turnBuffer += delta.content;
           yield { type: 'text', content: delta.content };
+          if (!earlySuggestPromise && turnBuffer.length >= 200) {
+            earlySuggestPromise = generateSuggestedQuestions(conversationHistory, turnBuffer, route.provider_alias);
+          }
         }
 
         if (delta.tool_calls) {
@@ -742,7 +746,7 @@ export async function* orchestrateStream(
       yield { type: 'text', content: disclosureText };
     }
 
-    const suggestPromise = generateSuggestedQuestions(conversationHistory, fullResponse, route.provider_alias);
+    const suggestPromise = earlySuggestPromise ?? generateSuggestedQuestions(conversationHistory, fullResponse, route.provider_alias);
 
     const alreadyHasAdvisorWidget = widgets.some(w => w.type === 'advisor_handoff');
 
