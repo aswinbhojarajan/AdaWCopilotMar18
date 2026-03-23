@@ -76,13 +76,6 @@ export function LiveThinkingBar({ steps, isStreaming, visible }: LiveThinkingBar
   }, [steps.length]);
 
   useEffect(() => {
-    if (!isStreaming && !visible) {
-      setDisplayedCount(0);
-      prevStepsLenRef.current = 0;
-    }
-  }, [isStreaming, visible]);
-
-  useEffect(() => {
     return () => {
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
