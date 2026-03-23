@@ -150,6 +150,12 @@ function classifyIntentFallback(message: string): Intent {
     }
   }
 
+  const GEOPOLITICAL_TERMS = ['war', 'conflict', 'tariff', 'sanctions', 'geopolitical', 'trade war', 'recession', 'crude', 'oil price'];
+  const hasGeopolitical = GEOPOLITICAL_TERMS.some(t => lower.includes(t));
+  if (hasGeopolitical && bestMatch === 'portfolio') {
+    bestMatch = 'market';
+  }
+
   return bestMatch;
 }
 

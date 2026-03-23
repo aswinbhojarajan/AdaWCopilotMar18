@@ -405,6 +405,16 @@ export async function* orchestrateStream(
     }
   }
 
+  for (const result of prefetched.results) {
+    if (result.status !== 'ok' || !result.data) continue;
+    if (result.source_type === 'wealth_engine') continue;
+    if (result.source_type === 'news_api') {
+      enrichmentContext += `\n\nMARKET NEWS (pre-fetched):\n${JSON.stringify(result.data, null, 1)}`;
+    } else if (result.source_type === 'market_api') {
+      enrichmentContext += `\n\nMARKET QUOTES (pre-fetched):\n${JSON.stringify(result.data, null, 1)}`;
+    }
+  }
+
   const systemPrompt = buildAgentPrompt({
     tenantConfig,
     policyDecision,
