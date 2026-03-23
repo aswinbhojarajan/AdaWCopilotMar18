@@ -36,7 +36,10 @@ router.get('/users', asyncHandler(async (_req, res) => {
 router.get('/me', asyncHandler(async (req, res) => {
   const userId = getUserId(req);
   const user = (await userRepo.findUserById(userId)) ?? (await userRepo.getDefaultUser());
-  const tenantConfig = await agentRepo.getTenantConfig('default');
+  const tenantId = await agentRepo.getUserTenantId(userId);
+  const tenantConfig = tenantId
+    ? await agentRepo.getTenantConfig(tenantId)
+    : await agentRepo.getDefaultTenantConfig();
   const verboseModeAvailable = tenantConfig?.feature_flags?.verbose_mode === true;
   res.json({ ...user, capabilities: { verbose_mode: verboseModeAvailable } });
 }));
