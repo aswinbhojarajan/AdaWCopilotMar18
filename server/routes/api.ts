@@ -225,7 +225,8 @@ router.post('/chat/stream', asyncHandler(async (req, res) => {
     for await (const event of stream) {
       res.write(`data: ${JSON.stringify(event)}\n\n`);
       if (event.type === 'thinking') {
-        (res as any).flush?.();
+        const flushable = res as unknown as { flush?: () => void };
+        if (typeof flushable.flush === 'function') flushable.flush();
       }
     }
   } catch (err) {
