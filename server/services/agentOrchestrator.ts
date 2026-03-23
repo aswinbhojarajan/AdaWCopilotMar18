@@ -530,6 +530,9 @@ export async function* orchestrateStream(
   for (const buffered of earlyThinkingBuffer) {
     yield* thinkingEvent(verbose, buffered.step, buffered.detail);
   }
+  if (verbose) {
+    await new Promise(r => setImmediate(r));
+  }
 
   const policyStart = Date.now();
   const riskProfile: RiskProfile | undefined = userProfile?.riskProfile;
@@ -555,6 +558,9 @@ export async function* orchestrateStream(
   console.log('[Orchestrator] route=%s model=%s', route.lane, route.provider_alias);
 
   yield* thinkingEvent(verbose, 'routing', `Lane: ${route.lane}, model: ${route.provider_alias} (${getCapabilitySummary(route.provider_alias)})`);
+  if (verbose) {
+    await new Promise(r => setImmediate(r));
+  }
 
   const registry = getProviderRegistry(tenantConfig.provider_config);
   const riskLevel = riskProfile?.level ?? 'moderate';
@@ -570,6 +576,9 @@ export async function* orchestrateStream(
 
   if (route.lane === 'lane0' && !hasEntityQuery) {
     yield* thinkingEvent(verbose, 'lane0_dispatch', 'Deterministic path — no LLM needed for this query');
+    if (verbose) {
+      await new Promise(r => setImmediate(r));
+    }
     yield* handleLane0(
       userId, intent, registry, riskLevel, scorecard, route,
       threadId, messageId, sanitizedMessage,
@@ -599,6 +608,9 @@ export async function* orchestrateStream(
 
   const prefetchStart = Date.now();
   yield* thinkingEvent(verbose, 'data_prefetch', `Fetching portfolio context, memories, and pre-running ${allowedToolNames.length} tools`);
+  if (verbose) {
+    await new Promise(r => setImmediate(r));
+  }
   const [portfolioContext, episodicMemories, semanticFacts, prefetched] = await Promise.all([
     ragService.buildPortfolioContext(userId, mapIntentForRag(intent.primary_intent)),
     memoryService.getEpisodicMemories(userId),

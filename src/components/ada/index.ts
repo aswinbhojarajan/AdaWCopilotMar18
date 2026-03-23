@@ -32,7 +32,7 @@ export { OnboardingCard } from './OnboardingCard';
 export { ChatMessage } from './ChatMessage';
 export { SuggestedQuestion } from './SuggestedQuestion';
 export { ChatThread } from './ChatThread';
-export { ThinkingPanel } from './ThinkingPanel';
+export { ThinkingPanel, LiveThinkingBar } from './ThinkingPanel';
 
 // Notification Components
 export { NotificationItem } from './NotificationItem';

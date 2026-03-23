@@ -224,6 +224,9 @@ router.post('/chat/stream', asyncHandler(async (req, res) => {
 
     for await (const event of stream) {
       res.write(`data: ${JSON.stringify(event)}\n\n`);
+      if (event.type === 'thinking') {
+        (res as any).flush?.();
+      }
     }
   } catch (err) {
     console.error('[ChatStream] Error during streaming:', (err as Error).message);

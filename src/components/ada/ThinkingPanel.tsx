@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface ThinkingStep {
   step: string;
@@ -9,6 +9,12 @@ interface ThinkingStep {
 interface ThinkingPanelProps {
   steps: ThinkingStep[];
   isStreaming: boolean;
+}
+
+interface LiveThinkingBarProps {
+  steps: ThinkingStep[];
+  isStreaming: boolean;
+  visible: boolean;
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -47,6 +53,86 @@ function buildCompletedSummary(steps: ThinkingStep[]): string {
     return `${parts.join(' → ')} (${steps.length} steps)`;
   }
   return `${steps.length} steps completed`;
+}
+
+export function LiveThinkingBar({ steps, isStreaming, visible }: LiveThinkingBarProps) {
+  const [displayedCount, setDisplayedCount] = useState(0);
+  const prevStepsLenRef = useRef(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    if (steps.length > prevStepsLenRef.current) {
+      const newSteps = steps.length - prevStepsLenRef.current;
+      prevStepsLenRef.current = steps.length;
+      for (let i = 0; i < newSteps; i++) {
+        const targetCount = displayedCount + i + 1;
+        const timer = setTimeout(() => {
+          setDisplayedCount(targetCount);
+        }, i * 120);
+        timersRef.current.push(timer);
+      }
+    }
+  }, [steps.length]);
+
+  useEffect(() => {
+    if (!isStreaming && !visible) {
+      setDisplayedCount(0);
+      prevStepsLenRef.current = 0;
+    }
+  }, [isStreaming, visible]);
+
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+    };
+  }, []);
+
+  if (!visible || steps.length === 0) return null;
+
+  const visibleSteps = steps.slice(0, displayedCount);
+  const latestVisible = visibleSteps[visibleSteps.length - 1];
+
+  return (
+    <div className="w-full px-[16px] py-[6px] bg-[#f7f6f2] border-b border-[#e8e4db] z-[9]">
+      <div className="flex items-center gap-[8px]">
+        <div className={`w-[6px] h-[6px] rounded-full shrink-0 ${isStreaming ? 'bg-amber-400 animate-pulse' : 'bg-green-500'}`} />
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-[6px] overflow-x-auto scrollbar-none">
+            {visibleSteps.map((s, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <span className="text-[9px] text-[#ccc] shrink-0">→</span>}
+                <span
+                  className={`text-[10px] font-['DM_Sans',sans-serif] tracking-[-0.2px] whitespace-nowrap shrink-0 transition-opacity duration-200 ${
+                    i === visibleSteps.length - 1 ? 'text-amber-700 font-medium' : 'text-[#aaa]'
+                  }`}
+                >
+                  {STEP_LABELS[s.step] || s.step}
+                </span>
+              </React.Fragment>
+            ))}
+            {isStreaming && displayedCount >= steps.length && (
+              <span className="flex items-center gap-[2px] ml-[4px]">
+                <span className="w-[3px] h-[3px] bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-[3px] h-[3px] bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '100ms' }} />
+                <span className="w-[3px] h-[3px] bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
+              </span>
+            )}
+          </div>
+        </div>
+        {latestVisible && (
+          <span className="text-[9px] text-[#bbb] font-['DM_Sans',sans-serif] shrink-0 tabular-nums">
+            {displayedCount}/{steps.length}
+          </span>
+        )}
+      </div>
+      {latestVisible && (
+        <p className="font-['DM_Sans:Light',sans-serif] text-[9px] text-[#999] tracking-[-0.2px] mt-[2px] truncate pl-[14px]">
+          {latestVisible.detail}
+        </p>
+      )}
+    </div>
+  );
 }
 
 export function ThinkingPanel({ steps, isStreaming }: ThinkingPanelProps) {

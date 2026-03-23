@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { TopBar, ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon, ThinkingPanel } from '../ada';
+import { TopBar, ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon, ThinkingPanel, LiveThinkingBar } from '../ada';
 import type { Message, ChatContext, ChatWidget } from '../../types';
 import { getStreamHeaders } from '../../hooks/api';
 import { useUser } from '../../contexts/UserContext';
@@ -361,7 +361,17 @@ export function ChatScreen({
         </div>
       </div>
 
-      <div className="absolute top-[88px] left-0 right-0 bottom-[196px] overflow-y-auto">
+      {verbose && (isTyping || thinkingSteps.length > 0) && (
+        <div className="absolute top-[88px] left-0 right-0 z-[9]">
+          <LiveThinkingBar
+            steps={thinkingSteps}
+            isStreaming={isTyping}
+            visible={verbose && thinkingSteps.length > 0}
+          />
+        </div>
+      )}
+
+      <div className={`absolute left-0 right-0 bottom-[196px] overflow-y-auto ${verbose && (isTyping || thinkingSteps.length > 0) && thinkingSteps.length > 0 ? 'top-[128px]' : 'top-[88px]'}`}>
         <div className="content-stretch flex flex-col gap-[5px] items-start px-[6px] py-[12px] w-full pb-[20px]">
           {messages.length > 0 && (
             <>
