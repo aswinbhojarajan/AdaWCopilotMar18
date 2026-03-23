@@ -8,19 +8,24 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 **Date:** March 23, 2026
 
 ### Added
-- **Capability Registry** (`server/services/capabilityRegistry.ts`) — centralized model capability registry mapping provider aliases to capabilities (streaming, tool_calling, json_mode, reasoning, fast_response, vision, long_context), cost tiers, and max context tokens. Provides `getModelCapabilities()`, `hasCapability()`, `bestModelForIntent()`, and `getCapabilitySummary()` for LLM routing decisions
-- **Resilient LLM helpers** (`server/services/openaiClient.ts`) — `resilientCompletion()` with configurable timeout + retry for non-streaming calls, and `resilientStreamCompletion()` with timeout for streaming calls. Both wrap the existing OpenAI client
-- **Verbose/Thinking Mode — Backend** — new `thinking` SSE event type added to `StreamEvent` union with `step` and `detail` fields. `verbose?: boolean` field added to `ChatMessageRequest`. When enabled, the orchestrator yields `thinking` events at 9 pipeline steps: PII scan, intent classification, policy evaluation, routing, lane dispatch/upgrade, model selection, data prefetch, LLM generation, LLM retry/fallback, and guardrails
-- **Verbose/Thinking Mode — Frontend** — `ThinkingPanel` component (`src/components/ada/ThinkingPanel.tsx`) shows collapsible pipeline step timeline with human-readable labels, animated status indicators, and expand/collapse. "Think" toggle button in chat header with localStorage persistence. ChatScreen `useStreamingChat` hook extended with `onThinking` callback and `verbose` flag in request body
+- **Capability Registry** (`server/services/capabilityRegistry.ts`) — unified registry with three layers: (1) model capabilities mapping provider aliases (ada-fast, ada-reason, ada-fallback) to capability sets, cost tiers, and context windows; (2) lane configurations (Lane 0/1/2 → label, description, provider, tools); (3) intent→route mappings (intent → default lane, supported lanes, required/optional tools). `getClassifierContext()` generates condensed routing metadata injected into the classifier prompt
+- **Fallback LLM Provider** — Anthropic Claude (claude-sonnet-4-6) via Replit AI Integrations as automatic fallback when OpenAI primary fails. `openaiClient.ts` exports both OpenAI and Anthropic clients. Adapter functions convert OpenAI message format to Anthropic messages API and responses back to OpenAI format. Fallback chain: ada-fast → ada-fallback, ada-reason → ada-fallback
+- **Resilient LLM helpers** (`server/services/openaiClient.ts`) — `resilientCompletion()` with configurable timeout + retry + Anthropic fallback for non-streaming calls, and `resilientStreamCompletion()` with timeout + Anthropic fallback for streaming calls. Applied to all core LLM call sites: intentClassifier, aiService, morningSentinelService, agentOrchestrator
+- **Verbose/Thinking Mode — Backend** — new `thinking` SSE event type added to `StreamEvent` union with `step` and `detail` fields. `verbose?: boolean` field added to `ChatMessageRequest`. When enabled, the orchestrator yields `thinking` events at 9 pipeline steps: PII scan, intent classification, policy evaluation, routing, lane dispatch/upgrade, model selection, data prefetch, LLM generation, LLM retry/fallback, and guardrails. Early thinking events buffered until tenant config is loaded for proper verbose_mode gating
+- **Verbose/Thinking Mode — Frontend** — `ThinkingPanel` component renders above assistant response during streaming and persists as collapsed summary after completion. "Think" toggle in chat header with localStorage persistence. Tenant-level `verbose_mode` feature flag (default: false)
 
 ### Changed
-- **Agent orchestrator** — integrated capability registry import, added `thinkingEvent()` generator helper for conditional verbose yields, added thinking events at all major pipeline decision points
-- **SSE event handling** — frontend `useStreamingChat` now processes `thinking` event type alongside existing text/widget/simulator/suggested_questions/error/done events
+- **Agent orchestrator** — integrated capability registry, buffered early thinking events until tenant config loaded, passes `providerAlias` to prompt builder
+- **Intent classifier** — prompt dynamically built with `buildClassificationPrompt()` injecting routing context from capability registry
+- **Prompt builder** — new capability context block injecting model info, context window, and reasoning mode from capability registry
+- **Model router** — added `ada-fallback` provider alias, `getFallbackAlias()` function, fallback chain definition
+- **All LLM call sites** — replaced direct `openai.chat.completions.create` with `resilientCompletion`/`resilientStreamCompletion` in intentClassifier, morningSentinelService (streaming + non-streaming), aiService (generation, streaming, follow-up, suggestions)
 
 ### Validated
 - TypeScript compiles clean
 - All existing SSE event types continue to work
 - Thinking mode toggle persists across sessions via localStorage
+- Anthropic fallback activates when OpenAI primary fails retries
 
 ---
 

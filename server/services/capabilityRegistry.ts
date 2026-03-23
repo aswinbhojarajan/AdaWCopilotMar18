@@ -32,6 +32,13 @@ const REGISTRY: Record<string, ModelCapabilities> = {
     maxContextTokens: 128000,
     costTier: 'medium',
   },
+  'ada-fallback': {
+    alias: 'ada-fallback',
+    model: 'claude-sonnet-4-6',
+    capabilities: new Set(['streaming', 'reasoning', 'long_context']),
+    maxContextTokens: 200000,
+    costTier: 'medium',
+  },
 };
 
 export interface LaneConfig {

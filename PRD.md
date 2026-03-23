@@ -327,20 +327,28 @@ User Message → PII Detection → Session Hydration → Intent Classification
    - **Lane 1 (Fast)**: Simple queries using `ada-fast` (→ gpt-5-mini) with lower token budgets
    - **Lane 2 (Reasoning)**: Complex analysis using `ada-reason` (→ gpt-5-mini) with higher token budgets
    
-   Route selection uses a request scorecard (token estimate, tool count, context window, complexity signals). Provider aliases (`ada-fast`, `ada-reason`) map to underlying models. Per-lane token and temperature budgets are configurable. Lane metadata is logged in agent traces.
+   Route selection uses a request scorecard (token estimate, tool count, context window, complexity signals). Provider aliases (`ada-fast`, `ada-reason`, `ada-fallback`) map to underlying models. Per-lane token and temperature budgets are configurable. Lane metadata is logged in agent traces. Fallback chain: ada-fast → ada-fallback, ada-reason → ada-fallback.
 
-5. **RAG Pipeline** (`ragService.ts`): Builds rich portfolio context from PostgreSQL based on the classified intent. Queries holdings, allocations, goals, accounts, and recent transactions to inject into the LLM system prompt.
+5. **Capability Registry** (`capabilityRegistry.ts`): Unified registry mapping:
+   - **Model capabilities**: Provider aliases → model IDs, capability sets (streaming, tool_calling, json_mode, reasoning), context windows, cost tiers
+   - **Lane configurations**: Lane number → label, description, default provider, available tools
+   - **Intent→route mappings**: Intent type → default lane, supported lanes, required/optional tools, description
+   - **Classifier context**: `getClassifierContext()` generates condensed routing metadata injected into the intent classifier prompt so classification is informed by the routing topology
+   - **Fallback provider**: `ada-fallback` → claude-sonnet-4-6 (Anthropic via Replit AI Integrations). When OpenAI primary fails all retries, `resilientCompletion()` and `resilientStreamCompletion()` automatically fall back to Anthropic with format conversion (OpenAI → Anthropic messages API → OpenAI response format)
 
-6. **Prompt Builder** (`promptBuilder.ts`): Assembles modular system prompts from components:
+6. **RAG Pipeline** (`ragService.ts`): Builds rich portfolio context from PostgreSQL based on the classified intent. Queries holdings, allocations, goals, accounts, and recent transactions to inject into the LLM system prompt.
+
+7. **Prompt Builder** (`promptBuilder.ts`): Assembles modular system prompts from components:
    - Persona block (Ada identity, tone, GCC HNW context)
    - Execution boundary block (hard prohibition on trade execution)
    - Advisory mode instructions (education-only vs full advisory)
+   - Capability context block (model capabilities, context window, reasoning mode from capability registry)
    - Portfolio context (from RAG pipeline)
    - Memory context (episodic + semantic)
    - Tool definitions and usage guidelines
    - Disclosure requirements per policy
 
-7. **Memory System** (`memoryService.ts`): Three-tier memory architecture:
+8. **Memory System** (`memoryService.ts`): Three-tier memory architecture:
    - **Working memory**: In-memory conversation turns (per thread, max 20 messages). Provides immediate context.
    - **Episodic memory**: Summarized conversation episodes stored in `episodic_memories` table. Retrieved by relevance to current conversation.
    - **Semantic memory**: Extracted user facts and preferences stored in `semantic_facts` table (e.g., "User plans to retire in 10 years", "User prefers conservative investments"). Persisted via the `extract_user_fact` tool call.

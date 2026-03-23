@@ -2,13 +2,24 @@ import type { IntentClassification, PolicyDecision } from '../../shared/schemas/
 import { getModelCapabilities, hasCapability } from './capabilityRegistry';
 
 export type Lane = 'lane0' | 'lane1' | 'lane2';
-export type ProviderAlias = 'ada-fast' | 'ada-reason';
+export type ProviderAlias = 'ada-fast' | 'ada-reason' | 'ada-fallback';
 export type ToolGroup = 'financial_data' | 'market_intel' | 'ui_actions' | 'crm_actions';
 
 const PROVIDER_MODEL_MAP: Record<ProviderAlias, string> = {
   'ada-fast': 'gpt-5-mini',
   'ada-reason': 'gpt-5-mini',
+  'ada-fallback': 'claude-sonnet-4-6',
 };
+
+const FALLBACK_CHAIN: Record<ProviderAlias, ProviderAlias | null> = {
+  'ada-fast': 'ada-fallback',
+  'ada-reason': 'ada-fallback',
+  'ada-fallback': null,
+};
+
+export function getFallbackAlias(alias: ProviderAlias): ProviderAlias | null {
+  return FALLBACK_CHAIN[alias] ?? null;
+}
 
 export function resolveModel(alias: ProviderAlias): string {
   const caps = getModelCapabilities(alias);

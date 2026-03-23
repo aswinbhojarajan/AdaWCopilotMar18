@@ -373,25 +373,31 @@ export function ChatScreen({
                 <div className="size-full">
                   <div className="content-stretch flex flex-col items-start p-[8px] relative w-full">
                     <div className="content-stretch flex flex-col gap-[8px] items-end relative shrink-0 w-full">
-                      {messages.map((msg, index) => (
-                        <React.Fragment key={msg.id}>
-                          <ChatMessage
-                            message={msg.message}
-                            sender={msg.sender}
-                            simulator={msg.simulator}
-                            widgets={msg.widgets}
-                            isStreaming={msg.isStreaming}
-                            contextPrefix={
-                              index === 0 && msg.sender === 'user' && chatContext
-                                ? chatContext.title
-                                : undefined
-                            }
-                          />
-                        </React.Fragment>
-                      ))}
+                      {messages.map((msg, index) => {
+                        const isLastUserBeforeStream = isTyping && msg.sender === 'user' && index === messages.length - 1;
+                        return (
+                          <React.Fragment key={msg.id}>
+                            <ChatMessage
+                              message={msg.message}
+                              sender={msg.sender}
+                              simulator={msg.simulator}
+                              widgets={msg.widgets}
+                              isStreaming={msg.isStreaming}
+                              contextPrefix={
+                                index === 0 && msg.sender === 'user' && chatContext
+                                  ? chatContext.title
+                                  : undefined
+                              }
+                            />
+                            {isLastUserBeforeStream && verbose && thinkingSteps.length > 0 && (
+                              <ThinkingPanel steps={thinkingSteps} isStreaming={isTyping} />
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
 
-                      {verbose && thinkingSteps.length > 0 && (
-                        <ThinkingPanel steps={thinkingSteps} isStreaming={isTyping} />
+                      {!isTyping && verbose && thinkingSteps.length > 0 && (
+                        <ThinkingPanel steps={thinkingSteps} isStreaming={false} />
                       )}
 
                       {isTyping && messages[messages.length - 1]?.sender !== 'assistant' && (
