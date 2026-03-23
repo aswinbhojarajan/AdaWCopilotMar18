@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import type { Intent } from './intentClassifier';
 import type { PortfolioContext } from './ragService';
-import { openai } from './openaiClient';
+import { openai, resilientCompletion, resilientStreamCompletion } from './openaiClient';
 import { resolveModel } from './modelRouter';
 
 const MODEL = resolveModel('ada-fast');
@@ -148,14 +148,14 @@ const TOOLS: OpenAI.ChatCompletionTool[] = [
 
 export async function generateJsonCompletion(systemPrompt: string, userPrompt: string): Promise<string> {
   try {
-    const response = await openai.chat.completions.create({
+    const response = await resilientCompletion({
       model: MODEL,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       max_completion_tokens: 512,
-    });
+    }, { timeoutMs: 10000, retries: 1 });
     return response.choices[0]?.message?.content || '[]';
   } catch (err) {
     console.error('AI JSON generation error:', err);
@@ -182,13 +182,13 @@ export async function* streamChatCompletion(
   ];
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await resilientStreamCompletion({
       model: MODEL,
       messages,
       tools: TOOLS,
       stream: true,
       max_completion_tokens: 8192,
-    });
+    }, { timeoutMs: 15000 });
 
     let fullContent = '';
     const toolCalls: { id: string; name: string; arguments: string }[] = [];
@@ -271,12 +271,12 @@ export async function* streamChatCompletion(
         })),
       ];
 
-      const followUp = await openai.chat.completions.create({
+      const followUp = await resilientStreamCompletion({
         model: MODEL,
         messages: toolResults,
         stream: true,
         max_completion_tokens: 8192,
-      });
+      }, { timeoutMs: 15000 });
 
       for await (const chunk of followUp) {
         const delta = chunk.choices[0]?.delta;
@@ -297,11 +297,11 @@ export async function* streamChatCompletion(
     ];
 
     try {
-      const suggestResponse = await openai.chat.completions.create({
+      const suggestResponse = await resilientCompletion({
         model: MODEL,
         messages: suggestMessages,
         max_completion_tokens: 256,
-      });
+      }, { timeoutMs: 8000, retries: 1 });
 
       const suggestContent = suggestResponse.choices[0]?.message?.content || '';
       const jsonMatch = suggestContent.match(/\[[\s\S]*\]/);

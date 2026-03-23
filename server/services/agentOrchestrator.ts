@@ -486,12 +486,13 @@ export async function* orchestrateStream(
   const timings: StepTimings = {};
   const threadId = req.threadId ?? `thread-${Date.now()}`;
   const messageId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  const verbose = req.verbose === true;
+  let verbose = req.verbose === true;
 
   const piiResult = piiDetector.scanForPii(req.message);
   const sanitizedMessage = piiResult.hasPii ? piiResult.sanitized : req.message;
 
-  yield* thinkingEvent(verbose, 'pii_scan', piiResult.hasPii ? 'PII detected and redacted' : 'No PII detected');
+  const earlyThinkingBuffer: Array<{ step: string; detail: string }> = [];
+  earlyThinkingBuffer.push({ step: 'pii_scan', detail: piiResult.hasPii ? 'PII detected and redacted' : 'No PII detected' });
 
   await memoryService.logAudit({
     userId,
@@ -506,7 +507,7 @@ export async function* orchestrateStream(
   timings.intent_classification_ms = Date.now() - intentStart;
   console.log('[Orchestrator] intent=%s confidence=%s lane=%s ms=%d', intent.primary_intent, intent.confidence, intent.suggested_tools.length > 0 ? 'lane1+' : 'tbd', timings.intent_classification_ms);
 
-  yield* thinkingEvent(verbose, 'intent_classification', `Intent: ${intent.primary_intent} (confidence: ${(intent.confidence * 100).toFixed(0)}%, effort: ${intent.reasoning_effort})`);
+  earlyThinkingBuffer.push({ step: 'intent_classification', detail: `Intent: ${intent.primary_intent} (confidence: ${(intent.confidence * 100).toFixed(0)}%, effort: ${intent.reasoning_effort})` });
 
   const sessionStart = Date.now();
   const [tenantIdResult, userProfileResult] = await Promise.all([
@@ -521,6 +522,14 @@ export async function* orchestrateStream(
     : await agentRepo.getDefaultTenantConfig();
 
   timings.session_hydrate_ms = Date.now() - sessionStart;
+
+  if (verbose && tenantConfig.feature_flags.verbose_mode === false) {
+    verbose = false;
+  }
+
+  for (const buffered of earlyThinkingBuffer) {
+    yield* thinkingEvent(verbose, buffered.step, buffered.detail);
+  }
 
   const policyStart = Date.now();
   const riskProfile: RiskProfile | undefined = userProfile?.riskProfile;
@@ -632,6 +641,7 @@ export async function* orchestrateStream(
       sourceScreen: req.context.sourceScreen,
     } : undefined,
     toolNames: allowedToolNames,
+    providerAlias: route.provider_alias,
   });
 
   const conversationHistory = memoryService.getWorkingMemory(threadId);

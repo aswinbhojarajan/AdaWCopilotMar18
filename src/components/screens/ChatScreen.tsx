@@ -390,7 +390,7 @@ export function ChatScreen({
                         </React.Fragment>
                       ))}
 
-                      {verbose && thinkingSteps.length > 0 && isTyping && (
+                      {verbose && thinkingSteps.length > 0 && (
                         <ThinkingPanel steps={thinkingSteps} isStreaming={isTyping} />
                       )}
 

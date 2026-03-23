@@ -1,5 +1,6 @@
 import type { TenantConfig, PolicyDecision, IntentClassification } from '../../shared/schemas/agent';
 import type { RiskProfile } from '../../shared/types';
+import { getModelCapabilities } from './capabilityRegistry';
 
 interface PromptContext {
   tenantConfig: TenantConfig;
@@ -12,6 +13,7 @@ interface PromptContext {
   semanticFacts?: string[];
   chatContext?: { category: string; title: string; sourceScreen?: string };
   toolNames?: string[];
+  providerAlias?: string;
 }
 
 export function buildAgentPrompt(ctx: PromptContext): string {
@@ -20,6 +22,7 @@ export function buildAgentPrompt(ctx: PromptContext): string {
   blocks.push(buildIdentityBlock(ctx.tenantConfig));
   blocks.push(buildTenantBehaviorBlock(ctx.tenantConfig));
   blocks.push(buildPolicyBlock(ctx.policyDecision));
+  blocks.push(buildCapabilityBlock(ctx.providerAlias, ctx.intent));
   blocks.push(buildToolRulesBlock(ctx.toolNames ?? []));
   blocks.push(buildExecutionBoundaryBlock());
   blocks.push(buildGroundingRules());
@@ -91,6 +94,27 @@ POLICY CONSTRAINTS:
   }
 
   return block;
+}
+
+function buildCapabilityBlock(providerAlias: string | undefined, _intent: IntentClassification): string {
+  const alias = providerAlias ?? 'ada-fast';
+  const caps = getModelCapabilities(alias);
+  if (!caps) return '';
+
+  const lines = [
+    `\nMODEL CAPABILITIES:`,
+    `• Provider: ${alias} (${caps.model})`,
+    `• Context window: ${caps.maxContextTokens.toLocaleString()} tokens`,
+    `• Supports streaming: ${caps.capabilities.has('streaming') ? 'yes' : 'no'}`,
+    `• Supports tool calls: ${caps.capabilities.has('tool_calling') ? 'yes' : 'no'}`,
+    `• Supports JSON mode: ${caps.capabilities.has('json_mode') ? 'yes' : 'no'}`,
+  ];
+
+  if (caps.capabilities.has('reasoning')) {
+    lines.push(`• Reasoning mode: enabled — use step-by-step analysis`);
+  }
+
+  return lines.join('\n');
 }
 
 function buildToolRulesBlock(toolNames: string[]): string {

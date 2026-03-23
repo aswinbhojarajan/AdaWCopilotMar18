@@ -1,4 +1,4 @@
-import { openai } from './openaiClient';
+import { resilientCompletion } from './openaiClient';
 import { resolveModel } from './modelRouter';
 
 export type Intent = 'portfolio' | 'goals' | 'market' | 'scenario' | 'recommendation' | 'execution_request' | 'general';
@@ -20,22 +20,14 @@ Do not include any other text.`;
 
 export async function classifyIntentAsync(message: string): Promise<{ intent: Intent; confidence: number }> {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
-
-    let response;
-    try {
-      response = await openai.chat.completions.create({
-        model: resolveModel('ada-fast'),
-        messages: [
-          { role: 'system', content: CLASSIFICATION_PROMPT },
-          { role: 'user', content: message },
-        ],
-        max_completion_tokens: 100,
-      }, { signal: controller.signal });
-    } finally {
-      clearTimeout(timeout);
-    }
+    const response = await resilientCompletion({
+      model: resolveModel('ada-fast'),
+      messages: [
+        { role: 'system', content: CLASSIFICATION_PROMPT },
+        { role: 'user', content: message },
+      ],
+      max_completion_tokens: 100,
+    }, { timeoutMs: 3000, retries: 1 });
 
     const content = response.choices[0]?.message?.content?.trim();
     if (!content) {

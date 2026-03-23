@@ -1,5 +1,6 @@
 import pool from '../db/pool';
-import { openai, MODEL } from './aiService';
+import { MODEL } from './aiService';
+import { resilientCompletion, resilientStreamCompletion } from './openaiClient';
 import type { MorningSentinelResponse, MorningSentinelRisk } from '../../shared/types';
 
 interface PortfolioMetrics {
@@ -196,7 +197,7 @@ export async function* generateBriefingStream(userId: string, forceRefresh = fal
   yield { type: 'metrics', data: baseFields };
 
   try {
-    const stream = await openai.chat.completions.create({
+    const stream = await resilientStreamCompletion({
       model: MODEL,
       messages: [
         { role: 'system', content: 'You are a JSON API. You always respond with valid JSON only, no markdown or explanation.' },
@@ -204,7 +205,7 @@ export async function* generateBriefingStream(userId: string, forceRefresh = fal
       ],
       max_completion_tokens: 2048,
       stream: true,
-    });
+    }, { timeoutMs: 15000 });
 
     let fullContent = '';
     for await (const chunk of stream) {
@@ -297,14 +298,14 @@ async function generateBriefingInternal(userId: string, cacheKey: string): Promi
   const systemPrompt = buildSentinelPrompt(metrics, anomalies);
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await resilientCompletion({
       model: MODEL,
       messages: [
         { role: 'system', content: 'You are a JSON API. You always respond with valid JSON only, no markdown or explanation.' },
         { role: 'user', content: systemPrompt },
       ],
       max_completion_tokens: 2048,
-    });
+    }, { timeoutMs: 15000, retries: 2 });
 
     const content = response.choices[0]?.message?.content || '';
 
