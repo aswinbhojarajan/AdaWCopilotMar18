@@ -22,9 +22,9 @@ function AllocationChart() {
           const pct = total > 0 ? ((Number(a.amount || a.value || 0) / total) * 100) : 0;
           return (
             <div key={i}>
-              <div className="flex justify-between items-center mb-[4px]">
-                <span className="text-[12px] text-[#555555]">{a.label}</span>
-                <span className="text-[12px] text-[#1A1A1A] font-medium tabular-nums">{pct.toFixed(1)}%</span>
+              <div className="flex justify-between items-center mb-[4px] gap-[8px]">
+                <span className="text-[12px] text-[#555555] flex-1 min-w-0 truncate">{a.label}</span>
+                <span className="text-[12px] text-[#1A1A1A] font-medium tabular-nums shrink-0">{pct.toFixed(1)}%</span>
               </div>
               <div className="h-[4px] bg-[#F0F0F0] rounded-full overflow-hidden">
                 <div

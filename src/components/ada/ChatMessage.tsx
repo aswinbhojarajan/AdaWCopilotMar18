@@ -28,36 +28,53 @@ export function ChatMessage({
 }: ChatMessageProps) {
   const isUser = sender === 'user';
 
-  // Format message to handle line breaks and structure
+  const renderInlineFormatting = (text: string): React.ReactNode => {
+    const parts: React.ReactNode[] = [];
+    let remaining = text;
+    let key = 0;
+
+    while (remaining.length > 0) {
+      const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+      if (boldMatch && boldMatch.index !== undefined) {
+        if (boldMatch.index > 0) {
+          parts.push(<React.Fragment key={key++}>{remaining.substring(0, boldMatch.index)}</React.Fragment>);
+        }
+        parts.push(<strong key={key++} className="font-semibold">{boldMatch[1]}</strong>);
+        remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
+      } else {
+        parts.push(<React.Fragment key={key++}>{remaining}</React.Fragment>);
+        break;
+      }
+    }
+    return parts;
+  };
+
   const formatMessage = (text: string) => {
-    // Split by double line breaks for paragraphs
     const paragraphs = text.split('\n\n');
 
     return paragraphs.map((paragraph, pIndex) => {
-      // Check if this paragraph contains bullet points
       const lines = paragraph.split('\n');
-      const hasBullets = lines.some((line) => line.trim().startsWith('•'));
-      const hasNumberedList = lines.some((line) => /^\d+\./.test(line.trim()));
+      const hasBullets = lines.some((line) => /^\s*[•\-–]\s/.test(line.trim()));
+      const hasNumberedList = lines.some((line) => /^\d+[.)]\s/.test(line.trim()));
 
       if (hasBullets) {
-        // Render as a list with proper spacing
         return (
           <div key={pIndex} className={pIndex > 0 ? 'mt-[12px]' : ''}>
             {lines.map((line, lIndex) => {
-              if (line.trim().startsWith('•')) {
+              const bulletMatch = line.trim().match(/^[•\-–]\s*(.*)/);
+              if (bulletMatch) {
                 return (
                   <div key={lIndex} className="flex gap-[8px] items-start mt-[4px]">
-                    <span className={`${isUser ? 'text-white/70' : 'text-[#555555]'} mt-[2px]`}>
+                    <span className={`${isUser ? 'text-white/70' : 'text-[#555555]'} mt-[2px] shrink-0`}>
                       •
                     </span>
-                    <span className="flex-1">{line.trim().substring(1).trim()}</span>
+                    <span className="flex-1">{renderInlineFormatting(bulletMatch[1])}</span>
                   </div>
                 );
               } else if (line.trim()) {
-                // Section headers or regular text
                 return (
                   <div key={lIndex} className={lIndex > 0 ? 'mt-[8px]' : ''}>
-                    {line}
+                    {renderInlineFormatting(line)}
                   </div>
                 );
               }
@@ -66,25 +83,23 @@ export function ChatMessage({
           </div>
         );
       } else if (hasNumberedList) {
-        // Render as a numbered list with proper spacing
         return (
           <div key={pIndex} className={pIndex > 0 ? 'mt-[12px]' : ''}>
             {lines.map((line, lIndex) => {
-              const numberedMatch = line.trim().match(/^(\d+\.)\s*(.+)/);
+              const numberedMatch = line.trim().match(/^(\d+[.)]\s*)(.*)/);
               if (numberedMatch) {
                 return (
                   <div key={lIndex} className="flex gap-[8px] items-start mt-[4px]">
-                    <span className={`${isUser ? 'text-white/70' : 'text-[#555555]'} mt-[2px]`}>
-                      {numberedMatch[1]}
+                    <span className={`${isUser ? 'text-white/70' : 'text-[#555555]'} mt-[2px] shrink-0`}>
+                      {numberedMatch[1].trim()}
                     </span>
-                    <span className="flex-1">{numberedMatch[2]}</span>
+                    <span className="flex-1">{renderInlineFormatting(numberedMatch[2])}</span>
                   </div>
                 );
               } else if (line.trim()) {
-                // Section headers or regular text
                 return (
                   <div key={lIndex} className={lIndex > 0 ? 'mt-[8px]' : ''}>
-                    {line}
+                    {renderInlineFormatting(line)}
                   </div>
                 );
               }
@@ -93,10 +108,9 @@ export function ChatMessage({
           </div>
         );
       } else {
-        // Regular paragraph
         return (
           <p key={pIndex} className={pIndex > 0 ? 'mt-[12px]' : ''}>
-            {paragraph}
+            {renderInlineFormatting(paragraph)}
           </p>
         );
       }
