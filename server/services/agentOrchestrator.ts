@@ -181,8 +181,10 @@ async function prefetchToolData(
   if (allowedTools.includes('getPortfolioSnapshot')) {
     prefetchJobs.push({ name: 'getPortfolioSnapshot', promise: executeFinancialTool('getPortfolioSnapshot', {}, userId, registry, riskLevel) });
   }
+  let holdingsPromise: Promise<ToolResult> | null = null;
   if (allowedTools.includes('getHoldings') && intent.primary_intent !== 'balance_query' && intent.primary_intent !== 'goal_progress') {
-    prefetchJobs.push({ name: 'getHoldings', promise: executeFinancialTool('getHoldings', {}, userId, registry, riskLevel) });
+    holdingsPromise = executeFinancialTool('getHoldings', {}, userId, registry, riskLevel);
+    prefetchJobs.push({ name: 'getHoldings', promise: holdingsPromise });
   }
 
   if (intent.primary_intent === 'market_news') {
@@ -190,17 +192,17 @@ async function prefetchToolData(
       prefetchJobs.push({ name: 'getHoldingsRelevantNews', promise: executeFinancialTool('getHoldingsRelevantNews', {}, userId, registry, riskLevel) });
     }
     if (allowedTools.includes('getQuotes')) {
-      const holdingsForQuotes = allowedTools.includes('getHoldings')
-        ? executeFinancialTool('getHoldings', {}, userId, registry, riskLevel).then(r => {
+      const symbolSource = holdingsPromise
+        ? holdingsPromise.then(r => {
             if (r.status === 'ok' && Array.isArray(r.data)) {
               return (r.data as Array<{ symbol: string }>).map(h => h.symbol);
             }
             return [];
           })
-        : Promise.resolve([]);
+        : Promise.resolve([] as string[]);
       prefetchJobs.push({
         name: 'getQuotes',
-        promise: holdingsForQuotes.then(holdingSymbols => {
+        promise: symbolSource.then(holdingSymbols => {
           const messageSymbols = intent.entities.symbols;
           const allSymbols = [...new Set([...holdingSymbols, ...messageSymbols])];
           if (allSymbols.length === 0) return { status: 'ok' as const, source_name: 'skip', source_type: 'skip', as_of: new Date().toISOString(), latency_ms: 0, data: null };
