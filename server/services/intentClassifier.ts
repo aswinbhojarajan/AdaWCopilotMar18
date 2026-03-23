@@ -33,7 +33,7 @@ export async function classifyIntentAsync(message: string): Promise<{ intent: In
         { role: 'user', content: message },
       ],
       max_completion_tokens: 100,
-    }, { timeoutMs: 3000, retries: 1 });
+    }, { timeoutMs: 3000, retries: 1, providerAlias: 'ada-fast' });
 
     const content = response.choices[0]?.message?.content?.trim();
     if (!content) {

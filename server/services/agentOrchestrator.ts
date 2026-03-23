@@ -679,7 +679,7 @@ export async function* orchestrateStream(
           tools: useTools ? tools : undefined,
           stream: true,
           max_completion_tokens: modelSelection.max_tokens,
-        }, { timeoutMs });
+        }, { timeoutMs, providerAlias: modelSelection.provider_alias });
       };
 
       let response;
