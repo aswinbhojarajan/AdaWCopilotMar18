@@ -289,8 +289,32 @@ async function* handleLane0(
 
   if (intent.primary_intent === 'goal_progress' && goalsData) {
     const goals = goalsData as Array<{ title?: string; target_amount?: number; current_amount?: number; deadline?: string; icon_name?: string; color?: string }>;
+    const adviceKeywords = ['accelerate', 'improve', 'grow', 'increase', 'boost', 'faster', 'optimize', 'how can i', 'what can i do', 'tips', 'strategy', 'advice', 'save more'];
+    const isAdviceQuery = adviceKeywords.some(k => sanitizedMessage.toLowerCase().includes(k));
+
     if (goals.length === 0) {
       narration = 'You don\'t have any goals set up yet. Would you like to create one?';
+    } else if (isAdviceQuery) {
+      narration = `Here are actionable steps to accelerate your savings based on your current goals:\n`;
+      for (const g of goals) {
+        const target = Number(g.target_amount ?? 0);
+        const current = Number(g.current_amount ?? 0);
+        const remaining = Math.max(0, target - current);
+        const pct = target > 0 ? Math.round((current / target) * 100) : 0;
+        narration += `\n**${g.title}** (${pct}% complete, ${fmtUsd(remaining)} remaining)`;
+        if (g.deadline) {
+          const deadlineDate = new Date(g.deadline);
+          const monthsLeft = Math.max(1, Math.round((deadlineDate.getTime() - Date.now()) / (30.44 * 24 * 60 * 60 * 1000)));
+          const monthlyNeeded = remaining / monthsLeft;
+          narration += `\n- Target monthly contribution: ~${fmtUsd(monthlyNeeded)} over ${monthsLeft} months`;
+        }
+      }
+      narration += `\n\n**Recommended actions:**`;
+      narration += `\n1. **Automate contributions** — set up recurring monthly transfers to a dedicated savings account`;
+      narration += `\n2. **Review your cash allocation** — your portfolio has a high cash position (${((Number((data as Record<string, unknown>)?.cashPercent ?? 66)) ).toFixed(0)}%) that could work harder in short-term bonds or money market funds`;
+      narration += `\n3. **Reduce discretionary spending** — identify 2–3 areas to redirect toward goals`;
+      narration += `\n4. **Consolidate high-interest debt** — free up cash flow for savings`;
+      narration += `\n\nWould you like me to draft a specific savings plan to share with your Relationship Manager for review and execution?`;
     } else {
       narration = `You have **${goals.length} goal${goals.length > 1 ? 's' : ''}** in progress:`;
       for (const g of goals) {
@@ -307,7 +331,9 @@ async function* handleLane0(
         current_amount: g.current_amount, deadline: g.deadline,
       })),
     });
-    suggestions = ['How can I accelerate my savings?', 'What happens if I miss my deadline?', 'Create a new goal'];
+    suggestions = isAdviceQuery
+      ? ['Draft a savings plan for my RM', 'Show my goal progress', 'What if I increase contributions by 20%?']
+      : ['How can I accelerate my savings?', 'What happens if I miss my deadline?', 'Create a new goal'];
 
   } else if (intent.primary_intent === 'allocation_breakdown' && holdingsResult?.status === 'ok') {
     const holdings = holdingsResult.data as Array<{ symbol?: string; name?: string; value?: number; asset_class?: string }> | null;

@@ -21,7 +21,7 @@ Do not include any other text.`;
 export async function classifyIntentAsync(message: string): Promise<{ intent: Intent; confidence: number }> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 600);
 
     const response = await openai.chat.completions.create({
       model: resolveModel('ada-fast'),

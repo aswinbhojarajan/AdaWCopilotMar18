@@ -32,7 +32,7 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
     - `rmHandoffService.ts`: Execution request routing (rm_handoff/api_webhook/disabled)
     - `aiService.ts`: OpenAI client and streaming completions
     - `streamTypes.ts`: StreamEvent type definition for SSE events
-    - `intentClassifier.ts`: LLM-based intent classification with `classifyIntentAsync()` (OpenAI call with 8s AbortController timeout, keyword fallback on timeout/error). Maps to 7 intents: portfolio, goals, market, scenario, recommendation, execution_request, general. Fallback confidence=0.5, error confidence=0.4.
+    - `intentClassifier.ts`: LLM-based intent classification with `classifyIntentAsync()` (OpenAI call with 600ms AbortController timeout, keyword fallback on timeout/error). Maps to 7 intents: portfolio, goals, market, scenario, recommendation, execution_request, general. Fallback confidence=0.5, error confidence=0.4.
     - `ragService.ts`: Portfolio context building from PostgreSQL
     - `memoryService.ts`: Three-tier memory (working/episodic/semantic)
     - `piiDetector.ts`: PII detection and redaction
