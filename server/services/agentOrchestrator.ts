@@ -650,7 +650,29 @@ export async function* orchestrateStream(
         response = await createLLMStream(1);
       } catch {
         console.log('[Orchestrator] LLM attempt 1 timed out, retrying...');
-        response = await createLLMStream(2);
+        try {
+          response = await createLLMStream(2);
+        } catch {
+          if (route.lane === 'lane2') {
+            console.log('[Orchestrator] Lane 2 both attempts failed, downgrading to Lane 1 (ada-fast)...');
+            const fallbackController = new AbortController();
+            const fallbackTimer = setTimeout(() => fallbackController.abort(), 20000);
+            try {
+              response = await openai.chat.completions.create({
+                model: resolveModel('ada-fast'),
+                messages: currentMessages,
+                tools: useTools ? tools : undefined,
+                stream: true,
+                max_completion_tokens: 4096,
+              }, { signal: fallbackController.signal }).finally(() => clearTimeout(fallbackTimer));
+            } catch (fallbackErr) {
+              console.error('[Orchestrator] Lane 1 fallback also failed:', (fallbackErr as Error).message);
+              throw fallbackErr;
+            }
+          } else {
+            throw new Error('Both LLM streaming attempts failed');
+          }
+        }
       }
 
       const toolCalls: { id: string; name: string; arguments: string }[] = [];

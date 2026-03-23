@@ -47,6 +47,7 @@
 | ~~ISS-010~~ | ~~Single-user hardcoded default~~ | Resolved — user switching built via PersonaPicker + X-User-ID header. `DEFAULT_USER_ID` retained as fallback only. See Task #8. | `server/routes/api.ts` | 2026-03-21 |
 | ~~ISS-011~~ | ~~chatService.ts is legacy dead code~~ | Resolved — `chatService.ts` has been deleted from the codebase. | — | 2026-03-21 |
 | ISS-012 | Webhook mode has no retry logic | When `execution_routing_mode` is `api_webhook`, failed webhook POSTs fall back to the queue but there is no retry mechanism, no exponential backoff, and no dead-letter queue. | `server/services/rmHandoffService.ts` | 2026-03-21 |
+| ~~ISS-022~~ | ~~LLM streaming timeout with no lane fallback~~ | Resolved — when both Lane 2 streaming attempts timed out (15s + 20s = 35s total), the system returned a generic error. Added Lane 2 → Lane 1 automatic downgrade on double timeout. See Task #15. | `server/services/agentOrchestrator.ts` | 2026-03-23 |
 
 ### P3 — Low
 
@@ -92,3 +93,4 @@
 | — | NVDA transaction prices incorrect | Corrected $235/$240→$138/$130 (post-split realistic prices) | 2026-03-22 |
 | — | 7 cost_basis mismatches | Reconciled all 24 position cost_basis values with weighted transaction averages | 2026-03-22 |
 | — | Portfolio health field mismatch | Fixed diversificationScore and riskLevel field mappings in portfolioRepository.ts | 2026-03-21 |
+| ISS-022 | LLM streaming timeout with no lane fallback | Added Lane 2 → Lane 1 automatic downgrade when both streaming attempts timeout | 2026-03-23 |

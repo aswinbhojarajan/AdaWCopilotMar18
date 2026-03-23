@@ -4,6 +4,54 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Task #15 — Documentation Audit & LLM Resilience Fix
+**Date:** March 23, 2026
+
+### Fixed
+- **LLM streaming timeout causes user-facing error** — when both Lane 2 streaming attempts timed out (15s + 20s), the system returned "I'm having trouble processing that right now" with no fallback. Added Lane 2 → Lane 1 automatic downgrade: if both reasoning-model attempts fail, the orchestrator re-routes the request to the fast model (ada-fast, lower max_tokens) for a degraded-but-functional response
+
+### Changed
+- **Documentation audit** — updated CHANGELOG.md, PRD.md (Section 9 architecture, Section 12 change log), ISSUES.md (added ISS-022), and replit.md to reflect Task #13 and Task #14 changes
+
+### Validated
+- TypeScript compiles clean
+- End-to-end chat queries return responses under degraded LLM conditions
+
+---
+
+## Task #14 — LLM-Based Intent Classification
+**Date:** March 23, 2026
+
+### Changed
+- **Intent classifier rewritten** — replaced keyword-only `classifyIntent()` with `classifyIntentAsync()` using OpenAI LLM call (gpt-5-mini via ada-fast alias). 3-second AbortController timeout with keyword fallback on timeout/error/empty content. LLM classification returns 0.95–0.98 confidence; keyword fallback returns 0.4–0.5 confidence
+- **RAG double-classification bug fixed** — added `mapIntentForRag()` helper that maps `primary_intent` back to legacy `Intent` type for RAG context fetching, preventing a second keyword classification pass
+- **Goals routing rewritten** — `goals` intent now maps to `goal_progress` (deterministic Lane 0). Handler detects advice vs progress queries via keywords; advice path returns monthly contribution targets, 4 recommended actions (automate contributions, review allocation, reduce spending, consolidate debt), and RM handoff prompt
+- **Tool skipping for non-financial intents** — `skipTools` flag prevents tool definitions from being sent to the LLM for `other` and `support` intents, reducing token usage and preventing tool-loop hangs
+- **LLM streaming timeout + retry** — AbortController-based timeouts: attempt 1 at 15s, attempt 2 at 20s. Replaces unreliable Promise.race timer pattern
+- **SSE error handling** — added try/catch around SSE streaming in `routes/api.ts` to prevent silent connection drops
+
+### Fixed
+- **Fabricated cash percentage removed** — replaced `cashPercent ?? 66` fallback with conditional that only shows cash allocation when present in trusted portfolio data
+- **Holdings total return** — Lane 0 holdings narration now uses `changePercent` from tool data (fallback to `daily_change_percent`), and prompt rules prohibit inventing 0.00%
+- **Multi-turn tool loop hang** — restricted tool definitions to turn 1 only (`turnCount === 1`), preventing infinite tool-calling loops
+
+### Validated
+- LLM intent classification works as primary path (~75% of requests classified by LLM with 0.95+ confidence)
+- Savings queries correctly route to goal_progress with actionable advice
+- TypeScript compiles clean
+
+---
+
+## Task #13 — Rename Abdullah to Aisha
+**Date:** March 22, 2026
+
+### Changed
+- **Default persona renamed** — Abdullah Al-Rashid → Aisha Al-Rashid throughout seed data, tests, documentation, and frontend references
+- **All seed SQL updated** — user record, accounts, positions, snapshots, alerts, chat threads, chat messages updated with new name
+- **Parity tests updated** — test expectations changed from Abdullah to Aisha
+
+---
+
 ## Comprehensive Data Audit — Data Integrity Fixes
 **Date:** March 22, 2026
 

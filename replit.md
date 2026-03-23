@@ -52,6 +52,7 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
     - Phase 2 (Pilot): Finnhub (market) + Frankfurter/CBUAE (FX) live. Set `MARKET_PROVIDER_PRIMARY=finnhub`, `FX_PROVIDER_PRIMARY=frankfurter`, `FX_PROVIDER_SECONDARY=cbuae`.
     - Phase 3 (Production): All 6 providers live with full failover. Add keys for FRED, SEC EDGAR, OpenFIGI, CBUAE.
   - **Tool → Provider Mappings**: `get_market_data` → Finnhub, `get_macro_data` → FRED, `get_filings` → SEC EDGAR, `lookup_instrument` → OpenFIGI, `get_fx_rate` → Frankfurter → CBUAE.
+- **LLM Resilience**: Streaming timeout+retry with AbortController (attempt 1: 15s, attempt 2: 20s). Lane 2 → Lane 1 automatic downgrade when both reasoning-model attempts fail — retries with ada-fast at lower max_tokens (4096) for degraded-but-functional responses. Lane 0 deterministic queries bypass LLM entirely.
 - **Execution Guardrails & RM Handoff**: Ada cannot execute trades or claim execution capability. Enforced at 3 layers: system prompt boundary, guardrail regex (7 patterns + hard post-check), orchestrator fallback. Execution requests routed to RM via `advisor_action_queue` (rm_handoff), webhook (api_webhook), or rejected (disabled). Tenant config controls routing.
 - **Shared Schemas**: `shared/schemas/agent.ts` — Zod schemas for AdaAnswer, ToolResult, PolicyDecision, IntentClassification, TenantConfig.
 

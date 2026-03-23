@@ -301,9 +301,9 @@ User Message → PII Detection → Session Hydration → Intent Classification
 
 1. **PII Detection** (`piiDetector.ts`): Scans user input for sensitive data patterns (email, phone, SSN, credit card, passport, IBAN). Detected PII is flagged in the audit log; messages are still processed but flagged.
 
-2. **Intent Classification** (`intentClassifier.ts`): Two-stage classification — first maps to legacy intents, then maps to the `IntentClassification` schema used by the agent pipeline:
+2. **Intent Classification** (`intentClassifier.ts`): LLM-first classification with keyword fallback. `classifyIntentAsync()` sends the user message to gpt-5-mini (via ada-fast alias) with a 3-second AbortController timeout. The LLM returns a JSON object with `intent` and `confidence` fields. On timeout, error, or empty response, falls back to keyword-based classification. LLM classifications return 0.95–0.98 confidence; keyword fallback returns 0.4–0.5 confidence.
 
-   | Intent | Triggers | Context Fetched |
+   | Intent | Triggers (keyword fallback) | Context Fetched |
    |---|---|---|
    | `portfolio` | Portfolio, holdings, allocation, performance | Holdings, allocations, snapshot |
    | `goals` | Goals, savings, retirement, target | Goals, health scores |
@@ -312,7 +312,7 @@ User Message → PII Detection → Session Hydration → Intent Classification
    | `execution_request` | Execute, place order, buy for me, sell for me, go ahead, confirm trade | Routed to RM handoff |
    | `general` | Everything else | Basic portfolio summary |
 
-   Sub-intents are also classified (e.g., `portfolio` → `portfolio_explain` or `portfolio_health`; `market` → `market_news`) for fine-grained policy and routing decisions.
+   After classification, `mapOldIntentToNew()` maps legacy intents to `IntentClassification.primary_intent` values (e.g., `goals` → `goal_progress`, `portfolio` → `portfolio_explain`/`portfolio_health`). The `mapIntentForRag()` helper maps `primary_intent` back to legacy `Intent` for RAG context fetching, preventing double-classification.
 
 3. **Policy Engine** (`policyEngine.ts`): Code-driven policy evaluation per tenant configuration. Evaluates the classified intent against tenant rules to produce a `PolicyDecision` containing:
    - `advisory_mode`: Whether Ada operates in `education_only` or `full_advisory` mode
@@ -995,6 +995,7 @@ main.tsx (QueryClient + prefetch)
 | **TypeScript Validation** | Built | `tsc --noEmit` passes cleanly, registered as CI validation |
 | **User Switching** | Built | PersonaPicker bottom sheet, X-User-ID header, per-user query isolation, localStorage persistence |
 | **Multi-Model Routing** | Built | Lane-based control plane (Lane 0 deterministic, Lane 1 fast, Lane 2 reasoning) with request scorecards and provider aliases |
+| **LLM Intent Classification** | Built | LLM-first `classifyIntentAsync()` with 3s timeout and keyword fallback. `mapIntentForRag()` prevents double-classification. Lane 2 → Lane 1 fallback on streaming timeout. |
 | **Full Persona Data Parity** | Built | 3 personas with positions, 365-day performance history, goals, alerts, chat threads; server-side computed wealth insights. Cost basis values match weighted transaction averages. Performance history uses bounded normalized formula. |
 | **Authentication** | Not built | No auth layer |
 | **Real Account Linking** | Not built | Mock flow only |
@@ -1041,3 +1042,6 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-22 | Task #12: Reduce to 3 Personas | Removed 5 personas (Fatima, Omar, Layla, Sara, Nadia). Retained Aisha (Moderate), Khalid (Conservative), Raj (Aggressive). Updated UserContext with auto-heal for invalid stored user IDs. Parity tests reduced from 70 to 29. |
 | 2026-03-22 | Data Audit | Comprehensive data integrity fixes: (1) Performance history formula replaced with bounded normalized cumulative walk (amplitude × norm_r); (2) Raj Binance balance $35,200→$52,000 to cover $51,451 crypto positions; (3) NVDA transaction prices corrected $235/$240→$138/$130; (4) All 24 cost_basis values reconciled with weighted transaction averages (7 mismatches fixed). |
 | 2026-03-22 | PRD Update | Updated persona table from 8→3, updated portfolio values and account balances, updated implementation status, added Task #10–#12 and data audit to change log. |
+| 2026-03-22 | Task #13: Rename to Aisha | Renamed default persona from Abdullah Al-Rashid to Aisha Al-Rashid across seed data, tests, and documentation. |
+| 2026-03-23 | Task #14: LLM Intent Classification | Replaced keyword-only intent classifier with LLM-first `classifyIntentAsync()` (3s timeout, keyword fallback). Added `mapIntentForRag()` to fix RAG double-classification. Rewrote goals routing to deterministic Lane 0 with actionable savings advice. Added LLM streaming timeout+retry (15s/20s AbortController). Skip tools for non-financial intents. SSE error handling. Removed fabricated cashPercent fallback. Fixed holdings changePercent. |
+| 2026-03-23 | Task #15: Docs Audit & LLM Resilience | Updated all documentation (CHANGELOG, PRD, ISSUES, replit.md) to reflect Tasks #13–14. Added Lane 2 → Lane 1 fallback when both reasoning-model streaming attempts timeout. Added ISS-022 for LLM timeout resilience. |
