@@ -158,12 +158,24 @@ export function ChatScreen({
   const { streamMessage } = useStreamingChat();
 
   useEffect(() => {
-    fetch('/api/me', { headers: { 'x-user-id': localStorage.getItem('ada-active-user-id') || '' } })
+    const activeUserId = localStorage.getItem('ada-active-user-id') || '';
+    fetch('/api/me', { headers: { 'x-user-id': activeUserId } })
       .then(r => r.json())
       .then(data => {
-        if (data?.capabilities?.verbose_mode) setVerboseModeAvailable(true);
+        setVerboseModeAvailable(data?.capabilities?.verbose_mode === true);
       })
-      .catch(() => {});
+      .catch(() => setVerboseModeAvailable(false));
+
+    const onStorageChange = (e: StorageEvent) => {
+      if (e.key === 'ada-active-user-id' && e.newValue) {
+        fetch('/api/me', { headers: { 'x-user-id': e.newValue } })
+          .then(r => r.json())
+          .then(data => setVerboseModeAvailable(data?.capabilities?.verbose_mode === true))
+          .catch(() => setVerboseModeAvailable(false));
+      }
+    };
+    window.addEventListener('storage', onStorageChange);
+    return () => window.removeEventListener('storage', onStorageChange);
   }, []);
 
   const toggleVerbose = useCallback(() => {
