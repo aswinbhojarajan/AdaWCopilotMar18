@@ -523,7 +523,7 @@ export async function* orchestrateStream(
 
   timings.session_hydrate_ms = Date.now() - sessionStart;
 
-  if (verbose && tenantConfig.feature_flags.verbose_mode === false) {
+  if (verbose && tenantConfig.feature_flags.verbose_mode !== true) {
     verbose = false;
   }
 

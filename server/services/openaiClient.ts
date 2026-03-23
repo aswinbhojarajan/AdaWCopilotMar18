@@ -44,6 +44,19 @@ function extractSystemAndMessages(
   return { system, messages: converted };
 }
 
+function convertToolsForAnthropic(tools: OpenAI.ChatCompletionTool[] | undefined): Array<{ name: string; description: string; input_schema: Anthropic.Messages.Tool.InputSchema }> | undefined {
+  if (!tools) return undefined;
+  return tools
+    .filter((t): t is OpenAI.ChatCompletionTool & { type: 'function'; function: { name: string } } =>
+      t.type === 'function' && 'function' in t
+    )
+    .map(t => ({
+      name: t.function.name,
+      description: t.function.description ?? '',
+      input_schema: (t.function.parameters ?? { type: 'object' as const, properties: {} }) as Anthropic.Messages.Tool.InputSchema,
+    }));
+}
+
 async function anthropicCompletion(
   params: OpenAI.ChatCompletionCreateParamsNonStreaming,
   timeoutMs: number,
@@ -52,12 +65,16 @@ async function anthropicCompletion(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+  const anthropicTools = convertToolsForAnthropic(params.tools);
+
   try {
     const response = await anthropicClient.messages.create({
       model: ANTHROPIC_FALLBACK_MODEL,
       max_tokens: params.max_completion_tokens ?? params.max_tokens ?? 8192,
       system: system,
       messages,
+      ...(params.temperature !== undefined && params.temperature !== null ? { temperature: params.temperature } : {}),
+      ...(anthropicTools && anthropicTools.length > 0 ? { tools: anthropicTools } : {}),
     }, { signal: controller.signal });
 
     const textContent = response.content.find(c => c.type === 'text');
@@ -93,12 +110,16 @@ async function* anthropicStreamCompletion(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+  const anthropicTools = convertToolsForAnthropic(params.tools);
+
   try {
     const stream = anthropicClient.messages.stream({
       model: ANTHROPIC_FALLBACK_MODEL,
       max_tokens: params.max_completion_tokens ?? params.max_tokens ?? 8192,
       system: system,
       messages,
+      ...(params.temperature !== undefined && params.temperature !== null ? { temperature: params.temperature } : {}),
+      ...(anthropicTools && anthropicTools.length > 0 ? { tools: anthropicTools } : {}),
     }, { signal: controller.signal });
 
     let inputTokens = 0;
@@ -222,11 +243,7 @@ export async function resilientStreamCompletion(
     if (isProviderError(err)) {
       console.log('[resilientStreamCompletion] OpenAI failed, trying Anthropic fallback...');
       try {
-        const toolFreeParams = { ...params };
-        delete (toolFreeParams as Record<string, unknown>).tools;
-        delete (toolFreeParams as Record<string, unknown>).tool_choice;
-
-        const fallbackStream = anthropicStreamCompletion(toolFreeParams, timeoutMs);
+        const fallbackStream = anthropicStreamCompletion(params, timeoutMs);
         console.log('[resilientStreamCompletion] Anthropic fallback initiated');
         return fallbackStream;
       } catch (fallbackErr) {

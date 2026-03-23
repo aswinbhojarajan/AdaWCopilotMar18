@@ -26,6 +26,29 @@ const STEP_LABELS: Record<string, string> = {
   lane_upgrade: 'Lane Upgrade',
 };
 
+function buildCompletedSummary(steps: ThinkingStep[]): string {
+  const parts: string[] = [];
+  const intentStep = steps.find(s => s.step === 'intent_classification');
+  if (intentStep) {
+    const match = intentStep.detail.match(/Intent:\s*(\w+)/);
+    if (match) parts.push(match[1]);
+  }
+  const routeStep = steps.find(s => s.step === 'routing');
+  if (routeStep) {
+    const laneMatch = routeStep.detail.match(/Lane:\s*(\w+)/);
+    if (laneMatch) parts.push(`Lane ${laneMatch[1]}`);
+  }
+  const modelStep = steps.find(s => s.step === 'model_selection');
+  if (modelStep) {
+    const modelMatch = modelStep.detail.match(/Model:\s*([^\s(,]+)/);
+    if (modelMatch) parts.push(modelMatch[1]);
+  }
+  if (parts.length > 0) {
+    return `${parts.join(' → ')} (${steps.length} steps)`;
+  }
+  return `${steps.length} steps completed`;
+}
+
 export function ThinkingPanel({ steps, isStreaming }: ThinkingPanelProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -43,7 +66,7 @@ export function ThinkingPanel({ steps, isStreaming }: ThinkingPanelProps) {
         <span className="font-['DM_Sans',sans-serif] text-[11px] text-[#777] tracking-[-0.2px] flex-1 truncate">
           {isStreaming
             ? `Thinking: ${STEP_LABELS[latestStep?.step] || latestStep?.step || '...'}`
-            : `${steps.length} steps completed`
+            : buildCompletedSummary(steps)
           }
         </span>
         <svg
