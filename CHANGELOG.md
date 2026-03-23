@@ -8,10 +8,10 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 **Date:** March 22, 2026
 
 ### Fixed
-- **Performance history curves catastrophically broken** — unbounded cumulative random walk produced unrealistic values (Abdullah min -$32K, Raj min -$895K). Replaced with normalized bounded formula: `amplitude × norm_r` where `norm_r = cum_r / GREATEST(MAX(ABS(cum_r)) OVER (), 0.0001)`. Amplitudes: Abdullah ±$4K ($76K–$93K), Khalid ±$2.5K ($638K–$651K), Raj ±$12K ($150K–$184K)
+- **Performance history curves catastrophically broken** — unbounded cumulative random walk produced unrealistic values (Aisha min -$32K, Raj min -$895K). Replaced with normalized bounded formula: `amplitude × norm_r` where `norm_r = cum_r / GREATEST(MAX(ABS(cum_r)) OVER (), 0.0001)`. Amplitudes: Aisha ±$4K ($76K–$93K), Khalid ±$2.5K ($638K–$651K), Raj ±$12K ($150K–$184K)
 - **Raj Binance balance underflow** — balance was $35,200 but crypto positions totaled $51,451.25. Raised balance to $52,000
 - **NVDA transaction prices incorrect** — recent transactions showed $235/$240 (pre-split prices) causing impossible 42–44% 10-day drops. Corrected to $138/$130 (consistent with $135.40 market price)
-- **7 cost_basis mismatches** — position cost_basis values did not match weighted averages of their transaction prices. Fixed: Abdullah AAPL ($148.50→$150.00), MSFT ($328.20→$325.00), GLD ($186.50→$185.00), AGG ($102.30→$100.00), NVDA ($90.00→$102.67); Khalid AGG ($99.50→$100.00), GLD ($184.50→$185.00); Raj BTC ($42,500→$43,166.67), SOL ($95.20→$97.50), NVDA ($90.00→$103.33)
+- **7 cost_basis mismatches** — position cost_basis values did not match weighted averages of their transaction prices. Fixed: Aisha AAPL ($148.50→$150.00), MSFT ($328.20→$325.00), GLD ($186.50→$185.00), AGG ($102.30→$100.00), NVDA ($90.00→$102.67); Khalid AGG ($99.50→$100.00), GLD ($184.50→$185.00); Raj BTC ($42,500→$43,166.67), SOL ($95.20→$97.50), NVDA ($90.00→$103.33)
 
 ### Validated
 - All 29 parity tests pass
@@ -23,9 +23,9 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 **Date:** March 22, 2026
 
 ### Changed
-- **Persona count reduced from 8 to 3** — retained Abdullah Al-Rashid (Moderate/$93K), Khalid Al-Mansouri (Conservative/$650K), Raj Patel (Aggressive/$181K). Removed Fatima Hassan, Omar Khalil, Layla Mahmoud, Sara Al-Fahad, Nadia Khoury
+- **Persona count reduced from 8 to 3** — retained Aisha Al-Rashid (Moderate/$93K), Khalid Al-Mansouri (Conservative/$650K), Raj Patel (Aggressive/$181K). Removed Fatima Hassan, Omar Khalil, Layla Mahmoud, Sara Al-Fahad, Nadia Khoury
 - **Seed data cleaned** — removed all seed SQL for deleted personas (accounts, positions, snapshots, performance history, goals, alerts, chat threads). TRUNCATE users CASCADE + full reseed procedure
-- **UserContext auto-heal** — if localStorage contains an invalid user ID (from a removed persona), the context automatically resets to `user-abdullah`
+- **UserContext auto-heal** — if localStorage contains an invalid user ID (from a removed persona), the context automatically resets to `user-aisha`
 - **Parity tests updated** — reduced from 70 tests (8 personas) to 29 tests (3 personas)
 - **PersonaPicker** — updated to show 3 personas instead of 8
 
@@ -53,7 +53,7 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ### Fixed
 - **NVDA price corrected** from $250.35 to $135.40 (post-split realistic price); cost_basis updated to $90.00
-- **Portfolio values cascaded** — Abdullah ($93,105.94), Omar ($99,801.00), Raj ($181,327.25) reflect corrected NVDA price through positions, account balances, snapshots, goals, and alerts
+- **Portfolio values cascaded** — Aisha ($93,105.94), Omar ($99,801.00), Raj ($181,327.25) reflect corrected NVDA price through positions, account balances, snapshots, goals, and alerts
 - **Hardcoded sparkline replaced** — `portfolioRepository.ts` `getHomeSparkline()` now queries `performance_history` table for real 7-day data instead of returning hardcoded ~$129K values; falls back to computed synthetic data from snapshot when insufficient history exists
 
 ### Changed
@@ -98,7 +98,7 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 - **`server/routes/api.ts`** — `getUserId(req)` helper extracts user from `X-User-ID` header with fallback to `DEFAULT_USER_ID`
 
 ### Fixed
-- **Wealth tab crash** for non-Abdullah users — missing null checks on portfolio data
+- **Wealth tab crash** for non-default users — missing null checks on portfolio data
 - **Blank Wealth tab** after user switching — query keys not properly scoped to user
 
 ---
@@ -612,7 +612,7 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 - **PostgreSQL database** with 22-table schema (`server/db/schema.sql`)
   - Idempotent schema using `IF NOT EXISTS` / `CREATE OR REPLACE`
   - Comprehensive seed data (`server/db/seed.sql`) using `ON CONFLICT DO NOTHING`
-  - 4 demo personas: Abdullah Al-Rashid (default), Mei Lin Chen, James Worthington III, Priya Sharma
+  - 4 demo personas: Aisha Al-Rashid (default), Mei Lin Chen, James Worthington III, Priya Sharma
 - **Repository layer** (data access):
   - `userRepository.ts` — user profiles + risk profiles
   - `portfolioRepository.ts` — portfolio snapshots, holdings, allocations, goals, accounts, performance history

@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 const API_BASE = 'http://localhost:3001/api';
 
 const PERSONAS = [
-  { id: 'user-abdullah', name: 'Abdullah', riskProfile: 'moderate', expectedMinHoldings: 5, hasGoals: true, minGoals: 2, minAlerts: 3 },
+  { id: 'user-aisha', name: 'Aisha', riskProfile: 'moderate', expectedMinHoldings: 5, hasGoals: true, minGoals: 2, minAlerts: 3 },
   { id: 'user-khalid', name: 'Khalid', riskProfile: 'conservative', expectedMinHoldings: 3, hasGoals: true, minGoals: 1, minAlerts: 3 },
   { id: 'user-raj', name: 'Raj', riskProfile: 'aggressive', expectedMinHoldings: 3, hasGoals: true, minGoals: 1, minAlerts: 3 },
 ];

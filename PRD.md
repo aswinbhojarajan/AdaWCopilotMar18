@@ -54,17 +54,17 @@ High-net-worth individuals (HNWI) and affluent investors in the GCC region who w
 
 ### Demo Personas
 
-Three seeded personas exist in the database with full data parity. **Abdullah Al-Rashid** is the default user and the primary demo persona. Each persona has accounts, positions, a 365-day performance history (bounded, risk-profile-appropriate curves using normalized cumulative random walk), goals, alerts, and chat threads. User switching is supported via the PersonaPicker bottom sheet; all API calls include the selected user's ID via the `X-User-ID` header.
+Three seeded personas exist in the database with full data parity. **Aisha Al-Rashid** is the default user and the primary demo persona. Each persona has accounts, positions, a 365-day performance history (bounded, risk-profile-appropriate curves using normalized cumulative random walk), goals, alerts, and chat threads. User switching is supported via the PersonaPicker bottom sheet; all API calls include the selected user's ID via the `X-User-ID` header.
 
 | ID | Name | Risk Profile | Score | Portfolio Value | Key Traits |
 |---|---|---|---|---|---|
-| `user-abdullah` | Abdullah Al-Rashid | Moderate | 62 | $93,105.94 | Default user. 3 accounts (HSBC $18,966.04, Interactive Brokers $64,656.88, WIO Bank $9,483.02). 7 positions. 2 goals (house deposit, education fund). Cash-heavy allocation (66%) with deploy-to-income advisory scenarios. Performance range: $76K–$93K. |
+| `user-aisha` | Aisha Al-Rashid | Moderate | 62 | $93,105.94 | Default user. 3 accounts (HSBC $18,966.04, Interactive Brokers $64,656.88, WIO Bank $9,483.02). 7 positions. 2 goals (house deposit, education fund). Cash-heavy allocation (66%) with deploy-to-income advisory scenarios. Performance range: $76K–$93K. |
 | `user-khalid` | Khalid Al-Mansouri | Conservative | 28 | $650,000.00 | 3 accounts (Saudi National Bank $285,000, Riyad Bank $142,000, Saxo Bank $223,000). 1 goal (preserve capital). Cash-heavy allocation. Performance range: $638K–$651K. |
 | `user-raj` | Raj Patel | Aggressive | 92 | $181,327.25 | 3 accounts (Binance $52,000, Interactive Brokers $120,827.25, WIO Bank $8,500). 1 goal (early retirement). Performance history includes drawdowns. Negative daily change (-1.80%). Performance range: $150K–$184K. |
 
 All personas share the same advisor: **Sarah Mitchell** (Senior Wealth Advisor, `advisor-sarah`).
 
-Previously 8 personas existed (Abdullah, Fatima, Omar, Layla, Khalid, Sara, Raj, Nadia). Reduced to 3 in Task #12 to improve demo focus and data quality. The removed personas (Fatima Hassan, Omar Khalil, Layla Mahmoud, Sara Al-Fahad, Nadia Khoury) were removed from `seed.sql` and the database was reseeded.
+Previously 8 personas existed (Abdullah, Fatima, Omar, Layla, Khalid, Sara, Raj, Nadia). Reduced to 3 in Task #12 to improve demo focus and data quality. Abdullah was later renamed to Aisha in Task #13. The removed personas (Fatima Hassan, Omar Khalil, Layla Mahmoud, Sara Al-Fahad, Nadia Khoury) were removed from `seed.sql` and the database was reseeded.
 
 ---
 
@@ -478,7 +478,7 @@ One tenant is seeded: `bank_demo_uae` (UAE-based demo bank with moderate advisor
 
 - Lists threads from `GET /api/chat/threads` (database-backed).
 - Each thread shows title, preview text, and relative timestamp.
-- Three seeded threads for Abdullah covering portfolio rebalancing, concentration risk, and hedging.
+- Three seeded threads for Aisha covering portfolio rebalancing, concentration risk, and hedging.
 
 ### PII Handling
 
@@ -786,10 +786,10 @@ Standalone tables:
 | `risk_profiles` | `id` (SERIAL) | user_id (UNIQUE FK), level, score, last_assessed | Conservative/moderate/aggressive |
 | `advisors` | `id` (TEXT) | name, title, availability, email, phone | 1 advisor seeded |
 | `accounts` | `id` (TEXT) | user_id (FK), institution_name, account_type, balance, status | brokerage/savings/checking/retirement |
-| `positions` | `id` (TEXT) | account_id (FK), symbol, name, quantity, current_price, cost_basis, asset_class | 7 positions for Abdullah |
+| `positions` | `id` (TEXT) | account_id (FK), symbol, name, quantity, current_price, cost_basis, asset_class | 7 positions for Aisha |
 | `portfolio_snapshots` | `id` (TEXT) | user_id (FK), total_value, daily_change_amount/percent | Latest snapshot used for overview |
 | `goals` | `id` (TEXT) | user_id (FK), title, target/current_amount, health_status, ai_insight | on-track/needs-attention/at-risk |
-| `alerts` | `id` (TEXT) | user_id (FK), type, title, message, unread, category | 7 alerts for Abdullah |
+| `alerts` | `id` (TEXT) | user_id (FK), type, title, message, unread, category | 7 alerts for Aisha |
 | `content_items` | `id` (TEXT) | category, category_type, title, description, target_screen | Home cards + discover content |
 | `peer_segments` | `id` (SERIAL) | asset_class, user_percent, peer_percent, color | 4 asset class comparisons |
 | `chat_threads` | `id` (TEXT) | user_id (FK), title, preview, created_at, updated_at | 3 seeded threads |
@@ -900,7 +900,7 @@ main.tsx (QueryClient + prefetch)
 2. **Asset allocation is computed** from positions + account balances, not stored directly.
 3. **Chat uses LLM (gpt-5-mini)** with full RAG pipeline, intent routing, three-tier memory, tool-calling, and SSE streaming.
 4. **Morning Sentinel uses LLM** with portfolio anomaly detection, prefetch-on-init, and SSE streaming fallback.
-5. **Default user is hardcoded** to `user-abdullah` in `api.ts`.
+5. **Default user is hardcoded** to `user-aisha` in `api.ts`.
 6. **Poll voting uses database transactions** for atomicity (increment vote_count + insert vote record).
 7. **Performance history** seeded with 366 daily data points using PostgreSQL `generate_series`.
 8. **ESLint ignores `src/imports/`** (Figma-generated code retained for the client environment splash).
@@ -1032,12 +1032,12 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-21 | Agent Task #6: Execution Guardrails & RM Handoff | execution_request intent classification (20+ keywords). 3-layer execution boundary (system prompt, guardrails, orchestrator fallback). rmHandoffService with rm_handoff/api_webhook/disabled routing. route_to_advisor tool. advisor_action_queue table. Enhanced AdvisorHandoffWidget with RM name, action context, queue reference. Tenant config extended with execution_routing_mode, execution_webhook_url, can_prepare_trade_plans. |
 | 2026-03-21 | PRD Update | Updated PRD to reflect agent architecture: 33 tables, 34 endpoints, 17 services, 6 providers, 8 AI tools, execution guardrails, RM handoff, multi-tenant config. |
 | 2026-03-21 | Task #7: Multi-Model Routing | Lane-based control plane with 3 lanes (deterministic/fast/reasoning). Request scorecards for route selection. Provider aliases (ada-fast, ada-reason → gpt-5-mini). Per-lane token/temperature budgets. Lane metadata in agent traces. |
-| 2026-03-21 | Task #8: User Switching | PersonaPicker bottom sheet for switching between 8 personas. X-User-ID header on all API calls. UserContext provider with localStorage persistence. Per-user React Query isolation (userId in all queryKeys + removeQueries on switch). Fixed Wealth tab crash for non-Abdullah users. |
+| 2026-03-21 | Task #8: User Switching | PersonaPicker bottom sheet for switching between 8 personas. X-User-ID header on all API calls. UserContext provider with localStorage persistence. Per-user React Query isolation (userId in all queryKeys + removeQueries on switch). Fixed Wealth tab crash for non-default users. |
 | 2026-03-21 | Task #9: Full Persona Data Parity | All 8 personas seeded with: accounts, positions, portfolio snapshots, 365-day volatile performance history (risk-profile-appropriate curves with drawdowns for aggressive personas), goals, alerts, chat threads. Server-side `computeWealthInsights()` for diversification score, risk level, top allocation. Allocation totals reconcile with snapshots. 70-test suite in `tests/persona-parity.test.ts`. |
 | 2026-03-21 | Bug Fix: Collective Duplicates | Fixed `peer_segments` table producing 400 duplicate rows on restart. Added UNIQUE constraint on `asset_class`. Seed uses DELETE + ON CONFLICT(asset_class) DO NOTHING. |
 | 2026-03-21 | PRD Update | Updated personas from 4 to 8, model router to lane-based, marked user switching/multi-model/persona parity as built, added Tasks #7-#9 and bug fix to changelog. |
 | 2026-03-21 | Task #10: Data Realism | NVDA price corrected ($250→$135.40). Performance history overhauled with deterministic hash-based compound return models. Portfolio values cascaded. Hardcoded sparkline replaced with DB-backed data. |
 | 2026-03-21 | Task #11: Portfolio Health Fix | Fixed `portfolioRepository.ts` field mismatch — `diversificationScore` was mapped to wrong column, `riskLevel` returned incorrect value. |
-| 2026-03-22 | Task #12: Reduce to 3 Personas | Removed 5 personas (Fatima, Omar, Layla, Sara, Nadia). Retained Abdullah (Moderate), Khalid (Conservative), Raj (Aggressive). Updated UserContext with auto-heal for invalid stored user IDs. Parity tests reduced from 70 to 29. |
+| 2026-03-22 | Task #12: Reduce to 3 Personas | Removed 5 personas (Fatima, Omar, Layla, Sara, Nadia). Retained Aisha (Moderate), Khalid (Conservative), Raj (Aggressive). Updated UserContext with auto-heal for invalid stored user IDs. Parity tests reduced from 70 to 29. |
 | 2026-03-22 | Data Audit | Comprehensive data integrity fixes: (1) Performance history formula replaced with bounded normalized cumulative walk (amplitude × norm_r); (2) Raj Binance balance $35,200→$52,000 to cover $51,451 crypto positions; (3) NVDA transaction prices corrected $235/$240→$138/$130; (4) All 24 cost_basis values reconciled with weighted transaction averages (7 mismatches fixed). |
 | 2026-03-22 | PRD Update | Updated persona table from 8→3, updated portfolio values and account balances, updated implementation status, added Task #10–#12 and data audit to change log. |

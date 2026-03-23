@@ -1,4 +1,4 @@
-import{i as p,L as v,l as j,j as e,C as y,u as N,a as C,b,r as f,T as w,S as k,E as M}from"./index-CV0ZdKj5.js";import{C as T}from"./ChatHeader-Cd9V_oDT.js";import{T as o}from"./Tag-0rvzaNQ3.js";import{T as S}from"./trending-up-lZU4KTYx.js";/**
+import{i as p,L as v,l as j,j as e,C as y,u as N,a as C,b,r as f,T as w,S as k,E as M}from"./index-C-IPjtlZ.js";import{C as T}from"./ChatHeader-GDLWKqKf.js";import{T as o}from"./Tag-bTymCbJS.js";import{T as S}from"./trending-up-raUpnXvb.js";/**
  * @license lucide-react v0.487.0 - ISC
  *
  * This source code is licensed under the ISC license.

@@ -31,7 +31,7 @@
 | ID | Title | Description | Component | Date Opened |
 |----|-------|-------------|-----------|-------------|
 | ISS-001 | PII stored in plain text in chat_messages | User messages containing PII (email, phone, SSN, credit card, passport, IBAN) are detected and redacted before sending to the LLM, but the raw original message is persisted to `chat_messages` table. No encryption at rest or retention/purge policy exists. | `server/services/piiDetector.ts`, `chat_messages` table | 2026-03-21 |
-| ISS-002 | No authentication layer | All API endpoints are unauthenticated. User identity is sent via `X-User-ID` header (demo mode) with fallback to `user-abdullah`. Any client can set any user ID. User switching is built but no auth/authorization layer exists. | `server/routes/api.ts` | 2026-03-21 |
+| ISS-002 | No authentication layer | All API endpoints are unauthenticated. User identity is sent via `X-User-ID` header (demo mode) with fallback to `user-aisha`. Any client can set any user ID. User switching is built but no auth/authorization layer exists. | `server/routes/api.ts` | 2026-03-21 |
 | ISS-003 | No rate limiting on API endpoints | Express API has no rate limiting. Vulnerable to brute-force requests, especially on the LLM-backed endpoints (`/api/chat/stream`, `/api/morning-sentinel/stream`) which incur OpenAI API costs. | `server/index.ts`, `server/routes/api.ts` | 2026-03-21 |
 
 ### P2 — Medium

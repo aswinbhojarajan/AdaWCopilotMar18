@@ -69,7 +69,7 @@ The Ada design system uses two primary font families:
 **Example:**
 ```tsx
 <p className="font-['Crimson_Pro:Regular',sans-serif] font-normal leading-[normal] relative shrink-0 text-[#555555] text-[24px] tracking-[-0.48px] w-full">
-  Abdullah, your portfolio is on track today.
+  Aisha, your portfolio is on track today.
 </p>
 ```
 

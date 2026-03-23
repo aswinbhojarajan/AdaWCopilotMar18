@@ -15,7 +15,7 @@ export async function findUserById(id: string): Promise<User | undefined> {
 }
 
 export async function getDefaultUser(): Promise<User> {
-  const user = await findUserById('user-abdullah');
+  const user = await findUserById('user-aisha');
   if (!user) throw new Error('Default user not found');
   return user;
 }

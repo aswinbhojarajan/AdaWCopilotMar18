@@ -57,12 +57,12 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
 
 **Database (PostgreSQL):**
 - 33 tables covering: core app data (users, accounts, portfolios, goals, chat, content), agent architecture (tenants, tenant_configs, instruments, market_quotes, news_items, tool_runs, agent_traces, policy_decisions, conversation_summaries), and execution routing (advisor_action_queue).
-- 3 seeded personas (Abdullah/Moderate/$93K, Khalid/Conservative/$650K, Raj/Aggressive/$181K) with full data parity: each has accounts, positions, snapshots, performance history (365 days), goals, alerts, and chat threads. WealthScreen insights (primary insight, diversification score, risk level, suggestions, advisor) are computed server-side from actual portfolio data.
+- 3 seeded personas (Aisha/Moderate/$93K, Khalid/Conservative/$650K, Raj/Aggressive/$181K) with full data parity: each has accounts, positions, snapshots, performance history (365 days), goals, alerts, and chat threads. WealthScreen insights (primary insight, diversification score, risk level, suggestions, advisor) are computed server-side from actual portfolio data.
 - 40 instruments, market quotes, news items, 1 tenant (bank_demo_uae).
 
 ## Key Configuration
 - **MODEL**: gpt-5-mini via provider aliases (ada-fast → gpt-5-mini, ada-reason → gpt-5-mini)
-- **Default user**: user-abdullah (fallback when no X-User-ID header provided)
+- **Default user**: user-aisha (fallback when no X-User-ID header provided)
 - **User switching**: Frontend sends `X-User-ID` header on all API/stream calls; backend `getUserId(req)` extracts it with fallback to default. `GET /api/users` returns all 3 demo personas. `UserContext` provider persists selection to localStorage, `PersonaPicker` bottom sheet for switching. Data isolation via userId-scoped react-query keys (all hooks include userId in queryKey) + `queryClient.removeQueries()` on switch.
 - **Default tenant**: bank_demo_uae
 - **SSE event types**: text, widget, simulator, suggested_questions, done, error

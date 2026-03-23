@@ -1,7 +1,7 @@
--- Clean up deprecated personas (Fatima, Omar, Layla, Sara, Nadia) from pre-existing databases
+-- Clean up deprecated personas (Fatima, Omar, Layla, Sara, Nadia, Abdullah) from pre-existing databases
 DO $$
 DECLARE
-  deprecated_ids TEXT[] := ARRAY['user-fatima', 'user-omar', 'user-layla', 'user-sara', 'user-nadia'];
+  deprecated_ids TEXT[] := ARRAY['user-fatima', 'user-omar', 'user-layla', 'user-sara', 'user-nadia', 'user-abdullah'];
 BEGIN
   DELETE FROM action_contexts WHERE user_id = ANY(deprecated_ids);
   DELETE FROM chat_audit_log WHERE user_id = ANY(deprecated_ids);
@@ -34,68 +34,68 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Users (3 personas)
 INSERT INTO users (id, first_name, last_name, email, advisor_id) VALUES
-  ('user-abdullah', 'Abdullah', 'Al-Rashid', 'abdullah@example.com', 'advisor-sarah')
+  ('user-aisha', 'Aisha', 'Al-Rashid', 'aisha@example.com', 'advisor-sarah')
 ON CONFLICT (id) DO NOTHING;
 
 -- Risk Profiles
 INSERT INTO risk_profiles (user_id, level, score, last_assessed) VALUES
-  ('user-abdullah', 'moderate', 62, '2025-11-15')
+  ('user-aisha', 'moderate', 62, '2025-11-15')
 ON CONFLICT (user_id) DO NOTHING;
 
--- Accounts (Abdullah)
+-- Accounts (Aisha)
 INSERT INTO accounts (id, user_id, institution_name, logo_color, logo_text, account_type, balance, last_synced, status) VALUES
-  ('acc-abd-1', 'user-abdullah', 'HSBC', '#DB0011', 'HSBC', 'savings', 18966.04, '2 min ago', 'synced'),
-  ('acc-abd-2', 'user-abdullah', 'Interactive Brokers', '#DA1F26', 'IB', 'brokerage', 64656.88, '5 min ago', 'synced'),
-  ('acc-abd-3', 'user-abdullah', 'WIO Bank', '#6C63FF', 'WIO', 'checking', 9483.02, 'Just now', 'synced')
+  ('acc-aisha-1', 'user-aisha', 'HSBC', '#DB0011', 'HSBC', 'savings', 18966.04, '2 min ago', 'synced'),
+  ('acc-aisha-2', 'user-aisha', 'Interactive Brokers', '#DA1F26', 'IB', 'brokerage', 64656.88, '5 min ago', 'synced'),
+  ('acc-aisha-3', 'user-aisha', 'WIO Bank', '#6C63FF', 'WIO', 'checking', 9483.02, 'Just now', 'synced')
 ON CONFLICT (id) DO NOTHING;
 
--- Positions (Abdullah's brokerage)
+-- Positions (Aisha's brokerage)
 INSERT INTO positions (id, account_id, symbol, name, quantity, current_price, cost_basis, asset_class) VALUES
-  ('pos-abd-1', 'acc-abd-2', 'NVDA', 'NVIDIA Corp.', 15, 135.40, 102.67, 'Stocks'),
-  ('pos-abd-2', 'acc-abd-2', 'AAPL', 'Apple Inc.', 12, 208.63, 180.00, 'Stocks'),
-  ('pos-abd-3', 'acc-abd-2', 'BTC', 'Bitcoin', 0.0195, 87535.00, 62000.00, 'Crypto'),
-  ('pos-abd-4', 'acc-abd-2', 'MSFT', 'Microsoft Corp.', 8, 420.50, 391.25, 'Stocks'),
-  ('pos-abd-5', 'acc-abd-2', 'AGG', 'iShares Core Bond ETF', 130, 109.42, 104.12, 'Bonds'),
-  ('pos-abd-6', 'acc-abd-2', 'GLD', 'SPDR Gold Shares', 18, 210.73, 189.17, 'Commodities'),
-  ('pos-abd-7', 'acc-abd-2', 'ETH', 'Ethereum', 1.5, 2450.00, 1800.00, 'Crypto')
+  ('pos-aisha-1', 'acc-aisha-2', 'NVDA', 'NVIDIA Corp.', 15, 135.40, 102.67, 'Stocks'),
+  ('pos-aisha-2', 'acc-aisha-2', 'AAPL', 'Apple Inc.', 12, 208.63, 180.00, 'Stocks'),
+  ('pos-aisha-3', 'acc-aisha-2', 'BTC', 'Bitcoin', 0.0195, 87535.00, 62000.00, 'Crypto'),
+  ('pos-aisha-4', 'acc-aisha-2', 'MSFT', 'Microsoft Corp.', 8, 420.50, 391.25, 'Stocks'),
+  ('pos-aisha-5', 'acc-aisha-2', 'AGG', 'iShares Core Bond ETF', 130, 109.42, 104.12, 'Bonds'),
+  ('pos-aisha-6', 'acc-aisha-2', 'GLD', 'SPDR Gold Shares', 18, 210.73, 189.17, 'Commodities'),
+  ('pos-aisha-7', 'acc-aisha-2', 'ETH', 'Ethereum', 1.5, 2450.00, 1800.00, 'Crypto')
 ON CONFLICT (id) DO NOTHING;
 
--- Portfolio Snapshots (Abdullah)
+-- Portfolio Snapshots (Aisha)
 INSERT INTO portfolio_snapshots (id, user_id, total_value, daily_change_amount, daily_change_percent, recorded_at) VALUES
-  ('snap-abd-1', 'user-abdullah', 93105.94, 744.85, 0.8, NOW())
+  ('snap-aisha-1', 'user-aisha', 93105.94, 744.85, 0.8, NOW())
 ON CONFLICT (id) DO NOTHING;
 
--- Goals (Abdullah)
+-- Goals (Aisha)
 INSERT INTO goals (id, user_id, title, target_amount, current_amount, previous_amount, deadline, icon_name, color, health_status, ai_insight, cta_text) VALUES
-  ('goal-abd-1', 'user-abdullah', 'House deposit', 30000, 18966.04, 20500.00, 'Dec 2026', 'Home', '#a87174', 'needs-attention',
+  ('goal-aisha-1', 'user-aisha', 'House deposit', 30000, 18966.04, 20500.00, 'Dec 2026', 'Home', '#a87174', 'needs-attention',
    'You''re slightly behind pace. Increasing monthly contributions by $919 keeps you on track.', 'Why am I off track?'),
-  ('goal-abd-2', 'user-abdullah', 'Education fund', 100000, 33190.57, 31800.00, 'Sep 2035', 'GraduationCap', '#6d3f42', 'needs-attention',
+  ('goal-aisha-2', 'user-aisha', 'Education fund', 100000, 33190.57, 31800.00, 'Sep 2035', 'GraduationCap', '#6d3f42', 'needs-attention',
    'You''re behind schedule. Consistent contributions now will help you catch up over time.', 'How can I get back on track?')
 ON CONFLICT (id) DO NOTHING;
 
 -- Clean up existing alerts and content for consistency updates
-DELETE FROM alerts WHERE user_id = 'user-abdullah';
+DELETE FROM alerts WHERE user_id = 'user-aisha';
 DELETE FROM content_items WHERE id IN ('ci-1', 'ci-2', 'ci-3');
-DELETE FROM semantic_facts WHERE source_thread_id IN (SELECT id FROM chat_threads WHERE user_id = 'user-abdullah');
-DELETE FROM episodic_memories WHERE thread_id IN (SELECT id FROM chat_threads WHERE user_id = 'user-abdullah');
-DELETE FROM chat_messages WHERE thread_id IN (SELECT id FROM chat_threads WHERE user_id = 'user-abdullah');
-DELETE FROM chat_threads WHERE user_id = 'user-abdullah';
+DELETE FROM semantic_facts WHERE source_thread_id IN (SELECT id FROM chat_threads WHERE user_id = 'user-aisha');
+DELETE FROM episodic_memories WHERE thread_id IN (SELECT id FROM chat_threads WHERE user_id = 'user-aisha');
+DELETE FROM chat_messages WHERE thread_id IN (SELECT id FROM chat_threads WHERE user_id = 'user-aisha');
+DELETE FROM chat_threads WHERE user_id = 'user-aisha';
 
--- Alerts (Abdullah)
+-- Alerts (Aisha)
 INSERT INTO alerts (id, user_id, type, title, message, timestamp, unread, category) VALUES
-  ('alert-abd-1', 'user-abdullah', 'PORTFOLIO_ALERT', 'Cash allocation at 66% of portfolio',
+  ('alert-aisha-1', 'user-aisha', 'PORTFOLIO_ALERT', 'Cash allocation at 66% of portfolio',
    'Your cash holdings now represent 66% of your portfolio. Consider deploying idle cash into income-generating assets.', '12 min ago', TRUE, 'alerts'),
-  ('alert-abd-2', 'user-abdullah', 'ADVISOR_MESSAGE', 'Message from your advisor',
-   'Hi Abdullah, I''ve reviewed your Q4 performance. Let''s schedule a call. —Khalid', '2 hours ago', TRUE, 'updates'),
-  ('alert-abd-3', 'user-abdullah', 'MARKET_UPDATE', 'Federal Reserve signals pause on rate cuts',
+  ('alert-aisha-2', 'user-aisha', 'ADVISOR_MESSAGE', 'Message from your advisor',
+   'Hi Aisha, I''ve reviewed your Q4 performance. Let''s schedule a call. —Khalid', '2 hours ago', TRUE, 'updates'),
+  ('alert-aisha-3', 'user-aisha', 'MARKET_UPDATE', 'Federal Reserve signals pause on rate cuts',
    'The Fed maintained its cautious stance, keeping rates unchanged through Q2 2026.', '6 hours ago', FALSE, 'updates'),
-  ('alert-abd-4', 'user-abdullah', 'DOCUMENT', 'Q4 2025 Portfolio Report ready',
+  ('alert-aisha-4', 'user-aisha', 'DOCUMENT', 'Q4 2025 Portfolio Report ready',
    'Your quarterly performance report is now available. Portfolio value: $93,105.94.', '8 hours ago', FALSE, 'updates'),
-  ('alert-abd-5', 'user-abdullah', 'OPPORTUNITY', 'Emerging market bonds offer 6.8% yields',
+  ('alert-aisha-5', 'user-aisha', 'OPPORTUNITY', 'Emerging market bonds offer 6.8% yields',
    'High-quality sovereign debt in stable economies now offers attractive income.', 'Yesterday', FALSE, 'opportunities'),
-  ('alert-abd-6', 'user-abdullah', 'PORTFOLIO_ALERT', 'Portfolio up $745 today on equity gains',
+  ('alert-aisha-6', 'user-aisha', 'PORTFOLIO_ALERT', 'Portfolio up $745 today on equity gains',
    'Your portfolio gained $744.85 (+0.8%) today, driven by your equity allocation.', 'Yesterday', FALSE, 'alerts'),
-  ('alert-abd-7', 'user-abdullah', 'EVENT', 'Reminder: Estate planning consultation',
+  ('alert-aisha-7', 'user-aisha', 'EVENT', 'Reminder: Estate planning consultation',
    'Your scheduled consultation with our estate planning specialist is tomorrow at 2:00 PM.', '2 days ago', FALSE, 'updates')
 ON CONFLICT (id) DO NOTHING;
 
@@ -179,7 +179,7 @@ INSERT INTO peer_segments (asset_class, user_percent, peer_percent, color) VALUE
   ('Alternatives', 10, 15, '#8b5a5d')
 ON CONFLICT (asset_class) DO NOTHING;
 
--- Performance History (Abdullah - Moderate investor, gradual growth with bounded noise)
+-- Performance History (Aisha - Moderate investor, gradual growth with bounded noise)
 -- Start ~$76,500, end ~$93,106. Amplitude ±$4,000. Normalized cumulative walk ensures bounded values.
 INSERT INTO performance_history (user_id, value, recorded_date)
 WITH days AS (
@@ -189,10 +189,10 @@ WITH days AS (
 raw_walk AS (
   SELECT dt, n,
     SUM(
-      0.085 * 0.012 * ((hashtext('ABD_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.153 * 0.003 * ((hashtext('ABD_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.058 * 0.030 * ((hashtext('ABD_C' || n::text) % 20001 - 10000)::numeric / 10000.0)
-      + 0.041 * 0.010 * ((hashtext('ABD_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      0.085 * 0.012 * ((hashtext('AISHA_S' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.153 * 0.003 * ((hashtext('AISHA_B' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.058 * 0.030 * ((hashtext('AISHA_C' || n::text) % 20001 - 10000)::numeric / 10000.0)
+      + 0.041 * 0.010 * ((hashtext('AISHA_M' || n::text) % 20001 - 10000)::numeric / 10000.0)
     ) OVER (ORDER BY dt) as cum_r
   FROM days
 ),
@@ -201,7 +201,7 @@ normalized AS (
     cum_r / GREATEST(MAX(ABS(cum_r)) OVER (), 0.0001) as norm_r
   FROM raw_walk
 )
-SELECT 'user-abdullah',
+SELECT 'user-aisha',
   76500 + n * 45.37 + 4000 * norm_r
     - CASE WHEN n BETWEEN 95 AND 110 THEN 1800 ELSE 0 END
     - CASE WHEN n BETWEEN 240 AND 255 THEN 1200 ELSE 0 END,
@@ -211,10 +211,10 @@ ON CONFLICT (user_id, recorded_date) DO NOTHING;
 
 UPDATE performance_history
 SET value = 93105.94
-WHERE user_id = 'user-abdullah' AND recorded_date = CURRENT_DATE;
+WHERE user_id = 'user-aisha' AND recorded_date = CURRENT_DATE;
 UPDATE performance_history
 SET value = 92361.09
-WHERE user_id = 'user-abdullah' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
+WHERE user_id = 'user-aisha' AND recorded_date = CURRENT_DATE - INTERVAL '1 day';
 
 -- Poll Questions
 INSERT INTO poll_questions (id, question, created_at) VALUES
@@ -230,45 +230,45 @@ INSERT INTO poll_options (id, poll_id, label, vote_count) VALUES
   ('opt-1-5', 'poll-1', 'Global/Diversified', 14)
 ON CONFLICT (id) DO NOTHING;
 
--- Chat Threads (Abdullah)
+-- Chat Threads (Aisha)
 INSERT INTO chat_threads (id, user_id, title, preview, created_at, updated_at) VALUES
-  ('thread-abd-1', 'user-abdullah', 'Portfolio rebalancing and asset allocation',
+  ('thread-aisha-1', 'user-aisha', 'Portfolio rebalancing and asset allocation',
    'If you want, I can estimate the new risk/return profile for you.', NOW() - INTERVAL '52 minutes', NOW() - INTERVAL '52 minutes'),
-  ('thread-abd-2', 'user-abdullah', 'Portfolio concentration and risk management',
+  ('thread-aisha-2', 'user-aisha', 'Portfolio concentration and risk management',
    'Your cash allocation is 66%, well above the typical 20–30% range for a moderate portfolio.', NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
-  ('thread-abd-3', 'user-abdullah', 'Portfolio diversification and hedging against macroeconomic risks',
+  ('thread-aisha-3', 'user-aisha', 'Portfolio diversification and hedging against macroeconomic risks',
    'Silver jumps above $32/oz amid global debt concerns.', NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days')
 ON CONFLICT (id) DO NOTHING;
 
--- Chat Messages (Abdullah)
+-- Chat Messages (Aisha)
 INSERT INTO chat_messages (id, thread_id, sender, message, created_at) VALUES
-  ('msg-abd-1-1', 'thread-abd-1', 'user', 'I want to review my portfolio rebalancing options.', NOW() - INTERVAL '55 minutes'),
-  ('msg-abd-1-2', 'thread-abd-1', 'assistant', 'Your portfolio currently holds 66% in cash across savings, checking, and uninvested brokerage funds. With equities at only 8% (NVDA, AAPL, MSFT), there is room to deploy capital into growth or income assets. Would you like me to prepare a deployment plan?', NOW() - INTERVAL '54 minutes'),
-  ('msg-abd-1-3', 'thread-abd-1', 'user', 'What about my risk/return profile?', NOW() - INTERVAL '53 minutes'),
-  ('msg-abd-1-4', 'thread-abd-1', 'assistant', 'If you want, I can estimate the new risk/return profile for you.', NOW() - INTERVAL '52 minutes'),
-  ('msg-abd-2-1', 'thread-abd-2', 'user', 'How concentrated is my portfolio?', NOW() - INTERVAL '2 days 1 hour'),
-  ('msg-abd-2-2', 'thread-abd-2', 'assistant', 'Your cash allocation is 66%, well above the typical 20-30% range for a moderate investor. Deploying even 20% of idle cash into a diversified mix of equities and bonds could improve returns. Would you like to explore deployment options?', NOW() - INTERVAL '2 days'),
-  ('msg-abd-3-1', 'thread-abd-3', 'user', 'What hedging options do I have?', NOW() - INTERVAL '3 days 1 hour'),
-  ('msg-abd-3-2', 'thread-abd-3', 'assistant', 'Silver jumps above $32/oz amid global debt concerns. Consider commodities and precious metals as a hedge against macroeconomic uncertainty.', NOW() - INTERVAL '3 days')
+  ('msg-aisha-1-1', 'thread-aisha-1', 'user', 'I want to review my portfolio rebalancing options.', NOW() - INTERVAL '55 minutes'),
+  ('msg-aisha-1-2', 'thread-aisha-1', 'assistant', 'Your portfolio currently holds 66% in cash across savings, checking, and uninvested brokerage funds. With equities at only 8% (NVDA, AAPL, MSFT), there is room to deploy capital into growth or income assets. Would you like me to prepare a deployment plan?', NOW() - INTERVAL '54 minutes'),
+  ('msg-aisha-1-3', 'thread-aisha-1', 'user', 'What about my risk/return profile?', NOW() - INTERVAL '53 minutes'),
+  ('msg-aisha-1-4', 'thread-aisha-1', 'assistant', 'If you want, I can estimate the new risk/return profile for you.', NOW() - INTERVAL '52 minutes'),
+  ('msg-aisha-2-1', 'thread-aisha-2', 'user', 'How concentrated is my portfolio?', NOW() - INTERVAL '2 days 1 hour'),
+  ('msg-aisha-2-2', 'thread-aisha-2', 'assistant', 'Your cash allocation is 66%, well above the typical 20-30% range for a moderate investor. Deploying even 20% of idle cash into a diversified mix of equities and bonds could improve returns. Would you like to explore deployment options?', NOW() - INTERVAL '2 days'),
+  ('msg-aisha-3-1', 'thread-aisha-3', 'user', 'What hedging options do I have?', NOW() - INTERVAL '3 days 1 hour'),
+  ('msg-aisha-3-2', 'thread-aisha-3', 'assistant', 'Silver jumps above $32/oz amid global debt concerns. Consider commodities and precious metals as a hedge against macroeconomic uncertainty.', NOW() - INTERVAL '3 days')
 ON CONFLICT (id) DO NOTHING;
 
--- Transactions (Abdullah)
+-- Transactions (Aisha)
 INSERT INTO transactions (id, account_id, type, symbol, quantity, price, amount, executed_at) VALUES
-  ('txn-abd-1', 'acc-abd-2', 'buy', 'NVDA', 5, 138.00, 690.00, NOW() - INTERVAL '15 days'),
-  ('txn-abd-1b', 'acc-abd-2', 'buy', 'NVDA', 10, 85.00, 850.00, NOW() - INTERVAL '300 days'),
-  ('txn-abd-2', 'acc-abd-2', 'buy', 'AAPL', 4, 200.00, 800.00, NOW() - INTERVAL '30 days'),
-  ('txn-abd-2b', 'acc-abd-2', 'buy', 'AAPL', 8, 170.00, 1360.00, NOW() - INTERVAL '270 days'),
-  ('txn-abd-3', 'acc-abd-2', 'buy', 'MSFT', 3, 410.00, 1230.00, NOW() - INTERVAL '45 days'),
-  ('txn-abd-3b', 'acc-abd-2', 'buy', 'MSFT', 5, 380.00, 1900.00, NOW() - INTERVAL '240 days'),
-  ('txn-abd-4', 'acc-abd-2', 'dividend', 'AAPL', NULL, NULL, 36.00, NOW() - INTERVAL '8 days'),
-  ('txn-abd-5', 'acc-abd-1', 'deposit', NULL, NULL, NULL, 5000.00, NOW() - INTERVAL '20 days'),
-  ('txn-abd-6', 'acc-abd-2', 'buy', 'GLD', 5, 200.00, 1000.00, NOW() - INTERVAL '60 days'),
-  ('txn-abd-6b', 'acc-abd-2', 'buy', 'GLD', 13, 185.00, 2405.00, NOW() - INTERVAL '260 days'),
-  ('txn-abd-7', 'acc-abd-2', 'buy', 'AGG', 30, 107.00, 3210.00, NOW() - INTERVAL '90 days'),
-  ('txn-abd-7b', 'acc-abd-2', 'buy', 'AGG', 50, 104.00, 5200.00, NOW() - INTERVAL '210 days'),
-  ('txn-abd-7c', 'acc-abd-2', 'buy', 'AGG', 50, 102.50, 5125.00, NOW() - INTERVAL '320 days'),
-  ('txn-abd-8', 'acc-abd-2', 'buy', 'BTC', 0.0195, 62000.00, 1209.00, NOW() - INTERVAL '120 days'),
-  ('txn-abd-9', 'acc-abd-2', 'buy', 'ETH', 1.5, 1800.00, 2700.00, NOW() - INTERVAL '100 days')
+  ('txn-aisha-1', 'acc-aisha-2', 'buy', 'NVDA', 5, 138.00, 690.00, NOW() - INTERVAL '15 days'),
+  ('txn-aisha-1b', 'acc-aisha-2', 'buy', 'NVDA', 10, 85.00, 850.00, NOW() - INTERVAL '300 days'),
+  ('txn-aisha-2', 'acc-aisha-2', 'buy', 'AAPL', 4, 200.00, 800.00, NOW() - INTERVAL '30 days'),
+  ('txn-aisha-2b', 'acc-aisha-2', 'buy', 'AAPL', 8, 170.00, 1360.00, NOW() - INTERVAL '270 days'),
+  ('txn-aisha-3', 'acc-aisha-2', 'buy', 'MSFT', 3, 410.00, 1230.00, NOW() - INTERVAL '45 days'),
+  ('txn-aisha-3b', 'acc-aisha-2', 'buy', 'MSFT', 5, 380.00, 1900.00, NOW() - INTERVAL '240 days'),
+  ('txn-aisha-4', 'acc-aisha-2', 'dividend', 'AAPL', NULL, NULL, 36.00, NOW() - INTERVAL '8 days'),
+  ('txn-aisha-5', 'acc-aisha-1', 'deposit', NULL, NULL, NULL, 5000.00, NOW() - INTERVAL '20 days'),
+  ('txn-aisha-6', 'acc-aisha-2', 'buy', 'GLD', 5, 200.00, 1000.00, NOW() - INTERVAL '60 days'),
+  ('txn-aisha-6b', 'acc-aisha-2', 'buy', 'GLD', 13, 185.00, 2405.00, NOW() - INTERVAL '260 days'),
+  ('txn-aisha-7', 'acc-aisha-2', 'buy', 'AGG', 30, 107.00, 3210.00, NOW() - INTERVAL '90 days'),
+  ('txn-aisha-7b', 'acc-aisha-2', 'buy', 'AGG', 50, 104.00, 5200.00, NOW() - INTERVAL '210 days'),
+  ('txn-aisha-7c', 'acc-aisha-2', 'buy', 'AGG', 50, 102.50, 5125.00, NOW() - INTERVAL '320 days'),
+  ('txn-aisha-8', 'acc-aisha-2', 'buy', 'BTC', 0.0195, 62000.00, 1209.00, NOW() - INTERVAL '120 days'),
+  ('txn-aisha-9', 'acc-aisha-2', 'buy', 'ETH', 1.5, 1800.00, 2700.00, NOW() - INTERVAL '100 days')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================

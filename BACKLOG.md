@@ -121,7 +121,7 @@ Scale beyond the demo tenant:
 **Status:** Complete
 **Priority:** Should Have
 
-~~Enable switching between the 8 seeded personas.~~ Implemented with PersonaPicker bottom sheet, X-User-ID header, per-user React Query isolation, localStorage persistence, and full persona data parity (365-day performance history, goals, alerts, chat threads). Persona count later reduced from 8 to 3 (Abdullah/Khalid/Raj) in Task #12 for improved demo focus. See Tasks #8, #9, and #12.
+~~Enable switching between the 8 seeded personas.~~ Implemented with PersonaPicker bottom sheet, X-User-ID header, per-user React Query isolation, localStorage persistence, and full persona data parity (365-day performance history, goals, alerts, chat threads). Persona count later reduced from 8 to 3 (Aisha/Khalid/Raj) in Task #12 for improved demo focus. Abdullah renamed to Aisha in Task #13. See Tasks #8, #9, #12, and #13.
 
 ### BL-010: Webhook Reliability for Execution Routing
 **Status:** Proposed

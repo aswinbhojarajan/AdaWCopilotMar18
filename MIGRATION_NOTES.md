@@ -73,7 +73,7 @@ Hard-coded data moved from screen components to `src/data/`:
 
 ### PostgreSQL Database (T003)
 - 15-table schema: users, risk_profiles, advisors, accounts, positions, transactions, price_history, portfolio_snapshots, goals, alerts, content_items, peer_segments, chat_threads, chat_messages, action_contexts
-- 4 demo personas seeded (Abdullah Al-Rashid as default: `user-abdullah`)
+- 4 demo personas seeded (Aisha Al-Rashid as default: `user-aisha`)
 - Repositories query PostgreSQL via `pg` pool (`server/db/pool.ts`)
 - Schema: `server/db/schema.sql`, Seeds: `server/db/seed.sql`
 

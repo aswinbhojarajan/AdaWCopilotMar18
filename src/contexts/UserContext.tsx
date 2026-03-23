@@ -22,7 +22,7 @@ interface UserContextValue {
 }
 
 const STORAGE_KEY = 'ada-active-user-id';
-const DEFAULT_USER_ID = 'user-abdullah';
+const DEFAULT_USER_ID = 'user-aisha';
 
 const UserContext = createContext<UserContextValue | null>(null);
 

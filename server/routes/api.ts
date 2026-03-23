@@ -13,7 +13,7 @@ import type { ChatMessageRequest, PollVoteRequest, LifeEventType } from '../../s
 
 const router = Router();
 
-const DEFAULT_USER_ID = 'user-abdullah';
+const DEFAULT_USER_ID = 'user-aisha';
 
 function getUserId(req: Request): string {
   const header = req.headers['x-user-id'];

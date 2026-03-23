@@ -16,7 +16,7 @@ export const notificationsData: NotificationItem[] = [
     type: 'ADVISOR_MESSAGE',
     title: 'Message from your advisor',
     message:
-      "Hi Abdullah, I've reviewed your Q4 performance. Let's schedule a call to discuss rebalancing strategies for the new year. \u2014Khalid",
+      "Hi Aisha, I've reviewed your Q4 performance. Let's schedule a call to discuss rebalancing strategies for the new year. \u2014Khalid",
     timestamp: '2 hours ago',
     unread: true,
     category: 'updates',

@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'ada-active-user-id';
-const DEFAULT_USER_ID = 'user-abdullah';
+const DEFAULT_USER_ID = 'user-aisha';
 
 export function getActiveUserId(): string {
   try {

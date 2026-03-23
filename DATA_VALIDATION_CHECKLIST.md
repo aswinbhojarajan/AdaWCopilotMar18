@@ -262,4 +262,4 @@ This runs `tests/persona-parity.test.ts` which validates:
 - Goals exist for personas that should have them
 - Account balances reconcile with snapshot totals
 
-Currently: **29 tests** covering 3 personas (Abdullah, Khalid, Raj).
+Currently: **29 tests** covering 3 personas (Aisha, Khalid, Raj).

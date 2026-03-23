@@ -160,7 +160,7 @@ The Ada design system uses four primary font families:
 #### Headline
 ```tsx
 <p className="font-['Crimson_Pro:Regular',sans-serif] font-normal leading-[normal] text-[#555555] text-[24px] tracking-[-0.48px]">
-  Abdullah, your portfolio is on track today.
+  Aisha, your portfolio is on track today.
 </p>
 ```
 
@@ -385,7 +385,7 @@ Ada uses two distinct card layout patterns for different content types:
 **Purpose**: Displays greeting and contextual information.
 
 **Anatomy**:
-- Greeting text: "Good morning, Abdullah"
+- Greeting text: "Good morning, Aisha"
 - Subtitle: Contextual info
 - Font: Crimson Pro Regular
 - Padding: 24px horizontal, 16px vertical
