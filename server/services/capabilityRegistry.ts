@@ -61,8 +61,8 @@ export interface IntentRouteConfig {
 const LANE_CONFIGS: Record<number, LaneConfig> = {
   0: {
     lane: 0,
-    label: 'Deterministic',
-    description: 'Fast path for entity lookups, balance queries, and structured data retrieval. No LLM generation.',
+    label: 'Fast LLM (Legacy)',
+    description: 'Previously deterministic, now routes to Lane 1 (fast LLM with pre-fetched data). Kept for type compatibility.',
     providerAlias: 'ada-fast',
     tools: ['portfolio_read', 'health_compute'],
   },
@@ -85,11 +85,11 @@ const LANE_CONFIGS: Record<number, LaneConfig> = {
 const INTENT_ROUTE_CONFIGS: Record<IntentClassification['primary_intent'], IntentRouteConfig> = {
   balance_query: {
     intent: 'balance_query',
-    defaultLane: 0,
-    supportedLanes: [0, 1],
+    defaultLane: 1,
+    supportedLanes: [1],
     requiredTools: ['portfolio_read'],
     optionalTools: [],
-    description: 'Direct portfolio value/balance lookups',
+    description: 'Portfolio value/balance lookups via fast LLM with pre-fetched data',
   },
   portfolio_explain: {
     intent: 'portfolio_explain',
@@ -109,19 +109,19 @@ const INTENT_ROUTE_CONFIGS: Record<IntentClassification['primary_intent'], Inten
   },
   allocation_breakdown: {
     intent: 'allocation_breakdown',
-    defaultLane: 0,
-    supportedLanes: [0, 1],
+    defaultLane: 1,
+    supportedLanes: [1],
     requiredTools: ['portfolio_read'],
     optionalTools: [],
-    description: 'Asset allocation breakdown by class, sector, geography',
+    description: 'Asset allocation breakdown by class, sector, geography via fast LLM',
   },
   goal_progress: {
     intent: 'goal_progress',
     defaultLane: 1,
-    supportedLanes: [0, 1],
+    supportedLanes: [1],
     requiredTools: ['portfolio_read'],
     optionalTools: ['health_compute'],
-    description: 'Financial goal tracking and progress updates',
+    description: 'Financial goal tracking and progress updates via fast LLM',
   },
   market_news: {
     intent: 'market_news',
