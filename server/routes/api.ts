@@ -8,6 +8,7 @@ import * as goalService from '../services/goalService';
 import * as morningSentinelService from '../services/morningSentinelService';
 import * as memoryService from '../services/memoryService';
 import * as intentClassifier from '../services/intentClassifier';
+import * as agentRepo from '../repositories/agentRepository';
 import { orchestrateStream } from '../services/agentOrchestrator';
 import type { ChatMessageRequest, PollVoteRequest, LifeEventType } from '../../shared/types';
 
@@ -35,7 +36,9 @@ router.get('/users', asyncHandler(async (_req, res) => {
 router.get('/me', asyncHandler(async (req, res) => {
   const userId = getUserId(req);
   const user = (await userRepo.findUserById(userId)) ?? (await userRepo.getDefaultUser());
-  res.json(user);
+  const tenantConfig = await agentRepo.getTenantConfig('default');
+  const verboseModeAvailable = tenantConfig?.feature_flags?.verbose_mode === true;
+  res.json({ ...user, capabilities: { verbose_mode: verboseModeAvailable } });
 }));
 
 router.get('/home/summary', asyncHandler(async (req, res) => {
