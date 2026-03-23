@@ -767,8 +767,9 @@ export async function* orchestrateStream(
     const guardrailResult = runPostChecks(fullResponse, tenantConfig, policyDecision, toolResults);
     if (!guardrailResult.passed) {
       guardrailInterventions.push(...guardrailResult.interventions);
-      fullResponse = guardrailResult.sanitizedText;
-      yield { type: 'text', content: '\n\n---\n' + guardrailResult.sanitizedText };
+      if (guardrailResult.sanitizedText !== fullResponse) {
+        fullResponse = guardrailResult.sanitizedText;
+      }
     }
 
     for (const uiEvent of pendingUiEvents) {
