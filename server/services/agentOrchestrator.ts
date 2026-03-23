@@ -341,13 +341,13 @@ async function* handleLane0(
       : ['How can I accelerate my savings?', 'What happens if I miss my deadline?', 'Create a new goal'];
 
   } else if (intent.primary_intent === 'allocation_breakdown' && holdingsResult?.status === 'ok') {
-    const holdings = holdingsResult.data as Array<{ symbol?: string; name?: string; value?: number; asset_class?: string }> | null;
+    const holdings = holdingsResult.data as Array<{ symbol?: string; name?: string; value?: number; asset_class?: string; assetClass?: string }> | null;
     narration = `Your portfolio is valued at **${fmtUsd(totalValue)}**. Here's your allocation breakdown:`;
 
     if (Array.isArray(holdings) && holdings.length > 0) {
       const byClass: Record<string, number> = {};
       for (const h of holdings) {
-        const cls = (h.asset_class as string) || 'Other';
+        const cls = (h.assetClass as string) || (h.asset_class as string) || 'Other';
         byClass[cls] = (byClass[cls] ?? 0) + Number(h.value ?? 0);
       }
       const sorted = Object.entries(byClass).sort((a, b) => b[1] - a[1]);
@@ -538,13 +538,21 @@ export async function* orchestrateStream(
   await contentRepo.insertChatMessage(threadId, 'user', req.message);
   memoryService.addToWorkingMemory(threadId, { role: 'user', content: sanitizedMessage });
 
-  if (route.lane === 'lane0') {
+  const ENTITY_KEYWORDS = ['tech', 'technology', 'healthcare', 'energy', 'financial', 'real estate', 'consumer',
+    'industrial', 'telecom', 'utilities', 'materials', 'us ', 'europe', 'asia', 'gcc', 'emerging',
+    'specific', 'individual', 'particular', 'which stock', 'which fund', 'aapl', 'msft', 'nvda', 'goog', 'amzn'];
+  const hasEntityQuery = ENTITY_KEYWORDS.some(k => sanitizedMessage.toLowerCase().includes(k));
+
+  if (route.lane === 'lane0' && !hasEntityQuery) {
     yield* handleLane0(
       userId, intent, registry, riskLevel, scorecard, route,
       threadId, messageId, sanitizedMessage,
       tenantConfig, policyDecision, timings, startTime,
     );
     return;
+  }
+  if (hasEntityQuery && route.lane === 'lane0') {
+    console.log('[Orchestrator] Entity-specific query detected, upgrading from Lane 0 to Lane 1');
   }
 
   const getToolName = (t: OpenAI.ChatCompletionTool): string => t.type === 'function' ? t.function.name : '';
