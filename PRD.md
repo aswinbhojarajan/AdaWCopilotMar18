@@ -1,7 +1,7 @@
 # Ada — AI Wealth Copilot: Product Requirements Document
 
 > **Living document** — update this PRD before and after every build cycle.
-> Last updated: 2026-03-22
+> Last updated: 2026-03-23
 >
 > **Source of truth precedence**: When a mismatch exists between this document and the runtime code/schema, the code is authoritative. Update this PRD to reflect the code, not the other way around.
 >
@@ -398,8 +398,11 @@ User Message → PII Detection → Session Hydration → Intent Classification
     - `widget` — Embedded data widget (`{ type: 'widget', widget: { type: string } }`).
     - `simulator` — Interactive simulator (`{ type: 'simulator', simulator: { type: string, initialValues?: Record<string, number> } }`).
     - `suggested_questions` — Array of 3 follow-up suggestions (`{ type: 'suggested_questions', suggestedQuestions: string[] }`).
+    - `thinking` — Pipeline step for verbose/thinking mode (`{ type: 'thinking', step: string, detail?: string }`). Emitted at 9+ pipeline stages when `verbose: true` in the request body.
     - `done` — Stream complete signal.
     - `error` — Error event if the LLM call fails.
+    
+    Server-side `setImmediate()` async ticks are inserted at key pipeline boundaries (after early buffer, after routing, before lane dispatch, before data prefetch) to ensure `thinking` events are flushed as separate SSE chunks before content events. The response stream calls `flush()` after each `thinking` event write.
 
 14. **Trace Logging** (`traceLogger.ts`): Persists full agent execution traces to the `agent_traces` and `tool_runs` tables for observability and debugging. Each trace captures: session ID, intent, model used, tool calls with inputs/outputs, latency, token usage, and policy decisions.
 
@@ -480,6 +483,9 @@ One tenant is seeded: `bank_demo_uae` (UAE-based demo bank with moderate advisor
 | Context Prefix | First user message shows context title above the message text |
 | Typing Indicator | Three bouncing dots (shown while awaiting first stream chunk) |
 | Suggested Questions | Horizontally scrollable pills below chat area (LLM-generated) |
+| Think Toggle | Header toggle to enable/disable verbose thinking mode. Persists to localStorage. Gated by tenant-level `verbose_mode` feature flag. |
+| LiveThinkingBar | Fixed bar below chat header during streaming (when verbose mode is on). Shows progressive step reveal with 120ms stagger animation, amber pulsing dot, and step counter (e.g., "Step 3 of 5"). Renders only when `verbose && isTyping && thinkingSteps.length > 0`. Disappears when streaming completes. |
+| ThinkingPanel (Summary) | Collapsible panel above assistant message after streaming completes. Shows all pipeline steps as a post-hoc summary. Renders only when `verbose && !isTyping && thinkingSteps.length > 0` on the last assistant message. |
 | BottomBar | Text input + chat history icon |
 
 ### Chat History (`ChatHistoryScreen.tsx`)
@@ -1004,6 +1010,9 @@ main.tsx (QueryClient + prefetch)
 | **User Switching** | Built | PersonaPicker bottom sheet, X-User-ID header, per-user query isolation, localStorage persistence |
 | **Multi-Model Routing** | Built | Lane-based control plane (Lane 0 deterministic, Lane 1 fast, Lane 2 reasoning) with request scorecards and provider aliases |
 | **LLM Intent Classification** | Built | LLM-first `classifyIntentAsync()` with 3s timeout and keyword fallback. `mapIntentForRag()` prevents double-classification. Lane 2 → Lane 1 fallback on streaming timeout. |
+| **Capability Registry** | Built | Unified model/lane/intent routing registry (`capabilityRegistry.ts`). Provider aliases, fallback chains, classifier context injection. |
+| **Anthropic Fallback** | Built | Automatic fallback to Claude (claude-sonnet-4-6) when OpenAI primary fails. Resilient completion helpers with timeout+retry+fallback for all LLM call sites. |
+| **Verbose/Thinking Mode** | Built | Live `LiveThinkingBar` during streaming with progressive step reveal (120ms stagger). Post-stream `ThinkingPanel` summary (collapsible). "Think" toggle in chat header with localStorage persistence. Tenant-level `verbose_mode` feature flag. Server-side `setImmediate()` ticks + `flush()` for reliable thinking event delivery. |
 | **Full Persona Data Parity** | Built | 3 personas with positions, 365-day performance history, goals, alerts, chat threads; server-side computed wealth insights. Cost basis values match weighted transaction averages. Performance history uses bounded normalized formula. |
 | **Authentication** | Not built | No auth layer |
 | **Real Account Linking** | Not built | Mock flow only |
@@ -1053,3 +1062,5 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-22 | Task #13: Rename to Aisha | Renamed default persona from Abdullah Al-Rashid to Aisha Al-Rashid across seed data, tests, and documentation. |
 | 2026-03-23 | Task #14: LLM Intent Classification | Replaced keyword-only intent classifier with LLM-first `classifyIntentAsync()` (3s timeout, keyword fallback). Added `mapIntentForRag()` to fix RAG double-classification. Rewrote goals routing to deterministic Lane 0 with actionable savings advice. Added LLM streaming timeout+retry (15s/20s AbortController). Skip tools for non-financial intents. SSE error handling. Removed fabricated cashPercent fallback. Fixed holdings changePercent. |
 | 2026-03-23 | Task #15: Docs Audit & LLM Resilience | Updated all documentation (CHANGELOG, PRD, ISSUES, replit.md) to reflect Tasks #13–14. Added Lane 2 → Lane 1 fallback when both reasoning-model streaming attempts timeout. Added ISS-022 for LLM timeout resilience. |
+| 2026-03-23 | Task #16: AI Orchestration Hardening | Capability registry (`capabilityRegistry.ts`) with model capabilities, lane configs, intent→route mappings, classifier context injection. Anthropic Claude fallback (claude-sonnet-4-6) via Replit AI Integrations. Resilient LLM helpers (`resilientCompletion`, `resilientStreamCompletion`) with timeout+retry+fallback on all call sites. Verbose/thinking mode backend (9 `thinking` SSE events) + frontend (`ThinkingPanel`, "Think" toggle). |
+| 2026-03-23 | Task #17: Live Thinking Panel | Server-side `setImmediate()` async ticks at 4 pipeline boundaries + typed `flush()` after thinking events for reliable SSE chunk separation. New `LiveThinkingBar` component with progressive step reveal (120ms stagger), amber pulsing indicator, step counter. Fixed below chat header during streaming. Post-stream `ThinkingPanel` summary persists as collapsible in-message panel. Toggle edge cases: OFF hides but preserves data, ON restores accumulated steps. |

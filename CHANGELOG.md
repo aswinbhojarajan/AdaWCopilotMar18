@@ -4,6 +4,33 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Task #17 — Live Thinking Panel During Streaming
+**Date:** March 23, 2026
+
+### Added
+- **`LiveThinkingBar` component** (`src/components/ada/ThinkingPanel.tsx`) — fixed bar rendered below the chat header during SSE streaming when verbose mode is enabled. Progressive step reveal with 120ms stagger animation, amber pulsing dot indicator, and step counter (e.g., "Step 3 of 5"). Renders only when `verbose && isTyping && thinkingSteps.length > 0`
+- **Server-side `setImmediate()` async ticks** in `agentOrchestrator.ts` — inserted at 4 key pipeline boundaries (after early thinking buffer, after routing decision, before Lane 0 content dispatch, before data prefetch) to break the Node.js event loop and allow `thinking` SSE events to flush as separate network chunks before content events
+- **Typed `flush()` call** in `server/routes/api.ts` — after each `thinking` event write, calls `flush()` on the response stream (typed as `NodeJS.WritableStream & { flush?: () => void }`) to push thinking events through any compression/buffering middleware
+
+### Changed
+- **`ChatScreen.tsx`** — integrated `LiveThinkingBar` in a fixed position between the chat header and scrollable message area. ThinkingPanel summary now renders only after stream completion (`!isTyping`) instead of during streaming
+- **`ThinkingPanel.tsx`** — removed redundant reset effect (was `!isStreaming && !visible` guard) since the component unmounts when verbose is toggled off via parent condition
+
+### Behavior
+- **During streaming**: LiveThinkingBar shows progressive pipeline steps (Privacy Scan → Understanding Query → Policy Check → ...) with animation
+- **After streaming**: LiveThinkingBar disappears; collapsible ThinkingPanel summary appears above the assistant message
+- **Toggle OFF mid-stream**: Hides all thinking UI immediately but thinking event accumulation continues
+- **Toggle ON mid-stream**: Restores visibility with all previously accumulated steps intact
+- **Steps cleared**: Only at the start of the next `sendAndReceive` call, not on toggle changes
+
+### Validated
+- TypeScript compiles clean
+- Thinking events arrive as separate SSE chunks before content events
+- LiveThinkingBar hides when streaming completes; ThinkingPanel summary persists
+- Toggle persistence and edge cases verified
+
+---
+
 ## Task #16 — AI Orchestration Hardening (Capability Registry, Fallback Provider, Verbose Mode)
 **Date:** March 23, 2026
 

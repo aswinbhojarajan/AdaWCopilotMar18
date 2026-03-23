@@ -94,3 +94,4 @@
 | — | 7 cost_basis mismatches | Reconciled all 24 position cost_basis values with weighted transaction averages | 2026-03-22 |
 | — | Portfolio health field mismatch | Fixed diversificationScore and riskLevel field mappings in portfolioRepository.ts | 2026-03-21 |
 | ISS-022 | LLM streaming timeout with no lane fallback | Added Lane 2 → Lane 1 automatic downgrade when both streaming attempts timeout | 2026-03-23 |
+| — | Thinking events coalesced with content in SSE | Server-side `setImmediate()` ticks + `flush()` after thinking events ensure separate chunk delivery (Task #17) | 2026-03-23 |
