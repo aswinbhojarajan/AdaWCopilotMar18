@@ -430,6 +430,8 @@ export async function* orchestrateStream(
       enrichmentContext += `\n\nMARKET NEWS (pre-fetched):\n${JSON.stringify(result.data, null, 1)}`;
     } else if (result.source_type === 'market_api') {
       enrichmentContext += `\n\nMARKET QUOTES (pre-fetched):\n${JSON.stringify(result.data, null, 1)}`;
+    } else if (result.source_type === 'portfolio_api' && intent.primary_intent === 'goal_progress') {
+      enrichmentContext += `\n\nPORTFOLIO SNAPSHOT (pre-fetched):\n${JSON.stringify(result.data, null, 1)}`;
     }
   }
 
