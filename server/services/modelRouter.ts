@@ -1,4 +1,5 @@
 import type { IntentClassification, PolicyDecision } from '../../shared/schemas/agent';
+import { getModelCapabilities, hasCapability } from './capabilityRegistry';
 
 export type Lane = 'lane0' | 'lane1' | 'lane2';
 export type ProviderAlias = 'ada-fast' | 'ada-reason';
@@ -10,7 +11,17 @@ const PROVIDER_MODEL_MAP: Record<ProviderAlias, string> = {
 };
 
 export function resolveModel(alias: ProviderAlias): string {
+  const caps = getModelCapabilities(alias);
+  if (caps) return caps.model;
   return PROVIDER_MODEL_MAP[alias];
+}
+
+export function canUseTools(alias: ProviderAlias): boolean {
+  return hasCapability(alias, 'tool_calling');
+}
+
+export function supportsStreaming(alias: ProviderAlias): boolean {
+  return hasCapability(alias, 'streaming');
 }
 
 export interface RequestScorecard {

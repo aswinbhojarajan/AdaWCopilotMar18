@@ -335,3 +335,4 @@ Enterprise integration layer:
 | — | Rename Abdullah to Aisha (Task #13) | 2026-03-22 |
 | — | LLM-Based Intent Classification (Task #14) | 2026-03-22 |
 | — | Documentation Audit & LLM Resilience Fix (Task #15) | 2026-03-23 |
+| — | AI Orchestration Hardening: Capability Registry, Resilient LLM, Verbose Mode (Task #16) | 2026-03-23 |

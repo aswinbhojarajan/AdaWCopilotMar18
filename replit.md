@@ -52,7 +52,8 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
     - Phase 2 (Pilot): Finnhub (market) + Frankfurter/CBUAE (FX) live. Set `MARKET_PROVIDER_PRIMARY=finnhub`, `FX_PROVIDER_PRIMARY=frankfurter`, `FX_PROVIDER_SECONDARY=cbuae`.
     - Phase 3 (Production): All 6 providers live with full failover. Add keys for FRED, SEC EDGAR, OpenFIGI, CBUAE.
   - **Tool → Provider Mappings**: `get_market_data` → Finnhub, `get_macro_data` → FRED, `get_filings` → SEC EDGAR, `lookup_instrument` → OpenFIGI, `get_fx_rate` → Frankfurter → CBUAE.
-- **LLM Resilience**: Streaming timeout+retry with AbortController (attempt 1: 15s, attempt 2: 20s). Lane 2 → Lane 1 automatic downgrade when both reasoning-model attempts fail — retries with ada-fast at lower max_tokens (4096) for degraded-but-functional responses. Lane 0 deterministic queries bypass LLM entirely.
+- **Capability Registry** (`capabilityRegistry.ts`): Model capability bitmask registry mapping provider aliases to capabilities (streaming, tool_calling, json_mode, reasoning, etc.), cost tiers, and context limits. Used by orchestrator for model selection and verbose mode output.
+- **LLM Resilience**: Streaming timeout+retry with AbortController (attempt 1: 15s, attempt 2: 20s). Lane 2 → Lane 1 automatic downgrade when both reasoning-model attempts fail — retries with ada-fast at lower max_tokens (4096) for degraded-but-functional responses. Lane 0 deterministic queries bypass LLM entirely. `resilientCompletion()` and `resilientStreamCompletion()` helpers in `openaiClient.ts` provide configurable timeout+retry for non-streaming calls.
 - **Execution Guardrails & RM Handoff**: Ada cannot execute trades or claim execution capability. Enforced at 3 layers: system prompt boundary, guardrail regex (7 patterns + hard post-check), orchestrator fallback. Execution requests routed to RM via `advisor_action_queue` (rm_handoff), webhook (api_webhook), or rejected (disabled). Tenant config controls routing.
 - **Shared Schemas**: `shared/schemas/agent.ts` — Zod schemas for AdaAnswer, ToolResult, PolicyDecision, IntentClassification, TenantConfig.
 
@@ -66,7 +67,8 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
 - **Default user**: user-aisha (fallback when no X-User-ID header provided)
 - **User switching**: Frontend sends `X-User-ID` header on all API/stream calls; backend `getUserId(req)` extracts it with fallback to default. `GET /api/users` returns all 3 demo personas. `UserContext` provider persists selection to localStorage, `PersonaPicker` bottom sheet for switching. Data isolation via userId-scoped react-query keys (all hooks include userId in queryKey) + `queryClient.removeQueries()` on switch.
 - **Default tenant**: bank_demo_uae
-- **SSE event types**: text, widget, simulator, suggested_questions, done, error
+- **SSE event types**: text, widget, simulator, suggested_questions, thinking, done, error
+- **Verbose/Thinking Mode**: Users can toggle "Think" mode in the chat header to see Ada's reasoning pipeline in real-time. When enabled, `thinking` SSE events stream pipeline steps (PII scan, intent classification, policy evaluation, routing, model selection, data prefetch, LLM generation, guardrails). The `verbose` flag is sent in the `ChatMessageRequest` body and persisted to localStorage.
 - **Execution routing**: defaults to rm_handoff; configurable per tenant
 - **Provider config**: `*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK` env vars; all default to 'mock'
 

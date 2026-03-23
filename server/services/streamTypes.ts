@@ -1,7 +1,8 @@
-export interface StreamEvent {
-  type: 'text' | 'widget' | 'simulator' | 'suggested_questions' | 'done' | 'error';
-  content?: string;
-  widget?: { type: string; [key: string]: unknown };
-  simulator?: { type: string; initialValues?: Record<string, number> };
-  suggestedQuestions?: string[];
-}
+export type StreamEvent =
+  | { type: 'text'; content: string }
+  | { type: 'widget'; widget: { type: string; [key: string]: unknown } }
+  | { type: 'simulator'; simulator: { type: string; initialValues?: Record<string, number> } }
+  | { type: 'suggested_questions'; suggestedQuestions: string[] }
+  | { type: 'thinking'; step: string; detail: string }
+  | { type: 'done' }
+  | { type: 'error'; content: string };

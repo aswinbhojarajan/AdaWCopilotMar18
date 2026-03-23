@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { TopBar, ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon } from '../ada';
+import { TopBar, ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon, ThinkingPanel } from '../ada';
 import type { Message, ChatContext, ChatWidget } from '../../types';
 import { getStreamHeaders } from '../../hooks/api';
+
+interface ThinkingStep {
+  step: string;
+  detail: string;
+  timestamp: number;
+}
 
 interface ChatScreenProps {
   initialMessage?: string;
@@ -21,10 +27,12 @@ function useStreamingChat() {
     message: string,
     context: ChatContext | undefined,
     threadId: string | undefined,
+    verbose: boolean,
     onText: (text: string) => void,
     onWidget: (widget: ChatWidget) => void,
     onSimulator: (sim: { type: string; initialValues?: Record<string, number> }) => void,
     onSuggestions: (questions: string[]) => void,
+    onThinking: (step: ThinkingStep) => void,
     onDone: () => void,
     onError: (error: string) => void,
   ) => {
@@ -39,6 +47,7 @@ function useStreamingChat() {
         body: JSON.stringify({
           message,
           threadId,
+          verbose,
           context: context ? {
             category: context.category,
             categoryType: context.categoryType,
@@ -90,6 +99,9 @@ function useStreamingChat() {
               case 'suggested_questions':
                 if (event.suggestedQuestions) onSuggestions(event.suggestedQuestions);
                 break;
+              case 'thinking':
+                if (event.step) onThinking({ step: event.step, detail: event.detail || '', timestamp: Date.now() });
+                break;
               case 'error':
                 onError(event.content || 'Something went wrong.');
                 break;
@@ -136,9 +148,21 @@ export function ChatScreen({
   const [isTyping, setIsTyping] = useState(false);
   const [isLoadingThread, setIsLoadingThread] = useState(false);
   const [apiSuggestions, setApiSuggestions] = useState<string[]>([]);
+  const [verbose, setVerbose] = useState(() => {
+    try { return localStorage.getItem('ada-verbose') === 'true'; } catch { return false; }
+  });
+  const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const threadIdRef = useRef<string>(existingThreadId ?? `thread-${Date.now()}`);
   const { streamMessage } = useStreamingChat();
+
+  const toggleVerbose = useCallback(() => {
+    setVerbose(prev => {
+      const next = !prev;
+      try { localStorage.setItem('ada-verbose', String(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (onThreadIdChange) {
@@ -156,6 +180,7 @@ export function ChatScreen({
 
   const sendAndReceive = useCallback(async (userMessage: string, context?: ChatContext) => {
     setIsTyping(true);
+    setThinkingSteps([]);
 
     const adaMsgId = (Date.now() + 1).toString();
     let currentText = '';
@@ -172,6 +197,7 @@ export function ChatScreen({
       userMessage,
       context,
       threadIdRef.current,
+      verbose,
       (text) => {
         currentText += text;
         setMessages(prev => prev.map(m =>
@@ -198,6 +224,9 @@ export function ChatScreen({
       (questions) => {
         setApiSuggestions(questions);
       },
+      (step) => {
+        setThinkingSteps(prev => [...prev, step]);
+      },
       () => {
         setMessages(prev => prev.map(m =>
           m.id === adaMsgId ? { ...m, isStreaming: false } : m
@@ -212,7 +241,7 @@ export function ChatScreen({
         setIsTyping(false);
       },
     );
-  }, [setMessages, streamMessage]);
+  }, [setMessages, streamMessage, verbose]);
 
   useEffect(() => {
     if (existingThreadId && messages.length === 0) {
@@ -300,7 +329,23 @@ export function ChatScreen({
     <div className="bg-[#efede6] relative h-screen w-full overflow-hidden">
       <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-[16px] pt-0 px-0 w-full z-10">
         <TopBar />
-        <ChatHeader onBack={handleBack} />
+        <div className="relative w-full">
+          <ChatHeader onBack={handleBack} />
+          <button
+            onClick={toggleVerbose}
+            className={`absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center gap-[4px] px-[8px] py-[4px] rounded-full text-[10px] font-['DM_Sans',sans-serif] tracking-[-0.2px] transition-colors z-20 ${
+              verbose
+                ? 'bg-amber-100 text-amber-700 border border-amber-300'
+                : 'bg-[#f0ede5] text-[#999] border border-[#e0ddd5]'
+            }`}
+            title={verbose ? 'Thinking mode on' : 'Thinking mode off'}
+          >
+            <svg className="w-[12px] h-[12px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            {verbose ? 'Thinking' : 'Think'}
+          </button>
+        </div>
       </div>
 
       <div className="absolute top-[88px] left-0 right-0 bottom-[196px] overflow-y-auto">
@@ -344,6 +389,10 @@ export function ChatScreen({
                           />
                         </React.Fragment>
                       ))}
+
+                      {verbose && thinkingSteps.length > 0 && isTyping && (
+                        <ThinkingPanel steps={thinkingSteps} isStreaming={isTyping} />
+                      )}
 
                       {isTyping && messages[messages.length - 1]?.sender !== 'assistant' && (
                         <div className="self-start max-w-[85%]">

@@ -277,6 +277,7 @@ export interface MorningSentinelResponse {
 export interface ChatMessageRequest {
   message: string;
   threadId?: string;
+  verbose?: boolean;
   context?: {
     category: string;
     categoryType: string;

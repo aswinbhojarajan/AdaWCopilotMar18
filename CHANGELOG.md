@@ -4,6 +4,26 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Task #16 — AI Orchestration Hardening (Capability Registry, Fallback Provider, Verbose Mode)
+**Date:** March 23, 2026
+
+### Added
+- **Capability Registry** (`server/services/capabilityRegistry.ts`) — centralized model capability registry mapping provider aliases to capabilities (streaming, tool_calling, json_mode, reasoning, fast_response, vision, long_context), cost tiers, and max context tokens. Provides `getModelCapabilities()`, `hasCapability()`, `bestModelForIntent()`, and `getCapabilitySummary()` for LLM routing decisions
+- **Resilient LLM helpers** (`server/services/openaiClient.ts`) — `resilientCompletion()` with configurable timeout + retry for non-streaming calls, and `resilientStreamCompletion()` with timeout for streaming calls. Both wrap the existing OpenAI client
+- **Verbose/Thinking Mode — Backend** — new `thinking` SSE event type added to `StreamEvent` union with `step` and `detail` fields. `verbose?: boolean` field added to `ChatMessageRequest`. When enabled, the orchestrator yields `thinking` events at 9 pipeline steps: PII scan, intent classification, policy evaluation, routing, lane dispatch/upgrade, model selection, data prefetch, LLM generation, LLM retry/fallback, and guardrails
+- **Verbose/Thinking Mode — Frontend** — `ThinkingPanel` component (`src/components/ada/ThinkingPanel.tsx`) shows collapsible pipeline step timeline with human-readable labels, animated status indicators, and expand/collapse. "Think" toggle button in chat header with localStorage persistence. ChatScreen `useStreamingChat` hook extended with `onThinking` callback and `verbose` flag in request body
+
+### Changed
+- **Agent orchestrator** — integrated capability registry import, added `thinkingEvent()` generator helper for conditional verbose yields, added thinking events at all major pipeline decision points
+- **SSE event handling** — frontend `useStreamingChat` now processes `thinking` event type alongside existing text/widget/simulator/suggested_questions/error/done events
+
+### Validated
+- TypeScript compiles clean
+- All existing SSE event types continue to work
+- Thinking mode toggle persists across sessions via localStorage
+
+---
+
 ## Task #15 — Documentation Audit & LLM Resilience Fix
 **Date:** March 23, 2026
 

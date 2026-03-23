@@ -3,11 +3,12 @@ import type { ChatMessageRequest, RiskProfile } from '../../shared/types';
 import type { IntentClassification, ToolResult, AdaAnswer, TenantConfig } from '../../shared/schemas/agent';
 import type { PolicyDecision } from '../../shared/schemas/agent';
 import type { StreamEvent } from './streamTypes';
-import { openai } from './openaiClient';
+import { openai, resilientCompletion, resilientStreamCompletion } from './openaiClient';
 import * as intentClassifier from './intentClassifier';
 import * as ragService from './ragService';
 import * as memoryService from './memoryService';
 import * as piiDetector from './piiDetector';
+import { getCapabilitySummary } from './capabilityRegistry';
 import * as contentRepo from '../repositories/contentRepository';
 import * as userRepo from '../repositories/userRepository';
 import * as agentRepo from '../repositories/agentRepository';
@@ -453,11 +454,11 @@ async function generateSuggestedQuestions(
   ];
 
   try {
-    const suggestResponse = await openai.chat.completions.create({
+    const suggestResponse = await resilientCompletion({
       model: resolveModel('ada-fast'),
       messages: suggestMessages,
       max_completion_tokens: 256,
-    });
+    }, { timeoutMs: 8000, retries: 1 });
     const suggestContent = suggestResponse.choices[0]?.message?.content || '';
     const jsonMatch = suggestContent.match(/\[[\s\S]*\]/);
     const questions = jsonMatch ? (JSON.parse(jsonMatch[0]) as string[]).slice(0, 3) : [];
@@ -471,6 +472,12 @@ async function generateSuggestedQuestions(
   }
 }
 
+function* thinkingEvent(verbose: boolean, step: string, detail: string): Generator<StreamEvent> {
+  if (verbose) {
+    yield { type: 'thinking', step, detail };
+  }
+}
+
 export async function* orchestrateStream(
   userId: string,
   req: ChatMessageRequest,
@@ -479,9 +486,12 @@ export async function* orchestrateStream(
   const timings: StepTimings = {};
   const threadId = req.threadId ?? `thread-${Date.now()}`;
   const messageId = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const verbose = req.verbose === true;
 
   const piiResult = piiDetector.scanForPii(req.message);
   const sanitizedMessage = piiResult.hasPii ? piiResult.sanitized : req.message;
+
+  yield* thinkingEvent(verbose, 'pii_scan', piiResult.hasPii ? 'PII detected and redacted' : 'No PII detected');
 
   await memoryService.logAudit({
     userId,
@@ -495,6 +505,8 @@ export async function* orchestrateStream(
   const intent = await buildIntentClassification(sanitizedMessage);
   timings.intent_classification_ms = Date.now() - intentStart;
   console.log('[Orchestrator] intent=%s confidence=%s lane=%s ms=%d', intent.primary_intent, intent.confidence, intent.suggested_tools.length > 0 ? 'lane1+' : 'tbd', timings.intent_classification_ms);
+
+  yield* thinkingEvent(verbose, 'intent_classification', `Intent: ${intent.primary_intent} (confidence: ${(intent.confidence * 100).toFixed(0)}%, effort: ${intent.reasoning_effort})`);
 
   const sessionStart = Date.now();
   const [tenantIdResult, userProfileResult] = await Promise.all([
@@ -515,6 +527,8 @@ export async function* orchestrateStream(
   const policyDecision = evaluatePolicy(tenantConfig, intent, riskProfile);
   timings.policy_evaluation_ms = Date.now() - policyStart;
 
+  yield* thinkingEvent(verbose, 'policy_evaluation', `Mode: ${policyDecision.response_mode}, human review: ${policyDecision.require_human_review ? 'yes' : 'no'}`);
+
   try {
     await agentRepo.savePolicyDecision({
       tenant_id: tenantConfig.tenant_id,
@@ -531,6 +545,8 @@ export async function* orchestrateStream(
   const route = routeRequest(scorecard, policyDecision);
   console.log('[Orchestrator] route=%s model=%s', route.lane, route.provider_alias);
 
+  yield* thinkingEvent(verbose, 'routing', `Lane: ${route.lane}, model: ${route.provider_alias} (${getCapabilitySummary(route.provider_alias)})`);
+
   const registry = getProviderRegistry(tenantConfig.provider_config);
   const riskLevel = riskProfile?.level ?? 'moderate';
 
@@ -544,6 +560,7 @@ export async function* orchestrateStream(
   const hasEntityQuery = ENTITY_KEYWORDS.some(k => sanitizedMessage.toLowerCase().includes(k));
 
   if (route.lane === 'lane0' && !hasEntityQuery) {
+    yield* thinkingEvent(verbose, 'lane0_dispatch', 'Deterministic path — no LLM needed for this query');
     yield* handleLane0(
       userId, intent, registry, riskLevel, scorecard, route,
       threadId, messageId, sanitizedMessage,
@@ -553,6 +570,7 @@ export async function* orchestrateStream(
   }
   if (hasEntityQuery && route.lane === 'lane0') {
     console.log('[Orchestrator] Entity-specific query detected, upgrading from Lane 0 to Lane 1');
+    yield* thinkingEvent(verbose, 'lane_upgrade', 'Entity-specific query detected, upgrading from Lane 0 to Lane 1');
   }
 
   const getToolName = (t: OpenAI.ChatCompletionTool): string => t.type === 'function' ? t.function.name : '';
@@ -568,7 +586,10 @@ export async function* orchestrateStream(
 
   const modelSelection = selectModel(intent, policyDecision, intent.suggested_tools.length, channel);
 
+  yield* thinkingEvent(verbose, 'model_selection', `Model: ${modelSelection.model} (${modelSelection.label}), max tokens: ${modelSelection.max_tokens}, tools: ${allowedToolNames.length}`);
+
   const prefetchStart = Date.now();
+  yield* thinkingEvent(verbose, 'data_prefetch', `Fetching portfolio context, memories, and pre-running ${allowedToolNames.length} tools`);
   const [portfolioContext, episodicMemories, semanticFacts, prefetched] = await Promise.all([
     ragService.buildPortfolioContext(userId, mapIntentForRag(intent.primary_intent)),
     memoryService.getEpisodicMemories(userId),
@@ -627,6 +648,7 @@ export async function* orchestrateStream(
 
   try {
     const llmStart = Date.now();
+    yield* thinkingEvent(verbose, 'llm_generation', `Streaming response from ${modelSelection.model}...`);
 
     const MAX_TOOL_TURNS = 3;
     let currentMessages = [...messages];
@@ -641,16 +663,13 @@ export async function* orchestrateStream(
 
       const createLLMStream = (attempt: number) => {
         const timeoutMs = attempt === 1 ? 15000 : 20000;
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), timeoutMs);
-        const call = openai.chat.completions.create({
+        return resilientStreamCompletion({
           model: modelSelection.model,
           messages: currentMessages,
           tools: useTools ? tools : undefined,
           stream: true,
           max_completion_tokens: modelSelection.max_tokens,
-        }, { signal: controller.signal });
-        return call.finally(() => clearTimeout(timer));
+        }, { timeoutMs });
       };
 
       let response;
@@ -658,21 +677,21 @@ export async function* orchestrateStream(
         response = await createLLMStream(1);
       } catch {
         console.log('[Orchestrator] LLM attempt 1 timed out, retrying...');
+        yield* thinkingEvent(verbose, 'llm_retry', 'First LLM attempt timed out, retrying...');
         try {
           response = await createLLMStream(2);
         } catch {
           if (route.lane === 'lane2') {
             console.log('[Orchestrator] Lane 2 both attempts failed, downgrading to Lane 1 (ada-fast)...');
-            const fallbackController = new AbortController();
-            const fallbackTimer = setTimeout(() => fallbackController.abort(), 20000);
+            yield* thinkingEvent(verbose, 'llm_fallback', 'Lane 2 failed, falling back to Lane 1 (ada-fast)');
             try {
-              response = await openai.chat.completions.create({
+              response = await resilientStreamCompletion({
                 model: resolveModel('ada-fast'),
                 messages: currentMessages,
                 tools: useTools ? tools : undefined,
                 stream: true,
                 max_completion_tokens: 4096,
-              }, { signal: fallbackController.signal }).finally(() => clearTimeout(fallbackTimer));
+              }, { timeoutMs: 20000 });
             } catch (fallbackErr) {
               console.error('[Orchestrator] Lane 1 fallback also failed:', (fallbackErr as Error).message);
               throw fallbackErr;
@@ -857,6 +876,7 @@ export async function* orchestrateStream(
     timings.llm_generation_ms = Date.now() - llmStart;
 
     const postStart = Date.now();
+    yield* thinkingEvent(verbose, 'guardrails', 'Running post-generation guardrail checks...');
     const guardrailResult = runPostChecks(fullResponse, tenantConfig, policyDecision, toolResults);
     if (!guardrailResult.passed) {
       guardrailInterventions.push(...guardrailResult.interventions);
