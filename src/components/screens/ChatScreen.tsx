@@ -374,14 +374,12 @@ export function ChatScreen({
                   <div className="content-stretch flex flex-col items-start p-[8px] relative w-full">
                     <div className="content-stretch flex flex-col gap-[8px] items-end relative shrink-0 w-full">
                       {messages.map((msg, index) => {
-                        const showThinkingAbove = verbose && thinkingSteps.length > 0 && (
-                          (isTyping && msg.sender === 'user' && index === messages.length - 1) ||
-                          (!isTyping && msg.sender === 'assistant' && index === messages.length - 1)
-                        );
+                        const isLastAssistant = msg.sender === 'assistant' && index === messages.length - 1;
+                        const showThinkingBeforeAssistant = verbose && thinkingSteps.length > 0 && isLastAssistant;
                         return (
                           <React.Fragment key={msg.id}>
-                            {showThinkingAbove && !isTyping && (
-                              <ThinkingPanel steps={thinkingSteps} isStreaming={false} />
+                            {showThinkingBeforeAssistant && (
+                              <ThinkingPanel steps={thinkingSteps} isStreaming={isTyping} />
                             )}
                             <ChatMessage
                               message={msg.message}
@@ -395,9 +393,6 @@ export function ChatScreen({
                                   : undefined
                               }
                             />
-                            {showThinkingAbove && isTyping && (
-                              <ThinkingPanel steps={thinkingSteps} isStreaming={true} />
-                            )}
                           </React.Fragment>
                         );
                       })}
