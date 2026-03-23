@@ -628,7 +628,7 @@ export async function* orchestrateStream(
     while (turnCount < MAX_TOOL_TURNS) {
       turnCount++;
 
-      const skipTools = ['other', 'general', 'greeting'].includes(intent.primary_intent);
+      const skipTools = intent.primary_intent === 'other' || intent.primary_intent === 'support';
       const useTools = tools.length > 0 && turnCount === 1 && !skipTools;
 
       const createLLMStream = (attempt: number) => {

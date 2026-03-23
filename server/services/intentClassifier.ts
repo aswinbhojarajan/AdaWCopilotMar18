@@ -23,16 +23,19 @@ export async function classifyIntentAsync(message: string): Promise<{ intent: In
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
 
-    const response = await openai.chat.completions.create({
-      model: resolveModel('ada-fast'),
-      messages: [
-        { role: 'system', content: CLASSIFICATION_PROMPT },
-        { role: 'user', content: message },
-      ],
-      max_completion_tokens: 100,
-    }, { signal: controller.signal });
-
-    clearTimeout(timeout);
+    let response;
+    try {
+      response = await openai.chat.completions.create({
+        model: resolveModel('ada-fast'),
+        messages: [
+          { role: 'system', content: CLASSIFICATION_PROMPT },
+          { role: 'user', content: message },
+        ],
+        max_completion_tokens: 100,
+      }, { signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     const content = response.choices[0]?.message?.content?.trim();
     if (!content) {
@@ -48,7 +51,7 @@ export async function classifyIntentAsync(message: string): Promise<{ intent: In
 
     const parsed = JSON.parse(jsonMatch[0]) as { intent?: string; confidence?: number };
     const intent = parsed.intent as Intent;
-    const confidence = typeof parsed.confidence === 'number' ? parsed.confidence : 0.8;
+    const confidence = typeof parsed.confidence === 'number' ? Math.min(1, Math.max(0, parsed.confidence)) : 0.8;
 
     if (VALID_INTENTS.includes(intent)) {
       return { intent, confidence };
