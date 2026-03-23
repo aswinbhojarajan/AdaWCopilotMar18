@@ -52,7 +52,7 @@ export async function getDefaultTenantConfig(): Promise<TenantConfig> {
       disclosure_profile: 'uae_affluent_v1',
       allowed_tool_profiles: ['portfolio_read', 'market_read', 'news_read', 'macro_read', 'fx_read', 'health_compute', 'workflow_light', 'execution_route'],
       provider_config: {},
-      feature_flags: { enable_agent_tracing: true, enable_advisor_handoff: true, enable_recommendations: false, enable_wealth_engine: true, verbose_mode: true },
+      feature_flags: { enable_agent_tracing: true, enable_advisor_handoff: true, enable_recommendations: false, enable_wealth_engine: true, verbose_mode: false },
       tone: 'professional',
       language: 'en',
       blocked_phrases: [],
