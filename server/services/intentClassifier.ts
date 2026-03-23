@@ -21,7 +21,7 @@ Do not include any other text.`;
 export async function classifyIntentAsync(message: string): Promise<{ intent: Intent; confidence: number }> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 600);
+    const timeout = setTimeout(() => controller.abort(), 3000);
 
     const response = await openai.chat.completions.create({
       model: resolveModel('ada-fast'),
@@ -29,16 +29,22 @@ export async function classifyIntentAsync(message: string): Promise<{ intent: In
         { role: 'system', content: CLASSIFICATION_PROMPT },
         { role: 'user', content: message },
       ],
-      max_completion_tokens: 50,
+      max_completion_tokens: 100,
     }, { signal: controller.signal });
 
     clearTimeout(timeout);
 
     const content = response.choices[0]?.message?.content?.trim();
-    if (!content) return { intent: classifyIntentFallback(message), confidence: 0.5 };
+    if (!content) {
+      console.log('[IntentClassifier] LLM returned empty content');
+      return { intent: classifyIntentFallback(message), confidence: 0.5 };
+    }
 
     const jsonMatch = content.match(/\{[^}]+\}/);
-    if (!jsonMatch) return { intent: classifyIntentFallback(message), confidence: 0.5 };
+    if (!jsonMatch) {
+      console.log('[IntentClassifier] LLM response not JSON:', content.slice(0, 80));
+      return { intent: classifyIntentFallback(message), confidence: 0.5 };
+    }
 
     const parsed = JSON.parse(jsonMatch[0]) as { intent?: string; confidence?: number };
     const intent = parsed.intent as Intent;
@@ -48,6 +54,7 @@ export async function classifyIntentAsync(message: string): Promise<{ intent: In
       return { intent, confidence };
     }
 
+    console.log('[IntentClassifier] LLM returned invalid intent:', parsed.intent);
     return { intent: classifyIntentFallback(message), confidence: 0.5 };
   } catch (err) {
     console.error('[IntentClassifier] LLM classification failed, using fallback:', (err as Error).message);

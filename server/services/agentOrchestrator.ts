@@ -311,7 +311,12 @@ async function* handleLane0(
       }
       narration += `\n\n**Recommended actions:**`;
       narration += `\n1. **Automate contributions** — set up recurring monthly transfers to a dedicated savings account`;
-      narration += `\n2. **Review your cash allocation** — your portfolio has a high cash position (${((Number((data as Record<string, unknown>)?.cashPercent ?? 66)) ).toFixed(0)}%) that could work harder in short-term bonds or money market funds`;
+      const cashPct = (data as Record<string, unknown>)?.cashPercent;
+      if (cashPct !== undefined && Number(cashPct) > 30) {
+        narration += `\n2. **Review your cash allocation** — your portfolio has a ${Number(cashPct).toFixed(0)}% cash position that could work harder in short-term bonds or money market funds`;
+      } else {
+        narration += `\n2. **Review your allocation mix** — ensure your asset allocation aligns with your risk profile and timeline`;
+      }
       narration += `\n3. **Reduce discretionary spending** — identify 2–3 areas to redirect toward goals`;
       narration += `\n4. **Consolidate high-interest debt** — free up cash flow for savings`;
       narration += `\n\nWould you like me to draft a specific savings plan to share with your Relationship Manager for review and execution?`;
