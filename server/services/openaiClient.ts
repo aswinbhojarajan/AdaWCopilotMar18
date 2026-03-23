@@ -229,6 +229,11 @@ async function* anthropicStreamCompletion(
 }
 
 function isProviderError(err: unknown): boolean {
+  if (err && typeof err === 'object' && 'status' in err) {
+    const status = (err as { status: number }).status;
+    if (status >= 429 || status === 0) return true;
+  }
+
   if (err instanceof Error) {
     const msg = err.message.toLowerCase();
     return (
@@ -236,12 +241,18 @@ function isProviderError(err: unknown): boolean {
       msg.includes('abort') ||
       msg.includes('econnrefused') ||
       msg.includes('econnreset') ||
+      msg.includes('enotfound') ||
       msg.includes('socket hang up') ||
+      msg.includes('fetch failed') ||
+      msg.includes('network') ||
       msg.includes('429') ||
       msg.includes('500') ||
       msg.includes('502') ||
       msg.includes('503') ||
-      msg.includes('rate limit')
+      msg.includes('504') ||
+      msg.includes('rate limit') ||
+      msg.includes('service unavailable') ||
+      msg.includes('internal server error')
     );
   }
   return false;

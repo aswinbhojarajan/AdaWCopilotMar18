@@ -207,8 +207,17 @@ export function getClassifierContext(): string {
     'ROUTING LANES:',
     ...laneLines,
     '',
-    'INTENT→LANE MAPPING:',
+    'INTENT→LANE MAPPING (internal routing taxonomy):',
     ...intentLines,
+    '',
+    'CLASSIFIER→ROUTING TRANSLATION:',
+    '- portfolio → balance_query, portfolio_health, or allocation_breakdown',
+    '- goals → goal_progress',
+    '- market → market_query',
+    '- scenario → scenario_analysis',
+    '- recommendation → recommendation_request',
+    '- execution_request → execution_request',
+    '- general → other or support',
   ].join('\n');
 }
 
