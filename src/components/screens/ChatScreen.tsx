@@ -158,7 +158,7 @@ export function ChatScreen({
   const { streamMessage } = useStreamingChat();
 
   useEffect(() => {
-    fetch('/api/me', { headers: { 'x-user-id': localStorage.getItem('ada-user-id') || '' } })
+    fetch('/api/me', { headers: { 'x-user-id': localStorage.getItem('ada-active-user-id') || '' } })
       .then(r => r.json())
       .then(data => {
         if (data?.capabilities?.verbose_mode) setVerboseModeAvailable(true);
