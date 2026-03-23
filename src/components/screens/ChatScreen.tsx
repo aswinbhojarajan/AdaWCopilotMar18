@@ -374,9 +374,15 @@ export function ChatScreen({
                   <div className="content-stretch flex flex-col items-start p-[8px] relative w-full">
                     <div className="content-stretch flex flex-col gap-[8px] items-end relative shrink-0 w-full">
                       {messages.map((msg, index) => {
-                        const isLastUserBeforeStream = isTyping && msg.sender === 'user' && index === messages.length - 1;
+                        const showThinkingAbove = verbose && thinkingSteps.length > 0 && (
+                          (isTyping && msg.sender === 'user' && index === messages.length - 1) ||
+                          (!isTyping && msg.sender === 'assistant' && index === messages.length - 1)
+                        );
                         return (
                           <React.Fragment key={msg.id}>
+                            {showThinkingAbove && !isTyping && (
+                              <ThinkingPanel steps={thinkingSteps} isStreaming={false} />
+                            )}
                             <ChatMessage
                               message={msg.message}
                               sender={msg.sender}
@@ -389,16 +395,12 @@ export function ChatScreen({
                                   : undefined
                               }
                             />
-                            {isLastUserBeforeStream && verbose && thinkingSteps.length > 0 && (
-                              <ThinkingPanel steps={thinkingSteps} isStreaming={isTyping} />
+                            {showThinkingAbove && isTyping && (
+                              <ThinkingPanel steps={thinkingSteps} isStreaming={true} />
                             )}
                           </React.Fragment>
                         );
                       })}
-
-                      {!isTyping && verbose && thinkingSteps.length > 0 && (
-                        <ThinkingPanel steps={thinkingSteps} isStreaming={false} />
-                      )}
 
                       {isTyping && messages[messages.length - 1]?.sender !== 'assistant' && (
                         <div className="self-start max-w-[85%]">

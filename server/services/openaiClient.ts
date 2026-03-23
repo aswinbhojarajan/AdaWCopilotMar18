@@ -80,6 +80,18 @@ async function anthropicCompletion(
     const textContent = response.content.find(c => c.type === 'text');
     const text = textContent?.type === 'text' ? textContent.text : '';
 
+    const toolUseBlocks = response.content.filter(c => c.type === 'tool_use');
+    const toolCalls = toolUseBlocks.length > 0
+      ? toolUseBlocks.map((block, i) => {
+          const tu = block as Anthropic.Messages.ToolUseBlock;
+          return {
+            id: tu.id,
+            type: 'function' as const,
+            function: { name: tu.name, arguments: JSON.stringify(tu.input) },
+          };
+        })
+      : undefined;
+
     return {
       id: response.id,
       object: 'chat.completion',
@@ -87,8 +99,13 @@ async function anthropicCompletion(
       model: response.model,
       choices: [{
         index: 0,
-        message: { role: 'assistant', content: text, refusal: null },
-        finish_reason: response.stop_reason === 'end_turn' ? 'stop' : 'stop',
+        message: {
+          role: 'assistant',
+          content: text || null,
+          refusal: null,
+          ...(toolCalls ? { tool_calls: toolCalls } : {}),
+        },
+        finish_reason: response.stop_reason === 'tool_use' ? 'tool_calls' : 'stop',
         logprobs: null,
       }],
       usage: {
@@ -124,6 +141,7 @@ async function* anthropicStreamCompletion(
 
     let inputTokens = 0;
     let outputTokens = 0;
+    let toolCallIndex = -1;
 
     for await (const event of stream) {
       if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
@@ -135,6 +153,46 @@ async function* anthropicStreamCompletion(
           choices: [{
             index: 0,
             delta: { content: event.delta.text },
+            finish_reason: null,
+            logprobs: null,
+          }],
+        };
+      } else if (event.type === 'content_block_start' && event.content_block.type === 'tool_use') {
+        toolCallIndex++;
+        const block = event.content_block;
+        yield {
+          id: `chatcmpl-anthropic-${Date.now()}`,
+          object: 'chat.completion.chunk' as const,
+          created: Math.floor(Date.now() / 1000),
+          model: ANTHROPIC_FALLBACK_MODEL,
+          choices: [{
+            index: 0,
+            delta: {
+              tool_calls: [{
+                index: toolCallIndex,
+                id: block.id,
+                type: 'function' as const,
+                function: { name: block.name, arguments: '' },
+              }],
+            },
+            finish_reason: null,
+            logprobs: null,
+          }],
+        };
+      } else if (event.type === 'content_block_delta' && event.delta.type === 'input_json_delta') {
+        yield {
+          id: `chatcmpl-anthropic-${Date.now()}`,
+          object: 'chat.completion.chunk' as const,
+          created: Math.floor(Date.now() / 1000),
+          model: ANTHROPIC_FALLBACK_MODEL,
+          choices: [{
+            index: 0,
+            delta: {
+              tool_calls: [{
+                index: toolCallIndex,
+                function: { arguments: event.delta.partial_json },
+              }],
+            },
             finish_reason: null,
             logprobs: null,
           }],
