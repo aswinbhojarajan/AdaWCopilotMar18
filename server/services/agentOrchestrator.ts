@@ -17,6 +17,7 @@ import type { ProviderRegistry } from '../providers/types';
 import { evaluatePolicy } from './policyEngine';
 import { buildAgentPrompt } from './promptBuilder';
 import {
+  selectModel,
   buildScorecard,
   routeRequest,
   resolveModel,
@@ -139,8 +140,8 @@ function extractSymbols(message: string): string[] {
   return matches.filter(m => !commonWords.has(m));
 }
 
-async function buildIntentClassification(message: string, userId?: string): Promise<IntentClassification> {
-  const { intent: oldIntent, confidence: llmConfidence } = await intentClassifier.classifyIntentAsync(message, userId);
+async function buildIntentClassification(message: string): Promise<IntentClassification> {
+  const { intent: oldIntent, confidence: llmConfidence } = await intentClassifier.classifyIntentAsync(message);
   const primaryIntent = mapOldIntentToNew(oldIntent, message);
   const effort = inferReasoningEffort(primaryIntent, message);
   const symbols = extractSymbols(message);
@@ -162,25 +163,8 @@ async function buildIntentClassification(message: string, userId?: string): Prom
 
 const PREFETCH_INTENTS = new Set<IntentClassification['primary_intent']>([
   'balance_query', 'portfolio_explain', 'portfolio_health', 'recommendation_request',
-  'allocation_breakdown', 'market_news', 'goal_progress',
+  'allocation_breakdown',
 ]);
-
-const FAST_PATH_REQUIRED_SOURCES: Record<string, string[]> = {
-  balance_query: ['portfolio_api'],
-  allocation_breakdown: ['portfolio_api'],
-  goal_progress: ['portfolio_api'],
-};
-
-function isFastPathPrefetchComplete(
-  intent: IntentClassification['primary_intent'],
-  results: ToolResult[],
-): boolean {
-  const required = FAST_PATH_REQUIRED_SOURCES[intent];
-  if (!required) return false;
-  return required.every(sourceType =>
-    results.some(r => r.status === 'ok' && r.data && r.source_type === sourceType),
-  );
-}
 
 async function prefetchToolData(
   intent: IntentClassification,
@@ -198,35 +182,8 @@ async function prefetchToolData(
   if (allowedTools.includes('getPortfolioSnapshot')) {
     prefetchJobs.push({ name: 'getPortfolioSnapshot', promise: executeFinancialTool('getPortfolioSnapshot', {}, userId, registry, riskLevel) });
   }
-  let holdingsPromise: Promise<ToolResult> | null = null;
-  if (allowedTools.includes('getHoldings') && intent.primary_intent !== 'balance_query' && intent.primary_intent !== 'goal_progress') {
-    holdingsPromise = executeFinancialTool('getHoldings', {}, userId, registry, riskLevel);
-    prefetchJobs.push({ name: 'getHoldings', promise: holdingsPromise });
-  }
-
-  if (intent.primary_intent === 'market_news') {
-    if (allowedTools.includes('getHoldingsRelevantNews')) {
-      prefetchJobs.push({ name: 'getHoldingsRelevantNews', promise: executeFinancialTool('getHoldingsRelevantNews', {}, userId, registry, riskLevel) });
-    }
-    if (allowedTools.includes('getQuotes')) {
-      const symbolSource = holdingsPromise
-        ? holdingsPromise.then(r => {
-            if (r.status === 'ok' && Array.isArray(r.data)) {
-              return (r.data as Array<{ symbol: string }>).map(h => h.symbol);
-            }
-            return [];
-          })
-        : Promise.resolve([] as string[]);
-      prefetchJobs.push({
-        name: 'getQuotes',
-        promise: symbolSource.then(holdingSymbols => {
-          const messageSymbols = intent.entities.symbols;
-          const allSymbols = [...new Set([...holdingSymbols, ...messageSymbols])];
-          if (allSymbols.length === 0) return { status: 'ok' as const, source_name: 'skip', source_type: 'skip', as_of: new Date().toISOString(), latency_ms: 0, data: null };
-          return executeFinancialTool('getQuotes', { symbols: allSymbols }, userId, registry, riskLevel);
-        }),
-      });
-    }
+  if (allowedTools.includes('getHoldings') && intent.primary_intent !== 'balance_query') {
+    prefetchJobs.push({ name: 'getHoldings', promise: executeFinancialTool('getHoldings', {}, userId, registry, riskLevel) });
   }
 
   const settled = await Promise.all(
@@ -268,6 +225,222 @@ async function prefetchToolData(
   return { results, enrichment };
 }
 
+async function* handleLane0(
+  userId: string,
+  intent: IntentClassification,
+  registry: ProviderRegistry,
+  riskLevel: string,
+  scorecard: RequestScorecard,
+  route: RouteDecision,
+  threadId: string,
+  messageId: string,
+  sanitizedMessage: string,
+  tenantConfig: TenantConfig,
+  policyDecision: PolicyDecision,
+  timings: StepTimings,
+  startTime: number,
+): AsyncGenerator<StreamEvent> {
+  const prefetchStart = Date.now();
+  const needsHoldings = intent.primary_intent === 'portfolio_explain' || intent.primary_intent === 'allocation_breakdown';
+  const needsGoals = intent.primary_intent === 'goal_progress';
+
+  const toolPromises: Array<{ name: string; promise: Promise<ToolResult> }> = [
+    { name: 'getPortfolioSnapshot', promise: executeFinancialTool('getPortfolioSnapshot', {}, userId, registry, riskLevel) },
+  ];
+  if (needsHoldings) {
+    toolPromises.push({ name: 'getHoldings', promise: executeFinancialTool('getHoldings', {}, userId, registry, riskLevel) });
+  }
+
+  const goalsPromise = needsGoals
+    ? import('../repositories/portfolioRepository').then(repo => repo.getGoalsByUserId(userId))
+    : Promise.resolve(null);
+
+  const [settled, goalsData] = await Promise.all([
+    Promise.all(toolPromises.map(async (j) => {
+      const start = Date.now();
+      const result = await j.promise;
+      result.latency_ms = Date.now() - start;
+      return { name: j.name, result };
+    })),
+    goalsPromise,
+  ]);
+  timings.tool_execution_ms = Date.now() - prefetchStart;
+
+  const snapshotResult = settled.find(s => s.name === 'getPortfolioSnapshot')!.result;
+  const holdingsResult = settled.find(s => s.name === 'getHoldings')?.result;
+  const allToolResults = settled.map(s => s.result);
+
+  const data = snapshotResult.data as Record<string, unknown> | null;
+  if (!data || snapshotResult.status !== 'ok') {
+    yield { type: 'text', content: 'I was unable to retrieve your portfolio data right now. Please try again shortly.' };
+    yield { type: 'done' };
+    return;
+  }
+
+  const totalValue = Number(data.totalValue ?? data.total_value ?? 0);
+  const dailyChange = Number(data.dailyChangeAmount ?? data.daily_change_amount ?? 0);
+  const dailyChangePct = Number(data.dailyChangePercent ?? data.daily_change_percent ?? 0);
+  const changeDir = dailyChange >= 0 ? 'up' : 'down';
+
+  let narration = '';
+  let suggestions: string[] = [];
+  const widgets: { type: string; [key: string]: unknown }[] = [];
+
+  const fmtUsd = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  if (intent.primary_intent === 'goal_progress' && goalsData) {
+    const goals = goalsData as Array<{ title?: string; target_amount?: number; current_amount?: number; deadline?: string; icon_name?: string; color?: string }>;
+    const adviceKeywords = ['accelerate', 'improve', 'grow', 'increase', 'boost', 'faster', 'optimize', 'how can i', 'what can i do', 'tips', 'strategy', 'advice', 'save more'];
+    const isAdviceQuery = adviceKeywords.some(k => sanitizedMessage.toLowerCase().includes(k));
+
+    if (goals.length === 0) {
+      narration = 'You don\'t have any goals set up yet. Would you like to create one?';
+    } else if (isAdviceQuery) {
+      narration = `Here are actionable steps to accelerate your savings based on your current goals:\n`;
+      for (const g of goals) {
+        const target = Number(g.target_amount ?? 0);
+        const current = Number(g.current_amount ?? 0);
+        const remaining = Math.max(0, target - current);
+        const pct = target > 0 ? Math.round((current / target) * 100) : 0;
+        narration += `\n**${g.title}** (${pct}% complete, ${fmtUsd(remaining)} remaining)`;
+        if (g.deadline) {
+          const deadlineDate = new Date(g.deadline);
+          const monthsLeft = Math.max(1, Math.round((deadlineDate.getTime() - Date.now()) / (30.44 * 24 * 60 * 60 * 1000)));
+          const monthlyNeeded = remaining / monthsLeft;
+          narration += `\n- Target monthly contribution: ~${fmtUsd(monthlyNeeded)} over ${monthsLeft} months`;
+        }
+      }
+      narration += `\n\n**Recommended actions:**`;
+      narration += `\n1. **Automate contributions** — set up recurring monthly transfers to a dedicated savings account`;
+      const cashPct = (data as Record<string, unknown>)?.cashPercent;
+      if (cashPct !== undefined && Number(cashPct) > 30) {
+        narration += `\n2. **Review your cash allocation** — your portfolio has a ${Number(cashPct).toFixed(0)}% cash position that could work harder in short-term bonds or money market funds`;
+      } else {
+        narration += `\n2. **Review your allocation mix** — ensure your asset allocation aligns with your risk profile and timeline`;
+      }
+      narration += `\n3. **Reduce discretionary spending** — identify 2–3 areas to redirect toward goals`;
+      narration += `\n4. **Consolidate high-interest debt** — free up cash flow for savings`;
+      narration += `\n\nWould you like me to draft a specific savings plan to share with your Relationship Manager for review and execution?`;
+    } else {
+      narration = `You have **${goals.length} goal${goals.length > 1 ? 's' : ''}** in progress:`;
+      for (const g of goals) {
+        const target = Number(g.target_amount ?? 0);
+        const current = Number(g.current_amount ?? 0);
+        const pct = target > 0 ? Math.round((current / target) * 100) : 0;
+        narration += `\n- **${g.title}**: ${fmtUsd(current)} / ${fmtUsd(target)} (${pct}% complete)`;
+      }
+    }
+    widgets.push({
+      type: 'goal_progress',
+      goals: (goalsData as Array<Record<string, unknown>>).map(g => ({
+        title: g.title, target_amount: g.target_amount,
+        current_amount: g.current_amount, deadline: g.deadline,
+      })),
+    });
+    suggestions = isAdviceQuery
+      ? ['Draft a savings plan for my RM', 'Show my goal progress', 'What if I increase contributions by 20%?']
+      : ['How can I accelerate my savings?', 'What happens if I miss my deadline?', 'Create a new goal'];
+
+  } else if (intent.primary_intent === 'allocation_breakdown' && holdingsResult?.status === 'ok') {
+    const holdings = holdingsResult.data as Array<{ symbol?: string; name?: string; value?: number; asset_class?: string; assetClass?: string }> | null;
+    narration = `Your portfolio is valued at **${fmtUsd(totalValue)}**. Here's your allocation breakdown:`;
+
+    if (Array.isArray(holdings) && holdings.length > 0) {
+      const byClass: Record<string, number> = {};
+      for (const h of holdings) {
+        const cls = (h.assetClass as string) || (h.asset_class as string) || 'Other';
+        byClass[cls] = (byClass[cls] ?? 0) + Number(h.value ?? 0);
+      }
+      const sorted = Object.entries(byClass).sort((a, b) => b[1] - a[1]);
+      for (const [cls, val] of sorted) {
+        const pct = totalValue > 0 ? ((val / totalValue) * 100).toFixed(1) : '0.0';
+        narration += `\n- **${cls}**: ${fmtUsd(val)} (${pct}%)`;
+      }
+      widgets.push({
+        type: 'allocation_chart',
+        allocations: sorted.map(([asset_class, value]) => ({
+          asset_class, value,
+          percentage: totalValue > 0 ? Number(((value / totalValue) * 100).toFixed(1)) : 0,
+        })),
+      });
+    }
+    suggestions = ['Is my allocation balanced?', 'Should I diversify more?', 'What does a healthy allocation look like?'];
+
+  } else if (intent.primary_intent === 'portfolio_explain' && holdingsResult?.status === 'ok') {
+    narration = `Your portfolio is currently valued at **${fmtUsd(totalValue)}**. It's ${changeDir} **${Math.abs(dailyChangePct).toFixed(2)}%** (${fmtUsd(Math.abs(dailyChange))}) today.`;
+
+    const holdings = holdingsResult.data as Array<{ symbol?: string; name?: string; value?: number; changePercent?: number; daily_change_percent?: number }> | null;
+    if (Array.isArray(holdings) && holdings.length > 0) {
+      narration += '\n\n**Your Holdings:**';
+      for (const h of holdings.slice(0, 10)) {
+        const hVal = Number(h.value ?? 0);
+        const hChg = Number(h.changePercent ?? h.daily_change_percent ?? 0);
+        const hDir = hChg >= 0 ? '+' : '';
+        narration += `\n- **${h.symbol || h.name}**: ${fmtUsd(hVal)} (${hDir}${hChg.toFixed(1)}%)`;
+      }
+    }
+    widgets.push({
+      type: 'holdings_summary',
+      holdings: (holdings ?? []).slice(0, 10).map(h => ({
+        symbol: h.symbol, name: h.name, value: h.value,
+        daily_change_percent: h.daily_change_percent,
+      })),
+    });
+    suggestions = ['Is my portfolio well-diversified?', 'What are the top movers today?', 'Should I rebalance anything?'];
+
+  } else {
+    narration = `Your portfolio is currently valued at **${fmtUsd(totalValue)}**. It's ${changeDir} **${Math.abs(dailyChangePct).toFixed(2)}%** (${fmtUsd(Math.abs(dailyChange))}) today.`;
+    widgets.push({
+      type: 'portfolio_summary',
+      total_value: totalValue,
+      daily_change_amount: dailyChange,
+      daily_change_percent: dailyChangePct,
+    });
+    suggestions = ['How are my holdings performing?', 'Is my portfolio well-diversified?', 'What market news affects me today?'];
+  }
+
+  const guardrailResult = runPostChecks(narration, tenantConfig, policyDecision, allToolResults);
+  if (!guardrailResult.passed) {
+    narration = guardrailResult.sanitizedText;
+  }
+  if (guardrailResult.appendedDisclosures.length > 0) {
+    narration += '\n\n' + guardrailResult.appendedDisclosures.join(' ');
+  }
+
+  yield { type: 'text', content: narration };
+
+  for (const w of widgets) {
+    yield { type: 'widget', widget: w };
+  }
+
+  yield { type: 'suggested_questions', suggestedQuestions: suggestions };
+
+  const fullResponse = narration;
+  const widgetsJson = widgets.length > 0 ? JSON.stringify(widgets) : null;
+  memoryService.addToWorkingMemory(threadId, { role: 'assistant', content: fullResponse });
+  await contentRepo.insertChatMessageWithWidgets(threadId, 'assistant', fullResponse, widgetsJson);
+  await contentRepo.updateThreadPreview(threadId, fullResponse.slice(0, 100));
+
+  timings.total_ms = Date.now() - startTime;
+
+  const traceCtx: TraceContext = { conversationId: threadId, messageId, tenantId: tenantConfig.tenant_id, userId };
+  logAgentTrace({
+    ctx: traceCtx,
+    intent,
+    policyDecision,
+    modelName: 'deterministic',
+    toolSetExposed: [],
+    toolCallsMade: [snapshotResult],
+    responseTimeMs: timings.total_ms,
+    stepTimings: timings,
+    guardrailInterventions: [],
+    escalationDecisions: [],
+    routeDecision: route,
+    scorecard,
+  }).catch(() => {});
+
+  yield { type: 'done' };
+}
 
 async function generateSuggestedQuestions(
   conversationHistory: OpenAI.ChatCompletionMessageParam[],
@@ -330,7 +503,7 @@ export async function* orchestrateStream(
   });
 
   const intentStart = Date.now();
-  const intent = await buildIntentClassification(sanitizedMessage, userId);
+  const intent = await buildIntentClassification(sanitizedMessage);
   timings.intent_classification_ms = Date.now() - intentStart;
   console.log('[Orchestrator] intent=%s confidence=%s lane=%s ms=%d', intent.primary_intent, intent.confidence, intent.suggested_tools.length > 0 ? 'lane1+' : 'tbd', timings.intent_classification_ms);
 
@@ -382,9 +555,9 @@ export async function* orchestrateStream(
   const channel = req.context?.sourceScreen ?? 'chat';
   const scorecard = buildScorecard(intent, channel);
   const route = routeRequest(scorecard, policyDecision);
-  console.log('[Orchestrator] route=%s model=%s fast_path=%s', route.lane, route.provider_alias, route.fast_path);
+  console.log('[Orchestrator] route=%s model=%s', route.lane, route.provider_alias);
 
-  yield* thinkingEvent(verbose, 'routing', `Lane: ${route.lane}, model: ${route.provider_alias}${route.fast_path ? ' [FAST PATH]' : ''} (${getCapabilitySummary(route.provider_alias)})`);
+  yield* thinkingEvent(verbose, 'routing', `Lane: ${route.lane}, model: ${route.provider_alias} (${getCapabilitySummary(route.provider_alias)})`);
   if (verbose) {
     await new Promise(r => setImmediate(r));
   }
@@ -396,6 +569,27 @@ export async function* orchestrateStream(
   await contentRepo.insertChatMessage(threadId, 'user', req.message);
   memoryService.addToWorkingMemory(threadId, { role: 'user', content: sanitizedMessage });
 
+  const ENTITY_KEYWORDS = ['tech', 'technology', 'healthcare', 'energy', 'financial', 'real estate', 'consumer',
+    'industrial', 'telecom', 'utilities', 'materials', 'us ', 'europe', 'asia', 'gcc', 'emerging',
+    'specific', 'individual', 'particular', 'which stock', 'which fund', 'aapl', 'msft', 'nvda', 'goog', 'amzn'];
+  const hasEntityQuery = ENTITY_KEYWORDS.some(k => sanitizedMessage.toLowerCase().includes(k));
+
+  if (route.lane === 'lane0' && !hasEntityQuery) {
+    yield* thinkingEvent(verbose, 'lane0_dispatch', 'Deterministic path — no LLM needed for this query');
+    if (verbose) {
+      await new Promise(r => setImmediate(r));
+    }
+    yield* handleLane0(
+      userId, intent, registry, riskLevel, scorecard, route,
+      threadId, messageId, sanitizedMessage,
+      tenantConfig, policyDecision, timings, startTime,
+    );
+    return;
+  }
+  if (hasEntityQuery && route.lane === 'lane0') {
+    console.log('[Orchestrator] Entity-specific query detected, upgrading from Lane 0 to Lane 1');
+    yield* thinkingEvent(verbose, 'lane_upgrade', 'Entity-specific query detected, upgrading from Lane 0 to Lane 1');
+  }
 
   const getToolName = (t: OpenAI.ChatCompletionTool): string => t.type === 'function' ? t.function.name : '';
   const allToolNames = [
@@ -408,10 +602,9 @@ export async function* orchestrateStream(
     : policyFilteredTools;
   const tools = getToolDefinitions(allowedToolNames);
 
-  const routeModel = resolveModel(route.provider_alias);
-  const routeLabel = route.lane === 'lane2' ? 'strong' : 'fast';
+  const modelSelection = selectModel(intent, policyDecision, intent.suggested_tools.length, channel);
 
-  yield* thinkingEvent(verbose, 'model_selection', `Model: ${routeModel} (${routeLabel}), max tokens: ${route.max_tokens}, tools: ${allowedToolNames.length}`);
+  yield* thinkingEvent(verbose, 'model_selection', `Model: ${modelSelection.model} (${modelSelection.label}), max tokens: ${modelSelection.max_tokens}, tools: ${allowedToolNames.length}`);
 
   const prefetchStart = Date.now();
   yield* thinkingEvent(verbose, 'data_prefetch', `Fetching portfolio context, memories, and pre-running ${allowedToolNames.length} tools`);
@@ -440,21 +633,6 @@ export async function* orchestrateStream(
     }
   }
 
-  for (const result of prefetched.results) {
-    if (result.status !== 'ok' || !result.data) continue;
-    if (result.source_type === 'wealth_engine') continue;
-    if (result.source_type === 'news_api') {
-      enrichmentContext += `\n\nMARKET NEWS (pre-fetched):\n${JSON.stringify(result.data, null, 1)}`;
-    } else if (result.source_type === 'market_api') {
-      enrichmentContext += `\n\nMARKET QUOTES (pre-fetched):\n${JSON.stringify(result.data, null, 1)}`;
-    } else if (result.source_type === 'portfolio_api') {
-      enrichmentContext += `\n\nPORTFOLIO DATA (pre-fetched):\n${JSON.stringify(result.data, null, 1)}`;
-    }
-  }
-
-  const fastPathActive = route.fast_path && isFastPathPrefetchComplete(intent.primary_intent, prefetched.results);
-  const promptToolNames = fastPathActive ? [] : allowedToolNames;
-
   const systemPrompt = buildAgentPrompt({
     tenantConfig,
     policyDecision,
@@ -474,7 +652,7 @@ export async function* orchestrateStream(
       title: req.context.title,
       sourceScreen: req.context.sourceScreen,
     } : undefined,
-    toolNames: promptToolNames,
+    toolNames: allowedToolNames,
     providerAlias: route.provider_alias,
   });
 
@@ -492,32 +670,28 @@ export async function* orchestrateStream(
 
   try {
     const llmStart = Date.now();
-    yield* thinkingEvent(verbose, 'llm_generation', `Streaming response from ${routeModel}...`);
+    yield* thinkingEvent(verbose, 'llm_generation', `Streaming response from ${modelSelection.model}...`);
 
     const MAX_TOOL_TURNS = 3;
     let currentMessages = [...messages];
     let turnCount = 0;
     let isLastTurn = false;
-    let earlySuggestPromise: ReturnType<typeof generateSuggestedQuestions> | null = null;
 
     while (turnCount < MAX_TOOL_TURNS) {
       turnCount++;
 
       const skipTools = intent.primary_intent === 'other' || intent.primary_intent === 'support';
-      const useTools = tools.length > 0 && turnCount === 1 && !skipTools && !fastPathActive;
+      const useTools = tools.length > 0 && turnCount === 1 && !skipTools;
 
-      const effectiveMaxTokens = fastPathActive ? 1024 : route.max_tokens;
       const createLLMStream = (attempt: number) => {
-        const baseTimeout = fastPathActive ? 8000 : 15000;
-        const retryTimeout = fastPathActive ? 10000 : 20000;
-        const timeoutMs = attempt === 1 ? baseTimeout : retryTimeout;
+        const timeoutMs = attempt === 1 ? 15000 : 20000;
         return resilientStreamCompletion({
-          model: routeModel,
+          model: modelSelection.model,
           messages: currentMessages,
           tools: useTools ? tools : undefined,
           stream: true,
-          max_completion_tokens: effectiveMaxTokens,
-        }, { timeoutMs, providerAlias: route.provider_alias });
+          max_completion_tokens: modelSelection.max_tokens,
+        }, { timeoutMs, providerAlias: modelSelection.provider_alias });
       };
 
       let response;
@@ -561,9 +735,6 @@ export async function* orchestrateStream(
         if (delta.content) {
           turnBuffer += delta.content;
           yield { type: 'text', content: delta.content };
-          if (!earlySuggestPromise && turnBuffer.length >= 200) {
-            earlySuggestPromise = generateSuggestedQuestions(conversationHistory, turnBuffer, route.provider_alias);
-          }
         }
 
         if (delta.tool_calls) {
@@ -746,8 +917,6 @@ export async function* orchestrateStream(
       yield { type: 'text', content: disclosureText };
     }
 
-    const suggestPromise = earlySuggestPromise ?? generateSuggestedQuestions(conversationHistory, fullResponse, route.provider_alias);
-
     const alreadyHasAdvisorWidget = widgets.some(w => w.type === 'advisor_handoff');
 
     if (intent.primary_intent === 'execution_request' && !alreadyHasAdvisorWidget) {
@@ -783,7 +952,7 @@ export async function* orchestrateStream(
     timings.post_checks_ms = Date.now() - postStart;
     timings.total_ms = Date.now() - startTime;
 
-    const suggestResult = await suggestPromise;
+    const suggestResult = await generateSuggestedQuestions(conversationHistory, fullResponse, modelSelection.provider_alias);
     const suggestedQuestions = suggestResult.questions;
     totalTokens += suggestResult.tokens;
 
@@ -812,7 +981,7 @@ export async function* orchestrateStream(
       ctx: traceCtx,
       intent,
       policyDecision,
-      modelName: routeModel,
+      modelName: modelSelection.model,
       toolSetExposed: allowedToolNames,
       toolCallsMade: toolResults,
       finalAnswer: adaAnswer,
@@ -829,7 +998,7 @@ export async function* orchestrateStream(
       threadId,
       action: 'response_generated',
       intent: intent.primary_intent,
-      model: routeModel,
+      model: modelSelection.model,
       tokensUsed: totalTokens,
     }).catch(() => {});
 

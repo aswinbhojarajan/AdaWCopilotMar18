@@ -1,48 +1,18 @@
 import { resilientCompletion } from './openaiClient';
 import { resolveModel } from './modelRouter';
 import { getClassifierContext } from './capabilityRegistry';
-import { createHash } from 'crypto';
 
 export type Intent = 'portfolio' | 'goals' | 'market' | 'scenario' | 'recommendation' | 'execution_request' | 'general';
 
 const VALID_INTENTS: Intent[] = ['portfolio', 'goals', 'market', 'scenario', 'recommendation', 'execution_request', 'general'];
 
-const INTENT_CACHE_MAX = 50;
-const INTENT_CACHE_TTL_MS = 5 * 60 * 1000;
-interface CachedIntent { intent: Intent; confidence: number; ts: number }
-const intentCache = new Map<string, CachedIntent>();
-
-function getMessageHash(message: string, userId: string): string {
-  return createHash('md5').update(`${userId}:${message.toLowerCase().trim()}`).digest('hex');
-}
-
-function getCachedIntent(message: string, userId: string): { intent: Intent; confidence: number } | null {
-  const hash = getMessageHash(message, userId);
-  const entry = intentCache.get(hash);
-  if (!entry) return null;
-  if (Date.now() - entry.ts > INTENT_CACHE_TTL_MS) {
-    intentCache.delete(hash);
-    return null;
-  }
-  return { intent: entry.intent, confidence: entry.confidence };
-}
-
-function setCachedIntent(message: string, userId: string, intent: Intent, confidence: number): void {
-  const hash = getMessageHash(message, userId);
-  if (intentCache.size >= INTENT_CACHE_MAX) {
-    const firstKey = intentCache.keys().next().value;
-    if (firstKey) intentCache.delete(firstKey);
-  }
-  intentCache.set(hash, { intent, confidence, ts: Date.now() });
-}
-
 function buildClassificationPrompt(): string {
   const routingContext = getClassifierContext();
   return `You are an intent classifier for a wealth management AI copilot. Classify the user's message into exactly ONE of these intents:
 
-- portfolio: Questions about holdings, positions, allocation, performance, account balances, portfolio value, returns, gains/losses, risk metrics, rebalancing, diversification. ONLY when the user wants to see or understand their own portfolio data (e.g., "what's my portfolio?", "show my holdings", "what's my balance?").
+- portfolio: Questions about holdings, positions, allocation, performance, account balances, portfolio value, returns, gains/losses, risk metrics, rebalancing, diversification
 - goals: Questions about financial goals, savings targets, milestones, progress toward goals, accelerating savings, being on/off track, deadlines for financial objectives
-- market: Questions about market conditions, interest rates, economic news, sector trends, forecasts, inflation, GDP. ALSO use for questions about how external events, geopolitics, or economic forces affect a portfolio (e.g., "how does the war impact my portfolio?", "what does inflation mean for my holdings?", "how do tariffs affect me?").
+- market: Questions about market conditions, interest rates, economic news, sector trends, forecasts, inflation, GDP
 - scenario: Questions about projections, retirement planning, what-if analysis, simulations, tax planning, spending models, compound growth, investment growth scenarios
 - recommendation: Requests for investment advice, what to buy/sell, where to put money, which stocks/funds to choose
 - execution_request: Requests to execute trades, place orders, confirm transactions, transfer/wire funds, proceed with a trade
@@ -54,14 +24,7 @@ Respond with ONLY a JSON object: {"intent":"<intent>","confidence":<0.0-1.0>}
 Do not include any other text.`;
 }
 
-export async function classifyIntentAsync(message: string, userId?: string): Promise<{ intent: Intent; confidence: number }> {
-  const uid = userId ?? 'anonymous';
-  const cached = getCachedIntent(message, uid);
-  if (cached) {
-    console.log('[IntentClassifier] Cache hit: intent=%s confidence=%s', cached.intent, cached.confidence);
-    return cached;
-  }
-
+export async function classifyIntentAsync(message: string): Promise<{ intent: Intent; confidence: number }> {
   try {
     const response = await resilientCompletion({
       model: resolveModel('ada-fast'),
@@ -75,17 +38,13 @@ export async function classifyIntentAsync(message: string, userId?: string): Pro
     const content = response.choices[0]?.message?.content?.trim();
     if (!content) {
       console.log('[IntentClassifier] LLM returned empty content');
-      const fallback = classifyIntentFallback(message);
-      setCachedIntent(message, uid, fallback, 0.5);
-      return { intent: fallback, confidence: 0.5 };
+      return { intent: classifyIntentFallback(message), confidence: 0.5 };
     }
 
     const jsonMatch = content.match(/\{[^}]+\}/);
     if (!jsonMatch) {
       console.log('[IntentClassifier] LLM response not JSON:', content.slice(0, 80));
-      const fallback = classifyIntentFallback(message);
-      setCachedIntent(message, uid, fallback, 0.5);
-      return { intent: fallback, confidence: 0.5 };
+      return { intent: classifyIntentFallback(message), confidence: 0.5 };
     }
 
     const parsed = JSON.parse(jsonMatch[0]) as { intent?: string; confidence?: number };
@@ -93,19 +52,14 @@ export async function classifyIntentAsync(message: string, userId?: string): Pro
     const confidence = typeof parsed.confidence === 'number' ? Math.min(1, Math.max(0, parsed.confidence)) : 0.8;
 
     if (VALID_INTENTS.includes(intent)) {
-      setCachedIntent(message, uid, intent, confidence);
       return { intent, confidence };
     }
 
     console.log('[IntentClassifier] LLM returned invalid intent:', parsed.intent);
-    const fallback = classifyIntentFallback(message);
-    setCachedIntent(message, uid, fallback, 0.5);
-    return { intent: fallback, confidence: 0.5 };
+    return { intent: classifyIntentFallback(message), confidence: 0.5 };
   } catch (err) {
     console.error('[IntentClassifier] LLM classification failed, using fallback:', (err as Error).message);
-    const fallback = classifyIntentFallback(message);
-    setCachedIntent(message, uid, fallback, 0.4);
-    return { intent: fallback, confidence: 0.4 };
+    return { intent: classifyIntentFallback(message), confidence: 0.4 };
   }
 }
 
@@ -173,9 +127,6 @@ function classifyIntentFallback(message: string): Intent {
         'economic', 'sector', 'industry', 'trend', 'outlook',
         'forecast', 'news', 'update', 'changed in the market',
         'opportunity', 'gcc', 'emerging', 'correction',
-        'war', 'conflict', 'tariff', 'sanctions', 'geopolitical',
-        'impact on', 'oil price', 'crude', 'commodities', 'recession',
-        'trade war', 'currency', 'central bank',
       ],
     },
   ];
@@ -194,12 +145,6 @@ function classifyIntentFallback(message: string): Intent {
       bestScore = score;
       bestMatch = rule.intent;
     }
-  }
-
-  const GEOPOLITICAL_TERMS = ['war', 'conflict', 'tariff', 'sanctions', 'geopolitical', 'trade war', 'recession', 'crude', 'oil price'];
-  const hasGeopolitical = GEOPOLITICAL_TERMS.some(t => lower.includes(t));
-  if (hasGeopolitical && bestMatch === 'portfolio') {
-    bestMatch = 'market';
   }
 
   return bestMatch;

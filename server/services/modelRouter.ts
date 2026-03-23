@@ -1,7 +1,7 @@
 import type { IntentClassification, PolicyDecision } from '../../shared/schemas/agent';
 import { getModelCapabilities, hasCapability } from './capabilityRegistry';
 
-export type Lane = 'lane1' | 'lane2';
+export type Lane = 'lane0' | 'lane1' | 'lane2';
 export type ProviderAlias = 'ada-fast' | 'ada-reason' | 'ada-fallback';
 export type ToolGroup = 'financial_data' | 'market_intel' | 'ui_actions' | 'crm_actions';
 
@@ -37,6 +37,7 @@ export function supportsStreaming(alias: ProviderAlias): boolean {
 
 export interface RequestScorecard {
   intent: IntentClassification['primary_intent'];
+  requires_deterministic_math: boolean;
   risk_level: 'low' | 'medium' | 'high';
   context_size_estimate: number;
   tool_count_estimate: number;
@@ -52,9 +53,25 @@ export interface RouteDecision {
   max_tokens: number;
   temperature: number;
   reasoning_effort: IntentClassification['reasoning_effort'];
-  fast_path: boolean;
 }
 
+export interface ModelSelection {
+  model: string;
+  label: 'fast' | 'strong';
+  reason: string;
+  max_tokens: number;
+  temperature: number;
+  lane: Lane;
+  provider_alias: ProviderAlias;
+  tool_groups: ToolGroup[];
+}
+
+const DETERMINISTIC_INTENTS = new Set<IntentClassification['primary_intent']>([
+  'balance_query',
+  'portfolio_explain',
+  'goal_progress',
+  'allocation_breakdown',
+]);
 
 const REASONING_INTENTS = new Set<IntentClassification['primary_intent']>([
   'portfolio_health',
@@ -62,17 +79,12 @@ const REASONING_INTENTS = new Set<IntentClassification['primary_intent']>([
   'workflow_request',
 ]);
 
-const FAST_PATH_INTENTS = new Set<IntentClassification['primary_intent']>([
-  'balance_query',
-  'allocation_breakdown',
-  'goal_progress',
-]);
-
 export function buildScorecard(
   intent: IntentClassification,
   channel: string = 'chat',
 ): RequestScorecard {
   const primary = intent.primary_intent;
+  const requiresDeterministicMath = DETERMINISTIC_INTENTS.has(primary);
 
   let riskLevel: RequestScorecard['risk_level'] = 'low';
   if (primary === 'execution_request' || primary === 'recommendation_request') {
@@ -83,6 +95,7 @@ export function buildScorecard(
 
   return {
     intent: primary,
+    requires_deterministic_math: requiresDeterministicMath,
     risk_level: riskLevel,
     context_size_estimate: estimateContextSize(intent),
     tool_count_estimate: intent.suggested_tools.length,
@@ -102,6 +115,18 @@ export function routeRequest(
   scorecard: RequestScorecard,
   policy: PolicyDecision,
 ): RouteDecision {
+  if (scorecard.requires_deterministic_math) {
+    return {
+      lane: 'lane0',
+      rationale: ['Deterministic math — resolved without LLM'],
+      provider_alias: 'ada-fast',
+      tool_groups: [],
+      max_tokens: 1024,
+      temperature: 0.1,
+      reasoning_effort: 'low',
+    };
+  }
+
   if (
     scorecard.risk_level === 'high' ||
     scorecard.tool_count_estimate >= 3 ||
@@ -124,21 +149,38 @@ export function routeRequest(
       max_tokens: 8192,
       temperature: 0.4,
       reasoning_effort: scorecard.reasoning_effort,
-      fast_path: false,
     };
   }
 
-  const isFastPath = FAST_PATH_INTENTS.has(scorecard.intent) && scorecard.reasoning_effort === 'low';
-
   return {
     lane: 'lane1',
-    rationale: isFastPath ? ['Fast-path: simple lookup with pre-fetched data'] : ['Standard query — fast lane'],
+    rationale: ['Standard query — fast lane'],
     provider_alias: 'ada-fast',
-    tool_groups: ['financial_data', 'market_intel', 'ui_actions'],
+    tool_groups: ['financial_data', 'ui_actions'],
     max_tokens: scorecard.reasoning_effort === 'low' ? 2048 : 4096,
     temperature: 0.3,
     reasoning_effort: scorecard.reasoning_effort,
-    fast_path: isFastPath,
+  };
+}
+
+export function selectModel(
+  intent: IntentClassification,
+  policy: PolicyDecision,
+  _toolCount: number,
+  channel: string = 'chat',
+): ModelSelection {
+  const scorecard = buildScorecard(intent, channel);
+  const route = routeRequest(scorecard, policy);
+
+  return {
+    model: resolveModel(route.provider_alias),
+    label: route.lane === 'lane2' ? 'strong' : 'fast',
+    reason: route.rationale.join('; '),
+    max_tokens: route.max_tokens,
+    temperature: route.temperature,
+    lane: route.lane,
+    provider_alias: route.provider_alias,
+    tool_groups: route.tool_groups,
   };
 }
 
