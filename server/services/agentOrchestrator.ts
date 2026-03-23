@@ -189,8 +189,24 @@ async function prefetchToolData(
     if (allowedTools.includes('getHoldingsRelevantNews')) {
       prefetchJobs.push({ name: 'getHoldingsRelevantNews', promise: executeFinancialTool('getHoldingsRelevantNews', {}, userId, registry, riskLevel) });
     }
-    if (allowedTools.includes('getQuotes') && intent.entities.symbols.length > 0) {
-      prefetchJobs.push({ name: 'getQuotes', promise: executeFinancialTool('getQuotes', { symbols: intent.entities.symbols }, userId, registry, riskLevel) });
+    if (allowedTools.includes('getQuotes')) {
+      const holdingsForQuotes = allowedTools.includes('getHoldings')
+        ? executeFinancialTool('getHoldings', {}, userId, registry, riskLevel).then(r => {
+            if (r.status === 'ok' && Array.isArray(r.data)) {
+              return (r.data as Array<{ symbol: string }>).map(h => h.symbol);
+            }
+            return [];
+          })
+        : Promise.resolve([]);
+      prefetchJobs.push({
+        name: 'getQuotes',
+        promise: holdingsForQuotes.then(holdingSymbols => {
+          const messageSymbols = intent.entities.symbols;
+          const allSymbols = [...new Set([...holdingSymbols, ...messageSymbols])];
+          if (allSymbols.length === 0) return { status: 'ok' as const, source_name: 'skip', source_type: 'skip', as_of: new Date().toISOString(), latency_ms: 0, data: null };
+          return executeFinancialTool('getQuotes', { symbols: allSymbols }, userId, registry, riskLevel);
+        }),
+      });
     }
   }
 
