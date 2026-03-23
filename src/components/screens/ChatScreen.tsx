@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TopBar, ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon, ThinkingPanel } from '../ada';
 import type { Message, ChatContext, ChatWidget } from '../../types';
 import { getStreamHeaders } from '../../hooks/api';
+import { useUser } from '../../contexts/UserContext';
 
 interface ThinkingStep {
   step: string;
@@ -157,26 +158,14 @@ export function ChatScreen({
   const threadIdRef = useRef<string>(existingThreadId ?? `thread-${Date.now()}`);
   const { streamMessage } = useStreamingChat();
 
+  const { userId: activeUserId } = useUser();
+
   useEffect(() => {
-    const activeUserId = localStorage.getItem('ada-active-user-id') || '';
     fetch('/api/me', { headers: { 'x-user-id': activeUserId } })
       .then(r => r.json())
-      .then(data => {
-        setVerboseModeAvailable(data?.capabilities?.verbose_mode === true);
-      })
+      .then(data => setVerboseModeAvailable(data?.capabilities?.verbose_mode === true))
       .catch(() => setVerboseModeAvailable(false));
-
-    const onStorageChange = (e: StorageEvent) => {
-      if (e.key === 'ada-active-user-id' && e.newValue) {
-        fetch('/api/me', { headers: { 'x-user-id': e.newValue } })
-          .then(r => r.json())
-          .then(data => setVerboseModeAvailable(data?.capabilities?.verbose_mode === true))
-          .catch(() => setVerboseModeAvailable(false));
-      }
-    };
-    window.addEventListener('storage', onStorageChange);
-    return () => window.removeEventListener('storage', onStorageChange);
-  }, []);
+  }, [activeUserId]);
 
   const toggleVerbose = useCallback(() => {
     setVerbose(prev => {
