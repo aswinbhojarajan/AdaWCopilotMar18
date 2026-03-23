@@ -10,9 +10,9 @@ function buildClassificationPrompt(): string {
   const routingContext = getClassifierContext();
   return `You are an intent classifier for a wealth management AI copilot. Classify the user's message into exactly ONE of these intents:
 
-- portfolio: Questions about holdings, positions, allocation, performance, account balances, portfolio value, returns, gains/losses, risk metrics, rebalancing, diversification
+- portfolio: Questions about holdings, positions, allocation, performance, account balances, portfolio value, returns, gains/losses, risk metrics, rebalancing, diversification. ONLY when the user wants to see or understand their own portfolio data (e.g., "what's my portfolio?", "show my holdings", "what's my balance?").
 - goals: Questions about financial goals, savings targets, milestones, progress toward goals, accelerating savings, being on/off track, deadlines for financial objectives
-- market: Questions about market conditions, interest rates, economic news, sector trends, forecasts, inflation, GDP
+- market: Questions about market conditions, interest rates, economic news, sector trends, forecasts, inflation, GDP. ALSO use for questions about how external events, geopolitics, or economic forces affect a portfolio (e.g., "how does the war impact my portfolio?", "what does inflation mean for my holdings?", "how do tariffs affect me?").
 - scenario: Questions about projections, retirement planning, what-if analysis, simulations, tax planning, spending models, compound growth, investment growth scenarios
 - recommendation: Requests for investment advice, what to buy/sell, where to put money, which stocks/funds to choose
 - execution_request: Requests to execute trades, place orders, confirm transactions, transfer/wire funds, proceed with a trade
