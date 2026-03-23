@@ -1,7 +1,7 @@
 # Backlog — Ada AI Wealth Copilot
 
 > **Living document** — update as new features are proposed, prioritized, or completed.
-> Last updated: 2026-03-22
+> Last updated: 2026-03-23
 
 ---
 
@@ -332,3 +332,6 @@ Enterprise integration layer:
 | — | Portfolio Health Field Mismatch Fix (Task #11) | 2026-03-21 |
 | — | Reduce to 3 Personas (Task #12) | 2026-03-22 |
 | — | Comprehensive Data Integrity Audit | 2026-03-22 |
+| — | Rename Abdullah to Aisha (Task #13) | 2026-03-22 |
+| — | LLM-Based Intent Classification (Task #14) | 2026-03-22 |
+| — | Documentation Audit & LLM Resilience Fix (Task #15) | 2026-03-23 |

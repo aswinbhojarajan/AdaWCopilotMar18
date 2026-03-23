@@ -1,7 +1,7 @@
 # Issues — Ada AI Wealth Copilot
 
 > **Living document** — update continuously as issues are discovered, resolved, or reprioritized.
-> Last updated: 2026-03-22
+> Last updated: 2026-03-23
 
 ---
 
