@@ -39,7 +39,7 @@
 | ID | Title | Description | Component | Date Opened |
 |----|-------|-------------|-----------|-------------|
 | ISS-004 | All external providers default to mock | The 6 external data providers (Finnhub, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE) all default to mock data. Real financial data requires manually setting env vars per provider. Users see simulated data unless configured. | `server/providers/registry.ts` | 2026-03-21 |
-| ~~ISS-005~~ | ~~Model router uses single model for all intents~~ | Resolved — lane-based routing now differentiates Lane 0 (deterministic), Lane 1 (fast), Lane 2 (reasoning). See Task #7. | `server/services/modelRouter.ts` | 2026-03-21 |
+| ~~ISS-005~~ | ~~Model router uses single model for all intents~~ | Resolved — 2-lane routing differentiates Lane 1 (standard) and Lane 2 (reasoning). Both lanes include market_intel tools. See Tasks #7, #18, #19. | `server/services/modelRouter.ts` | 2026-03-21 |
 | ISS-006 | Advisor action queue has no UI for advisors | Execution requests are persisted to `advisor_action_queue` but there is no advisor-facing dashboard to review, approve, or act on queued items. Queue grows without consumption. | `advisor_action_queue` table | 2026-03-21 |
 | ISS-007 | Wealth engine uses mock target allocations | `wealthEngine.ts` uses hardcoded target allocations for drift and rebalance calculations instead of reading from a user-specific target allocation profile. | `server/services/wealthEngine.ts` | 2026-03-21 |
 | ISS-008 | No CSRF protection | Express server has CORS enabled but no CSRF token validation. | `server/index.ts` | 2026-03-21 |

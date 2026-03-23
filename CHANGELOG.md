@@ -4,6 +4,39 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Task #19 — Agent Routing Pipeline Overhaul
+**Date:** March 23, 2026
+
+### Changed
+- **2-lane architecture** — removed Lane 0 dead code (empty `DETERMINISTIC_INTENTS` set, `requires_deterministic_math` scorecard field, Lane 0 branch in `routeRequest()`, Lane 0 entry in `LANE_CONFIGS`). Lane type narrowed from `'lane0' | 'lane1' | 'lane2'` to `'lane1' | 'lane2'`
+- **Lane 1 tool groups expanded** — added `market_intel` to Lane 1's tool groups so market queries (news, quotes) get `getQuotes` and `getHoldingsRelevantNews` tools without requiring Lane 2's heavier budget
+- **PREFETCH_INTENTS expanded** — added `market_news` and `goal_progress`. Market queries now pre-fetch `getHoldingsRelevantNews` (and `getQuotes` when symbols detected). Goal queries pre-fetch `getPortfolioSnapshot`
+- **Double routing eliminated** — removed `selectModel()` function and its redundant `buildScorecard()` + `routeRequest()` calls. Orchestrator now derives model, label, max_tokens, temperature, and provider_alias directly from the single `routeRequest()` result
+- **Classifier context cleaned** — `getClassifierContext()` no longer emits Lane 0 description. Reduced noise in the LLM classifier prompt
+- **Fallback classifier improved** — added 12 geopolitical/macro keywords to market intent (war, conflict, tariff, sanctions, geopolitical, impact, oil, crude, commodities, recession, trade war, currency, central bank). Cross-domain queries like "how does the war affect my portfolio?" now correctly classify as market when the LLM classifier times out
+- **ada-fallback tool capability fixed** — added `tool_calling` to `ada-fallback` (Claude) capability set. Previously missing, which meant tool definitions were silently ignored when falling back to Anthropic
+- **Model alias design documented** — comment block in capability registry explains that ada-fast and ada-reason both use gpt-5-mini intentionally (demo mode: same model, different budget/temperature), with production upgrade instructions
+
+### Removed
+- `selectModel()` function from `modelRouter.ts`
+- `ModelSelection` interface from `modelRouter.ts`
+- `DETERMINISTIC_INTENTS` set from `modelRouter.ts`
+- `requires_deterministic_math` field from `RequestScorecard` interface
+- Lane 0 config from `LANE_CONFIGS` in `capabilityRegistry.ts`
+
+### Documentation
+- Updated PRD Section 5 (Model Router) to reflect 2-lane architecture
+- Updated PRD Section 11 (Implementation Status) Multi-Model Routing row
+- Updated BACKLOG BL-007 description
+- Updated ISSUES ISS-005 resolution text
+- Updated replit.md architecture section
+
+### Validated
+- TypeScript compiles clean
+- All existing pipeline paths preserved (Lane 1, Lane 2, Lane 2→Lane 1 fallback)
+
+---
+
 ## Task #17 — Live Thinking Panel During Streaming
 **Date:** March 23, 2026
 

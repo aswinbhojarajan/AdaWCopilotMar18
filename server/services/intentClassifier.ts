@@ -127,6 +127,9 @@ function classifyIntentFallback(message: string): Intent {
         'economic', 'sector', 'industry', 'trend', 'outlook',
         'forecast', 'news', 'update', 'changed in the market',
         'opportunity', 'gcc', 'emerging', 'correction',
+        'war', 'conflict', 'tariff', 'sanctions', 'geopolitical',
+        'impact on', 'oil price', 'crude', 'commodities', 'recession',
+        'trade war', 'currency', 'central bank',
       ],
     },
   ];

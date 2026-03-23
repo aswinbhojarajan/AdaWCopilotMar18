@@ -17,7 +17,6 @@ import type { ProviderRegistry } from '../providers/types';
 import { evaluatePolicy } from './policyEngine';
 import { buildAgentPrompt } from './promptBuilder';
 import {
-  selectModel,
   buildScorecard,
   routeRequest,
   resolveModel,
@@ -163,7 +162,7 @@ async function buildIntentClassification(message: string): Promise<IntentClassif
 
 const PREFETCH_INTENTS = new Set<IntentClassification['primary_intent']>([
   'balance_query', 'portfolio_explain', 'portfolio_health', 'recommendation_request',
-  'allocation_breakdown',
+  'allocation_breakdown', 'market_news', 'goal_progress',
 ]);
 
 async function prefetchToolData(
@@ -182,8 +181,17 @@ async function prefetchToolData(
   if (allowedTools.includes('getPortfolioSnapshot')) {
     prefetchJobs.push({ name: 'getPortfolioSnapshot', promise: executeFinancialTool('getPortfolioSnapshot', {}, userId, registry, riskLevel) });
   }
-  if (allowedTools.includes('getHoldings') && intent.primary_intent !== 'balance_query') {
+  if (allowedTools.includes('getHoldings') && intent.primary_intent !== 'balance_query' && intent.primary_intent !== 'goal_progress') {
     prefetchJobs.push({ name: 'getHoldings', promise: executeFinancialTool('getHoldings', {}, userId, registry, riskLevel) });
+  }
+
+  if (intent.primary_intent === 'market_news') {
+    if (allowedTools.includes('getHoldingsRelevantNews')) {
+      prefetchJobs.push({ name: 'getHoldingsRelevantNews', promise: executeFinancialTool('getHoldingsRelevantNews', {}, userId, registry, riskLevel) });
+    }
+    if (allowedTools.includes('getQuotes') && intent.entities.symbols.length > 0) {
+      prefetchJobs.push({ name: 'getQuotes', promise: executeFinancialTool('getQuotes', { symbols: intent.entities.symbols }, userId, registry, riskLevel) });
+    }
   }
 
   const settled = await Promise.all(
@@ -365,9 +373,10 @@ export async function* orchestrateStream(
     : policyFilteredTools;
   const tools = getToolDefinitions(allowedToolNames);
 
-  const modelSelection = selectModel(intent, policyDecision, intent.suggested_tools.length, channel);
+  const routeModel = resolveModel(route.provider_alias);
+  const routeLabel = route.lane === 'lane2' ? 'strong' : 'fast';
 
-  yield* thinkingEvent(verbose, 'model_selection', `Model: ${modelSelection.model} (${modelSelection.label}), max tokens: ${modelSelection.max_tokens}, tools: ${allowedToolNames.length}`);
+  yield* thinkingEvent(verbose, 'model_selection', `Model: ${routeModel} (${routeLabel}), max tokens: ${route.max_tokens}, tools: ${allowedToolNames.length}`);
 
   const prefetchStart = Date.now();
   yield* thinkingEvent(verbose, 'data_prefetch', `Fetching portfolio context, memories, and pre-running ${allowedToolNames.length} tools`);
@@ -433,7 +442,7 @@ export async function* orchestrateStream(
 
   try {
     const llmStart = Date.now();
-    yield* thinkingEvent(verbose, 'llm_generation', `Streaming response from ${modelSelection.model}...`);
+    yield* thinkingEvent(verbose, 'llm_generation', `Streaming response from ${routeModel}...`);
 
     const MAX_TOOL_TURNS = 3;
     let currentMessages = [...messages];
@@ -449,12 +458,12 @@ export async function* orchestrateStream(
       const createLLMStream = (attempt: number) => {
         const timeoutMs = attempt === 1 ? 15000 : 20000;
         return resilientStreamCompletion({
-          model: modelSelection.model,
+          model: routeModel,
           messages: currentMessages,
           tools: useTools ? tools : undefined,
           stream: true,
-          max_completion_tokens: modelSelection.max_tokens,
-        }, { timeoutMs, providerAlias: modelSelection.provider_alias });
+          max_completion_tokens: route.max_tokens,
+        }, { timeoutMs, providerAlias: route.provider_alias });
       };
 
       let response;
@@ -715,7 +724,7 @@ export async function* orchestrateStream(
     timings.post_checks_ms = Date.now() - postStart;
     timings.total_ms = Date.now() - startTime;
 
-    const suggestResult = await generateSuggestedQuestions(conversationHistory, fullResponse, modelSelection.provider_alias);
+    const suggestResult = await generateSuggestedQuestions(conversationHistory, fullResponse, route.provider_alias);
     const suggestedQuestions = suggestResult.questions;
     totalTokens += suggestResult.tokens;
 
@@ -744,7 +753,7 @@ export async function* orchestrateStream(
       ctx: traceCtx,
       intent,
       policyDecision,
-      modelName: modelSelection.model,
+      modelName: routeModel,
       toolSetExposed: allowedToolNames,
       toolCallsMade: toolResults,
       finalAnswer: adaAnswer,
@@ -761,7 +770,7 @@ export async function* orchestrateStream(
       threadId,
       action: 'response_generated',
       intent: intent.primary_intent,
-      model: modelSelection.model,
+      model: routeModel,
       tokensUsed: totalTokens,
     }).catch(() => {});
 

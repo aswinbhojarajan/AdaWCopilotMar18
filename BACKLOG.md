@@ -103,7 +103,7 @@ RM-facing features for the Relationship Manager persona:
 **Status:** Complete
 **Priority:** Should Have
 
-~~Optimize cost and quality with model differentiation.~~ Implemented as lane-based control plane with 3 lanes (deterministic/fast/reasoning), request scorecards, provider aliases, and per-lane token budgets. See Task #7.
+~~Optimize cost and quality with model differentiation.~~ Implemented as 2-lane control plane (Lane 1 standard, Lane 2 reasoning) with request scorecards, provider aliases, and per-lane token/temperature budgets. Both lanes have market_intel tool access. All queries route through LLM. See Tasks #7, #18, #19.
 
 ### BL-008: Multi-Tenant Expansion
 **Status:** Proposed

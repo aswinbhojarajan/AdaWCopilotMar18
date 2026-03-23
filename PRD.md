@@ -322,12 +322,11 @@ User Message → PII Detection → Session Hydration → Intent Classification
    - `execution_route`: For execution requests, where to route (rm_handoff, api_webhook, disabled)
    - Feature flags: `allow_simulator`, `allow_widgets`, `allow_fact_extraction`
 
-4. **Model Router** (`modelRouter.ts`): Lane-based multi-model routing with three lanes:
-   - **Lane 0 (Deterministic)**: Portfolio lookups, balance checks — handled by the wealth engine without LLM calls
-   - **Lane 1 (Fast)**: Simple queries using `ada-fast` (→ gpt-5-mini) with lower token budgets
-   - **Lane 2 (Reasoning)**: Complex analysis using `ada-reason` (→ gpt-5-mini) with higher token budgets
+4. **Model Router** (`modelRouter.ts`): Lane-based multi-model routing with two lanes:
+   - **Lane 1 (Standard)**: Standard queries using `ada-fast` (→ gpt-5-mini) with moderate token budgets. Has access to all tool groups: `financial_data`, `market_intel`, and `ui_actions`.
+   - **Lane 2 (Reasoning)**: Complex analysis using `ada-reason` (→ gpt-5-mini) with higher token budgets. Has access to all tool groups including `crm_actions` for execution routing.
    
-   Route selection uses a request scorecard (token estimate, tool count, context window, complexity signals). Provider aliases (`ada-fast`, `ada-reason`, `ada-fallback`) map to underlying models. Per-lane token and temperature budgets are configurable. Lane metadata is logged in agent traces. Fallback chain: ada-fast → ada-fallback, ada-reason → ada-fallback.
+   Route selection uses a request scorecard (token estimate, tool count, context window, complexity signals). Provider aliases (`ada-fast`, `ada-reason`, `ada-fallback`) map to underlying models. In demo mode, both `ada-fast` and `ada-reason` use the same model (gpt-5-mini) with different budget/temperature profiles; in production, `ada-reason` can be upgraded to a stronger model. Per-lane token and temperature budgets are configurable. Lane metadata is logged in agent traces. Fallback chain: ada-fast → ada-fallback, ada-reason → ada-fallback.
 
 5. **Capability Registry** (`capabilityRegistry.ts`): Unified registry mapping:
    - **Model capabilities**: Provider aliases → model IDs, capability sets (streaming, tool_calling, json_mode, reasoning), context windows, cost tiers
@@ -1008,7 +1007,7 @@ main.tsx (QueryClient + prefetch)
 | **Pull-to-Refresh** | Built | Home, Wealth, Discover, Collective screens |
 | **TypeScript Validation** | Built | `tsc --noEmit` passes cleanly, registered as CI validation |
 | **User Switching** | Built | PersonaPicker bottom sheet, X-User-ID header, per-user query isolation, localStorage persistence |
-| **Multi-Model Routing** | Built | Lane-based control plane (Lane 0 deterministic, Lane 1 fast, Lane 2 reasoning) with request scorecards and provider aliases |
+| **Multi-Model Routing** | Built | 2-lane control plane (Lane 1 standard, Lane 2 reasoning) with request scorecards, provider aliases, and per-lane token/temperature budgets. Lane 1 includes market_intel tools. All queries route through LLM. |
 | **LLM Intent Classification** | Built | LLM-first `classifyIntentAsync()` with 3s timeout and keyword fallback. `mapIntentForRag()` prevents double-classification. Lane 2 → Lane 1 fallback on streaming timeout. |
 | **Capability Registry** | Built | Unified model/lane/intent routing registry (`capabilityRegistry.ts`). Provider aliases, fallback chains, classifier context injection. |
 | **Anthropic Fallback** | Built | Automatic fallback to Claude (claude-sonnet-4-6) when OpenAI primary fails. Resilient completion helpers with timeout+retry+fallback for all LLM call sites. |
@@ -1064,3 +1063,5 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-23 | Task #15: Docs Audit & LLM Resilience | Updated all documentation (CHANGELOG, PRD, ISSUES, replit.md) to reflect Tasks #13–14. Added Lane 2 → Lane 1 fallback when both reasoning-model streaming attempts timeout. Added ISS-022 for LLM timeout resilience. |
 | 2026-03-23 | Task #16: AI Orchestration Hardening | Capability registry (`capabilityRegistry.ts`) with model capabilities, lane configs, intent→route mappings, classifier context injection. Anthropic Claude fallback (claude-sonnet-4-6) via Replit AI Integrations. Resilient LLM helpers (`resilientCompletion`, `resilientStreamCompletion`) with timeout+retry+fallback on all call sites. Verbose/thinking mode backend (9 `thinking` SSE events) + frontend (`ThinkingPanel`, "Think" toggle). |
 | 2026-03-23 | Task #17: Live Thinking Panel | Server-side `setImmediate()` async ticks at 4 pipeline boundaries + typed `flush()` after thinking events for reliable SSE chunk separation. New `LiveThinkingBar` component with progressive step reveal (120ms stagger), amber pulsing indicator, step counter. Fixed below chat header during streaming. Post-stream `ThinkingPanel` summary persists as collapsible in-message panel. Toggle edge cases: OFF hides but preserves data, ON restores accumulated steps. |
+| 2026-03-23 | Task #18: Eliminate LLM-Bypass | Removed ~215-line `handleLane0()` function, emptied `DETERMINISTIC_INTENTS`, removed ENTITY_KEYWORDS upgrade logic. All queries now route through LLM. Improved classifier (geopolitical queries → market not portfolio). Updated capabilityRegistry (balance_query, allocation_breakdown, goal_progress → defaultLane:1). |
+| 2026-03-23 | Task #19: Routing Pipeline Overhaul | Removed Lane 0 dead code (type, scorecard field, route branch, lane config). Narrowed Lane type to `lane1 \| lane2`. Added `market_intel` to Lane 1 tool groups. Expanded PREFETCH_INTENTS with `market_news` and `goal_progress`. Eliminated double routing (`selectModel()` removed). Added `tool_calling` to ada-fallback. Added 12 geopolitical keywords to fallback classifier. Documented model alias design intent. Updated all project documentation. |

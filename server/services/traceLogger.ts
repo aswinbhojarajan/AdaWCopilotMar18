@@ -40,7 +40,7 @@ export async function logAgentTrace(params: {
   }
 
   if (params.routeDecision) {
-    timingsRecord['__lane'] = params.routeDecision.lane === 'lane0' ? 0 : params.routeDecision.lane === 'lane1' ? 1 : 2;
+    timingsRecord['__lane'] = params.routeDecision.lane === 'lane1' ? 1 : 2;
     timingsRecord['__max_tokens'] = params.routeDecision.max_tokens;
     timingsRecord['__temperature_x100'] = Math.round(params.routeDecision.temperature * 100);
   }
@@ -56,7 +56,7 @@ export async function logAgentTrace(params: {
     escalations.unshift(`Route: ${params.routeDecision.lane} — ${params.routeDecision.rationale.join('; ')}`);
   }
   if (params.scorecard) {
-    escalations.unshift(`Scorecard: risk=${params.scorecard.risk_level}, deterministic=${params.scorecard.requires_deterministic_math}, tools=${params.scorecard.tool_count_estimate}, channel=${params.scorecard.channel}`);
+    escalations.unshift(`Scorecard: risk=${params.scorecard.risk_level}, tools=${params.scorecard.tool_count_estimate}, channel=${params.scorecard.channel}`);
   }
 
   return saveAgentTrace({

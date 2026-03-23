@@ -17,6 +17,14 @@ export interface ModelCapabilities {
   costTier: 'low' | 'medium' | 'high';
 }
 
+// MODEL ALIAS DESIGN (Demo Mode):
+// ada-fast and ada-reason both map to gpt-5-mini intentionally.
+// The distinction is budget/temperature, not model quality:
+//   - ada-fast: lower token budget (2048-4096), temperature 0.3 — for standard queries
+//   - ada-reason: higher token budget (8192), temperature 0.4 — for complex analysis
+// Production upgrade path: change ada-reason's model to a stronger model
+// (e.g., o3-mini or gpt-5) for genuine reasoning differentiation.
+// ada-fallback uses Anthropic Claude as automatic failover when OpenAI is unavailable.
 const REGISTRY: Record<string, ModelCapabilities> = {
   'ada-fast': {
     alias: 'ada-fast',
@@ -35,7 +43,7 @@ const REGISTRY: Record<string, ModelCapabilities> = {
   'ada-fallback': {
     alias: 'ada-fallback',
     model: 'claude-sonnet-4-6',
-    capabilities: new Set(['streaming', 'reasoning', 'long_context']),
+    capabilities: new Set(['streaming', 'tool_calling', 'reasoning', 'long_context']),
     maxContextTokens: 200000,
     costTier: 'medium',
   },
@@ -59,26 +67,19 @@ export interface IntentRouteConfig {
 }
 
 const LANE_CONFIGS: Record<number, LaneConfig> = {
-  0: {
-    lane: 0,
-    label: 'Fast LLM (Legacy)',
-    description: 'Previously deterministic, now routes to Lane 1 (fast LLM with pre-fetched data). Kept for type compatibility.',
-    providerAlias: 'ada-fast',
-    tools: ['portfolio_read', 'health_compute'],
-  },
   1: {
     lane: 1,
     label: 'Standard LLM',
-    description: 'Standard conversational path with tool calling for data-enriched responses.',
+    description: 'Standard conversational path with tool calling for data-enriched responses. Handles portfolio, market, goal, and general queries.',
     providerAlias: 'ada-fast',
-    tools: ['portfolio_read', 'market_read', 'news_read', 'macro_read', 'fx_read', 'health_compute', 'workflow_light'],
+    tools: ['portfolio_read', 'market_read', 'news_read', 'health_compute', 'workflow_light'],
   },
   2: {
     lane: 2,
     label: 'Reasoning LLM',
     description: 'Deep analysis path for complex queries requiring step-by-step reasoning.',
     providerAlias: 'ada-reason',
-    tools: ['portfolio_read', 'market_read', 'news_read', 'macro_read', 'fx_read', 'health_compute', 'workflow_light', 'execution_route'],
+    tools: ['portfolio_read', 'market_read', 'news_read', 'health_compute', 'workflow_light', 'execution_route'],
   },
 };
 
