@@ -279,19 +279,23 @@ export async function resilientCompletion(
       return result;
     } catch (err) {
       if (attempt === retries) {
-        const fallbackAlias = providerAlias
-          ? getFallbackAliasFromRouter(providerAlias)
-          : 'ada-fallback';
-        if (fallbackAlias) {
-          console.log(`[resilientCompletion] OpenAI failed after ${retries} attempts, trying fallback (${fallbackAlias})...`);
-          try {
-            const result = await anthropicCompletion(params, timeoutMs);
-            console.log(`[resilientCompletion] Fallback (${fallbackAlias}) succeeded`);
-            return result;
-          } catch (fallbackErr) {
-            console.error(`[resilientCompletion] Fallback (${fallbackAlias}) also failed:`, (fallbackErr as Error).message);
-            throw err;
+        if (isProviderError(err)) {
+          const fallbackAlias = providerAlias
+            ? getFallbackAliasFromRouter(providerAlias)
+            : 'ada-fallback';
+          if (fallbackAlias) {
+            console.log(`[resilientCompletion] OpenAI provider error after ${retries} attempts, trying fallback (${fallbackAlias})...`);
+            try {
+              const result = await anthropicCompletion(params, timeoutMs);
+              console.log(`[resilientCompletion] Fallback (${fallbackAlias}) succeeded`);
+              return result;
+            } catch (fallbackErr) {
+              console.error(`[resilientCompletion] Fallback (${fallbackAlias}) also failed:`, (fallbackErr as Error).message);
+              throw err;
+            }
           }
+        } else {
+          console.error(`[resilientCompletion] Non-transient error after ${retries} attempts, not falling back:`, (err as Error).message);
         }
         throw err;
       }
