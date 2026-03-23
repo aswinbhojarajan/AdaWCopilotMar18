@@ -34,6 +34,138 @@ const REGISTRY: Record<string, ModelCapabilities> = {
   },
 };
 
+export interface LaneConfig {
+  lane: number;
+  label: string;
+  description: string;
+  providerAlias: string;
+  tools: string[];
+}
+
+export interface IntentRouteConfig {
+  intent: IntentClassification['primary_intent'];
+  defaultLane: number;
+  supportedLanes: number[];
+  requiredTools: string[];
+  optionalTools: string[];
+  description: string;
+}
+
+const LANE_CONFIGS: Record<number, LaneConfig> = {
+  0: {
+    lane: 0,
+    label: 'Deterministic',
+    description: 'Fast path for entity lookups, balance queries, and structured data retrieval. No LLM generation.',
+    providerAlias: 'ada-fast',
+    tools: ['portfolio_read', 'health_compute'],
+  },
+  1: {
+    lane: 1,
+    label: 'Standard LLM',
+    description: 'Standard conversational path with tool calling for data-enriched responses.',
+    providerAlias: 'ada-fast',
+    tools: ['portfolio_read', 'market_read', 'news_read', 'macro_read', 'fx_read', 'health_compute', 'workflow_light'],
+  },
+  2: {
+    lane: 2,
+    label: 'Reasoning LLM',
+    description: 'Deep analysis path for complex queries requiring step-by-step reasoning.',
+    providerAlias: 'ada-reason',
+    tools: ['portfolio_read', 'market_read', 'news_read', 'macro_read', 'fx_read', 'health_compute', 'workflow_light', 'execution_route'],
+  },
+};
+
+const INTENT_ROUTE_CONFIGS: Record<IntentClassification['primary_intent'], IntentRouteConfig> = {
+  balance_query: {
+    intent: 'balance_query',
+    defaultLane: 0,
+    supportedLanes: [0, 1],
+    requiredTools: ['portfolio_read'],
+    optionalTools: [],
+    description: 'Direct portfolio value/balance lookups',
+  },
+  portfolio_explain: {
+    intent: 'portfolio_explain',
+    defaultLane: 1,
+    supportedLanes: [1, 2],
+    requiredTools: ['portfolio_read'],
+    optionalTools: ['market_read', 'news_read'],
+    description: 'Explain portfolio composition, allocation, and performance',
+  },
+  portfolio_health: {
+    intent: 'portfolio_health',
+    defaultLane: 2,
+    supportedLanes: [1, 2],
+    requiredTools: ['portfolio_read', 'health_compute'],
+    optionalTools: ['market_read'],
+    description: 'Deep portfolio health analysis with risk metrics',
+  },
+  allocation_breakdown: {
+    intent: 'allocation_breakdown',
+    defaultLane: 0,
+    supportedLanes: [0, 1],
+    requiredTools: ['portfolio_read'],
+    optionalTools: [],
+    description: 'Asset allocation breakdown by class, sector, geography',
+  },
+  goal_progress: {
+    intent: 'goal_progress',
+    defaultLane: 1,
+    supportedLanes: [0, 1],
+    requiredTools: ['portfolio_read'],
+    optionalTools: ['health_compute'],
+    description: 'Financial goal tracking and progress updates',
+  },
+  market_news: {
+    intent: 'market_news',
+    defaultLane: 1,
+    supportedLanes: [1],
+    requiredTools: ['market_read', 'news_read'],
+    optionalTools: ['macro_read', 'fx_read'],
+    description: 'Market conditions, news, and economic indicators',
+  },
+  recommendation_request: {
+    intent: 'recommendation_request',
+    defaultLane: 2,
+    supportedLanes: [2],
+    requiredTools: ['portfolio_read', 'health_compute'],
+    optionalTools: ['market_read'],
+    description: 'Investment recommendations requiring advisor handoff',
+  },
+  execution_request: {
+    intent: 'execution_request',
+    defaultLane: 2,
+    supportedLanes: [2],
+    requiredTools: ['execution_route'],
+    optionalTools: ['portfolio_read'],
+    description: 'Trade execution requests routed to RM handoff',
+  },
+  workflow_request: {
+    intent: 'workflow_request',
+    defaultLane: 2,
+    supportedLanes: [1, 2],
+    requiredTools: ['workflow_light'],
+    optionalTools: ['portfolio_read'],
+    description: 'Workflow actions (alerts, reports, scheduled tasks)',
+  },
+  support: {
+    intent: 'support',
+    defaultLane: 1,
+    supportedLanes: [1],
+    requiredTools: [],
+    optionalTools: [],
+    description: 'Platform support and help queries',
+  },
+  other: {
+    intent: 'other',
+    defaultLane: 1,
+    supportedLanes: [1],
+    requiredTools: [],
+    optionalTools: [],
+    description: 'General conversation and greetings',
+  },
+};
+
 export function getModelCapabilities(alias: string): ModelCapabilities | undefined {
   return REGISTRY[alias];
 }
@@ -47,18 +179,38 @@ export function listModels(): ModelCapabilities[] {
   return Object.values(REGISTRY);
 }
 
+export function getLaneConfig(lane: number): LaneConfig | undefined {
+  return LANE_CONFIGS[lane];
+}
+
+export function getIntentRouteConfig(intent: IntentClassification['primary_intent']): IntentRouteConfig {
+  return INTENT_ROUTE_CONFIGS[intent] ?? INTENT_ROUTE_CONFIGS['other'];
+}
+
+export function getClassifierContext(): string {
+  const intentLines = Object.values(INTENT_ROUTE_CONFIGS).map(r =>
+    `- ${r.intent}: lane ${r.defaultLane} (${LANE_CONFIGS[r.defaultLane]?.label ?? 'unknown'}), tools: [${r.requiredTools.join(', ')}]${r.optionalTools.length > 0 ? `, optional: [${r.optionalTools.join(', ')}]` : ''}`
+  );
+
+  const laneLines = Object.values(LANE_CONFIGS).map(l =>
+    `- Lane ${l.lane} (${l.label}): ${l.description}`
+  );
+
+  return [
+    'ROUTING LANES:',
+    ...laneLines,
+    '',
+    'INTENT→LANE MAPPING:',
+    ...intentLines,
+  ].join('\n');
+}
+
 export function bestModelForIntent(intent: IntentClassification['primary_intent']): string {
-  const needsReasoning = [
-    'portfolio_health',
-    'recommendation_request',
-    'workflow_request',
-    'execution_request',
-  ];
-
-  if (needsReasoning.includes(intent)) {
-    return 'ada-reason';
+  const config = INTENT_ROUTE_CONFIGS[intent];
+  if (config) {
+    const lane = LANE_CONFIGS[config.defaultLane];
+    if (lane) return lane.providerAlias;
   }
-
   return 'ada-fast';
 }
 

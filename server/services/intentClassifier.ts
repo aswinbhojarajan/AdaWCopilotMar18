@@ -1,11 +1,14 @@
 import { resilientCompletion } from './openaiClient';
 import { resolveModel } from './modelRouter';
+import { getClassifierContext } from './capabilityRegistry';
 
 export type Intent = 'portfolio' | 'goals' | 'market' | 'scenario' | 'recommendation' | 'execution_request' | 'general';
 
 const VALID_INTENTS: Intent[] = ['portfolio', 'goals', 'market', 'scenario', 'recommendation', 'execution_request', 'general'];
 
-const CLASSIFICATION_PROMPT = `You are an intent classifier for a wealth management AI copilot. Classify the user's message into exactly ONE of these intents:
+function buildClassificationPrompt(): string {
+  const routingContext = getClassifierContext();
+  return `You are an intent classifier for a wealth management AI copilot. Classify the user's message into exactly ONE of these intents:
 
 - portfolio: Questions about holdings, positions, allocation, performance, account balances, portfolio value, returns, gains/losses, risk metrics, rebalancing, diversification
 - goals: Questions about financial goals, savings targets, milestones, progress toward goals, accelerating savings, being on/off track, deadlines for financial objectives
@@ -15,15 +18,18 @@ const CLASSIFICATION_PROMPT = `You are an intent classifier for a wealth managem
 - execution_request: Requests to execute trades, place orders, confirm transactions, transfer/wire funds, proceed with a trade
 - general: Greetings, off-topic, or anything that doesn't fit the above categories
 
+${routingContext}
+
 Respond with ONLY a JSON object: {"intent":"<intent>","confidence":<0.0-1.0>}
 Do not include any other text.`;
+}
 
 export async function classifyIntentAsync(message: string): Promise<{ intent: Intent; confidence: number }> {
   try {
     const response = await resilientCompletion({
       model: resolveModel('ada-fast'),
       messages: [
-        { role: 'system', content: CLASSIFICATION_PROMPT },
+        { role: 'system', content: buildClassificationPrompt() },
         { role: 'user', content: message },
       ],
       max_completion_tokens: 100,
