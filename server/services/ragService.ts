@@ -14,12 +14,12 @@ export async function buildPortfolioContext(userId: string, intent: Intent): Pro
   const summaryData = await getPortfolioSummary(userId);
   const context: PortfolioContext = { summary: summaryData };
 
-  if (intent === 'portfolio' || intent === 'market' || intent === 'general') {
+  if (intent === 'portfolio' || intent === 'market' || intent === 'general' || intent === 'recommendation') {
     context.holdings = await getHoldingsContext(userId);
     context.allocations = await getAllocationContext(userId);
   }
 
-  if (intent === 'goals') {
+  if (intent === 'goals' || intent === 'scenario' || intent === 'recommendation' || intent === 'general') {
     context.goals = await getGoalsContext(userId);
   }
 

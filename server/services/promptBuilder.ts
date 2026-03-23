@@ -124,7 +124,9 @@ GROUNDING RULES:
 • Portfolio claims (value, holdings, allocation, performance) MUST come from tool data
 • Market claims (prices, changes, trends) MUST come from tool data
 • If you don't have tool data for a claim, say "based on the available data" or ask the user
-• Always cite the source when presenting financial data`;
+• Always cite the source when presenting financial data
+• When presenting holdings, use the EXACT changePercent and changeAmount values from the tool data — these represent total return vs cost basis. NEVER substitute 0.00% or invent your own percentages
+• If a holding shows changePercent of 5.1%, report it as +5.1%. Do NOT replace it with a daily change or any other figure`;
 }
 
 function buildAnswerContractBlock(): string {

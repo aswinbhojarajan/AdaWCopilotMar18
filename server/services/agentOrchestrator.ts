@@ -52,8 +52,6 @@ function mapOldIntentToNew(oldIntent: string, message: string): IntentClassifica
   }
 
   if (oldIntent === 'goals') {
-    const progressKeywords = ['progress', 'how am i doing', 'on track', 'status', 'how close', 'goal update', 'show me my goals', 'my goals'];
-    if (progressKeywords.some(k => lower.includes(k))) return 'goal_progress';
     return 'goal_progress';
   }
 
@@ -119,14 +117,30 @@ function inferSuggestedTools(intent: IntentClassification['primary_intent'], mes
   return [...new Set(tools)];
 }
 
+function mapIntentForRag(primaryIntent: IntentClassification['primary_intent']): intentClassifier.Intent {
+  const map: Partial<Record<IntentClassification['primary_intent'], intentClassifier.Intent>> = {
+    portfolio_health: 'portfolio',
+    portfolio_explain: 'portfolio',
+    allocation_breakdown: 'portfolio',
+    balance_query: 'portfolio',
+    goal_progress: 'goals',
+    market_news: 'market',
+    workflow_request: 'scenario',
+    recommendation_request: 'recommendation',
+    execution_request: 'execution_request',
+    other: 'general',
+  };
+  return map[primaryIntent] ?? 'general';
+}
+
 function extractSymbols(message: string): string[] {
   const matches = message.match(/\b[A-Z]{2,5}\b/g) ?? [];
   const commonWords = new Set(['THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HER', 'WAS', 'ONE', 'OUR', 'OUT', 'HOW', 'HAS']);
   return matches.filter(m => !commonWords.has(m));
 }
 
-function buildIntentClassification(message: string): IntentClassification {
-  const oldIntent = intentClassifier.classifyIntent(message);
+async function buildIntentClassification(message: string): Promise<IntentClassification> {
+  const { intent: oldIntent, confidence: llmConfidence } = await intentClassifier.classifyIntentAsync(message);
   const primaryIntent = mapOldIntentToNew(oldIntent, message);
   const effort = inferReasoningEffort(primaryIntent, message);
   const symbols = extractSymbols(message);
@@ -134,7 +148,7 @@ function buildIntentClassification(message: string): IntentClassification {
 
   return {
     primary_intent: primaryIntent,
-    confidence: 0.85,
+    confidence: llmConfidence,
     entities: {
       symbols,
       asset_classes: [],
@@ -323,14 +337,14 @@ async function* handleLane0(
   } else if (intent.primary_intent === 'portfolio_explain' && holdingsResult?.status === 'ok') {
     narration = `Your portfolio is currently valued at **${fmtUsd(totalValue)}**. It's ${changeDir} **${Math.abs(dailyChangePct).toFixed(2)}%** (${fmtUsd(Math.abs(dailyChange))}) today.`;
 
-    const holdings = holdingsResult.data as Array<{ symbol?: string; name?: string; value?: number; daily_change_percent?: number }> | null;
+    const holdings = holdingsResult.data as Array<{ symbol?: string; name?: string; value?: number; changePercent?: number; daily_change_percent?: number }> | null;
     if (Array.isArray(holdings) && holdings.length > 0) {
       narration += '\n\n**Your Holdings:**';
       for (const h of holdings.slice(0, 10)) {
         const hVal = Number(h.value ?? 0);
-        const hChg = Number(h.daily_change_percent ?? 0);
+        const hChg = Number(h.changePercent ?? h.daily_change_percent ?? 0);
         const hDir = hChg >= 0 ? '+' : '';
-        narration += `\n- **${h.symbol || h.name}**: ${fmtUsd(hVal)} (${hDir}${hChg.toFixed(2)}%)`;
+        narration += `\n- **${h.symbol || h.name}**: ${fmtUsd(hVal)} (${hDir}${hChg.toFixed(1)}%)`;
       }
     }
     widgets.push({
@@ -447,8 +461,9 @@ export async function* orchestrateStream(
   });
 
   const intentStart = Date.now();
-  const intent = buildIntentClassification(sanitizedMessage);
+  const intent = await buildIntentClassification(sanitizedMessage);
   timings.intent_classification_ms = Date.now() - intentStart;
+  console.log('[Orchestrator] intent=%s confidence=%s lane=%s ms=%d', intent.primary_intent, intent.confidence, intent.suggested_tools.length > 0 ? 'lane1+' : 'tbd', timings.intent_classification_ms);
 
   const sessionStart = Date.now();
   const [tenantIdResult, userProfileResult] = await Promise.all([
@@ -483,6 +498,7 @@ export async function* orchestrateStream(
   const channel = req.context?.sourceScreen ?? 'chat';
   const scorecard = buildScorecard(intent, channel);
   const route = routeRequest(scorecard, policyDecision);
+  console.log('[Orchestrator] route=%s model=%s', route.lane, route.provider_alias);
 
   const registry = getProviderRegistry(tenantConfig.provider_config);
   const riskLevel = riskProfile?.level ?? 'moderate';
@@ -515,7 +531,7 @@ export async function* orchestrateStream(
 
   const prefetchStart = Date.now();
   const [portfolioContext, episodicMemories, semanticFacts, prefetched] = await Promise.all([
-    ragService.buildPortfolioContext(userId, intentClassifier.classifyIntent(sanitizedMessage)),
+    ragService.buildPortfolioContext(userId, mapIntentForRag(intent.primary_intent)),
     memoryService.getEpisodicMemories(userId),
     memoryService.getSemanticFacts(userId, 10, sanitizedMessage),
     prefetchToolData(intent, userId, registry, riskLevel, allowedToolNames),
@@ -563,7 +579,6 @@ export async function* orchestrateStream(
     { role: 'system', content: systemPrompt },
     ...conversationHistory,
   ];
-
   let fullResponse = '';
   const widgets: { type: string }[] = [];
   const guardrailInterventions: string[] = [];
@@ -582,13 +597,30 @@ export async function* orchestrateStream(
     while (turnCount < MAX_TOOL_TURNS) {
       turnCount++;
 
-      const response = await openai.chat.completions.create({
-        model: modelSelection.model,
-        messages: currentMessages,
-        tools: tools.length > 0 ? tools : undefined,
-        stream: true,
-        max_completion_tokens: modelSelection.max_tokens,
-      });
+      const skipTools = ['other', 'general', 'greeting'].includes(intent.primary_intent);
+      const useTools = tools.length > 0 && turnCount === 1 && !skipTools;
+
+      const createLLMStream = (attempt: number) => {
+        const timeoutMs = attempt === 1 ? 15000 : 20000;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        const call = openai.chat.completions.create({
+          model: modelSelection.model,
+          messages: currentMessages,
+          tools: useTools ? tools : undefined,
+          stream: true,
+          max_completion_tokens: modelSelection.max_tokens,
+        }, { signal: controller.signal });
+        return call.finally(() => clearTimeout(timer));
+      };
+
+      let response;
+      try {
+        response = await createLLMStream(1);
+      } catch {
+        console.log('[Orchestrator] LLM attempt 1 timed out, retrying...');
+        response = await createLLMStream(2);
+      }
 
       const toolCalls: { id: string; name: string; arguments: string }[] = [];
       let currentToolIndex = -1;
