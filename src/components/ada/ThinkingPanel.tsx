@@ -62,12 +62,13 @@ export function LiveThinkingBar({ steps, isStreaming, visible }: LiveThinkingBar
 
   useEffect(() => {
     if (steps.length > prevStepsLenRef.current) {
-      const newSteps = steps.length - prevStepsLenRef.current;
+      const base = prevStepsLenRef.current;
+      const newSteps = steps.length - base;
       prevStepsLenRef.current = steps.length;
       for (let i = 0; i < newSteps; i++) {
-        const targetCount = displayedCount + i + 1;
+        const target = base + i + 1;
         const timer = setTimeout(() => {
-          setDisplayedCount(targetCount);
+          setDisplayedCount(prev => Math.max(prev, target));
         }, i * 120);
         timersRef.current.push(timer);
       }

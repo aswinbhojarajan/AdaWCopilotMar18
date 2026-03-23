@@ -398,7 +398,7 @@ export function ChatScreen({
                     <div className="content-stretch flex flex-col gap-[8px] items-end relative shrink-0 w-full">
                       {messages.map((msg, index) => {
                         const isLastAssistant = msg.sender === 'assistant' && index === messages.length - 1;
-                        const showThinkingBeforeAssistant = verbose && thinkingSteps.length > 0 && isLastAssistant;
+                        const showThinkingBeforeAssistant = verbose && thinkingSteps.length > 0 && isLastAssistant && !isTyping;
                         return (
                           <React.Fragment key={msg.id}>
                             {showThinkingBeforeAssistant && (
