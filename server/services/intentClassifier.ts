@@ -1,10 +1,40 @@
 import { resilientCompletion } from './openaiClient';
 import { resolveModel } from './modelRouter';
 import { getClassifierContext } from './capabilityRegistry';
+import { createHash } from 'crypto';
 
 export type Intent = 'portfolio' | 'goals' | 'market' | 'scenario' | 'recommendation' | 'execution_request' | 'general';
 
 const VALID_INTENTS: Intent[] = ['portfolio', 'goals', 'market', 'scenario', 'recommendation', 'execution_request', 'general'];
+
+const INTENT_CACHE_MAX = 50;
+const INTENT_CACHE_TTL_MS = 5 * 60 * 1000;
+interface CachedIntent { intent: Intent; confidence: number; ts: number }
+const intentCache = new Map<string, CachedIntent>();
+
+function getMessageHash(message: string): string {
+  return createHash('md5').update(message.toLowerCase().trim()).digest('hex');
+}
+
+function getCachedIntent(message: string): { intent: Intent; confidence: number } | null {
+  const hash = getMessageHash(message);
+  const entry = intentCache.get(hash);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > INTENT_CACHE_TTL_MS) {
+    intentCache.delete(hash);
+    return null;
+  }
+  return { intent: entry.intent, confidence: entry.confidence };
+}
+
+function setCachedIntent(message: string, intent: Intent, confidence: number): void {
+  const hash = getMessageHash(message);
+  if (intentCache.size >= INTENT_CACHE_MAX) {
+    const firstKey = intentCache.keys().next().value;
+    if (firstKey) intentCache.delete(firstKey);
+  }
+  intentCache.set(hash, { intent, confidence, ts: Date.now() });
+}
 
 function buildClassificationPrompt(): string {
   const routingContext = getClassifierContext();
@@ -25,6 +55,12 @@ Do not include any other text.`;
 }
 
 export async function classifyIntentAsync(message: string): Promise<{ intent: Intent; confidence: number }> {
+  const cached = getCachedIntent(message);
+  if (cached) {
+    console.log('[IntentClassifier] Cache hit: intent=%s confidence=%s', cached.intent, cached.confidence);
+    return cached;
+  }
+
   try {
     const response = await resilientCompletion({
       model: resolveModel('ada-fast'),
@@ -38,13 +74,17 @@ export async function classifyIntentAsync(message: string): Promise<{ intent: In
     const content = response.choices[0]?.message?.content?.trim();
     if (!content) {
       console.log('[IntentClassifier] LLM returned empty content');
-      return { intent: classifyIntentFallback(message), confidence: 0.5 };
+      const fallback = classifyIntentFallback(message);
+      setCachedIntent(message, fallback, 0.5);
+      return { intent: fallback, confidence: 0.5 };
     }
 
     const jsonMatch = content.match(/\{[^}]+\}/);
     if (!jsonMatch) {
       console.log('[IntentClassifier] LLM response not JSON:', content.slice(0, 80));
-      return { intent: classifyIntentFallback(message), confidence: 0.5 };
+      const fallback = classifyIntentFallback(message);
+      setCachedIntent(message, fallback, 0.5);
+      return { intent: fallback, confidence: 0.5 };
     }
 
     const parsed = JSON.parse(jsonMatch[0]) as { intent?: string; confidence?: number };
@@ -52,14 +92,19 @@ export async function classifyIntentAsync(message: string): Promise<{ intent: In
     const confidence = typeof parsed.confidence === 'number' ? Math.min(1, Math.max(0, parsed.confidence)) : 0.8;
 
     if (VALID_INTENTS.includes(intent)) {
+      setCachedIntent(message, intent, confidence);
       return { intent, confidence };
     }
 
     console.log('[IntentClassifier] LLM returned invalid intent:', parsed.intent);
-    return { intent: classifyIntentFallback(message), confidence: 0.5 };
+    const fallback = classifyIntentFallback(message);
+    setCachedIntent(message, fallback, 0.5);
+    return { intent: fallback, confidence: 0.5 };
   } catch (err) {
     console.error('[IntentClassifier] LLM classification failed, using fallback:', (err as Error).message);
-    return { intent: classifyIntentFallback(message), confidence: 0.4 };
+    const fallback = classifyIntentFallback(message);
+    setCachedIntent(message, fallback, 0.4);
+    return { intent: fallback, confidence: 0.4 };
   }
 }
 

@@ -165,6 +165,23 @@ const PREFETCH_INTENTS = new Set<IntentClassification['primary_intent']>([
   'allocation_breakdown', 'market_news', 'goal_progress',
 ]);
 
+const FAST_PATH_REQUIRED_SOURCES: Record<string, string[]> = {
+  balance_query: ['portfolio_api'],
+  allocation_breakdown: ['portfolio_api'],
+  goal_progress: ['portfolio_api'],
+};
+
+function isFastPathPrefetchComplete(
+  intent: IntentClassification['primary_intent'],
+  results: ToolResult[],
+): boolean {
+  const required = FAST_PATH_REQUIRED_SOURCES[intent];
+  if (!required) return false;
+  return required.every(sourceType =>
+    results.some(r => r.status === 'ok' && r.data && r.source_type === sourceType),
+  );
+}
+
 async function prefetchToolData(
   intent: IntentClassification,
   userId: string,
@@ -365,9 +382,9 @@ export async function* orchestrateStream(
   const channel = req.context?.sourceScreen ?? 'chat';
   const scorecard = buildScorecard(intent, channel);
   const route = routeRequest(scorecard, policyDecision);
-  console.log('[Orchestrator] route=%s model=%s', route.lane, route.provider_alias);
+  console.log('[Orchestrator] route=%s model=%s fast_path=%s', route.lane, route.provider_alias, route.fast_path);
 
-  yield* thinkingEvent(verbose, 'routing', `Lane: ${route.lane}, model: ${route.provider_alias} (${getCapabilitySummary(route.provider_alias)})`);
+  yield* thinkingEvent(verbose, 'routing', `Lane: ${route.lane}, model: ${route.provider_alias}${route.fast_path ? ' [FAST PATH]' : ''} (${getCapabilitySummary(route.provider_alias)})`);
   if (verbose) {
     await new Promise(r => setImmediate(r));
   }
@@ -430,10 +447,13 @@ export async function* orchestrateStream(
       enrichmentContext += `\n\nMARKET NEWS (pre-fetched):\n${JSON.stringify(result.data, null, 1)}`;
     } else if (result.source_type === 'market_api') {
       enrichmentContext += `\n\nMARKET QUOTES (pre-fetched):\n${JSON.stringify(result.data, null, 1)}`;
-    } else if (result.source_type === 'portfolio_api' && intent.primary_intent === 'goal_progress') {
-      enrichmentContext += `\n\nPORTFOLIO SNAPSHOT (pre-fetched):\n${JSON.stringify(result.data, null, 1)}`;
+    } else if (result.source_type === 'portfolio_api') {
+      enrichmentContext += `\n\nPORTFOLIO DATA (pre-fetched):\n${JSON.stringify(result.data, null, 1)}`;
     }
   }
+
+  const fastPathActive = route.fast_path && isFastPathPrefetchComplete(intent.primary_intent, prefetched.results);
+  const promptToolNames = fastPathActive ? [] : allowedToolNames;
 
   const systemPrompt = buildAgentPrompt({
     tenantConfig,
@@ -454,7 +474,7 @@ export async function* orchestrateStream(
       title: req.context.title,
       sourceScreen: req.context.sourceScreen,
     } : undefined,
-    toolNames: allowedToolNames,
+    toolNames: promptToolNames,
     providerAlias: route.provider_alias,
   });
 
@@ -483,16 +503,19 @@ export async function* orchestrateStream(
       turnCount++;
 
       const skipTools = intent.primary_intent === 'other' || intent.primary_intent === 'support';
-      const useTools = tools.length > 0 && turnCount === 1 && !skipTools;
+      const useTools = tools.length > 0 && turnCount === 1 && !skipTools && !fastPathActive;
 
+      const effectiveMaxTokens = fastPathActive ? 1024 : route.max_tokens;
       const createLLMStream = (attempt: number) => {
-        const timeoutMs = attempt === 1 ? 15000 : 20000;
+        const baseTimeout = fastPathActive ? 8000 : 15000;
+        const retryTimeout = fastPathActive ? 10000 : 20000;
+        const timeoutMs = attempt === 1 ? baseTimeout : retryTimeout;
         return resilientStreamCompletion({
           model: routeModel,
           messages: currentMessages,
           tools: useTools ? tools : undefined,
           stream: true,
-          max_completion_tokens: route.max_tokens,
+          max_completion_tokens: effectiveMaxTokens,
         }, { timeoutMs, providerAlias: route.provider_alias });
       };
 
@@ -719,6 +742,8 @@ export async function* orchestrateStream(
       yield { type: 'text', content: disclosureText };
     }
 
+    const suggestPromise = generateSuggestedQuestions(conversationHistory, fullResponse, route.provider_alias);
+
     const alreadyHasAdvisorWidget = widgets.some(w => w.type === 'advisor_handoff');
 
     if (intent.primary_intent === 'execution_request' && !alreadyHasAdvisorWidget) {
@@ -754,7 +779,7 @@ export async function* orchestrateStream(
     timings.post_checks_ms = Date.now() - postStart;
     timings.total_ms = Date.now() - startTime;
 
-    const suggestResult = await generateSuggestedQuestions(conversationHistory, fullResponse, route.provider_alias);
+    const suggestResult = await suggestPromise;
     const suggestedQuestions = suggestResult.questions;
     totalTokens += suggestResult.tokens;
 

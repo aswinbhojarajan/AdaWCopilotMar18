@@ -52,6 +52,7 @@ export interface RouteDecision {
   max_tokens: number;
   temperature: number;
   reasoning_effort: IntentClassification['reasoning_effort'];
+  fast_path: boolean;
 }
 
 
@@ -59,6 +60,12 @@ const REASONING_INTENTS = new Set<IntentClassification['primary_intent']>([
   'portfolio_health',
   'recommendation_request',
   'workflow_request',
+]);
+
+const FAST_PATH_INTENTS = new Set<IntentClassification['primary_intent']>([
+  'balance_query',
+  'allocation_breakdown',
+  'goal_progress',
 ]);
 
 export function buildScorecard(
@@ -117,17 +124,21 @@ export function routeRequest(
       max_tokens: 8192,
       temperature: 0.4,
       reasoning_effort: scorecard.reasoning_effort,
+      fast_path: false,
     };
   }
 
+  const isFastPath = FAST_PATH_INTENTS.has(scorecard.intent) && scorecard.reasoning_effort === 'low';
+
   return {
     lane: 'lane1',
-    rationale: ['Standard query — fast lane'],
+    rationale: isFastPath ? ['Fast-path: simple lookup with pre-fetched data'] : ['Standard query — fast lane'],
     provider_alias: 'ada-fast',
     tool_groups: ['financial_data', 'market_intel', 'ui_actions'],
-    max_tokens: scorecard.reasoning_effort === 'low' ? 2048 : 4096,
+    max_tokens: isFastPath ? 1024 : (scorecard.reasoning_effort === 'low' ? 2048 : 4096),
     temperature: 0.3,
     reasoning_effort: scorecard.reasoning_effort,
+    fast_path: isFastPath,
   };
 }
 

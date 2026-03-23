@@ -23,9 +23,10 @@ export function buildAgentPrompt(ctx: PromptContext): string {
   blocks.push(buildTenantBehaviorBlock(ctx.tenantConfig));
   blocks.push(buildPolicyBlock(ctx.policyDecision));
   blocks.push(buildCapabilityBlock(ctx.providerAlias, ctx.intent));
-  blocks.push(buildToolRulesBlock(ctx.toolNames ?? []));
+  const toolNames = ctx.toolNames ?? [];
+  blocks.push(buildToolRulesBlock(toolNames));
   blocks.push(buildExecutionBoundaryBlock());
-  blocks.push(buildGroundingRules());
+  blocks.push(buildGroundingRules(toolNames.length > 0));
   blocks.push(buildAnswerContractBlock());
 
   if (ctx.userName || ctx.riskProfile) {
@@ -142,15 +143,16 @@ EXECUTION BOUNDARY (CRITICAL - NEVER VIOLATE):
 • The user's Relationship Manager (advisor) is the ONLY person who can execute trades`;
 }
 
-function buildGroundingRules(): string {
+function buildGroundingRules(hasTools: boolean): string {
+  const dataSource = hasTools ? 'tool data or pre-fetched context' : 'the pre-fetched data provided in your context';
   return `
 GROUNDING RULES:
-• Portfolio claims (value, holdings, allocation, performance) MUST come from tool data
-• Market claims (prices, changes, trends) MUST come from tool data
-• If you don't have tool data for a claim, say "based on the available data" or ask the user
+• Portfolio claims (value, holdings, allocation, performance) MUST come from ${dataSource}
+• Market claims (prices, changes, trends) MUST come from ${dataSource}
+• If you don't have data for a claim, say "based on the available data" or ask the user
 • Always cite the source when presenting financial data
-• When presenting holdings, use the EXACT changePercent and changeAmount values from the tool data — these represent total return vs cost basis. NEVER substitute 0.00% or invent your own percentages
-• If a holding shows changePercent of 5.1%, report it as +5.1%. Do NOT replace it with a daily change or any other figure`;
+• When presenting holdings, use the EXACT changePercent and changeAmount values from the data — these represent total return vs cost basis. NEVER substitute 0.00% or invent your own percentages
+• If a holding shows changePercent of 5.1%, report it as +5.1%. Do NOT replace it with a daily change or any other figure${!hasTools ? '\n• All financial data you need has been pre-fetched and included in PORTFOLIO CONTEXT and PORTFOLIO DATA sections above. Respond directly using this data.' : ''}`;
 }
 
 function buildAnswerContractBlock(): string {
