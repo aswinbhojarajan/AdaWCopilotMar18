@@ -198,6 +198,8 @@ export function selectModel(
   };
 }
 
+export const MODEL = resolveModel('ada-fast');
+
 export function getIntentClassificationModel(): string {
   return resolveModel('ada-classifier');
 }

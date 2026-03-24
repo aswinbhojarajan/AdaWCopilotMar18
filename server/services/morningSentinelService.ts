@@ -1,5 +1,5 @@
 import pool from '../db/pool';
-import { MODEL } from './aiService';
+import { MODEL } from './modelRouter';
 import { resilientCompletion, resilientStreamCompletion } from './openaiClient';
 import type { MorningSentinelResponse, MorningSentinelRisk } from '../../shared/types';
 

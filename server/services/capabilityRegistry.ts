@@ -113,7 +113,7 @@ const INTENT_ROUTE_CONFIGS: Record<IntentClassification['primary_intent'], Inten
   portfolio_explain: {
     intent: 'portfolio_explain',
     defaultLane: 1,
-    supportedLanes: [1, 2],
+    supportedLanes: [0, 1, 2],
     requiredTools: ['portfolio_read'],
     optionalTools: ['market_read', 'news_read', 'health_compute'],
     description: 'Explain portfolio composition, allocation, performance, and health analysis',
@@ -128,7 +128,7 @@ const INTENT_ROUTE_CONFIGS: Record<IntentClassification['primary_intent'], Inten
   },
   goal_progress: {
     intent: 'goal_progress',
-    defaultLane: 1,
+    defaultLane: 0,
     supportedLanes: [0, 1],
     requiredTools: ['portfolio_read'],
     optionalTools: ['health_compute'],
