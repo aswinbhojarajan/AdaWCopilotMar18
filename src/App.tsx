@@ -15,6 +15,7 @@ const ChatHistoryScreen = lazy(() => import('./components/screens/ChatHistoryScr
 const WealthScreen = lazy(() => import('./components/screens/WealthScreen').then(m => ({ default: m.WealthScreen })));
 const NotificationsScreen = lazy(() => import('./components/screens/NotificationsScreen').then(m => ({ default: m.NotificationsScreen })));
 const ClientEnvironment = lazy(() => import('./imports/ClientEnvironment-2066-398'));
+const LoginPage = lazy(() => import('./components/screens/LoginPage').then(m => ({ default: m.LoginPage })));
 
 const overlayVariants = {
   initial: { y: '100%', opacity: 1 },
@@ -32,7 +33,7 @@ const fadeVariants = {
 export default function App() {
   const { userId, isPickerOpen, openPicker, closePicker } = useUser();
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [currentView, setCurrentView] = useState<ViewType>('client-environment');
+  const [currentView, setCurrentView] = useState<ViewType>('login');
   const [chatMessage, setChatMessage] = useState<string>('');
   const [chatContext, setChatContext] = useState<ChatContext | undefined>(undefined);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -113,7 +114,8 @@ export default function App() {
 
   const isOverlay = ['chat', 'chat-history', 'notifications'].includes(currentView);
   const isClientEnv = currentView === 'client-environment';
-  const isTabView = !isOverlay && !isClientEnv && currentView !== 'home-empty';
+  const isLogin = currentView === 'login';
+  const isTabView = !isOverlay && !isClientEnv && !isLogin && currentView !== 'home-empty';
 
   const renderTabContent = () => {
     if (activeTab === 'home')
@@ -205,10 +207,17 @@ export default function App() {
         />
       );
     }
+    if (currentView === 'login') {
+      return (
+        <LoginPage
+          onLogin={() => navigateTo('home', 'home')}
+        />
+      );
+    }
     return null;
   };
 
-  const fullScreenKey = isOverlay ? currentView : isClientEnv ? 'client-environment' : currentView === 'home-empty' ? 'home-empty' : null;
+  const fullScreenKey = isOverlay ? currentView : isClientEnv ? 'client-environment' : isLogin ? 'login' : currentView === 'home-empty' ? 'home-empty' : null;
 
   const getFullScreenVariants = () => {
     if (isOverlay) return overlayVariants;
@@ -233,7 +242,7 @@ export default function App() {
                 <TopBar />
                 <Header
                   onNotificationsClick={() => navigateTo('notifications')}
-                  onClose={() => navigateTo('client-environment')}
+                  onClose={() => navigateTo('login')}
                 />
                 <Navigation activeTab={activeTab} onTabChange={handleTabChange} />
               </div>

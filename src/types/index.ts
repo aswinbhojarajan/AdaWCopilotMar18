@@ -6,7 +6,8 @@ export type ViewType =
   | 'chat'
   | 'chat-history'
   | 'notifications'
-  | 'client-environment';
+  | 'client-environment'
+  | 'login';
 
 export interface ChatContext {
   category: string;
