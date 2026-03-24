@@ -48,7 +48,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   return (
     <div className="h-full w-full bg-[#efede6] overflow-y-auto">
-      <div className="flex flex-col items-center pb-[40px] min-h-full pt-safe" style={{ paddingLeft: 'var(--container-pad)', paddingRight: 'var(--container-pad)', paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom, 0px))' }}>
+      <div className="flex flex-col items-center min-h-full" style={{ paddingLeft: 'var(--container-pad)', paddingRight: 'var(--container-pad)', paddingTop: 'calc(3.75rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="flex flex-col items-center mb-[32px]">
           <p className="font-['Crimson_Pro',sans-serif] font-normal text-[1.375rem] tracking-[-0.44px] text-[#555555] mb-[4px]">
             Welcome to

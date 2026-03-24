@@ -18,24 +18,15 @@ export function ChatHeader({
         <div className="content-stretch flex flex-col items-start py-0 relative w-full" style={{ paddingLeft: 'var(--container-pad)', paddingRight: 'var(--container-pad)' }}>
           <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
             {/* Back Button */}
-            <button onClick={onBack} className="min-h-[48px] h-[48px] relative shrink-0 w-[64px] z-10 flex items-center">
-              <div className="absolute inset-0">
-                <svg
-                  className="block size-full"
-                  fill="none"
-                  preserveAspectRatio="none"
-                  viewBox="0 0 65 21"
-                >
-                  <g>
-                    <path
-                      d="M10.5 20.5L0.5 10.5L10.5 0.5"
-                      stroke="#555555"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </g>
-                </svg>
-              </div>
+            <button onClick={onBack} className="min-h-[48px] h-[48px] shrink-0 w-[48px] z-10 flex items-center justify-center cursor-pointer">
+              <svg width="11" height="21" viewBox="0 0 11 21" fill="none">
+                <path
+                  d="M10.5 20.5L0.5 10.5L10.5 0.5"
+                  stroke="#555555"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
 
             {/* Logo - Centered to screen width */}
@@ -50,7 +41,7 @@ export function ChatHeader({
             </div>
 
             {/* Spacer for layout balance */}
-            <div className="h-[48px] relative shrink-0 w-[64px]" />
+            <div className="h-[48px] shrink-0 w-[48px]" />
           </div>
         </div>
       </div>

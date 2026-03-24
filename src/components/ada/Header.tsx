@@ -40,45 +40,37 @@ export function Header({ onNotificationsClick, onClose }: HeaderProps = {}) {
               )}
             </div>
 
-            <div className="h-[24px] relative shrink-0 w-[64px]">
+            <div className="flex items-center gap-[16px] shrink-0">
               <button
                 onClick={onNotificationsClick}
-                className="absolute left-[-12px] top-[-12px] w-[48px] h-[48px] cursor-pointer hover:opacity-70 transition-opacity z-10 flex items-center justify-center"
+                className="relative w-[48px] h-[48px] cursor-pointer hover:opacity-70 transition-opacity z-10 flex items-center justify-center"
                 aria-label="Notifications"
               >
-                <div className="absolute top-[10px] right-[10px] size-[10px] bg-[#441316] rounded-full border-2 border-[#f7f6f2]" />
+                <svg width="21" height="21" viewBox="0 0 21 21" fill="none">
+                  <path
+                    d={svgPaths.p19b3ea40}
+                    stroke="#4C4C4C"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path d="M8.27781 20.5H12.7223" stroke="#4C4C4C" strokeLinecap="round" />
+                </svg>
+                <div className="absolute top-[8px] right-[8px] size-[10px] bg-[#441316] rounded-full border-2 border-[#f7f6f2]" />
               </button>
               <button
                 onClick={onClose}
-                className="absolute right-[-12px] top-[-12px] w-[48px] h-[48px] cursor-pointer hover:opacity-70 transition-opacity z-10 flex items-center justify-center"
+                className="relative w-[48px] h-[48px] cursor-pointer hover:opacity-70 transition-opacity z-10 flex items-center justify-center"
                 aria-label="Close"
-              />
-              <div className="absolute inset-0 pointer-events-none">
-                <svg
-                  className="block w-full h-full"
-                  fill="none"
-                  preserveAspectRatio="xMaxYMid meet"
-                  viewBox="0 0 65 21"
-                >
-                  <g>
-                    <g>
-                      <path
-                        d={svgPaths.p19b3ea40}
-                        stroke="#4C4C4C"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path d="M8.27781 20.5H12.7223" stroke="#4C4C4C" strokeLinecap="round" />
-                    </g>
-                    <path
-                      d={svgPaths.p24739000}
-                      stroke="#4C4C4C"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </g>
+              >
+                <svg width="21" height="21" viewBox="44 0 21 21" fill="none">
+                  <path
+                    d={svgPaths.p24739000}
+                    stroke="#4C4C4C"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
-              </div>
+              </button>
             </div>
           </div>
         </div>
