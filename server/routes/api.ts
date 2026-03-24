@@ -68,7 +68,7 @@ router.get('/morning-sentinel/stream', asyncHandler(async (req, res) => {
   res.flushHeaders();
 
   let closed = false;
-  req.on('close', () => { closed = true; });
+  res.on('close', () => { closed = true; });
 
   const stream = morningSentinelService.generateBriefingStream(userId, forceRefresh);
 
@@ -221,7 +221,7 @@ router.post('/chat/stream', asyncHandler(async (req, res) => {
 
   let seqId = 0;
   let closed = false;
-  req.on('close', () => { closed = true; });
+  res.on('close', () => { closed = true; });
 
   const keepaliveInterval = setInterval(() => {
     if (!closed) {

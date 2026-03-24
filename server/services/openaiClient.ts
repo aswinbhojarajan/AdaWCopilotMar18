@@ -437,4 +437,29 @@ export async function resilientStreamCompletion(
   }
 }
 
+export async function* withChunkTimeout<T>(
+  stream: AsyncIterable<T>,
+  chunkTimeoutMs: number = 30000,
+  totalTimeoutMs: number = 120000,
+): AsyncGenerator<T> {
+  const startTime = Date.now();
+  const iterator = stream[Symbol.asyncIterator]();
+
+  while (true) {
+    if (Date.now() - startTime > totalTimeoutMs) {
+      throw new Error(`Stream total timeout exceeded (${totalTimeoutMs}ms)`);
+    }
+
+    const result = await Promise.race([
+      iterator.next(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Stream chunk timeout (${chunkTimeoutMs}ms without data)`)), chunkTimeoutMs)
+      ),
+    ]);
+
+    if (result.done) break;
+    yield result.value;
+  }
+}
+
 export { anthropicClient, ANTHROPIC_FALLBACK_MODEL };

@@ -92,7 +92,7 @@ export async function classifyIntentAsync(message: string): Promise<ClassifierOu
         { role: 'user', content: message },
       ],
       max_completion_tokens: 200,
-    }, { timeoutMs: 1200, retries: 1, providerAlias: 'ada-classifier' });
+    }, { timeoutMs: 4000, retries: 1, providerAlias: 'ada-classifier' });
 
     const content = response.choices[0]?.message?.content?.trim();
     if (!content) {

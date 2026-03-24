@@ -3,7 +3,7 @@ import type { ChatMessageRequest, RiskProfile } from '../../shared/types';
 import type { IntentClassification, ToolResult, AdaAnswer, TenantConfig } from '../../shared/schemas/agent';
 import type { PolicyDecision } from '../../shared/schemas/agent';
 import type { StreamEvent } from './streamTypes';
-import { openai, resilientCompletion, resilientStreamCompletion } from './openaiClient';
+import { openai, resilientCompletion, resilientStreamCompletion, withChunkTimeout } from './openaiClient';
 import * as intentClassifier from './intentClassifier';
 import * as ragService from './ragService';
 import * as memoryService from './memoryService';
@@ -483,7 +483,9 @@ export async function* orchestrateStream(
       const streamFilter = new FollowUpStreamFilter();
       let firstTokenRecorded = false;
 
-      for await (const chunk of response) {
+      const timedStream = withChunkTimeout<OpenAI.ChatCompletionChunk>(response, 30000, 90000);
+
+      for await (const chunk of timedStream) {
         const delta = chunk.choices[0]?.delta;
         if (!delta) continue;
 
