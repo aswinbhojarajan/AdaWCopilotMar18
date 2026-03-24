@@ -35,11 +35,11 @@ export function Modal({ isOpen, onClose, title, subtitle, children }: ModalProps
         <div className="content-stretch flex flex-col gap-[8px] items-start px-[24px] pt-[24px] pb-[16px] border-b border-[#efede6]">
           <div className="flex items-start justify-between w-full">
             <div className="flex flex-col gap-[4px]">
-              <p className="font-['DM_Sans:SemiBold',sans-serif] not-italic text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+              <p className="font-['DM_Sans',sans-serif] font-semibold not-italic text-[#992929] text-[10px] tracking-[0.8px] uppercase">
                 {title}
               </p>
               {subtitle && (
-                <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] tracking-[-0.48px]">
+                <p className="font-['Crimson_Pro',sans-serif] text-[#555555] tracking-[-0.48px]">
                   {subtitle}
                 </p>
               )}

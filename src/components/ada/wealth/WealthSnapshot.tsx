@@ -56,13 +56,13 @@ export function WealthSnapshot({
         <div className="content-stretch flex flex-col items-start relative w-full">
           <div className="content-stretch flex flex-col gap-[6px] items-start pb-[16px] pt-[16px] px-[24px] relative shrink-0 w-full">
             {/* Header */}
-            <p className="font-['DM_Sans:SemiBold',sans-serif] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+            <p className="font-['DM_Sans',sans-serif] font-semibold not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
               TOTAL WEALTH
             </p>
 
             {/* Main Value and Change */}
             <div className="content-stretch flex items-end justify-between relative shrink-0 w-full">
-              <p className="font-['Crimson_Pro:ExtraLight',sans-serif] font-extralight leading-[28px] relative shrink-0 text-[#555555] text-[36px] text-nowrap tracking-[-1.2px]">
+              <p className="font-['Crimson_Pro',sans-serif] font-extralight leading-[28px] relative shrink-0 text-[#555555] text-[36px] text-nowrap tracking-[-1.2px]">
                 $
                 {displayValue.toLocaleString('en-US', {
                   minimumFractionDigits: 2,
@@ -91,7 +91,7 @@ export function WealthSnapshot({
                   </svg>
                 </div>
                 <p
-                  className={`font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-nowrap whitespace-pre ${
+                  className={`font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-nowrap whitespace-pre ${
                     isPositive ? 'text-[#03561a]' : 'text-[#560303]'
                   }`}
                 >
@@ -126,7 +126,7 @@ export function WealthSnapshot({
 
             {/* Primary Insight */}
             <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 w-full mt-[12px]">
-              <p className="font-['DM_Sans:Regular',sans-serif] leading-[1.4] not-italic relative shrink-0 text-[#555555] text-[13px] tracking-[-0.26px] w-full">
+              <p className="font-['DM_Sans',sans-serif] leading-[1.4] not-italic relative shrink-0 text-[#555555] text-[13px] tracking-[-0.26px] w-full">
                 {primaryInsight}
               </p>
             </div>
@@ -137,7 +137,7 @@ export function WealthSnapshot({
                 onClick={onViewDetails}
                 className="content-stretch flex gap-[4px] items-center relative shrink-0 group mt-[4px]"
               >
-                <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#992929] text-[12px] group-hover:underline">
+                <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#992929] text-[12px] group-hover:underline">
                   View full analysis
                 </p>
                 <ChevronRight className="size-[14px] text-[#992929]" strokeWidth={2} />
@@ -167,11 +167,11 @@ export function WealthSnapshot({
                       </div>
 
                       <div className="flex-1 flex flex-col gap-[2px]">
-                        <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic text-[#555555] text-[14px]">
+                        <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[14px]">
                           {detail.title}
                         </p>
                         {!isExpanded && (
-                          <p className="font-['DM_Sans:Regular',sans-serif] leading-[1.3] not-italic text-[#555555] text-[12px] opacity-60">
+                          <p className="font-['DM_Sans',sans-serif] leading-[1.3] not-italic text-[#555555] text-[12px] opacity-60">
                             {detail.summary}
                           </p>
                         )}
@@ -191,7 +191,7 @@ export function WealthSnapshot({
                       <div className="content-stretch flex flex-col gap-[12px] items-start px-[24px] pb-[20px] w-full">
                         <div>
                           {typeof detail.fullContent === 'string' ? (
-                            <p className="font-['DM_Sans:Light',sans-serif] leading-[1.5] not-italic text-[#555555] text-[14px] tracking-[-0.28px]">
+                            <p className="font-['DM_Sans',sans-serif] font-light leading-[1.5] not-italic text-[#555555] text-[14px] tracking-[-0.28px]">
                               {detail.fullContent}
                             </p>
                           ) : (

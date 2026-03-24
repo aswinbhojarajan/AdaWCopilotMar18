@@ -49,7 +49,7 @@ export function WealthOverviewCard({
             {/* Header */}
             <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
               <div className="flex items-center gap-[6px]">
-                <p className="font-['DM_Sans:SemiBold',sans-serif] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+                <p className="font-['DM_Sans',sans-serif] font-semibold not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
                   TOTAL WEALTH
                 </p>
               </div>
@@ -59,7 +59,7 @@ export function WealthOverviewCard({
             <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full">
               {/* Value and Badge Row */}
               <div className="content-stretch flex items-end justify-between relative shrink-0 w-full">
-                <p className="font-['Crimson_Pro:ExtraLight',sans-serif] font-extralight leading-[28px] relative shrink-0 text-[#555555] text-[40px] text-nowrap tracking-[-1.2px] whitespace-pre">
+                <p className="font-['Crimson_Pro',sans-serif] font-extralight leading-[28px] relative shrink-0 text-[#555555] text-[40px] text-nowrap tracking-[-1.2px] whitespace-pre">
                   $
                   {displayValue.toLocaleString('en-US', {
                     minimumFractionDigits: 2,
@@ -88,7 +88,7 @@ export function WealthOverviewCard({
                     </svg>
                   </div>
                   <p
-                    className={`font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-nowrap whitespace-pre ${
+                    className={`font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-nowrap whitespace-pre ${
                       isPositive ? 'text-[#03561a]' : 'text-[#560303]'
                     }`}
                   >
@@ -105,7 +105,7 @@ export function WealthOverviewCard({
 
               {/* Metrics Row */}
               <div className="content-stretch flex items-end justify-between relative shrink-0 w-full">
-                <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
+                <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
                   Yesterday: {dailyChangePercent >= 0 ? '+' : ''}
                   {dailyChangePercent.toFixed(1)}%
                 </p>
@@ -124,7 +124,7 @@ export function WealthOverviewCard({
                   </div>
                 </div>
                 {weeklyChangePercent !== undefined && (
-                  <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
+                  <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
                     Last 7 days: {weeklyChangePercent >= 0 ? '+' : ''}
                     {weeklyChangePercent.toFixed(1)}%
                   </p>
@@ -154,13 +154,13 @@ export function WealthOverviewCard({
             <div className="content-stretch flex flex-col gap-[16px] items-start relative shrink-0 w-full mt-[24px]">
               {/* Insight Block 1 - Portfolio Concentration Alert */}
               <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full pb-[16px] border-b border-[#e3e3e3]">
-                <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[14px]">
+                <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic relative shrink-0 text-[#555555] text-[14px]">
                   Portfolio Concentration Alert
                 </p>
-                <p className="font-['DM_Sans:Light',sans-serif] leading-[1.5] not-italic relative shrink-0 text-[#555555] text-[14px] tracking-[-0.28px] w-full">
+                <p className="font-['DM_Sans',sans-serif] font-light leading-[1.5] not-italic relative shrink-0 text-[#555555] text-[14px] tracking-[-0.28px] w-full">
                   Over 33% of your invested wealth is currently concentrated in global equities,
                   primarily US technology.{' '}
-                  <span className="font-['DM_Sans:Regular',sans-serif]">
+                  <span className="font-['DM_Sans',sans-serif]">
                     This has driven strong returns, but it also increases sensitivity to market
                     corrections.
                   </span>
@@ -169,34 +169,34 @@ export function WealthOverviewCard({
 
               {/* Insight Block 2 - Top Contributors to Performance */}
               <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full pb-[16px] border-b border-[#e3e3e3]">
-                <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[14px]">
+                <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic relative shrink-0 text-[#555555] text-[14px]">
                   Top Contributors to Performance
                 </p>
-                <p className="font-['DM_Sans:Light',sans-serif] leading-[1.5] not-italic relative shrink-0 text-[#555555] text-[14px] tracking-[-0.28px] w-full">
+                <p className="font-['DM_Sans',sans-serif] font-light leading-[1.5] not-italic relative shrink-0 text-[#555555] text-[14px] tracking-[-0.28px] w-full">
                   Your strongest contributors this year have been:
                 </p>
                 <ul className="ml-[16px] space-y-[4px]">
-                  <li className="font-['DM_Sans:Light',sans-serif] leading-[1.5] text-[#555555] text-[14px] tracking-[-0.28px] list-disc">
+                  <li className="font-['DM_Sans',sans-serif] font-light leading-[1.5] text-[#555555] text-[14px] tracking-[-0.28px] list-disc">
                     US Technology Equity Fund
                   </li>
-                  <li className="font-['DM_Sans:Light',sans-serif] leading-[1.5] text-[#555555] text-[14px] tracking-[-0.28px] list-disc">
+                  <li className="font-['DM_Sans',sans-serif] font-light leading-[1.5] text-[#555555] text-[14px] tracking-[-0.28px] list-disc">
                     Global Growth ETF
                   </li>
                 </ul>
-                <p className="font-['DM_Sans:Regular',sans-serif] leading-[1.5] not-italic relative shrink-0 text-[#555555] text-[14px] tracking-[-0.28px] w-full">
+                <p className="font-['DM_Sans',sans-serif] leading-[1.5] not-italic relative shrink-0 text-[#555555] text-[14px] tracking-[-0.28px] w-full">
                   These assets account for 65% of your portfolio gains.
                 </p>
               </div>
 
               {/* Insight Block 3 - Emerging Risk to Watch */}
               <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
-                <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[14px]">
+                <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic relative shrink-0 text-[#555555] text-[14px]">
                   Emerging Risk to Watch
                 </p>
-                <p className="font-['DM_Sans:Light',sans-serif] leading-[1.5] not-italic relative shrink-0 text-[#555555] text-[14px] tracking-[-0.28px] w-full">
+                <p className="font-['DM_Sans',sans-serif] font-light leading-[1.5] not-italic relative shrink-0 text-[#555555] text-[14px] tracking-[-0.28px] w-full">
                   If equity markets experience a 15–20% correction, your portfolio drawdown could
                   exceed your comfort range.{' '}
-                  <span className="font-['DM_Sans:Regular',sans-serif]">
+                  <span className="font-['DM_Sans',sans-serif]">
                     Diversification into lower-volatility or hedged assets could reduce this impact.
                   </span>
                 </p>
@@ -223,7 +223,7 @@ export function WealthOverviewCard({
                 <div className="relative shrink-0 size-[24px] flex items-center justify-center">
                   <SparkIcon color="#555555" />
                 </div>
-                <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
+                <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
                   Review my risk exposure
                 </p>
               </button>
@@ -245,7 +245,7 @@ export function WealthOverviewCard({
                 <div className="relative shrink-0 size-[24px] flex items-center justify-center">
                   <SparkIcon color="#555555" />
                 </div>
-                <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
+                <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
                   Discover diversification ideas
                 </p>
               </button>
@@ -254,7 +254,7 @@ export function WealthOverviewCard({
             {/* Timestamp - Bottom Right */}
             <div className="content-stretch flex gap-[2px] items-center justify-end relative shrink-0 w-full mt-[8px]">
               <Clock className="size-[12px] text-[#555555]" strokeWidth={1} />
-              <div className="flex flex-col font-['DM_Sans:Regular',sans-serif] justify-center not-italic relative shrink-0 text-[#555555] text-[9px] text-nowrap text-right">
+              <div className="flex flex-col font-['DM_Sans',sans-serif] justify-center not-italic relative shrink-0 text-[#555555] text-[9px] text-nowrap text-right">
                 <p className="leading-[normal]">Updated today</p>
               </div>
             </div>

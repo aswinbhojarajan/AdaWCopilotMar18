@@ -59,11 +59,11 @@ export function PollOption({
     return (
       <div className="content-stretch flex flex-col gap-[4px] relative shrink-0 w-full">
         <div className="flex items-center justify-between">
-          <p className="font-['Crimson_Pro:ExtraLight',sans-serif] text-[12px] text-[#555555]">
+          <p className="font-['Crimson_Pro',sans-serif] font-extralight text-[12px] text-[#555555]">
             {label}
           </p>
           <p
-            className={`font-['DM_Sans:Medium',sans-serif] text-[12px] ${isUserSelection ? 'text-[#992929]' : 'text-[#555555] opacity-60'}`}
+            className={`font-['DM_Sans',sans-serif] font-medium text-[12px] ${isUserSelection ? 'text-[#992929]' : 'text-[#555555] opacity-60'}`}
           >
             {percentage}%
           </p>
@@ -94,7 +94,7 @@ export function PollOption({
           MozAppearance: 'none',
         }}
       />
-      <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] text-[#555555] text-[14px] group-hover:text-[#992929] transition-colors">
+      <p className="font-['DM_Sans',sans-serif] leading-[normal] text-[#555555] text-[14px] group-hover:text-[#992929] transition-colors">
         {label}
       </p>
     </label>

@@ -115,7 +115,7 @@ export function ChatHistoryScreen({ onBack, onThreadClick }: ChatHistoryScreenPr
 
               {filteredThreads.length === 0 && (
                 <div className="w-full py-[40px] text-center">
-                  <p className="font-['DM_Sans:Regular',sans-serif] text-[#667085] text-[14px]">
+                  <p className="font-['DM_Sans',sans-serif] text-[#667085] text-[14px]">
                     No threads found
                   </p>
                 </div>

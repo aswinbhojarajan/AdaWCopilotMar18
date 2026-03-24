@@ -377,7 +377,7 @@ export function ChatScreen({
             <>
               <div className="w-full flex items-center justify-center mb-[12px] mt-[16px]">
                 <div className="bg-white/60 rounded-full px-[16px] py-[6px] border border-[#e3e3e3]">
-                  <p className="font-['DM_Sans:Light',sans-serif] text-[#555555] text-[11px] tracking-[-0.22px] text-center">
+                  <p className="font-['DM_Sans',sans-serif] font-light text-[#555555] text-[11px] tracking-[-0.22px] text-center">
                     Today
                   </p>
                 </div>
@@ -385,7 +385,7 @@ export function ChatScreen({
 
               <div className="w-full flex items-center justify-center mb-[16px]">
                 <div className="max-w-[90%]">
-                  <p className="font-['DM_Sans:Light',sans-serif] text-[#555555] text-[12px] tracking-[-0.24px] text-center leading-[1.5] opacity-70">
+                  <p className="font-['DM_Sans',sans-serif] font-light text-[#555555] text-[12px] tracking-[-0.24px] text-center leading-[1.5] opacity-70">
                     I can analyze your portfolio, model risk scenarios, explore investment
                     opportunities, and provide personalized guidance.
                   </p>
@@ -455,10 +455,10 @@ export function ChatScreen({
                 <AtomIcon size={55} />
               </div>
 
-              <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] text-[24px] tracking-[-0.48px] text-center mb-[6px]">
+              <p className="font-['Crimson_Pro',sans-serif] text-[#555555] text-[24px] tracking-[-0.48px] text-center mb-[6px]">
                 How can I help you today?
               </p>
-              <p className="font-['DM_Sans:Light',sans-serif] text-[#555555] text-[14px] text-center opacity-70">
+              <p className="font-['DM_Sans',sans-serif] font-light text-[#555555] text-[14px] text-center opacity-70">
                 Ask me anything about your portfolio,
                 <br />
                 investments, or market insights.
@@ -473,7 +473,7 @@ export function ChatScreen({
                 <div className="w-[6px] h-[6px] bg-[#555555] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                 <div className="w-[6px] h-[6px] bg-[#555555] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <p className="font-['DM_Sans:Light',sans-serif] text-[#555555] text-[12px] mt-[12px]">Loading conversation...</p>
+              <p className="font-['DM_Sans',sans-serif] font-light text-[#555555] text-[12px] mt-[12px]">Loading conversation...</p>
             </div>
           )}
         </div>

@@ -121,7 +121,7 @@ export function LiveThinkingBar({ steps, isStreaming, visible }: LiveThinkingBar
         )}
       </div>
       {latestVisible && (
-        <p className="font-['DM_Sans:Light',sans-serif] text-[9px] text-[#999] tracking-[-0.2px] mt-[2px] truncate pl-[14px]">
+        <p className="font-['DM_Sans',sans-serif] font-light text-[9px] text-[#999] tracking-[-0.2px] mt-[2px] truncate pl-[14px]">
           {latestVisible.detail}
         </p>
       )}
@@ -165,10 +165,10 @@ export function ThinkingPanel({ steps, isStreaming }: ThinkingPanelProps) {
             <div key={i} className="flex items-start gap-[8px]">
               <div className="mt-[5px] w-[6px] h-[6px] rounded-full bg-[#bbb] shrink-0" />
               <div className="min-w-0">
-                <p className="font-['DM_Sans:Medium',sans-serif] text-[11px] text-[#555] tracking-[-0.2px]">
+                <p className="font-['DM_Sans',sans-serif] font-medium text-[11px] text-[#555] tracking-[-0.2px]">
                   {STEP_LABELS[s.step] || s.step}
                 </p>
-                <p className="font-['DM_Sans:Light',sans-serif] text-[10px] text-[#888] tracking-[-0.2px] break-words">
+                <p className="font-['DM_Sans',sans-serif] font-light text-[10px] text-[#888] tracking-[-0.2px] break-words">
                   {s.detail}
                 </p>
               </div>

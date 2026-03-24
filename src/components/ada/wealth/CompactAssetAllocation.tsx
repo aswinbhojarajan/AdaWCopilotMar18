@@ -26,10 +26,10 @@ export function CompactAssetAllocation({ allocations, totalValue }: CompactAsset
           {/* Header */}
           <div className="content-stretch flex items-center justify-between relative shrink-0 w-full mb-[16px]">
             <div className="flex flex-col gap-[2px]">
-              <p className="font-['DM_Sans:SemiBold',sans-serif] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+              <p className="font-['DM_Sans',sans-serif] font-semibold not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
                 ASSET ALLOCATION
               </p>
-              <p className="font-['Crimson_Pro:Regular',sans-serif] relative shrink-0 text-[#555555] text-[20px] tracking-[-0.4px]">
+              <p className="font-['Crimson_Pro',sans-serif] relative shrink-0 text-[#555555] text-[20px] tracking-[-0.4px]">
                 Portfolio breakdown
               </p>
             </div>
@@ -38,7 +38,7 @@ export function CompactAssetAllocation({ allocations, totalValue }: CompactAsset
               onClick={() => setIsExpanded(!isExpanded)}
               className="flex items-center gap-[4px] text-[#992929]"
             >
-              <p className="font-['DM_Sans:Regular',sans-serif] text-[12px]">
+              <p className="font-['DM_Sans',sans-serif] text-[12px]">
                 {isExpanded ? 'Show less' : 'View all'}
               </p>
               {isExpanded ? (
@@ -76,16 +76,16 @@ export function CompactAssetAllocation({ allocations, totalValue }: CompactAsset
                         className="size-[10px] rounded-[2px] shrink-0"
                         style={{ backgroundColor: allocation.color }}
                       />
-                      <p className="font-['DM_Sans:Regular',sans-serif] text-[13px] text-[#555555] tracking-[-0.26px]">
+                      <p className="font-['DM_Sans',sans-serif] text-[13px] text-[#555555] tracking-[-0.26px]">
                         {allocation.label}
                       </p>
                     </div>
                     <div className="flex flex-col items-end">
-                      <p className="font-['DM_Sans:Regular',sans-serif] text-[14px] text-[#555555] tracking-[-0.28px]">
+                      <p className="font-['DM_Sans',sans-serif] text-[14px] text-[#555555] tracking-[-0.28px]">
                         {percentage}%
                       </p>
                       {isExpanded && (
-                        <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[10px] opacity-60">
+                        <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[10px] opacity-60">
                           ${allocation.amount.toLocaleString()}
                         </p>
                       )}

@@ -98,7 +98,7 @@ export function SlideNotification({
               {/* Category Label */}
               {categoryLabel && (
                 <p
-                  className="font-['DM_Sans:SemiBold',sans-serif] text-[10.209px] leading-[14.777px] tracking-[0.6567px] uppercase"
+                  className="font-['DM_Sans',sans-serif] font-semibold text-[10.209px] leading-[14.777px] tracking-[0.6567px] uppercase"
                   style={{ color: categoryLabelColor }}
                 >
                   {categoryLabel}
@@ -107,7 +107,7 @@ export function SlideNotification({
 
               {/* Message */}
               <p
-                className="font-['DM_Sans:Regular',sans-serif] text-[12px] leading-[14.777px]"
+                className="font-['DM_Sans',sans-serif] text-[12px] leading-[14.777px]"
                 style={{ color: '#555555' }}
               >
                 {message}
@@ -117,7 +117,7 @@ export function SlideNotification({
               {actionText && onAction && (
                 <button
                   onClick={onAction}
-                  className="font-['DM_Sans:SemiBold',sans-serif] text-[11px] leading-[13.545px] text-left transition-opacity hover:opacity-70"
+                  className="font-['DM_Sans',sans-serif] font-semibold text-[11px] leading-[13.545px] text-left transition-opacity hover:opacity-70"
                   style={{ color: '#555555' }}
                 >
                   {actionText}
@@ -166,7 +166,7 @@ export function SlideNotification({
           {/* Content */}
           <div className="flex flex-col gap-[12px] flex-1 min-w-0">
             <p
-              className="font-['DM_Sans:Regular',sans-serif] text-[13px] leading-[18px]"
+              className="font-['DM_Sans',sans-serif] text-[13px] leading-[18px]"
               style={{ color: textColor }}
             >
               {message}
@@ -176,7 +176,7 @@ export function SlideNotification({
             {actionText && onAction && (
               <button
                 onClick={onAction}
-                className="font-['DM_Sans:SemiBold',sans-serif] text-[11px] tracking-[0.8px] uppercase text-left transition-opacity hover:opacity-70"
+                className="font-['DM_Sans',sans-serif] font-semibold text-[11px] tracking-[0.8px] uppercase text-left transition-opacity hover:opacity-70"
                 style={{ color: textColor }}
               >
                 {actionText}

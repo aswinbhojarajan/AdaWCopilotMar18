@@ -111,7 +111,7 @@ export function GoalCard({
           <div className="flex-1 flex flex-col gap-[8px] min-w-0">
             {/* Title */}
             <div className="flex items-center gap-[8px] w-full">
-              <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] tracking-[-0.48px] text-[20px]">
+              <p className="font-['Crimson_Pro',sans-serif] text-[#555555] tracking-[-0.48px] text-[20px]">
                 {title}
               </p>
             </div>
@@ -119,24 +119,24 @@ export function GoalCard({
             {/* Progress Details */}
             <div className="flex flex-col gap-[4px] w-full">
               <div className="flex items-baseline gap-[6px] w-full flex-wrap">
-                <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] text-[18px]">
+                <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] text-[18px]">
                   ${currentAmount.toLocaleString()}
                 </p>
-                <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] opacity-60">
+                <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[14px] opacity-60">
                   of ${targetAmount.toLocaleString()}
                 </p>
               </div>
 
               <div className="flex flex-col gap-[2px] w-full">
-                <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[13px]">
+                <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[13px]">
                   ${remaining.toLocaleString()} remaining
                 </p>
-                <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[11px] opacity-60">
+                <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[11px] opacity-60">
                   Target: {deadline}
                 </p>
                 {delta !== null && (
                   <p
-                    className="font-['DM_Sans:SemiBold',sans-serif] text-[12px] mt-[2px]"
+                    className="font-['DM_Sans',sans-serif] font-semibold text-[12px] mt-[2px]"
                     style={{ color: delta >= 0 ? '#16a34a' : '#dc2626' }}
                   >
                     {delta >= 0
@@ -190,7 +190,7 @@ export function GoalCard({
                     style={{ backgroundColor: statusConfig.dotColor }}
                   />
                   <span
-                    className="font-['DM_Sans:SemiBold',sans-serif] text-[9px] tracking-[0.6px] uppercase whitespace-nowrap"
+                    className="font-['DM_Sans',sans-serif] font-semibold text-[9px] tracking-[0.6px] uppercase whitespace-nowrap"
                     style={{ color: statusConfig.textColor }}
                   >
                     {statusConfig.label} ({Math.round(progress)}%)
@@ -199,12 +199,12 @@ export function GoalCard({
               )}
 
               {/* Ada Panel Title */}
-              <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] text-[20px] tracking-[-0.48px]">
+              <p className="font-['Crimson_Pro',sans-serif] text-[#555555] text-[20px] tracking-[-0.48px]">
                 Here's what changed — and 2 ways to fix it.
               </p>
 
               {/* Inline Copy */}
-              <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] leading-[20px]">
+              <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[14px] leading-[20px]">
                 Recent withdrawals increased your funding gap for Dec 2026.
               </p>
             </div>
@@ -217,13 +217,13 @@ export function GoalCard({
                   className="flex flex-col gap-[12px] p-[16px] border border-[#e5e5e5] rounded-[12px] w-full"
                 >
                   <div className="flex flex-col gap-[8px] w-full">
-                    <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+                    <p className="font-['DM_Sans',sans-serif] font-semibold text-[#992929] text-[10px] tracking-[0.8px] uppercase">
                       OPTION {option.id}
                     </p>
-                    <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] text-[18px] tracking-[-0.48px]">
+                    <p className="font-['Crimson_Pro',sans-serif] text-[#555555] text-[18px] tracking-[-0.48px]">
                       {option.title}
                     </p>
-                    <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] leading-[20px]">
+                    <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[14px] leading-[20px]">
                       {option.description}
                     </p>
                   </div>
@@ -265,20 +265,20 @@ export function GoalCard({
             {selectedRecoveryOption && (
               <div className="flex flex-col gap-[16px] p-[20px] bg-[#f7f6f2] rounded-[12px] w-full mt-[4px]">
                 <div className="flex flex-col gap-[8px] w-full">
-                  <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+                  <p className="font-['DM_Sans',sans-serif] font-semibold text-[#992929] text-[10px] tracking-[0.8px] uppercase">
                     OPTION {selectedRecoveryOption} — DECISION SUPPORT
                   </p>
-                  <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] text-[20px] tracking-[-0.48px]">
+                  <p className="font-['Crimson_Pro',sans-serif] text-[#555555] text-[20px] tracking-[-0.48px]">
                     {recoveryOptions.find((o) => o.id === selectedRecoveryOption)?.title}
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-[12px] w-full">
                   <div className="flex flex-col gap-[6px]">
-                    <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] text-[12px]">
+                    <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] text-[12px]">
                       Impact
                     </p>
-                    <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] leading-[20px]">
+                    <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[14px] leading-[20px]">
                       {selectedRecoveryOption === 'A'
                         ? "This brings your goal probability from 68% to 78%, putting you back in a comfortable range. You'll hit your Dec 2026 target with moderate confidence."
                         : 'This reduces your downside risk by 12% while maintaining a 71% probability of success. You trade some upside for timeline protection.'}
@@ -286,10 +286,10 @@ export function GoalCard({
                   </div>
 
                   <div className="flex flex-col gap-[6px]">
-                    <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] text-[12px]">
+                    <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] text-[12px]">
                       What this means
                     </p>
-                    <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] leading-[20px]">
+                    <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[14px] leading-[20px]">
                       {selectedRecoveryOption === 'A'
                         ? "You'll need to adjust your budget to accommodate the higher monthly contribution. This is the most direct path to staying on schedule."
                         : 'Your portfolio becomes more conservative, which may lower returns but gives you greater certainty around the Dec 2026 deadline.'}
@@ -369,7 +369,7 @@ export function GoalCard({
                       style={{ backgroundColor: statusConfig.dotColor }}
                     />
                     <span
-                      className="font-['DM_Sans:SemiBold',sans-serif] text-[9px] tracking-[0.6px] uppercase whitespace-nowrap"
+                      className="font-['DM_Sans',sans-serif] font-semibold text-[9px] tracking-[0.6px] uppercase whitespace-nowrap"
                       style={{ color: statusConfig.textColor }}
                     >
                       {statusConfig.label}
@@ -377,7 +377,7 @@ export function GoalCard({
                   </motion.div>
                 )}
 
-                <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] leading-[20px] w-full">
+                <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[14px] leading-[20px] w-full">
                   {aiInsight}
                 </p>
               </div>

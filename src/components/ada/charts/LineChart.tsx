@@ -107,10 +107,10 @@ export function LineChart({
           >
             {hoveredIndex === index && (
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-white rounded-[8px] px-[8px] py-[4px] shadow-lg whitespace-nowrap z-10">
-                <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] text-[12px]">
+                <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] text-[12px]">
                   ${point.value.toLocaleString()}
                 </p>
-                <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[10px] opacity-60">
+                <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[10px] opacity-60">
                   {point.label}
                 </p>
               </div>
@@ -125,7 +125,7 @@ export function LineChart({
           {[data[0], data[Math.floor(data.length / 2)], data[data.length - 1]].map((point, i) => (
             <p
               key={i}
-              className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[10px] opacity-50"
+              className="font-['DM_Sans',sans-serif] text-[#555555] text-[10px] opacity-50"
             >
               {point.label}
             </p>

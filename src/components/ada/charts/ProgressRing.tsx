@@ -55,7 +55,7 @@ export function ProgressRing({
       {/* Center percentage */}
       {showPercentage && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555]">
+          <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555]">
             {Math.round(progress)}%
           </p>
         </div>

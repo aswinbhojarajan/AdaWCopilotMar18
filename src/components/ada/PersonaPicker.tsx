@@ -57,7 +57,7 @@ export function PersonaPicker({ isOpen, onClose }: PersonaPickerProps) {
             className="absolute bottom-0 left-0 right-0 z-50 bg-[#f7f6f2] rounded-t-[20px] max-h-[75%] overflow-hidden"
           >
             <div className="px-[20px] pt-[16px] pb-[8px] flex items-center justify-between border-b border-[#e3e3e3]">
-              <h2 className="font-['Crimson_Pro:SemiBold',serif] text-[20px] text-[#2E3A59] tracking-[-0.4px]">
+              <h2 className="font-['Crimson_Pro',serif] font-semibold text-[20px] text-[#2E3A59] tracking-[-0.4px]">
                 Switch Persona
               </h2>
               <button
@@ -98,26 +98,26 @@ export function PersonaPicker({ isOpen, onClose }: PersonaPickerProps) {
                         }`}
                       >
                         <div className={`w-[42px] h-[42px] rounded-full ${colorClass} flex items-center justify-center shrink-0`}>
-                          <span className="text-white font-['DM_Sans:Medium',sans-serif] text-[14px]">
+                          <span className="text-white font-['DM_Sans',sans-serif] font-medium text-[14px]">
                             {getInitials(persona.firstName, persona.lastName)}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-[8px]">
-                            <span className="font-['DM_Sans:Medium',sans-serif] text-[15px] text-[#2E3A59] truncate">
+                            <span className="font-['DM_Sans',sans-serif] font-medium text-[15px] text-[#2E3A59] truncate">
                               {persona.firstName} {persona.lastName}
                             </span>
                             {isActive && (
-                              <span className="text-[11px] font-['DM_Sans:Medium',sans-serif] text-[#441316] bg-[#441316]/10 px-[6px] py-[1px] rounded-full shrink-0">
+                              <span className="text-[11px] font-['DM_Sans',sans-serif] font-medium text-[#441316] bg-[#441316]/10 px-[6px] py-[1px] rounded-full shrink-0">
                                 Active
                               </span>
                             )}
                           </div>
                           <div className="flex items-center gap-[8px] mt-[2px]">
-                            <span className={`text-[11px] font-['DM_Sans:Medium',sans-serif] px-[6px] py-[1px] rounded-full ${risk.bg} ${risk.text}`}>
+                            <span className={`text-[11px] font-['DM_Sans',sans-serif] font-medium px-[6px] py-[1px] rounded-full ${risk.bg} ${risk.text}`}>
                               {risk.label}
                             </span>
-                            <span className="font-['DM_Sans:Regular',sans-serif] text-[12px] text-[#888]">
+                            <span className="font-['DM_Sans',sans-serif] text-[12px] text-[#888]">
                               {formatCurrency(persona.portfolioValue)}
                             </span>
                           </div>

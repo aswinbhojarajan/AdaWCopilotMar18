@@ -54,10 +54,10 @@
   --ada-radius-full: 100px;
   
   /* Typography */
-  --ada-font-brand: 'RL_Limo:Regular', sans-serif;
-  --ada-font-heading: 'Crimson_Pro:Regular', sans-serif;
-  --ada-font-body: 'DM_Sans:Regular', sans-serif;
-  --ada-font-body-light: 'DM_Sans:Light', sans-serif;
-  --ada-font-body-semibold: 'DM_Sans:SemiBold', sans-serif;
-  --ada-font-system: 'SF_Pro_Text:Semibold', sans-serif;
+  --ada-font-brand: 'rl-limo', sans-serif;
+  --ada-font-heading: 'Crimson Pro', sans-serif;
+  --ada-font-body: 'DM Sans', sans-serif;
+  --ada-font-body-light: 'DM Sans', sans-serif;
+  --ada-font-body-semibold: 'DM Sans', sans-serif;
+  --ada-font-system: -apple-system, BlinkMacSystemFont, sans-serif;
 }

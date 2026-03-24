@@ -155,7 +155,7 @@ export function SimpleSparkline({
       {/* Flat performance indicator */}
       {isFlat && (
         <div className="absolute top-[50%] left-[50%] transform -translate-x-1/2 -translate-y-1/2">
-          <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[10px] opacity-40">
+          <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[10px] opacity-40">
             Flat
           </p>
         </div>

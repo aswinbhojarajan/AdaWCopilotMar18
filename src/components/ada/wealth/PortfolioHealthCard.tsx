@@ -63,11 +63,11 @@ export function PortfolioHealthCard({
         <div className="content-stretch flex flex-col gap-[20px] items-start pb-[24px] pt-[16px] px-[24px] relative w-full">
           {/* Header */}
           <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full">
-            <p className="font-['DM_Sans:SemiBold',sans-serif] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+            <p className="font-['DM_Sans',sans-serif] font-semibold not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
               PORTFOLIO HEALTH
             </p>
 
-            <p className="font-['Crimson_Pro:Regular',sans-serif] relative shrink-0 text-[#555555] text-[24px] tracking-[-0.48px] w-full">
+            <p className="font-['Crimson_Pro',sans-serif] relative shrink-0 text-[#555555] text-[24px] tracking-[-0.48px] w-full">
               Diversification & Risk
             </p>
           </div>
@@ -76,7 +76,7 @@ export function PortfolioHealthCard({
           <div className="content-stretch flex gap-[16px] items-start relative shrink-0 w-full">
             {/* Diversification Score */}
             <div className="flex-1 flex flex-col gap-[4px]">
-              <p className="font-['DM_Sans:Medium',sans-serif] text-[#555555] text-[12px]">
+              <p className="font-['DM_Sans',sans-serif] font-medium text-[#555555] text-[12px]">
                 Diversification Score
               </p>
               <p
@@ -85,14 +85,14 @@ export function PortfolioHealthCard({
               >
                 {diversificationScore}/100
               </p>
-              <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[11px] opacity-50">
+              <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[11px] opacity-50">
                 Well diversified
               </p>
             </div>
 
             {/* Risk Level */}
             <div className="flex-1 flex flex-col gap-[4px]">
-              <p className="font-['DM_Sans:Medium',sans-serif] text-[#555555] text-[12px]">
+              <p className="font-['DM_Sans',sans-serif] font-medium text-[#555555] text-[12px]">
                 Risk Level
               </p>
               <p
@@ -101,7 +101,7 @@ export function PortfolioHealthCard({
               >
                 {riskConfig.label}
               </p>
-              <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[11px] opacity-50">
+              <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[11px] opacity-50">
                 Aligned with current asset mix
               </p>
             </div>
@@ -109,7 +109,7 @@ export function PortfolioHealthCard({
 
           {/* Suggested Actions */}
           <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full pt-[20px] border-t border-[#f0ede4]">
-            <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] text-[11px] uppercase tracking-[0.8px]">
+            <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] text-[11px] uppercase tracking-[0.8px]">
               Suggested Actions
             </p>
 
@@ -119,7 +119,7 @@ export function PortfolioHealthCard({
                 {/* Primary Insight (first suggestion) */}
                 <div className="flex items-start gap-[8px] w-full">
                   <div className="size-[3px] rounded-full bg-[#441316] mt-[7px] shrink-0" />
-                  <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[12px] flex-1">
+                  <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[12px] flex-1">
                     {suggestions[0]}
                   </p>
                 </div>
@@ -130,7 +130,7 @@ export function PortfolioHealthCard({
                     {suggestions.slice(1).map((suggestion, index) => (
                       <div key={index} className="flex items-start gap-[8px]">
                         <div className="size-[3px] rounded-full bg-[#441316] mt-[7px] shrink-0 opacity-40" />
-                        <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[12px] flex-1 opacity-60">
+                        <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[12px] flex-1 opacity-60">
                           {suggestion}
                         </p>
                       </div>
@@ -150,7 +150,7 @@ export function PortfolioHealthCard({
               <div className="relative shrink-0 size-[24px] flex items-center justify-center">
                 <SparkIcon />
               </div>
-              <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-white text-[12px] text-nowrap whitespace-pre">
+              <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-white text-[12px] text-nowrap whitespace-pre">
                 View risk breakdown
               </p>
             </button>
@@ -159,7 +159,7 @@ export function PortfolioHealthCard({
                 aria-hidden="true"
                 className="absolute border-[#d8d8d8] border-[0.75px] border-solid inset-0 pointer-events-none rounded-[50px]"
               />
-              <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
+              <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
                 Contact advisor
               </p>
             </button>

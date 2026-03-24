@@ -47,7 +47,7 @@ export function LifeEventModal({
       <div className="px-[24px] py-[20px] flex flex-col gap-[20px]">
         {suggestions.length === 0 && !isLoading ? (
           <>
-            <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] leading-[1.5]">
+            <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[14px] leading-[1.5]">
               Select a life event and Ada will suggest financial goals tailored to your situation.
             </p>
             <div className="flex flex-col gap-[8px]">
@@ -62,7 +62,7 @@ export function LifeEventModal({
                   }`}
                 >
                   <div className="shrink-0 text-[#555555]">{event.icon}</div>
-                  <span className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[15px]">
+                  <span className="font-['DM_Sans',sans-serif] text-[#555555] text-[15px]">
                     {event.label}
                   </span>
                 </button>
@@ -80,13 +80,13 @@ export function LifeEventModal({
         ) : isLoading ? (
           <div className="flex flex-col items-center gap-[12px] py-[32px]">
             <Loader2 className="size-[28px] text-[#992929] animate-spin" />
-            <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px]">
+            <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[14px]">
               Ada is thinking...
             </p>
           </div>
         ) : (
           <div className="flex flex-col gap-[16px]">
-            <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] leading-[1.5]">
+            <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[14px] leading-[1.5]">
               Based on your life event, Ada suggests these goals:
             </p>
             {suggestions.map((suggestion, index) => (
@@ -95,14 +95,14 @@ export function LifeEventModal({
                 className="flex flex-col gap-[12px] p-[16px] border border-[#e5e5e5] rounded-[12px]"
               >
                 <div className="flex flex-col gap-[4px]">
-                  <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] text-[15px]">
+                  <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] text-[15px]">
                     {suggestion.title}
                   </p>
-                  <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[13px] opacity-60">
+                  <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[13px] opacity-60">
                     Target: ${suggestion.targetAmount.toLocaleString()} by {suggestion.deadline}
                   </p>
                 </div>
-                <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[13px] leading-[1.4]">
+                <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[13px] leading-[1.4]">
                   {suggestion.rationale}
                 </p>
                 <Button

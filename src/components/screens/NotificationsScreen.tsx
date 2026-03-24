@@ -91,10 +91,10 @@ export function NotificationsScreen({ onBack }: NotificationsScreenProps = {}) {
 
               {filteredNotifications.length === 0 && (
                 <div className="bg-white rounded-[12px] px-[24px] py-[48px] text-center w-full">
-                  <p className="font-['DM_Sans:Medium',sans-serif] text-[#3a3a3a] text-[16px] mb-[8px]">
+                  <p className="font-['DM_Sans',sans-serif] font-medium text-[#3a3a3a] text-[16px] mb-[8px]">
                     No notifications
                   </p>
-                  <p className="font-['DM_Sans:Regular',sans-serif] text-[#667085] text-[14px] leading-[20px]">
+                  <p className="font-['DM_Sans',sans-serif] text-[#667085] text-[14px] leading-[20px]">
                     You're all caught up! Check back later for new updates.
                   </p>
                 </div>

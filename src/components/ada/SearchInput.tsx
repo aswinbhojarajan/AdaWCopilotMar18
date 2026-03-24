@@ -22,7 +22,7 @@ export function SearchInput({
             value={value}
             onChange={(e) => onChange?.(e.target.value)}
             placeholder={placeholder}
-            className="flex-1 font-['DM_Sans:Medium',sans-serif] text-[#cacaca] text-[14px] tracking-[-0.28px] bg-transparent border-none outline-none placeholder:text-[#cacaca]"
+            className="flex-1 font-['DM_Sans',sans-serif] font-medium text-[#cacaca] text-[14px] tracking-[-0.28px] bg-transparent border-none outline-none placeholder:text-[#cacaca]"
           />
         </div>
       </div>

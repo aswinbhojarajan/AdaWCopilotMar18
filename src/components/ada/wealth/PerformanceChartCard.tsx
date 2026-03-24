@@ -57,11 +57,11 @@ export function PerformanceChartCard({ defaultTimeFrame = '1M' }: PerformanceCha
         <div className="content-stretch flex flex-col gap-[16px] items-start pb-[24px] pt-[16px] px-[24px] relative w-full">
           {/* Header */}
           <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full">
-            <p className="font-['DM_Sans:SemiBold',sans-serif] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+            <p className="font-['DM_Sans',sans-serif] font-semibold not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
               PORTFOLIO PERFORMANCE
             </p>
 
-            <p className="font-['Crimson_Pro:Regular',sans-serif] relative shrink-0 text-[#555555] tracking-[-0.48px] w-full">
+            <p className="font-['Crimson_Pro',sans-serif] relative shrink-0 text-[#555555] tracking-[-0.48px] w-full">
               Track your wealth growth over time
             </p>
           </div>

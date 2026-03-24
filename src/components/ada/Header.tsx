@@ -26,11 +26,11 @@ export function Header({ onNotificationsClick, onClose }: HeaderProps = {}) {
                   className="flex items-center gap-[6px] bg-[#efede6] rounded-full px-[10px] py-[3px] hover:bg-[#e3e1d9] transition-colors cursor-pointer"
                 >
                   <div className="w-[18px] h-[18px] rounded-full bg-[#441316] flex items-center justify-center">
-                    <span className="text-white text-[9px] font-['DM_Sans:Medium',sans-serif]">
+                    <span className="text-white text-[9px] font-['DM_Sans',sans-serif] font-medium">
                       {activePersona.firstName.charAt(0)}{activePersona.lastName.charAt(0)}
                     </span>
                   </div>
-                  <span className="font-['DM_Sans:Medium',sans-serif] text-[12px] text-[#555] tracking-[-0.2px]">
+                  <span className="font-['DM_Sans',sans-serif] font-medium text-[12px] text-[#555] tracking-[-0.2px]">
                     {activePersona.firstName}
                   </span>
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="none">

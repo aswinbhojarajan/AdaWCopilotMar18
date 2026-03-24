@@ -38,11 +38,11 @@ export function InsightRow({
             </div>
 
             <div className="flex-1 flex flex-col gap-[2px]">
-              <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic text-[#555555] text-[14px]">
+              <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[14px]">
                 {title}
               </p>
               {!isExpanded && (
-                <p className="font-['DM_Sans:Regular',sans-serif] leading-[1.3] not-italic text-[#555555] text-[12px] opacity-60">
+                <p className="font-['DM_Sans',sans-serif] leading-[1.3] not-italic text-[#555555] text-[12px] opacity-60">
                   {summary}
                 </p>
               )}
@@ -68,7 +68,7 @@ export function InsightRow({
               <div className="content-stretch flex flex-col gap-[12px] items-start px-[24px] pb-[20px] w-full">
                 <div className="mt-[16px]">
                   {typeof fullContent === 'string' ? (
-                    <p className="font-['DM_Sans:Light',sans-serif] leading-[1.5] not-italic text-[#555555] text-[14px] tracking-[-0.28px]">
+                    <p className="font-['DM_Sans',sans-serif] font-light leading-[1.5] not-italic text-[#555555] text-[14px] tracking-[-0.28px]">
                       {fullContent}
                     </p>
                   ) : (

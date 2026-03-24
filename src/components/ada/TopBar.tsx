@@ -6,7 +6,7 @@ export function TopBar() {
     <div className="h-[44px] relative shrink-0 w-full">
       {/* Time */}
       <div className="absolute h-[21px] left-[21px] top-[13px] w-[54px]">
-        <p className="absolute font-['SF_Pro_Text:Semibold',sans-serif] leading-[normal] left-[27px] not-italic text-[#3a3a3a] text-[14px] text-center top-[calc(50%-7.5px)] tracking-[-0.28px] translate-x-[-50%] w-[54px]">
+        <p className="absolute font-['DM_Sans',sans-serif] font-semibold leading-[normal] left-[27px] not-italic text-[#3a3a3a] text-[14px] text-center top-[calc(50%-7.5px)] tracking-[-0.28px] translate-x-[-50%] w-[54px]">
           9:41
         </p>
       </div>

@@ -111,7 +111,7 @@ export function BottomBar({
                   {hasActiveChatToday && !isOnChatScreen ? (
                     // Resume chat mode (only show when NOT on chat screen)
                     <div className="flex items-center justify-between w-full">
-                      <span className="font-['DM_Sans:Regular',sans-serif] text-[14px] text-[#441316]">
+                      <span className="font-['DM_Sans',sans-serif] text-[14px] text-[#441316]">
                         Continue today's conversation
                       </span>
                       <ChevronRight className="size-[18px] text-[#441316]" strokeWidth={1.5} />
@@ -125,7 +125,7 @@ export function BottomBar({
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
                         placeholder="Ask anything"
-                        className="basis-0 font-['DM_Sans:Regular',sans-serif] grow min-h-px min-w-px not-italic relative shrink-0 text-black bg-transparent border-none outline-none placeholder:opacity-70 text-[14px]"
+                        className="basis-0 font-['DM_Sans',sans-serif] grow min-h-px min-w-px not-italic relative shrink-0 text-black bg-transparent border-none outline-none placeholder:opacity-70 text-[14px]"
                         ref={inputRef}
                       />
                       <button

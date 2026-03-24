@@ -22,13 +22,13 @@ export function SummaryCard({
           {/* Header with Date Line */}
           <div className="content-stretch flex flex-col gap-[10px] items-start relative shrink-0 w-full">
             <div className="content-stretch flex items-end justify-between not-italic relative shrink-0 w-full">
-              <div className="flex flex-col font-['DM_Sans:Regular',sans-serif] h-[7px] justify-center leading-[0] relative shrink-0 text-[#555555] text-[9px] w-[75px]">
+              <div className="flex flex-col font-['DM_Sans',sans-serif] h-[7px] justify-center leading-[0] relative shrink-0 text-[#555555] text-[9px] w-[75px]">
                 <p className="leading-[18px]">Updated 6:00 AM</p>
               </div>
-              <p className="font-['DM_Sans:SemiBold',sans-serif] h-[12px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[10px] text-center tracking-[0.8px] uppercase w-[138px]">
+              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[10px] text-center tracking-[0.8px] uppercase w-[138px]">
                 {date}
               </p>
-              <p className="font-['DM_Sans:Regular',sans-serif] h-[17px] leading-[28px] relative shrink-0 text-[#555555] text-[9px] text-right w-[75px]">
+              <p className="font-['DM_Sans',sans-serif] h-[17px] leading-[28px] relative shrink-0 text-[#555555] text-[9px] text-right w-[75px]">
                 {title}
               </p>
             </div>
@@ -47,7 +47,7 @@ export function SummaryCard({
           </div>
 
           {/* Subtitle */}
-          <div className="font-['Crimson_Pro:Regular',sans-serif] font-normal leading-[0] relative shrink-0 text-[#555555] text-[18px] text-center tracking-[-0.36px] w-full">
+          <div className="font-['Crimson_Pro',sans-serif] font-normal leading-[0] relative shrink-0 text-[#555555] text-[18px] text-center tracking-[-0.36px] w-full">
             <p className="leading-[normal] mb-0">
               {subtitle.includes('You have') ? (
                 <>
@@ -75,7 +75,7 @@ export function SummaryCard({
 
           {/* Sub bodycopy */}
           {showSubBodycopy && (
-            <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] relative shrink-0 text-[#555555] text-[14px] text-center opacity-60 w-full">
+            <p className="font-['DM_Sans',sans-serif] leading-[normal] relative shrink-0 text-[#555555] text-[14px] text-center opacity-60 w-full">
               Ada can help you explore any insight here.
             </p>
           )}

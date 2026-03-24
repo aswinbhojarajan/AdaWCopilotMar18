@@ -31,10 +31,10 @@ export function AdvisorCard({
           <div className="content-stretch flex flex-col gap-[16px] items-start relative shrink-0 w-full">
             {/* Header */}
             <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full">
-              <p className="font-['DM_Sans:SemiBold',sans-serif] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+              <p className="font-['DM_Sans',sans-serif] font-semibold not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
                 YOUR ADVISOR
               </p>
-              <p className="font-['Crimson_Pro:Regular',sans-serif] relative shrink-0 text-[#555555] text-[24px] tracking-[-0.48px] w-full">
+              <p className="font-['Crimson_Pro',sans-serif] relative shrink-0 text-[#555555] text-[24px] tracking-[-0.48px] w-full">
                 Expert guidance when you need it
               </p>
             </div>
@@ -52,17 +52,17 @@ export function AdvisorCard({
 
               {/* Advisor Info */}
               <div className="flex flex-col gap-[6px] flex-1">
-                <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic text-[#555555] text-[16px]">
+                <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[16px]">
                   {advisorName}
                 </p>
-                <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic text-[#555555] text-[13px] opacity-60">
+                <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic text-[#555555] text-[13px] opacity-60">
                   {advisorTitle}
                 </p>
 
                 {/* Availability Badge */}
                 <div className="flex items-center gap-[6px] mt-[4px]">
                   <div className="size-[8px] rounded-full bg-[#c6ff6a]" />
-                  <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic text-[#555555] text-[12px]">
+                  <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic text-[#555555] text-[12px]">
                     {availabilityStatus}
                   </p>
                 </div>
@@ -72,18 +72,18 @@ export function AdvisorCard({
             {/* Stats Section */}
             <div className="content-stretch flex items-start gap-[16px] relative shrink-0 w-full pb-[16px] border-b border-[#e3e3e3]">
               <div className="flex flex-col gap-[4px] flex-1">
-                <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic text-[#555555] text-[11px] opacity-60 uppercase tracking-[0.6px]">
+                <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic text-[#555555] text-[11px] opacity-60 uppercase tracking-[0.6px]">
                   Managing your wealth
                 </p>
-                <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic text-[#555555] text-[14px]">
+                <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[14px]">
                   Since {sinceYear}
                 </p>
               </div>
               <div className="flex flex-col gap-[4px] flex-1">
-                <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic text-[#555555] text-[11px] opacity-60 uppercase tracking-[0.6px]">
+                <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic text-[#555555] text-[11px] opacity-60 uppercase tracking-[0.6px]">
                   Response time
                 </p>
-                <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic text-[#555555] text-[14px]">
+                <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[14px]">
                   Within 24 hrs
                 </p>
               </div>
@@ -91,25 +91,25 @@ export function AdvisorCard({
 
             {/* When to Contact Section */}
             <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full">
-              <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic text-[#555555] text-[14px]">
+              <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[14px]">
                 When to reach out
               </p>
               <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
                 <div className="flex items-start gap-[8px]">
                   <div className="size-[4px] rounded-full bg-[#992929] mt-[7px] shrink-0" />
-                  <p className="font-['DM_Sans:Light',sans-serif] leading-[1.5] text-[#555555] text-[13px] tracking-[-0.26px] flex-1">
+                  <p className="font-['DM_Sans',sans-serif] font-light leading-[1.5] text-[#555555] text-[13px] tracking-[-0.26px] flex-1">
                     Complex portfolio changes or rebalancing decisions
                   </p>
                 </div>
                 <div className="flex items-start gap-[8px]">
                   <div className="size-[4px] rounded-full bg-[#992929] mt-[7px] shrink-0" />
-                  <p className="font-['DM_Sans:Light',sans-serif] leading-[1.5] text-[#555555] text-[13px] tracking-[-0.26px] flex-1">
+                  <p className="font-['DM_Sans',sans-serif] font-light leading-[1.5] text-[#555555] text-[13px] tracking-[-0.26px] flex-1">
                     Tax planning and estate strategies
                   </p>
                 </div>
                 <div className="flex items-start gap-[8px]">
                   <div className="size-[4px] rounded-full bg-[#992929] mt-[7px] shrink-0" />
-                  <p className="font-['DM_Sans:Light',sans-serif] leading-[1.5] text-[#555555] text-[13px] tracking-[-0.26px] flex-1">
+                  <p className="font-['DM_Sans',sans-serif] font-light leading-[1.5] text-[#555555] text-[13px] tracking-[-0.26px] flex-1">
                     Life changes affecting your financial goals
                   </p>
                 </div>
@@ -123,7 +123,7 @@ export function AdvisorCard({
                 className="bg-[#441316] content-stretch flex gap-[6px] h-[44px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0 w-full"
               >
                 <Mail className="size-[16px] text-white" strokeWidth={1.5} />
-                <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic relative shrink-0 text-white text-[12px] text-nowrap whitespace-pre">
+                <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-white text-[12px] text-nowrap whitespace-pre">
                   Contact {advisorName.split(' ')[0]}
                 </p>
               </button>

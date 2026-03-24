@@ -22,7 +22,7 @@ export function Navigation({ activeTab = 'home', onTabChange }: NavigationProps)
         return (
           <button key={tab.id} onClick={() => onTabChange(tab.id)} className="relative">
             <p
-              className={`font-['DM_Sans:${isActive ? 'SemiBold' : 'Regular'}',sans-serif] h-[10px] leading-[1.3] not-italic text-[#441316] text-[10px] text-center tracking-[1.2px] uppercase ${tab.width} transition-opacity duration-200 ${isActive ? '' : 'opacity-60'}`}
+              className={`font-['DM_Sans',sans-serif] ${isActive ? 'font-semibold' : 'font-normal'} h-[10px] leading-[1.3] not-italic text-[#441316] text-[10px] text-center tracking-[1.2px] uppercase ${tab.width} transition-opacity duration-200 ${isActive ? '' : 'opacity-60'}`}
             >
               {tab.label}
             </p>

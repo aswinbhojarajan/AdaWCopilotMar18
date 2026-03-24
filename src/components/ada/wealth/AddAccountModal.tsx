@@ -259,14 +259,14 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
               placeholder="Search institutions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-[44px] pl-[40px] pr-[16px] rounded-[50px] bg-[#f7f6f2] border border-[#d8d8d8] font-['DM_Sans:Regular',sans-serif] text-[#555555] focus:outline-none focus:border-[#555555]"
+              className="w-full h-[44px] pl-[40px] pr-[16px] rounded-[50px] bg-[#f7f6f2] border border-[#d8d8d8] font-['DM_Sans',sans-serif] text-[#555555] focus:outline-none focus:border-[#555555]"
             />
           </div>
 
           {/* Popular Institutions */}
           {popularInstitutions.length > 0 && (
             <div className="mb-[20px]">
-              <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] text-[10px] tracking-[0.8px] uppercase mb-[12px] opacity-60">
+              <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] text-[10px] tracking-[0.8px] uppercase mb-[12px] opacity-60">
                 Popular
               </p>
               <div className="flex flex-col gap-[2px]">
@@ -281,12 +281,12 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
                         {institution.logo}
                       </div>
                       <div className="flex flex-col items-start gap-[2px]">
-                        <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555]">
+                        <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555]">
                           {institution.name}
                         </p>
                         <div className="flex items-center gap-[4px]">
                           {getTypeIcon(institution.type)}
-                          <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[10px] opacity-60 capitalize">
+                          <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[10px] opacity-60 capitalize">
                             {institution.type}
                           </p>
                         </div>
@@ -305,7 +305,7 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
           {/* Other Institutions */}
           {otherInstitutions.length > 0 && (
             <div>
-              <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] text-[10px] tracking-[0.8px] uppercase mb-[12px] opacity-60">
+              <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] text-[10px] tracking-[0.8px] uppercase mb-[12px] opacity-60">
                 All Institutions
               </p>
               <div className="flex flex-col gap-[2px]">
@@ -320,12 +320,12 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
                         {institution.logo}
                       </div>
                       <div className="flex flex-col items-start gap-[2px]">
-                        <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555]">
+                        <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555]">
                           {institution.name}
                         </p>
                         <div className="flex items-center gap-[4px]">
                           {getTypeIcon(institution.type)}
-                          <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[10px] opacity-60 capitalize">
+                          <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[10px] opacity-60 capitalize">
                             {institution.type}
                           </p>
                         </div>
@@ -343,7 +343,7 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
 
           {filteredInstitutions.length === 0 && (
             <div className="text-center py-[40px]">
-              <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] opacity-60">
+              <p className="font-['DM_Sans',sans-serif] text-[#555555] opacity-60">
                 No institutions found
               </p>
             </div>
@@ -358,7 +358,7 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
             className="flex items-center gap-[6px] mb-[20px] text-[#555555] hover:opacity-60 transition-opacity"
           >
             <ArrowLeft className="size-[16px]" strokeWidth={1.5} />
-            <p className="font-['DM_Sans:Regular',sans-serif] text-[14px]">Back</p>
+            <p className="font-['DM_Sans',sans-serif] text-[14px]">Back</p>
           </button>
 
           <div className="flex items-center gap-[12px] mb-[24px] p-[16px] bg-[#f7f6f2] rounded-[12px]">
@@ -366,10 +366,10 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
               {selectedInstitution.logo}
             </div>
             <div className="flex flex-col gap-[2px]">
-              <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555]">
+              <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555]">
                 {selectedInstitution.name}
               </p>
-              <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[12px] opacity-60">
+              <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[12px] opacity-60">
                 Enter your login credentials
               </p>
             </div>
@@ -377,33 +377,33 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
 
           <div className="flex flex-col gap-[16px] mb-[24px]">
             <div>
-              <label className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] text-[12px] mb-[8px] block">
+              <label className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] text-[12px] mb-[8px] block">
                 Username / Account ID
               </label>
               <input
                 type="text"
                 value={credentials.username}
                 onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
-                className="w-full h-[44px] px-[16px] rounded-[12px] bg-[#f7f6f2] border border-[#d8d8d8] font-['DM_Sans:Regular',sans-serif] text-[#555555] focus:outline-none focus:border-[#555555]"
+                className="w-full h-[44px] px-[16px] rounded-[12px] bg-[#f7f6f2] border border-[#d8d8d8] font-['DM_Sans',sans-serif] text-[#555555] focus:outline-none focus:border-[#555555]"
                 placeholder="Enter username"
               />
             </div>
             <div>
-              <label className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] text-[12px] mb-[8px] block">
+              <label className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] text-[12px] mb-[8px] block">
                 Password
               </label>
               <input
                 type="password"
                 value={credentials.password}
                 onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-                className="w-full h-[44px] px-[16px] rounded-[12px] bg-[#f7f6f2] border border-[#d8d8d8] font-['DM_Sans:Regular',sans-serif] text-[#555555] focus:outline-none focus:border-[#555555]"
+                className="w-full h-[44px] px-[16px] rounded-[12px] bg-[#f7f6f2] border border-[#d8d8d8] font-['DM_Sans',sans-serif] text-[#555555] focus:outline-none focus:border-[#555555]"
                 placeholder="Enter password"
               />
             </div>
           </div>
 
           <div className="bg-[#fff5e6] border border-[#f59e0b] rounded-[12px] p-[12px] mb-[24px]">
-            <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[12px]">
+            <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[12px]">
               🔒 Your credentials are encrypted and securely stored. Ada uses bank-level security to
               protect your data.
             </p>
@@ -425,10 +425,10 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
             className="size-[48px] text-[#a0e622] animate-spin mb-[16px]"
             strokeWidth={1.5}
           />
-          <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] text-[20px] mb-[8px]">
+          <p className="font-['Crimson_Pro',sans-serif] text-[#555555] text-[20px] mb-[8px]">
             Connecting...
           </p>
-          <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] opacity-60 text-center">
+          <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[14px] opacity-60 text-center">
             Securely connecting to {selectedInstitution?.name}
           </p>
         </div>
@@ -439,10 +439,10 @@ export function AddAccountModal({ isOpen, onClose, onAccountAdded }: AddAccountM
           <div className="size-[64px] bg-[#a0e622] rounded-full flex items-center justify-center mb-[16px]">
             <CheckCircle2 className="size-[36px] text-[#2d3a0a]" strokeWidth={2} />
           </div>
-          <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] text-[20px] mb-[8px]">
+          <p className="font-['Crimson_Pro',sans-serif] text-[#555555] text-[20px] mb-[8px]">
             Connected!
           </p>
-          <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] opacity-60 text-center">
+          <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[14px] opacity-60 text-center">
             {selectedInstitution?.name} has been successfully connected
           </p>
         </div>

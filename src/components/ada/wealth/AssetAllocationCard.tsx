@@ -17,15 +17,15 @@ export function AssetAllocationCard({ allocations, totalValue }: AssetAllocation
         <div className="content-stretch flex flex-col gap-[20px] items-start pb-[24px] pt-[16px] px-[24px] relative w-full">
           {/* Header */}
           <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full">
-            <p className="font-['DM_Sans:SemiBold',sans-serif] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+            <p className="font-['DM_Sans',sans-serif] font-semibold not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
               ASSET ALLOCATION
             </p>
 
-            <p className="font-['Crimson_Pro:Regular',sans-serif] relative shrink-0 text-[#555555] text-[24px] tracking-[-0.48px] w-full">
+            <p className="font-['Crimson_Pro',sans-serif] relative shrink-0 text-[#555555] text-[24px] tracking-[-0.48px] w-full">
               Your portfolio breakdown
             </p>
 
-            <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[14px] opacity-60">
+            <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[14px] opacity-60">
               Based on current market value
             </p>
           </div>
@@ -57,15 +57,15 @@ export function AssetAllocationCard({ allocations, totalValue }: AssetAllocation
                         className="size-[12px] rounded-[2px] shrink-0"
                         style={{ backgroundColor: allocation.color }}
                       />
-                      <p className="font-['DM_Sans:Regular',sans-serif] text-[14px] text-[#555555] tracking-[-0.28px]">
+                      <p className="font-['DM_Sans',sans-serif] text-[14px] text-[#555555] tracking-[-0.28px]">
                         {allocation.label}
                       </p>
                     </div>
                     <div className="flex flex-col items-end">
-                      <p className="font-['DM_Sans:Regular',sans-serif] text-[16px] text-[#555555] tracking-[-0.28px]">
+                      <p className="font-['DM_Sans',sans-serif] text-[16px] text-[#555555] tracking-[-0.28px]">
                         {percentage}%
                       </p>
-                      <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[10px] opacity-60">
+                      <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[10px] opacity-60">
                         ${allocation.amount.toLocaleString()}
                       </p>
                     </div>

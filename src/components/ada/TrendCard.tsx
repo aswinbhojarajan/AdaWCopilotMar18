@@ -28,11 +28,11 @@ export function TrendCard({
               {icon}
             </div>
             <div className="flex flex-col gap-[4px] flex-1">
-              <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] tracking-[-0.48px]">
+              <p className="font-['Crimson_Pro',sans-serif] text-[#555555] tracking-[-0.48px]">
                 {title}
               </p>
               <p
-                className="font-['DM_Sans:Light',sans-serif] text-[#555555]"
+                className="font-['DM_Sans',sans-serif] font-light text-[#555555]"
                 style={{ fontVariationSettings: "'opsz' 14" }}
               >
                 {description}
@@ -50,7 +50,7 @@ export function TrendCard({
                 aria-hidden="true"
                 className="absolute border-[#d8d8d8] border-[0.75px] border-solid inset-0 pointer-events-none rounded-[50px]"
               />
-              <p className="font-['DM_Sans:Regular',sans-serif] not-italic relative shrink-0 text-[#555555] text-nowrap whitespace-pre">
+              <p className="font-['DM_Sans',sans-serif] not-italic relative shrink-0 text-[#555555] text-nowrap whitespace-pre">
                 {buttonText}
               </p>
             </button>
@@ -58,7 +58,7 @@ export function TrendCard({
             {timestamp && (
               <div className="content-stretch flex gap-[2px] items-center justify-end relative shrink-0 w-full">
                 <Clock className="size-[12px] text-[#555555]" strokeWidth={1} />
-                <div className="flex flex-col font-['DM_Sans:Regular',sans-serif] justify-center not-italic relative shrink-0 text-[#555555] text-nowrap text-right">
+                <div className="flex flex-col font-['DM_Sans',sans-serif] justify-center not-italic relative shrink-0 text-[#555555] text-nowrap text-right">
                   <p>{timestamp}</p>
                 </div>
               </div>

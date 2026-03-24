@@ -31,10 +31,10 @@ export function CollapsibleAdvisor({
             </div>
 
             <div className="flex-1 flex flex-col gap-[2px]">
-              <p className="font-['DM_Sans:SemiBold',sans-serif] leading-[normal] not-italic text-[#555555] text-[14px]">
+              <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[14px]">
                 {advisorName}
               </p>
-              <p className="font-['DM_Sans:Regular',sans-serif] leading-[1.3] not-italic text-[#555555] text-[12px] opacity-60">
+              <p className="font-['DM_Sans',sans-serif] leading-[1.3] not-italic text-[#555555] text-[12px] opacity-60">
                 {availability}
               </p>
             </div>
@@ -58,13 +58,13 @@ export function CollapsibleAdvisor({
 
               <div className="content-stretch flex flex-col gap-[16px] items-start px-[24px] pb-[20px] w-full">
                 <div className="mt-[16px] flex flex-col gap-[8px]">
-                  <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+                  <p className="font-['DM_Sans',sans-serif] font-semibold text-[#992929] text-[10px] tracking-[0.8px] uppercase">
                     YOUR ADVISOR
                   </p>
-                  <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] text-[20px] tracking-[-0.4px]">
+                  <p className="font-['Crimson_Pro',sans-serif] text-[#555555] text-[20px] tracking-[-0.4px]">
                     Expert guidance when you need it
                   </p>
-                  <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[13px] opacity-60 leading-[1.5]">
+                  <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[13px] opacity-60 leading-[1.5]">
                     Your dedicated advisor is available to discuss your portfolio, review your
                     goals, or explore new strategies tailored to your needs.
                   </p>
@@ -76,10 +76,10 @@ export function CollapsibleAdvisor({
                       <User className="size-[24px]" strokeWidth={1.5} />
                     </div>
                     <div className="flex-1">
-                      <p className="font-['DM_Sans:SemiBold',sans-serif] text-[14px] text-[#555555]">
+                      <p className="font-['DM_Sans',sans-serif] font-semibold text-[14px] text-[#555555]">
                         {advisorName}
                       </p>
-                      <p className="font-['DM_Sans:Regular',sans-serif] text-[12px] text-[#555555] opacity-60">
+                      <p className="font-['DM_Sans',sans-serif] text-[12px] text-[#555555] opacity-60">
                         Senior Wealth Advisor
                       </p>
                     </div>
@@ -88,7 +88,7 @@ export function CollapsibleAdvisor({
                     </div>
                   </div>
 
-                  <p className="font-['DM_Sans:Regular',sans-serif] text-[12px] text-[#555555] opacity-60">
+                  <p className="font-['DM_Sans',sans-serif] text-[12px] text-[#555555] opacity-60">
                     {availability} · Response time: ~2 hours
                   </p>
                 </div>

@@ -90,7 +90,7 @@ export function Button({
           </div>
         )}
         <p
-          className={`${variant === 'primary' || variant === 'ai-primary' ? "font-['DM_Sans:SemiBold',sans-serif]" : "font-['DM_Sans:Regular',sans-serif]"} not-italic relative shrink-0 ${textColor} text-[12px] text-nowrap whitespace-pre`}
+          className={`${variant === 'primary' || variant === 'ai-primary' ? "font-['DM_Sans',sans-serif] font-semibold" : "font-['DM_Sans',sans-serif]"} not-italic relative shrink-0 ${textColor} text-[12px] text-nowrap whitespace-pre`}
         >
           {children}
         </p>

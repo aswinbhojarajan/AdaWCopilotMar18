@@ -43,7 +43,7 @@ export function ChatHeader({
               {title === 'Ada' ? (
                 <AdaLogo className="w-[65px] h-[26px]" />
               ) : (
-                <p className="font-['RL_Limo:Regular',sans-serif] text-[20px] text-[#441316] text-center">
+                <p className="font-['rl-limo',sans-serif] text-[20px] text-[#441316] text-center">
                   {title}
                 </p>
               )}

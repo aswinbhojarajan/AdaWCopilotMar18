@@ -30,7 +30,7 @@ export function ConnectedAccountRow({
           {logo}
         </div>
         <div className="flex flex-col gap-[2px]">
-          <p className="font-['DM_Sans:Regular',sans-serif] text-[14px] text-[#555555] tracking-[-0.28px]">
+          <p className="font-['DM_Sans',sans-serif] text-[14px] text-[#555555] tracking-[-0.28px]">
             {name}
           </p>
           <div className="flex items-center gap-[4px]">
@@ -39,7 +39,7 @@ export function ConnectedAccountRow({
             ) : (
               <Clock className="size-[10px] text-[#555555]" strokeWidth={1.5} />
             )}
-            <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[10px] opacity-60">
+            <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[10px] opacity-60">
               {status === 'syncing' ? 'Syncing...' : lastUpdated}
             </p>
           </div>
@@ -48,7 +48,7 @@ export function ConnectedAccountRow({
 
       {/* Right: Balance */}
       <div className="flex items-center gap-[8px]">
-        <p className="font-['DM_Sans:Regular',sans-serif] text-[16px] text-[#555555] tracking-[-0.28px]">
+        <p className="font-['DM_Sans',sans-serif] text-[16px] text-[#555555] tracking-[-0.28px]">
           ${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
         {status === 'synced' && onRefresh && (

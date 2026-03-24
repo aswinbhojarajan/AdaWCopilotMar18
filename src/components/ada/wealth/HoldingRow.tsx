@@ -22,8 +22,8 @@ export function HoldingRow({
     <div className="content-stretch flex items-center justify-between py-[12px] relative w-full border-b border-[#efede6] last:border-0">
       {/* Left: Symbol + Name */}
       <div className="flex flex-col gap-[2px] flex-1">
-        <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555]">{symbol}</p>
-        <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[12px] opacity-60">
+        <p className="font-['DM_Sans',sans-serif] text-[#555555]">{symbol}</p>
+        <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[12px] opacity-60">
           {name}
         </p>
       </div>
@@ -42,7 +42,7 @@ export function HoldingRow({
 
       {/* Right: Value + Change */}
       <div className="flex flex-col items-end gap-[4px]">
-        <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555]">
+        <p className="font-['DM_Sans',sans-serif] text-[#555555]">
           ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
         <div
@@ -51,7 +51,7 @@ export function HoldingRow({
           }`}
         >
           <p
-            className={`font-['DM_Sans:SemiBold',sans-serif] not-italic relative shrink-0 text-[10px] text-nowrap whitespace-pre ${
+            className={`font-['DM_Sans',sans-serif] font-semibold not-italic relative shrink-0 text-[10px] text-nowrap whitespace-pre ${
               isPositive ? 'text-[#03561a]' : 'text-[#560303]'
             }`}
           >

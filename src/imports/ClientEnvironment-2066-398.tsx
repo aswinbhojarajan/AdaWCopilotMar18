@@ -257,7 +257,7 @@ function Group() {
 function Group12() {
   return (
     <div className="grid-cols-[max-content] grid-rows-[max-content] inline-grid leading-[0] place-items-start relative shrink-0">
-      <p className="[grid-area:1_/_1] font-['DM_Sans:Bold',sans-serif] leading-[21px] ml-[30.28px] not-italic relative self-center text-[#2e3a59] text-[20px] text-nowrap tracking-[-0.3px]">
+      <p className="[grid-area:1_/_1] font-['DM_Sans',sans-serif] font-bold leading-[21px] ml-[30.28px] not-italic relative self-center text-[#2e3a59] text-[20px] text-nowrap tracking-[-0.3px]">
         Summit Bank
       </p>
       <Group />
@@ -452,7 +452,7 @@ function ButtonProfile({ onClick }: { onClick?: () => void }) {
       <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center pb-0 pt-[4px] px-[4px] relative size-full">
         {activePersona ? (
           <div className="w-[24px] h-[24px] rounded-full bg-[#2E3A59] flex items-center justify-center">
-            <span className="text-white text-[10px] font-['DM_Sans:Medium',sans-serif] leading-none">
+            <span className="text-white text-[10px] font-['DM_Sans',sans-serif] font-medium leading-none">
               {activePersona.firstName.charAt(0)}{activePersona.lastName.charAt(0)}
             </span>
           </div>
@@ -796,7 +796,7 @@ function Container8() {
 function Paragraph() {
   return (
     <div className="h-[22.5px] relative shrink-0 w-full" data-name="Paragraph">
-      <p className="absolute font-['DM_Sans:Bold',sans-serif] leading-[22.5px] left-0 not-italic text-[#2e3a59] text-[15px] text-nowrap top-[1.5px]">
+      <p className="absolute font-['DM_Sans',sans-serif] font-bold leading-[22.5px] left-0 not-italic text-[#2e3a59] text-[15px] text-nowrap top-[1.5px]">
         Portfolio Overview
       </p>
     </div>
@@ -806,7 +806,7 @@ function Paragraph() {
 function Paragraph1() {
   return (
     <div className="h-[18px] relative shrink-0 w-full" data-name="Paragraph">
-      <p className="absolute font-['DM_Sans:Regular',sans-serif] leading-[18px] left-0 not-italic text-[#83848b] text-[12px] text-nowrap top-0">
+      <p className="absolute font-['DM_Sans',sans-serif] leading-[18px] left-0 not-italic text-[#83848b] text-[12px] text-nowrap top-0">
         Investment portfolio
       </p>
     </div>
@@ -1471,7 +1471,7 @@ function Container30() {
 function Paragraph10() {
   return (
     <div className="h-[19.5px] relative shrink-0 w-full" data-name="Paragraph">
-      <p className="absolute font-['DM_Sans:SemiBold',sans-serif] leading-[19.5px] left-0 not-italic text-[13px] text-nowrap text-white top-0">
+      <p className="absolute font-['DM_Sans',sans-serif] font-semibold leading-[19.5px] left-0 not-italic text-[13px] text-nowrap text-white top-0">
         Invite friends, earn rewards
       </p>
     </div>
@@ -1481,7 +1481,7 @@ function Paragraph10() {
 function Paragraph11() {
   return (
     <div className="h-[16.5px] relative shrink-0 w-full" data-name="Paragraph">
-      <p className="absolute font-['DM_Sans:Regular',sans-serif] leading-[16.5px] left-0 not-italic text-[#dadada] text-[11px] text-nowrap top-0">
+      <p className="absolute font-['DM_Sans',sans-serif] leading-[16.5px] left-0 not-italic text-[#dadada] text-[11px] text-nowrap top-0">
         Get up to $100 per referral
       </p>
     </div>
@@ -1790,7 +1790,7 @@ function Icon13() {
 function Paragraph13() {
   return (
     <Wrapper1 additionalClassNames="opacity-70 w-[31.836px]">
-      <p className="absolute font-['DM_Sans:Medium',sans-serif] leading-[15px] left-[16px] not-italic text-[#83848b] text-[10px] text-center text-nowrap top-0 tracking-[0.8px] translate-x-[-50%] uppercase">
+      <p className="absolute font-['DM_Sans',sans-serif] font-medium leading-[15px] left-[16px] not-italic text-[#83848b] text-[10px] text-center text-nowrap top-0 tracking-[0.8px] translate-x-[-50%] uppercase">
         HOME
       </p>
     </Wrapper1>
@@ -1854,7 +1854,7 @@ function Icon14() {
 function Paragraph14() {
   return (
     <Wrapper1 additionalClassNames="w-[44.82px]">
-      <p className="absolute font-['DM_Sans:Bold',sans-serif] leading-[15px] left-[22.5px] not-italic text-[#0d1e32] text-[10px] text-center text-nowrap top-0 tracking-[0.8px] translate-x-[-50%] uppercase">
+      <p className="absolute font-['DM_Sans',sans-serif] font-bold leading-[15px] left-[22.5px] not-italic text-[#0d1e32] text-[10px] text-center text-nowrap top-0 tracking-[0.8px] translate-x-[-50%] uppercase">
         WEALTH
       </p>
     </Wrapper1>
@@ -1918,7 +1918,7 @@ function Icon15() {
 function Paragraph15() {
   return (
     <Wrapper1 additionalClassNames="opacity-70 w-[54.352px]">
-      <p className="absolute font-['DM_Sans:Medium',sans-serif] leading-[15px] left-[27.5px] not-italic text-[#83848b] text-[10px] text-center text-nowrap top-0 tracking-[0.8px] translate-x-[-50%] uppercase">
+      <p className="absolute font-['DM_Sans',sans-serif] font-medium leading-[15px] left-[27.5px] not-italic text-[#83848b] text-[10px] text-center text-nowrap top-0 tracking-[0.8px] translate-x-[-50%] uppercase">
         DISCOVER
       </p>
     </Wrapper1>
@@ -1947,7 +1947,7 @@ function Icon16() {
 function Paragraph16() {
   return (
     <Wrapper1 additionalClassNames="opacity-70 w-[30.961px]">
-      <p className="absolute font-['DM_Sans:Medium',sans-serif] leading-[15px] left-[15.5px] not-italic text-[#83848b] text-[10px] text-center text-nowrap top-0 tracking-[0.8px] translate-x-[-50%] uppercase">
+      <p className="absolute font-['DM_Sans',sans-serif] font-medium leading-[15px] left-[15.5px] not-italic text-[#83848b] text-[10px] text-center text-nowrap top-0 tracking-[0.8px] translate-x-[-50%] uppercase">
         MORE
       </p>
     </Wrapper1>
@@ -1991,7 +1991,7 @@ function Container41() {
 function Paragraph17() {
   return (
     <div className="h-[23.914px] relative shrink-0 w-full" data-name="Paragraph">
-      <p className="absolute font-['DM_Sans:Regular',sans-serif] leading-[23.914px] left-0 not-italic text-[#cad5e2] text-[16.74px] text-nowrap top-[0.6px] tracking-[-0.1798px]">
+      <p className="absolute font-['DM_Sans',sans-serif] leading-[23.914px] left-0 not-italic text-[#cad5e2] text-[16.74px] text-nowrap top-[0.6px] tracking-[-0.1798px]">
         Total Portfolio Value
       </p>
     </div>
@@ -2004,7 +2004,7 @@ function Heading() {
       className="absolute content-stretch flex h-[43.046px] items-start left-0 top-0 w-[176.266px]"
       data-name="Heading 2"
     >
-      <p className="font-['DM_Sans:Regular',sans-serif] leading-[43.046px] not-italic relative shrink-0 text-[35.872px] text-nowrap text-white tracking-[-0.4239px]">
+      <p className="font-['DM_Sans',sans-serif] leading-[43.046px] not-italic relative shrink-0 text-[35.872px] text-nowrap text-white tracking-[-0.4239px]">
         $94,830.19
       </p>
     </div>
@@ -2063,7 +2063,7 @@ function Container43() {
     <div className="h-[43.046px] relative shrink-0 w-full" data-name="Container">
       <Heading />
       <Container42 />
-      <p className="absolute font-['DM_Sans:Regular',sans-serif] leading-[23.914px] left-[342.89px] not-italic text-[#00d492] text-[14px] text-right top-[19.41px] tracking-[-0.1798px] translate-x-[-100%] w-[121px]">
+      <p className="absolute font-['DM_Sans',sans-serif] leading-[23.914px] left-[342.89px] not-italic text-[#00d492] text-[14px] text-right top-[19.41px] tracking-[-0.1798px] translate-x-[-100%] w-[121px]">
         +$758.64 (+0.8%)
       </p>
       <Icon17 />
@@ -2117,7 +2117,7 @@ function Icon18() {
 function Paragraph18() {
   return (
     <div className="h-[18px] relative shrink-0 w-full" data-name="Paragraph">
-      <p className="absolute font-['DM_Sans:Regular',sans-serif] leading-[18px] left-0 not-italic text-[#d9d9d9] text-[12px] text-nowrap top-0">
+      <p className="absolute font-['DM_Sans',sans-serif] leading-[18px] left-0 not-italic text-[#d9d9d9] text-[12px] text-nowrap top-0">
         Last updated
       </p>
     </div>
@@ -2127,7 +2127,7 @@ function Paragraph18() {
 function Paragraph19() {
   return (
     <div className="h-[16.5px] relative shrink-0 w-full" data-name="Paragraph">
-      <p className="absolute font-['DM_Sans:Regular',sans-serif] leading-[16.5px] left-0 not-italic text-[#d9d9d9] text-[11px] text-nowrap top-0">
+      <p className="absolute font-['DM_Sans',sans-serif] leading-[16.5px] left-0 not-italic text-[#d9d9d9] text-[11px] text-nowrap top-0">
         3:24 PM, 12 Jan 2026
       </p>
     </div>
