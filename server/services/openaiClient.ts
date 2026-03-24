@@ -302,7 +302,19 @@ export async function resilientCompletion(
     throw primary.lastError;
   }
 
-  let currentAlias = providerAlias ?? null;
+  if (!providerAlias) {
+    console.log(`[resilientCompletion] No providerAlias, falling back directly to Anthropic...`);
+    try {
+      const result = await anthropicCompletion(params, timeoutMs);
+      console.log(`[resilientCompletion] Anthropic fallback succeeded`);
+      return result;
+    } catch (fallbackErr) {
+      console.error(`[resilientCompletion] Anthropic fallback failed:`, (fallbackErr as Error).message);
+      throw primary.lastError;
+    }
+  }
+
+  let currentAlias: string | null = providerAlias;
   while (currentAlias) {
     const fallbackAlias = getFallbackAliasFromRouter(currentAlias);
     if (!fallbackAlias) break;
@@ -358,7 +370,19 @@ export async function resilientStreamCompletion(
     clearTimeout(timer);
     if (!isProviderError(err)) throw err;
 
-    let currentAlias = providerAlias ?? null;
+    if (!providerAlias) {
+      console.log(`[resilientStreamCompletion] No providerAlias, falling back directly to Anthropic...`);
+      try {
+        const fallbackStream = anthropicStreamCompletion(params, timeoutMs);
+        console.log(`[resilientStreamCompletion] Anthropic fallback initiated`);
+        return fallbackStream;
+      } catch (fallbackErr) {
+        console.error(`[resilientStreamCompletion] Anthropic fallback failed:`, (fallbackErr as Error).message);
+        throw err;
+      }
+    }
+
+    let currentAlias: string | null = providerAlias;
     while (currentAlias) {
       const fallbackAlias = getFallbackAliasFromRouter(currentAlias);
       if (!fallbackAlias) break;
