@@ -120,7 +120,7 @@ export function AdvisorCard({
             <div className="content-stretch flex gap-[8px] items-start relative shrink-0 w-full mt-[8px]">
               <button
                 onClick={onContactAdvisor}
-                className="bg-[#441316] content-stretch flex gap-[6px] h-[44px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0 w-full"
+                className="bg-[#441316] content-stretch flex gap-[6px] h-[48px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0 w-full"
               >
                 <Mail className="size-[16px] text-white" strokeWidth={1.5} />
                 <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-white text-[0.75rem] text-nowrap whitespace-pre">

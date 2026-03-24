@@ -281,8 +281,8 @@ export function ContentCard({
                   onClick={handleButtonClick}
                   className={
                     forceSecondaryButtonStyle || isNewsType
-                      ? 'content-stretch flex gap-[6px] h-[44px] items-center justify-start px-[14px] py-[10px] relative rounded-[50px] shrink-0'
-                      : 'bg-[#441316] content-stretch flex gap-[6px] h-[44px] items-center justify-start px-[14px] py-[10px] relative rounded-[50px] shrink-0'
+                      ? 'content-stretch flex gap-[6px] h-[48px] items-center justify-start px-[14px] py-[10px] relative rounded-[50px] shrink-0'
+                      : 'bg-[#441316] content-stretch flex gap-[6px] h-[48px] items-center justify-start px-[14px] py-[10px] relative rounded-[50px] shrink-0'
                   }
                 >
                   {(forceSecondaryButtonStyle || isNewsType) && (
@@ -306,7 +306,7 @@ export function ContentCard({
                 {secondaryButtonText && (
                   <button
                     onClick={handleSecondaryButtonClick}
-                    className="content-stretch flex gap-[6px] h-[44px] items-center justify-start px-[14px] py-[10px] relative rounded-[50px] shrink-0"
+                    className="content-stretch flex gap-[6px] h-[48px] items-center justify-start px-[14px] py-[10px] relative rounded-[50px] shrink-0"
                   >
                     <div
                       aria-hidden="true"

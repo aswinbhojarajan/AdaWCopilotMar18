@@ -214,7 +214,7 @@ export function WealthOverviewCard({
                     sourceScreen: 'wealth',
                   })
                 }
-                className="content-stretch flex gap-[6px] h-[44px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0"
+                className="content-stretch flex gap-[6px] h-[48px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0"
               >
                 <div
                   aria-hidden="true"
@@ -236,7 +236,7 @@ export function WealthOverviewCard({
                     sourceScreen: 'wealth',
                   })
                 }
-                className="content-stretch flex gap-[6px] h-[44px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0"
+                className="content-stretch flex gap-[6px] h-[48px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0"
               >
                 <div
                   aria-hidden="true"

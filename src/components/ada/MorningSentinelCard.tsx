@@ -390,7 +390,7 @@ export function MorningSentinelCard({
                   sourceScreen: 'home',
                 })
               }
-              className="bg-[#441316] flex gap-[6px] h-[44px] items-center justify-center px-[14px] py-[10px] rounded-[50px]"
+              className="bg-[#441316] flex gap-[6px] h-[48px] items-center justify-center px-[14px] py-[10px] rounded-[50px]"
             >
               <div className="size-[24px] flex items-center justify-center">
                 <SparkIcon />
@@ -408,7 +408,7 @@ export function MorningSentinelCard({
                   sourceScreen: 'home',
                 })
               }
-              className="relative flex h-[44px] items-center justify-center px-[14px] py-[10px] rounded-[50px]"
+              className="relative flex h-[48px] items-center justify-center px-[14px] py-[10px] rounded-[50px]"
             >
               <div className="absolute border-[#d8d8d8] border-[0.75px] border-solid inset-0 pointer-events-none rounded-[50px]" />
               <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[0.75rem] whitespace-nowrap">

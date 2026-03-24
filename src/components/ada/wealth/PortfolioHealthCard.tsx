@@ -145,7 +145,7 @@ export function PortfolioHealthCard({
           <div className="flex gap-[8px] w-full">
             <button
               onClick={() => onChatSubmit?.('View my risk breakdown')}
-              className="bg-[#441316] content-stretch flex gap-[6px] h-[44px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0 flex-1"
+              className="bg-[#441316] content-stretch flex gap-[6px] h-[48px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0 flex-1"
             >
               <div className="relative shrink-0 size-[24px] flex items-center justify-center">
                 <SparkIcon />
@@ -154,7 +154,7 @@ export function PortfolioHealthCard({
                 View risk breakdown
               </p>
             </button>
-            <button className="content-stretch flex h-[44px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0 flex-1">
+            <button className="content-stretch flex h-[48px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0 flex-1">
               <div
                 aria-hidden="true"
                 className="absolute border-[#d8d8d8] border-[0.75px] border-solid inset-0 pointer-events-none rounded-[50px]"

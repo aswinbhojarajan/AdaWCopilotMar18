@@ -60,7 +60,7 @@ export function Button({
   };
 
   const sizeStyles = {
-    sm: 'h-[32px] px-[8px] py-[10px]',
+    sm: 'h-[48px] px-[8px] py-[10px]',
     md: 'h-[48px] px-[14px] py-[10px]',
     lg: 'h-[52px] px-[20px] py-[12px]',
   };

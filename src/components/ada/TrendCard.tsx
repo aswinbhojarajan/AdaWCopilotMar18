@@ -44,7 +44,7 @@ export function TrendCard({
           <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full">
             <button
               onClick={onButtonClick}
-              className="bg-[#f7f6f2] content-stretch flex h-[44px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0"
+              className="bg-[#f7f6f2] content-stretch flex h-[48px] items-center justify-center px-[14px] py-[10px] relative rounded-[50px] shrink-0"
             >
               <div
                 aria-hidden="true"
