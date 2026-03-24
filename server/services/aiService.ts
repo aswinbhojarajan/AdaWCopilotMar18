@@ -66,15 +66,15 @@ export function buildSystemPrompt(
 
   prompt += `\n\nCURRENT INTENT: ${intent}`;
 
-  if (intent === 'scenario') {
+  if (intent === 'scenario_analysis') {
     prompt += `\nThe user may be asking about financial scenarios. If appropriate, you can suggest using a scenario simulator by calling the show_simulator tool.`;
   }
 
-  if (intent === 'portfolio') {
+  if (intent === 'portfolio_explain' || intent === 'allocation_breakdown' || intent === 'balance_query') {
     prompt += `\nThe user is asking about their portfolio. If they ask about holdings, allocation, or performance, you can show relevant data widgets by calling the show_widget tool.`;
   }
 
-  if (intent === 'goals') {
+  if (intent === 'goal_progress') {
     prompt += `\nThe user is asking about their financial goals. You can show goal progress widgets by calling the show_widget tool.`;
   }
 

@@ -39,44 +39,6 @@ import type { StepTimings, TraceContext } from './traceLogger';
 import * as wealthEngine from './wealthEngine';
 import { routeToAdvisor } from './rmHandoffService';
 
-function mapOldIntentToNew(oldIntent: string, message: string): IntentClassification['primary_intent'] {
-  const lower = message.toLowerCase();
-
-  if (oldIntent === 'portfolio') {
-    const healthKeywords = ['health', 'healthy', 'risk', 'diversif', 'concentrated', 'rebalance', 'well-balanced', 'well balanced'];
-    if (healthKeywords.some(k => lower.includes(k))) return 'portfolio_health';
-    const allocationKeywords = ['allocation', 'asset class', 'breakdown', 'split', 'how is my money allocated', 'where is my money'];
-    if (allocationKeywords.some(k => lower.includes(k))) return 'allocation_breakdown';
-    const balanceKeywords = ['balance', 'total value', 'how much', 'what\'s my', 'net worth', 'account value'];
-    if (balanceKeywords.some(k => lower.includes(k))) return 'balance_query';
-    return 'portfolio_explain';
-  }
-
-  if (oldIntent === 'goals') {
-    return 'goal_progress';
-  }
-
-  const map: Record<string, IntentClassification['primary_intent']> = {
-    market: 'market_news',
-    scenario: 'workflow_request',
-    recommendation: 'recommendation_request',
-    execution_request: 'execution_request',
-    general: 'other',
-  };
-  return map[oldIntent] ?? 'other';
-}
-
-function inferReasoningEffort(intent: IntentClassification['primary_intent'], message: string): IntentClassification['reasoning_effort'] {
-  const lower = message.toLowerCase();
-  const simple = ['what is', 'show me', 'how much', 'what\'s my balance', 'total value'];
-  if (simple.some(p => lower.includes(p)) && intent !== 'portfolio_health' && intent !== 'recommendation_request') {
-    return 'low';
-  }
-  const complex = ['analyze', 'compare', 'recommend', 'should i', 'rebalance', 'health', 'risk analysis', 'diversif'];
-  if (complex.some(p => lower.includes(p))) return 'high';
-  return 'medium';
-}
-
 function inferSuggestedTools(intent: IntentClassification['primary_intent'], message: string): string[] {
   const tools: string[] = [];
   const lower = message.toLowerCase();
@@ -87,6 +49,9 @@ function inferSuggestedTools(intent: IntentClassification['primary_intent'], mes
       break;
     case 'portfolio_explain':
       tools.push('getPortfolioSnapshot', 'getHoldings');
+      if (lower.includes('health') || lower.includes('risk') || lower.includes('diversif') || lower.includes('rebalance')) {
+        tools.push('calculatePortfolioHealth');
+      }
       break;
     case 'allocation_breakdown':
       tools.push('getPortfolioSnapshot', 'getHoldings');
@@ -94,12 +59,16 @@ function inferSuggestedTools(intent: IntentClassification['primary_intent'], mes
     case 'goal_progress':
       tools.push('getPortfolioSnapshot');
       break;
-    case 'portfolio_health':
-      tools.push('calculatePortfolioHealth', 'getPortfolioSnapshot', 'getHoldings');
+    case 'market_context':
+      if (message.match(/\b[A-Z]{2,5}\b/)) tools.push('getQuotes');
       break;
-    case 'market_news':
+    case 'news_explain':
       tools.push('getHoldingsRelevantNews');
       if (message.match(/\b[A-Z]{2,5}\b/)) tools.push('getQuotes');
+      break;
+    case 'scenario_analysis':
+      tools.push('getPortfolioSnapshot');
+      tools.push('show_simulator');
       break;
     case 'recommendation_request':
       tools.push('calculatePortfolioHealth', 'getPortfolioSnapshot', 'getHoldings');
@@ -108,30 +77,18 @@ function inferSuggestedTools(intent: IntentClassification['primary_intent'], mes
       tools.push('route_to_advisor', 'getPortfolioSnapshot');
       break;
     default:
-      tools.push('getPortfolioSnapshot');
+      break;
   }
 
   if (lower.includes('simulat') || lower.includes('retire') || lower.includes('what if')) {
-    tools.push('show_simulator');
+    if (!tools.includes('show_simulator')) tools.push('show_simulator');
   }
 
   return [...new Set(tools)];
 }
 
 function mapIntentForRag(primaryIntent: IntentClassification['primary_intent']): intentClassifier.Intent {
-  const map: Partial<Record<IntentClassification['primary_intent'], intentClassifier.Intent>> = {
-    portfolio_health: 'portfolio',
-    portfolio_explain: 'portfolio',
-    allocation_breakdown: 'portfolio',
-    balance_query: 'portfolio',
-    goal_progress: 'goals',
-    market_news: 'market',
-    workflow_request: 'scenario',
-    recommendation_request: 'recommendation',
-    execution_request: 'execution_request',
-    other: 'general',
-  };
-  return map[primaryIntent] ?? 'general';
+  return primaryIntent;
 }
 
 function extractSymbols(message: string): string[] {
@@ -141,28 +98,32 @@ function extractSymbols(message: string): string[] {
 }
 
 async function buildIntentClassification(message: string): Promise<IntentClassification> {
-  const { intent: oldIntent, confidence: llmConfidence } = await intentClassifier.classifyIntentAsync(message);
-  const primaryIntent = mapOldIntentToNew(oldIntent, message);
-  const effort = inferReasoningEffort(primaryIntent, message);
+  const classifierResult = await intentClassifier.classifyIntentAsync(message);
   const symbols = extractSymbols(message);
-  const suggestedTools = inferSuggestedTools(primaryIntent, message);
+  const suggestedTools = inferSuggestedTools(classifierResult.intent, message);
+
+  const allEntities = [...new Set([...symbols, ...classifierResult.mentioned_entities])];
 
   return {
-    primary_intent: primaryIntent,
-    confidence: llmConfidence,
+    primary_intent: classifierResult.intent,
+    confidence: classifierResult.confidence,
     entities: {
       symbols,
       asset_classes: [],
       time_range: undefined,
       currencies: [],
     },
-    reasoning_effort: effort,
+    reasoning_effort: classifierResult.reasoning_effort,
+    needs_live_data: classifierResult.needs_live_data,
+    needs_tooling: classifierResult.needs_tooling,
+    mentioned_entities: allEntities,
+    followup_mode: classifierResult.followup_mode,
     suggested_tools: suggestedTools,
   };
 }
 
 const PREFETCH_INTENTS = new Set<IntentClassification['primary_intent']>([
-  'balance_query', 'portfolio_explain', 'portfolio_health', 'recommendation_request',
+  'balance_query', 'portfolio_explain', 'recommendation_request',
   'allocation_breakdown',
 ]);
 
@@ -199,7 +160,7 @@ async function prefetchToolData(
 
   let enrichment: Record<string, unknown> | null = null;
   if (
-    (intent.primary_intent === 'portfolio_health' || intent.primary_intent === 'recommendation_request' || intent.primary_intent === 'portfolio_explain') &&
+    (intent.primary_intent === 'recommendation_request' || intent.primary_intent === 'portfolio_explain') &&
     allowedTools.includes('calculatePortfolioHealth')
   ) {
     const snapshot = settled.find(s => s.name === 'getPortfolioSnapshot')?.result;
@@ -683,7 +644,7 @@ export async function* orchestrateStream(
     while (turnCount < maxToolRounds + 1) {
       turnCount++;
 
-      const skipTools = intent.primary_intent === 'other' || intent.primary_intent === 'support';
+      const skipTools = intent.primary_intent === 'general' || intent.primary_intent === 'support';
       const useTools = tools.length > 0 && turnCount <= maxToolRounds && !skipTools;
 
       const createLLMStream = (attempt: number) => {

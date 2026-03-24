@@ -70,15 +70,13 @@ export interface ModelSelection {
 
 const DETERMINISTIC_INTENTS = new Set<IntentClassification['primary_intent']>([
   'balance_query',
-  'portfolio_explain',
-  'goal_progress',
   'allocation_breakdown',
+  'goal_progress',
 ]);
 
 const REASONING_INTENTS = new Set<IntentClassification['primary_intent']>([
-  'portfolio_health',
+  'scenario_analysis',
   'recommendation_request',
-  'workflow_request',
 ]);
 
 export function buildScorecard(
@@ -91,7 +89,7 @@ export function buildScorecard(
   let riskLevel: RequestScorecard['risk_level'] = 'low';
   if (primary === 'execution_request' || primary === 'recommendation_request') {
     riskLevel = 'high';
-  } else if (primary === 'portfolio_health' || primary === 'portfolio_explain') {
+  } else if (primary === 'portfolio_explain' || primary === 'scenario_analysis') {
     riskLevel = 'medium';
   }
 

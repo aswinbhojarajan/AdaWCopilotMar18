@@ -115,16 +115,8 @@ const INTENT_ROUTE_CONFIGS: Record<IntentClassification['primary_intent'], Inten
     defaultLane: 1,
     supportedLanes: [1, 2],
     requiredTools: ['portfolio_read'],
-    optionalTools: ['market_read', 'news_read'],
-    description: 'Explain portfolio composition, allocation, and performance',
-  },
-  portfolio_health: {
-    intent: 'portfolio_health',
-    defaultLane: 2,
-    supportedLanes: [1, 2],
-    requiredTools: ['portfolio_read', 'health_compute'],
-    optionalTools: ['market_read'],
-    description: 'Deep portfolio health analysis with risk metrics',
+    optionalTools: ['market_read', 'news_read', 'health_compute'],
+    description: 'Explain portfolio composition, allocation, performance, and health analysis',
   },
   allocation_breakdown: {
     intent: 'allocation_breakdown',
@@ -142,13 +134,29 @@ const INTENT_ROUTE_CONFIGS: Record<IntentClassification['primary_intent'], Inten
     optionalTools: ['health_compute'],
     description: 'Financial goal tracking and progress updates',
   },
-  market_news: {
-    intent: 'market_news',
+  market_context: {
+    intent: 'market_context',
     defaultLane: 1,
     supportedLanes: [1],
-    requiredTools: ['market_read', 'news_read'],
+    requiredTools: ['market_read'],
     optionalTools: ['macro_read', 'fx_read'],
-    description: 'Market conditions, news, and economic indicators',
+    description: 'Market conditions, economic indicators, macro outlook',
+  },
+  news_explain: {
+    intent: 'news_explain',
+    defaultLane: 1,
+    supportedLanes: [1],
+    requiredTools: ['news_read'],
+    optionalTools: ['market_read'],
+    description: 'News headlines, company events, earnings, why things moved',
+  },
+  scenario_analysis: {
+    intent: 'scenario_analysis',
+    defaultLane: 2,
+    supportedLanes: [1, 2],
+    requiredTools: ['portfolio_read', 'workflow_light'],
+    optionalTools: ['health_compute'],
+    description: 'What-if analysis, projections, retirement planning, simulations',
   },
   recommendation_request: {
     intent: 'recommendation_request',
@@ -166,14 +174,6 @@ const INTENT_ROUTE_CONFIGS: Record<IntentClassification['primary_intent'], Inten
     optionalTools: ['portfolio_read'],
     description: 'Trade execution requests routed to RM handoff',
   },
-  workflow_request: {
-    intent: 'workflow_request',
-    defaultLane: 2,
-    supportedLanes: [1, 2],
-    requiredTools: ['workflow_light'],
-    optionalTools: ['portfolio_read'],
-    description: 'Workflow actions (alerts, reports, scheduled tasks)',
-  },
   support: {
     intent: 'support',
     defaultLane: 1,
@@ -182,8 +182,8 @@ const INTENT_ROUTE_CONFIGS: Record<IntentClassification['primary_intent'], Inten
     optionalTools: [],
     description: 'Platform support and help queries',
   },
-  other: {
-    intent: 'other',
+  general: {
+    intent: 'general',
     defaultLane: 1,
     supportedLanes: [1],
     requiredTools: [],
@@ -210,7 +210,7 @@ export function getLaneConfig(lane: number): LaneConfig | undefined {
 }
 
 export function getIntentRouteConfig(intent: IntentClassification['primary_intent']): IntentRouteConfig {
-  return INTENT_ROUTE_CONFIGS[intent] ?? INTENT_ROUTE_CONFIGS['other'];
+  return INTENT_ROUTE_CONFIGS[intent] ?? INTENT_ROUTE_CONFIGS['general'];
 }
 
 export function getClassifierContext(): string {
@@ -226,17 +226,8 @@ export function getClassifierContext(): string {
     'ROUTING LANES:',
     ...laneLines,
     '',
-    'INTENT→LANE MAPPING (internal routing taxonomy):',
+    'INTENT→LANE MAPPING:',
     ...intentLines,
-    '',
-    'CLASSIFIER→ROUTING TRANSLATION:',
-    '- portfolio → balance_query, portfolio_explain, portfolio_health, or allocation_breakdown',
-    '- goals → goal_progress',
-    '- market → market_news',
-    '- scenario → workflow_request (scenario/projection analysis)',
-    '- recommendation → recommendation_request',
-    '- execution_request → execution_request',
-    '- general → other or support',
   ].join('\n');
 }
 

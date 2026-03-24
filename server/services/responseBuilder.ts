@@ -148,8 +148,8 @@ function buildRenderHints(toolResults: ToolResult[], intent: IntentClassificatio
 
   return {
     show_portfolio_card: hasPortfolio && (intent.primary_intent === 'balance_query' || intent.primary_intent === 'portfolio_explain'),
-    show_news_card: hasNews && intent.primary_intent === 'market_news',
-    show_health_card: hasHealth && intent.primary_intent === 'portfolio_health',
+    show_news_card: hasNews && (intent.primary_intent === 'market_context' || intent.primary_intent === 'news_explain'),
+    show_health_card: hasHealth && (intent.primary_intent === 'portfolio_explain' || intent.primary_intent === 'recommendation_request'),
   };
 }
 

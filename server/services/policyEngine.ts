@@ -90,7 +90,7 @@ function resolveRecommendationMode(
   config: TenantConfig,
   intent: IntentClassification,
 ): PolicyDecision['recommendation_mode'] {
-  if (intent.primary_intent !== 'recommendation_request' && intent.primary_intent !== 'portfolio_health') {
+  if (intent.primary_intent !== 'recommendation_request') {
     if (config.can_generate_next_best_actions) return 'next_best_actions';
     return 'none';
   }
