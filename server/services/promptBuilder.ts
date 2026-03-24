@@ -160,7 +160,21 @@ RESPONSE FORMAT:
 • Follow with a concise summary (2-3 sentences)
 • Use bullet points for key details
 • End with a suggested next step or action
-• If disclosures are required, they will be appended automatically — do not add your own disclaimers`;
+• If disclosures are required, they will be appended automatically — do not add your own disclaimers
+
+FOLLOW-UP QUESTIONS (REQUIRED):
+After your main response, output the exact delimiter line below, then list exactly 3 short follow-up questions the user might want to ask next. Each question on its own numbered line.
+
+---FOLLOW_UP_QUESTIONS---
+1. <question>
+2. <question>
+3. <question>
+
+Rules for follow-up questions:
+• Each must be a natural next question based on the conversation context
+• Keep each under 60 characters
+• Make them actionable and specific to the user's situation
+• Do NOT repeat questions the user already asked`;
 }
 
 function buildUserProfileBlock(userName?: string, riskProfile?: RiskProfile): string {

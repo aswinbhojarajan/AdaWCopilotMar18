@@ -1,6 +1,101 @@
 import type { AdaAnswer, ToolResult, PolicyDecision, IntentClassification, Citation, TenantConfig } from '../../shared/schemas/agent';
 import { getDisclosures } from './policyEngine';
 
+const FOLLOW_UP_DELIMITER = '---FOLLOW_UP_QUESTIONS---';
+
+const DETERMINISTIC_FOLLOW_UPS: Record<IntentClassification['primary_intent'], string[]> = {
+  balance_query: [
+    'How are my holdings performing?',
+    'Is my portfolio well-diversified?',
+    'What market news affects me today?',
+  ],
+  portfolio_explain: [
+    'Is my portfolio well-diversified?',
+    'What are the top movers today?',
+    'Should I rebalance anything?',
+  ],
+  allocation_breakdown: [
+    'Is my allocation balanced?',
+    'Should I diversify more?',
+    'What does a healthy allocation look like?',
+  ],
+  goal_progress: [
+    'How can I accelerate my savings?',
+    'What happens if I miss my deadline?',
+    'Create a new goal',
+  ],
+  market_context: [
+    'How does this affect my portfolio?',
+    'Should I adjust my allocation?',
+    'What sectors are performing best?',
+  ],
+  news_explain: [
+    'How does this news impact my holdings?',
+    'Should I be concerned?',
+    'What should I do next?',
+  ],
+  scenario_analysis: [
+    'Run another scenario',
+    'How does this compare to my goals?',
+    'What if I increase my contribution?',
+  ],
+  recommendation_request: [
+    'Why do you recommend this?',
+    'What are the risks?',
+    'Send this plan to my advisor',
+  ],
+  execution_request: [
+    'What would this cost?',
+    'Show me alternatives',
+    'Speak with my advisor',
+  ],
+  support: [
+    'What else can you help me with?',
+    'Show my portfolio overview',
+    'Tell me about my goals',
+  ],
+  general: [
+    'Show my portfolio overview',
+    'How are my goals progressing?',
+    'What market news should I know about?',
+  ],
+};
+
+export function getDeterministicFollowUps(intent: IntentClassification['primary_intent']): string[] {
+  return DETERMINISTIC_FOLLOW_UPS[intent] ?? DETERMINISTIC_FOLLOW_UPS.general;
+}
+
+export function extractInlineFollowUps(llmText: string): { cleanText: string; questions: string[] } {
+  const delimiterIndex = llmText.indexOf(FOLLOW_UP_DELIMITER);
+  if (delimiterIndex === -1) {
+    const numberedPattern = /\n(?:\d+[.)]\s*.+\?\s*){2,3}$/;
+    const match = llmText.match(numberedPattern);
+    if (match) {
+      const cleanText = llmText.slice(0, match.index).trimEnd();
+      const lines = match[0].trim().split('\n').filter(l => l.trim());
+      const questions = lines
+        .map(l => l.replace(/^\d+[.)]\s*/, '').trim())
+        .filter(q => q.endsWith('?') && q.length > 5)
+        .slice(0, 3);
+      if (questions.length >= 2) {
+        return { cleanText, questions };
+      }
+    }
+    return { cleanText: llmText, questions: [] };
+  }
+
+  const cleanText = llmText.slice(0, delimiterIndex).trimEnd();
+  const followUpBlock = llmText.slice(delimiterIndex + FOLLOW_UP_DELIMITER.length).trim();
+
+  const questions = followUpBlock
+    .split('\n')
+    .map(l => l.replace(/^\d+[.)]\s*/, '').replace(/^[-•*]\s*/, '').trim())
+    .filter(q => q.length > 5 && q.length < 200)
+    .slice(0, 3);
+
+  return { cleanText, questions };
+}
+
 export function buildAdaAnswer(params: {
   intent: IntentClassification;
   policyDecision: PolicyDecision;

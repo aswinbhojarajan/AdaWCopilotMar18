@@ -5,7 +5,6 @@ import { openai, resilientCompletion, resilientStreamCompletion } from './openai
 import { resolveModel } from './modelRouter';
 
 const MODEL = resolveModel('ada-fast');
-const CLASSIFIER_MODEL = resolveModel('ada-classifier');
 
 export { openai, MODEL };
 
@@ -291,31 +290,7 @@ export async function* streamChatCompletion(
       }
     }
 
-    const suggestMessages: OpenAI.ChatCompletionMessageParam[] = [
-      { role: 'system', content: 'Based on the conversation, generate exactly 3 short follow-up questions the user might want to ask next. Return ONLY a JSON array of 3 strings, no other text.' },
-      ...conversationHistory,
-      { role: 'assistant', content: fullContent },
-    ];
-
-    try {
-      const suggestResponse = await resilientCompletion({
-        model: CLASSIFIER_MODEL,
-        messages: suggestMessages,
-        max_completion_tokens: 256,
-      }, { timeoutMs: 3000, retries: 1, providerAlias: 'ada-classifier' });
-
-      const suggestContent = suggestResponse.choices[0]?.message?.content || '';
-      const jsonMatch = suggestContent.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const questions = JSON.parse(jsonMatch[0]) as string[];
-        yield { type: 'suggested_questions', suggestedQuestions: questions.slice(0, 3) };
-      }
-      if (suggestResponse.usage) {
-        totalTokens += suggestResponse.usage.total_tokens;
-      }
-    } catch {
-      yield { type: 'suggested_questions', suggestedQuestions: ['Tell me more', 'Show me the numbers'] };
-    }
+    yield { type: 'suggested_questions', suggestedQuestions: ['Tell me more about my portfolio', 'How is the market doing?', 'What should I focus on?'] };
 
     yield { type: 'done', tokensUsed: totalTokens };
   } catch (err) {

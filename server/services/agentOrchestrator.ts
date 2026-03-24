@@ -32,7 +32,7 @@ import {
   FINANCIAL_TOOL_DEFINITIONS,
   UI_TOOL_DEFINITIONS,
 } from './financialTools';
-import { buildAdaAnswer } from './responseBuilder';
+import { buildAdaAnswer, extractInlineFollowUps, getDeterministicFollowUps } from './responseBuilder';
 import { runPostChecks } from './guardrails';
 import { logAgentTrace, logToolRun } from './traceLogger';
 import type { StepTimings, TraceContext } from './traceLogger';
@@ -403,35 +403,6 @@ async function* handleLane0(
   yield { type: 'done' };
 }
 
-async function generateSuggestedQuestions(
-  conversationHistory: OpenAI.ChatCompletionMessageParam[],
-  fullResponse: string,
-  providerAlias: string,
-): Promise<{ questions: string[]; tokens: number }> {
-  const suggestMessages: OpenAI.ChatCompletionMessageParam[] = [
-    { role: 'system', content: 'Based on the conversation, generate exactly 3 short follow-up questions the user might want to ask next. Return ONLY a JSON array of 3 strings, no other text.' },
-    ...conversationHistory,
-    { role: 'assistant', content: fullResponse },
-  ];
-
-  try {
-    const suggestResponse = await resilientCompletion({
-      model: resolveModel('ada-classifier'),
-      messages: suggestMessages,
-      max_completion_tokens: 256,
-    }, { timeoutMs: 3000, retries: 1, providerAlias: 'ada-classifier' });
-    const suggestContent = suggestResponse.choices[0]?.message?.content || '';
-    const jsonMatch = suggestContent.match(/\[[\s\S]*\]/);
-    const questions = jsonMatch ? (JSON.parse(jsonMatch[0]) as string[]).slice(0, 3) : [];
-    const tokens = suggestResponse.usage?.total_tokens ?? 0;
-    return { questions, tokens };
-  } catch {
-    return {
-      questions: ['Tell me more about my portfolio', 'How is the market doing?', 'What should I focus on?'],
-      tokens: 0,
-    };
-  }
-}
 
 function* thinkingEvent(verbose: boolean, step: string, detail: string): Generator<StreamEvent> {
   if (verbose) {
@@ -921,9 +892,14 @@ export async function* orchestrateStream(
     timings.post_checks_ms = Date.now() - postStart;
     timings.total_ms = Date.now() - startTime;
 
-    const suggestResult = await generateSuggestedQuestions(conversationHistory, fullResponse, modelSelection.provider_alias);
-    const suggestedQuestions = suggestResult.questions;
-    totalTokens += suggestResult.tokens;
+    const { cleanText, questions: inlineQuestions } = extractInlineFollowUps(fullResponse);
+    const suggestedQuestions = inlineQuestions.length > 0
+      ? inlineQuestions
+      : getDeterministicFollowUps(intent.primary_intent);
+
+    if (cleanText !== fullResponse) {
+      fullResponse = cleanText;
+    }
 
     if (suggestedQuestions.length > 0) {
       yield { type: 'suggested_questions', suggestedQuestions };
