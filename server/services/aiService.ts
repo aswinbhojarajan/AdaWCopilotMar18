@@ -3,6 +3,7 @@ import type { Intent } from './intentClassifier';
 import type { PortfolioContext } from './ragService';
 import { openai, resilientCompletion, resilientStreamCompletion } from './openaiClient';
 import { resolveModel } from './modelRouter';
+import { extractInlineFollowUps } from './responseBuilder';
 
 const MODEL = resolveModel('ada-fast');
 
@@ -290,7 +291,14 @@ export async function* streamChatCompletion(
       }
     }
 
-    yield { type: 'suggested_questions', suggestedQuestions: ['Tell me more about my portfolio', 'How is the market doing?', 'What should I focus on?'] };
+    const { cleanText, questions: parsedQuestions } = extractInlineFollowUps(fullContent);
+    if (parsedQuestions.length > 0) {
+      fullContent = cleanText;
+    }
+    const suggestedQuestions = parsedQuestions.length > 0
+      ? parsedQuestions
+      : ['Tell me more about my portfolio', 'How is the market doing?', 'What should I focus on?'];
+    yield { type: 'suggested_questions', suggestedQuestions };
 
     yield { type: 'done', tokensUsed: totalTokens };
   } catch (err) {
