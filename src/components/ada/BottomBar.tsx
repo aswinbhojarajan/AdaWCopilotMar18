@@ -164,8 +164,8 @@ export function BottomBar({
         </div>
       </div>
 
-      {/* Home Indicator — uses safe-area-inset-bottom for real device home bar clearance */}
-      <div className="relative shrink-0 w-full h-[20px]">
+      {/* Home Indicator — safe-area-inset-bottom provides clearance for the home bar on notched iPhones */}
+      <div className="relative shrink-0 w-full pb-safe">
         <div className="absolute bg-[#555555] bottom-[9px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] translate-x-[-50%] w-[134px]" />
       </div>
     </div>
