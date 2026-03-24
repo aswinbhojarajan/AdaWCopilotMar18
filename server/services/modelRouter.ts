@@ -45,6 +45,7 @@ export interface RequestScorecard {
   tool_count_estimate: number;
   channel: string;
   reasoning_effort: IntentClassification['reasoning_effort'];
+  needs_tooling: boolean;
 }
 
 export interface RouteDecision {
@@ -101,6 +102,7 @@ export function buildScorecard(
     tool_count_estimate: intent.suggested_tools.length,
     channel,
     reasoning_effort: intent.reasoning_effort,
+    needs_tooling: intent.needs_tooling ?? true,
   };
 }
 
@@ -142,11 +144,15 @@ export function routeRequest(
     if (policy.response_mode === 'restricted_advisory') rationale.push('Restricted advisory mode');
 
     const lane2Config = getLaneConfig(2);
+    const lane2ToolGroups: ToolGroup[] = scorecard.needs_tooling
+      ? ['financial_data', 'market_intel', 'ui_actions', 'crm_actions']
+      : [];
+    if (!scorecard.needs_tooling) rationale.push('No tooling needed');
     return {
       lane: 'lane2',
       rationale,
       provider_alias: 'ada-reason',
-      tool_groups: ['financial_data', 'market_intel', 'ui_actions', 'crm_actions'],
+      tool_groups: lane2ToolGroups,
       max_tokens: lane2Config?.maxOutputTokens ?? 2600,
       temperature: lane2Config?.temperature ?? 0.10,
       reasoning_effort: scorecard.reasoning_effort,
@@ -154,11 +160,17 @@ export function routeRequest(
   }
 
   const lane1Config = getLaneConfig(1);
+  const lane1ToolGroups: ToolGroup[] = scorecard.needs_tooling
+    ? ['financial_data', 'ui_actions']
+    : [];
+  const lane1Rationale = scorecard.needs_tooling
+    ? ['Standard query — fast lane']
+    : ['Standard query — fast lane', 'No tooling needed'];
   return {
     lane: 'lane1',
-    rationale: ['Standard query — fast lane'],
+    rationale: lane1Rationale,
     provider_alias: 'ada-fast',
-    tool_groups: ['financial_data', 'ui_actions'],
+    tool_groups: lane1ToolGroups,
     max_tokens: lane1Config?.maxOutputTokens ?? 1800,
     temperature: lane1Config?.temperature ?? 0.15,
     reasoning_effort: scorecard.reasoning_effort,
