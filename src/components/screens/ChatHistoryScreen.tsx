@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TopBar, ChatHeader, SearchInput, ChatThread, Tag } from '../ada';
+import { ChatHeader, SearchInput, ChatThread, Tag } from '../ada';
 import { SkeletonList } from '../ada/Skeleton';
 import { ErrorBanner } from '../ada/ErrorBanner';
 import { useChatThreads } from '../../hooks/useChatThreads';
@@ -63,7 +63,6 @@ export function ChatHistoryScreen({ onBack, onThreadClick }: ChatHistoryScreenPr
   return (
     <div className="bg-[#efede6] relative h-screen w-full overflow-hidden">
       <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-[16px] pt-0 px-0 w-full z-10">
-        <TopBar />
         <ChatHeader onBack={handleBack} showNotifications={false} />
       </div>
 

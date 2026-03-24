@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { TopBar, ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon, ThinkingPanel, LiveThinkingBar } from '../ada';
+import { ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon, ThinkingPanel, LiveThinkingBar } from '../ada';
 import type { Message, ChatContext, ChatWidget } from '../../types';
 import { getStreamHeaders } from '../../hooks/api';
 import { useUser } from '../../contexts/UserContext';
@@ -339,7 +339,6 @@ export function ChatScreen({
   return (
     <div className="bg-[#efede6] relative h-screen w-full overflow-hidden">
       <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-[16px] pt-0 px-0 w-full z-10">
-        <TopBar />
         <div className="relative w-full">
           <ChatHeader onBack={handleBack} />
           {verboseModeAvailable && (

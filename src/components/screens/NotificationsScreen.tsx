@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TopBar, ChatHeader, Tag } from '../ada';
+import { ChatHeader, Tag } from '../ada';
 import {
   NotificationItem as NotificationItemComponent,
   NotificationType,
@@ -42,7 +42,6 @@ export function NotificationsScreen({ onBack }: NotificationsScreenProps = {}) {
   return (
     <div className="bg-[#efede6] relative h-screen w-full">
       <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-[15px] pt-0 px-0 w-full z-10">
-        <TopBar />
         <ChatHeader onBack={onBack} showNotifications={false} title="Notifications" />
       </div>
 

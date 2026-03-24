@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, Suspense, lazy, useTransition } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { HomeScreen } from './components/screens/HomeScreen';
-import { TopBar, Header, Navigation, BottomBar } from './components/ada';
+import { Header, Navigation, BottomBar } from './components/ada';
 import type { TabType, ViewType, ChatContext, Message } from './types';
 import { useUser } from './contexts/UserContext';
 import { PersonaPicker } from './components/ada/PersonaPicker';
@@ -239,7 +239,6 @@ export default function App() {
           {isTabView && (
             <div className="relative h-full w-full">
               <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-0 px-0 w-full z-10">
-                <TopBar />
                 <Header
                   onNotificationsClick={() => navigateTo('notifications')}
                   onClose={() => navigateTo('login')}

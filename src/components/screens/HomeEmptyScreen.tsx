@@ -1,5 +1,5 @@
 import React from 'react';
-import { TopBar, Header, BottomBar, OnboardingCard } from '../ada';
+import { Header, BottomBar, OnboardingCard } from '../ada';
 
 interface HomeEmptyScreenProps {
   onChatHistoryClick?: () => void;
@@ -12,9 +12,7 @@ export function HomeEmptyScreen({ onChatHistoryClick }: HomeEmptyScreenProps = {
 
   return (
     <div className="bg-[#efede6] relative h-screen w-full overflow-hidden">
-      {/* Fixed Header - No gap between TopBar and Header */}
       <div className="absolute bg-[#f7f6f2] left-0 top-0 w-full z-10">
-        <TopBar />
         <div className="pb-[8px]">
           <Header />
         </div>

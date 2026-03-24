@@ -1,5 +1,4 @@
 // Layout Components
-export { TopBar } from './TopBar';
 export { Header } from './Header';
 export { Navigation } from './Navigation';
 export { BottomBar } from './BottomBar';
