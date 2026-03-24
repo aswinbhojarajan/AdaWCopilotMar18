@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { getFallbackAlias, type ProviderAlias } from './modelRouter';
+import { getModelCapabilities } from './capabilityRegistry';
 
 export const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -262,50 +263,81 @@ function getFallbackAliasFromRouter(alias: string): ProviderAlias | null {
   return getFallbackAlias(alias as ProviderAlias);
 }
 
-export async function resilientCompletion(
+async function tryOpenAIWithRetries(
   params: OpenAI.ChatCompletionCreateParamsNonStreaming,
-  options?: { timeoutMs?: number; retries?: number; providerAlias?: string },
-): Promise<OpenAI.ChatCompletion> {
-  const { timeoutMs = 15000, retries = 2, providerAlias } = options ?? {};
-
+  timeoutMs: number,
+  retries: number,
+): Promise<{ result?: OpenAI.ChatCompletion; lastError?: unknown }> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-
     try {
       const result = await openai.chat.completions.create(params, {
         signal: controller.signal,
       });
-      return result;
+      return { result };
     } catch (err) {
       if (attempt === retries) {
-        if (isProviderError(err)) {
-          const fallbackAlias = providerAlias
-            ? getFallbackAliasFromRouter(providerAlias)
-            : 'ada-fallback';
-          if (fallbackAlias) {
-            console.log(`[resilientCompletion] OpenAI provider error after ${retries} attempts, trying fallback (${fallbackAlias})...`);
-            try {
-              const result = await anthropicCompletion(params, timeoutMs);
-              console.log(`[resilientCompletion] Fallback (${fallbackAlias}) succeeded`);
-              return result;
-            } catch (fallbackErr) {
-              console.error(`[resilientCompletion] Fallback (${fallbackAlias}) also failed:`, (fallbackErr as Error).message);
-              throw err;
-            }
-          }
-        } else {
-          console.error(`[resilientCompletion] Non-transient error after ${retries} attempts, not falling back:`, (err as Error).message);
-        }
-        throw err;
+        return { lastError: err };
       }
       console.log(`[resilientCompletion] Attempt ${attempt} failed, retrying...`);
     } finally {
       clearTimeout(timer);
     }
   }
+  return { lastError: new Error('All retry attempts failed') };
+}
 
-  throw new Error('All retry attempts failed');
+export async function resilientCompletion(
+  params: OpenAI.ChatCompletionCreateParamsNonStreaming,
+  options?: { timeoutMs?: number; retries?: number; providerAlias?: string },
+): Promise<OpenAI.ChatCompletion> {
+  const { timeoutMs = 15000, retries = 2, providerAlias } = options ?? {};
+
+  const primary = await tryOpenAIWithRetries(params, timeoutMs, retries);
+  if (primary.result) return primary.result;
+
+  if (!isProviderError(primary.lastError)) {
+    console.error(`[resilientCompletion] Non-transient error after ${retries} attempts, not falling back:`, (primary.lastError as Error).message);
+    throw primary.lastError;
+  }
+
+  let currentAlias = providerAlias ?? null;
+  while (currentAlias) {
+    const fallbackAlias = getFallbackAliasFromRouter(currentAlias);
+    if (!fallbackAlias) break;
+
+    if (fallbackAlias === 'ada-fallback') {
+      console.log(`[resilientCompletion] Trying Anthropic fallback (${fallbackAlias})...`);
+      try {
+        const result = await anthropicCompletion(params, timeoutMs);
+        console.log(`[resilientCompletion] Fallback (${fallbackAlias}) succeeded`);
+        return result;
+      } catch (fallbackErr) {
+        console.error(`[resilientCompletion] Fallback (${fallbackAlias}) failed:`, (fallbackErr as Error).message);
+        currentAlias = fallbackAlias;
+        continue;
+      }
+    }
+
+    const fallbackModel = getModelCapabilities(fallbackAlias)?.model;
+    if (fallbackModel) {
+      console.log(`[resilientCompletion] Trying OpenAI fallback (${fallbackAlias} → ${fallbackModel})...`);
+      const fallbackResult = await tryOpenAIWithRetries(
+        { ...params, model: fallbackModel },
+        timeoutMs,
+        1,
+      );
+      if (fallbackResult.result) {
+        console.log(`[resilientCompletion] Fallback (${fallbackAlias}) succeeded`);
+        return fallbackResult.result;
+      }
+      console.error(`[resilientCompletion] Fallback (${fallbackAlias}) failed, continuing chain...`);
+    }
+    currentAlias = fallbackAlias;
+  }
+
+  throw primary.lastError;
 }
 
 export async function resilientStreamCompletion(
@@ -324,21 +356,47 @@ export async function resilientStreamCompletion(
     return stream;
   } catch (err) {
     clearTimeout(timer);
-    if (isProviderError(err)) {
-      const fallbackAlias = providerAlias
-        ? getFallbackAliasFromRouter(providerAlias)
-        : 'ada-fallback';
-      if (fallbackAlias) {
-        console.log(`[resilientStreamCompletion] OpenAI failed, trying fallback (${fallbackAlias})...`);
+    if (!isProviderError(err)) throw err;
+
+    let currentAlias = providerAlias ?? null;
+    while (currentAlias) {
+      const fallbackAlias = getFallbackAliasFromRouter(currentAlias);
+      if (!fallbackAlias) break;
+
+      if (fallbackAlias === 'ada-fallback') {
+        console.log(`[resilientStreamCompletion] Trying Anthropic fallback (${fallbackAlias})...`);
         try {
           const fallbackStream = anthropicStreamCompletion(params, timeoutMs);
           console.log(`[resilientStreamCompletion] Fallback (${fallbackAlias}) initiated`);
           return fallbackStream;
         } catch (fallbackErr) {
-          console.error(`[resilientStreamCompletion] Fallback (${fallbackAlias}) also failed:`, (fallbackErr as Error).message);
+          console.error(`[resilientStreamCompletion] Fallback (${fallbackAlias}) failed:`, (fallbackErr as Error).message);
+          currentAlias = fallbackAlias;
+          continue;
         }
       }
+
+      const fallbackModel = getModelCapabilities(fallbackAlias)?.model;
+      if (fallbackModel) {
+        console.log(`[resilientStreamCompletion] Trying OpenAI fallback (${fallbackAlias} → ${fallbackModel})...`);
+        const fallbackController = new AbortController();
+        const fallbackTimer = setTimeout(() => fallbackController.abort(), timeoutMs);
+        try {
+          const stream = await openai.chat.completions.create(
+            { ...params, model: fallbackModel },
+            { signal: fallbackController.signal },
+          );
+          clearTimeout(fallbackTimer);
+          console.log(`[resilientStreamCompletion] Fallback (${fallbackAlias}) initiated`);
+          return stream;
+        } catch (fallbackErr) {
+          clearTimeout(fallbackTimer);
+          console.error(`[resilientStreamCompletion] Fallback (${fallbackAlias}) failed, continuing chain...`);
+        }
+      }
+      currentAlias = fallbackAlias;
     }
+
     throw err;
   }
 }

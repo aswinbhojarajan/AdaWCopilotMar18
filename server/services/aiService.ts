@@ -5,6 +5,7 @@ import { openai, resilientCompletion, resilientStreamCompletion } from './openai
 import { resolveModel } from './modelRouter';
 
 const MODEL = resolveModel('ada-fast');
+const CLASSIFIER_MODEL = resolveModel('ada-classifier');
 
 export { openai, MODEL };
 
@@ -298,10 +299,10 @@ export async function* streamChatCompletion(
 
     try {
       const suggestResponse = await resilientCompletion({
-        model: MODEL,
+        model: CLASSIFIER_MODEL,
         messages: suggestMessages,
         max_completion_tokens: 256,
-      }, { timeoutMs: 8000, retries: 1, providerAlias: 'ada-fast' });
+      }, { timeoutMs: 3000, retries: 1, providerAlias: 'ada-classifier' });
 
       const suggestContent = suggestResponse.choices[0]?.message?.content || '';
       const jsonMatch = suggestContent.match(/\[[\s\S]*\]/);

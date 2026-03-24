@@ -27,13 +27,13 @@ Do not include any other text.`;
 export async function classifyIntentAsync(message: string): Promise<{ intent: Intent; confidence: number }> {
   try {
     const response = await resilientCompletion({
-      model: resolveModel('ada-fast'),
+      model: resolveModel('ada-classifier'),
       messages: [
         { role: 'system', content: buildClassificationPrompt() },
         { role: 'user', content: message },
       ],
       max_completion_tokens: 100,
-    }, { timeoutMs: 3000, retries: 1, providerAlias: 'ada-fast' });
+    }, { timeoutMs: 1200, retries: 1, providerAlias: 'ada-classifier' });
 
     const content = response.choices[0]?.message?.content?.trim();
     if (!content) {

@@ -18,24 +18,31 @@ export interface ModelCapabilities {
 }
 
 const REGISTRY: Record<string, ModelCapabilities> = {
+  'ada-classifier': {
+    alias: 'ada-classifier',
+    model: 'gpt-4.1-nano',
+    capabilities: new Set(['json_mode', 'fast_response']),
+    maxContextTokens: 1047576,
+    costTier: 'low',
+  },
   'ada-fast': {
     alias: 'ada-fast',
-    model: 'gpt-5-mini',
+    model: 'gpt-4.1-mini',
     capabilities: new Set(['streaming', 'tool_calling', 'json_mode', 'fast_response']),
-    maxContextTokens: 128000,
+    maxContextTokens: 1047576,
     costTier: 'low',
   },
   'ada-reason': {
     alias: 'ada-reason',
-    model: 'gpt-5-mini',
+    model: 'gpt-4.1',
     capabilities: new Set(['streaming', 'tool_calling', 'json_mode', 'reasoning', 'long_context']),
-    maxContextTokens: 128000,
+    maxContextTokens: 1047576,
     costTier: 'medium',
   },
   'ada-fallback': {
     alias: 'ada-fallback',
     model: 'claude-sonnet-4-6',
-    capabilities: new Set(['streaming', 'reasoning', 'long_context']),
+    capabilities: new Set(['streaming', 'tool_calling', 'reasoning', 'long_context']),
     maxContextTokens: 200000,
     costTier: 'medium',
   },
@@ -47,6 +54,10 @@ export interface LaneConfig {
   description: string;
   providerAlias: string;
   tools: string[];
+  temperature?: number;
+  maxOutputTokens?: number;
+  toolRounds?: number;
+  maxToolCallsPerRound?: number;
 }
 
 export interface IntentRouteConfig {
@@ -72,6 +83,10 @@ const LANE_CONFIGS: Record<number, LaneConfig> = {
     description: 'Standard conversational path with tool calling for data-enriched responses.',
     providerAlias: 'ada-fast',
     tools: ['portfolio_read', 'market_read', 'news_read', 'macro_read', 'fx_read', 'health_compute', 'workflow_light'],
+    temperature: 0.15,
+    maxOutputTokens: 1800,
+    toolRounds: 1,
+    maxToolCallsPerRound: 3,
   },
   2: {
     lane: 2,
@@ -79,6 +94,10 @@ const LANE_CONFIGS: Record<number, LaneConfig> = {
     description: 'Deep analysis path for complex queries requiring step-by-step reasoning.',
     providerAlias: 'ada-reason',
     tools: ['portfolio_read', 'market_read', 'news_read', 'macro_read', 'fx_read', 'health_compute', 'workflow_light', 'execution_route'],
+    temperature: 0.10,
+    maxOutputTokens: 2600,
+    toolRounds: 2,
+    maxToolCallsPerRound: 4,
   },
 };
 

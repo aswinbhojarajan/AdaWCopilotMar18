@@ -1,19 +1,21 @@
 import type { IntentClassification, PolicyDecision } from '../../shared/schemas/agent';
-import { getModelCapabilities, hasCapability } from './capabilityRegistry';
+import { getModelCapabilities, hasCapability, getLaneConfig } from './capabilityRegistry';
 
 export type Lane = 'lane0' | 'lane1' | 'lane2';
-export type ProviderAlias = 'ada-fast' | 'ada-reason' | 'ada-fallback';
+export type ProviderAlias = 'ada-classifier' | 'ada-fast' | 'ada-reason' | 'ada-fallback';
 export type ToolGroup = 'financial_data' | 'market_intel' | 'ui_actions' | 'crm_actions';
 
 const PROVIDER_MODEL_MAP: Record<ProviderAlias, string> = {
-  'ada-fast': 'gpt-5-mini',
-  'ada-reason': 'gpt-5-mini',
+  'ada-classifier': 'gpt-4.1-nano',
+  'ada-fast': 'gpt-4.1-mini',
+  'ada-reason': 'gpt-4.1',
   'ada-fallback': 'claude-sonnet-4-6',
 };
 
 const FALLBACK_CHAIN: Record<ProviderAlias, ProviderAlias | null> = {
+  'ada-classifier': null,
   'ada-fast': 'ada-fallback',
-  'ada-reason': 'ada-fallback',
+  'ada-reason': 'ada-fast',
   'ada-fallback': null,
 };
 
@@ -141,24 +143,26 @@ export function routeRequest(
     if (scorecard.reasoning_effort === 'high') rationale.push('High reasoning effort');
     if (policy.response_mode === 'restricted_advisory') rationale.push('Restricted advisory mode');
 
+    const lane2Config = getLaneConfig(2);
     return {
       lane: 'lane2',
       rationale,
       provider_alias: 'ada-reason',
       tool_groups: ['financial_data', 'market_intel', 'ui_actions', 'crm_actions'],
-      max_tokens: 8192,
-      temperature: 0.4,
+      max_tokens: lane2Config?.maxOutputTokens ?? 2600,
+      temperature: lane2Config?.temperature ?? 0.10,
       reasoning_effort: scorecard.reasoning_effort,
     };
   }
 
+  const lane1Config = getLaneConfig(1);
   return {
     lane: 'lane1',
     rationale: ['Standard query — fast lane'],
     provider_alias: 'ada-fast',
     tool_groups: ['financial_data', 'ui_actions'],
-    max_tokens: scorecard.reasoning_effort === 'low' ? 2048 : 4096,
-    temperature: 0.3,
+    max_tokens: lane1Config?.maxOutputTokens ?? 1800,
+    temperature: lane1Config?.temperature ?? 0.15,
     reasoning_effort: scorecard.reasoning_effort,
   };
 }
@@ -185,5 +189,5 @@ export function selectModel(
 }
 
 export function getIntentClassificationModel(): string {
-  return resolveModel('ada-fast');
+  return resolveModel('ada-classifier');
 }

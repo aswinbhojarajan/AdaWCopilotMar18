@@ -32,7 +32,7 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
     - `rmHandoffService.ts`: Execution request routing (rm_handoff/api_webhook/disabled)
     - `aiService.ts`: OpenAI client and streaming completions
     - `streamTypes.ts`: StreamEvent type definition for SSE events
-    - `intentClassifier.ts`: LLM-based intent classification with `classifyIntentAsync()` (OpenAI call with 3s AbortController timeout, keyword fallback on timeout/error). Maps to 7 intents: portfolio, goals, market, scenario, recommendation, execution_request, general. Fallback confidence=0.5, error confidence=0.4.
+    - `intentClassifier.ts`: LLM-based intent classification with `classifyIntentAsync()` (gpt-4.1-nano via ada-classifier alias, 1.2s timeout, keyword fallback on timeout/error). Maps to 7 intents: portfolio, goals, market, scenario, recommendation, execution_request, general. Fallback confidence=0.5, error confidence=0.4.
     - `ragService.ts`: Portfolio context building from PostgreSQL
     - `memoryService.ts`: Three-tier memory (working/episodic/semantic)
     - `piiDetector.ts`: PII detection and redaction
@@ -52,8 +52,8 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
     - Phase 2 (Pilot): Finnhub (market) + Frankfurter/CBUAE (FX) live. Set `MARKET_PROVIDER_PRIMARY=finnhub`, `FX_PROVIDER_PRIMARY=frankfurter`, `FX_PROVIDER_SECONDARY=cbuae`.
     - Phase 3 (Production): All 6 providers live with full failover. Add keys for FRED, SEC EDGAR, OpenFIGI, CBUAE.
   - **Tool → Provider Mappings**: `get_market_data` → Finnhub, `get_macro_data` → FRED, `get_filings` → SEC EDGAR, `lookup_instrument` → OpenFIGI, `get_fx_rate` → Frankfurter → CBUAE.
-- **Capability Registry** (`capabilityRegistry.ts`): Model capability registry mapping provider aliases (ada-fast, ada-reason, ada-fallback) to capabilities (streaming, tool_calling, json_mode, reasoning, etc.), cost tiers, and context limits. Also contains intent→lane→tool routing metadata (LaneConfig, IntentRouteConfig) injected into classifier prompt via `getClassifierContext()`. Used by orchestrator for model selection, prompt builder for capability context, and verbose mode output.
-- **LLM Resilience & Fallback Provider**: Streaming timeout+retry with AbortController (attempt 1: 15s, attempt 2: 20s). Lane 2 → Lane 1 automatic downgrade when both reasoning-model attempts fail — retries with ada-fast at lower max_tokens (4096) for degraded-but-functional responses. Lane 0 deterministic queries bypass LLM entirely. `resilientCompletion()` and `resilientStreamCompletion()` helpers in `openaiClient.ts` provide configurable timeout+retry for non-streaming calls. When OpenAI primary provider fails all retries, automatic fallback to Anthropic Claude (claude-sonnet-4-6 via Replit AI Integrations). Anthropic adapter converts OpenAI message format to Anthropic messages API and response back to OpenAI format. Fallback chain: ada-fast → ada-fallback, ada-reason → ada-fallback.
+- **Capability Registry** (`capabilityRegistry.ts`): Model capability registry mapping 4 provider aliases (ada-classifier, ada-fast, ada-reason, ada-fallback) to capabilities (streaming, tool_calling, json_mode, reasoning, etc.), cost tiers, and context limits. Lane configs include per-lane temperature (Lane 1: 0.15, Lane 2: 0.10), max output tokens (Lane 1: 1800, Lane 2: 2600), and tool round limits (Lane 1: 1 round/3 calls, Lane 2: 2 rounds/4 calls). Also contains intent→lane→tool routing metadata (LaneConfig, IntentRouteConfig) injected into classifier prompt via `getClassifierContext()`. Used by orchestrator for model selection, prompt builder for capability context, and verbose mode output.
+- **LLM Resilience & Fallback Provider**: Streaming timeout+retry with AbortController (attempt 1: 15s, attempt 2: 20s). Lane 2 → Lane 1 automatic downgrade when both reasoning-model attempts fail — retries with ada-fast at lower max_tokens (4096) for degraded-but-functional responses. Lane 0 deterministic queries bypass LLM entirely. `resilientCompletion()` and `resilientStreamCompletion()` helpers in `openaiClient.ts` provide configurable timeout+retry for non-streaming calls. When OpenAI primary provider fails all retries, automatic fallback to Anthropic Claude (claude-sonnet-4-6 via Replit AI Integrations, now with tool_calling support). Anthropic adapter converts OpenAI message format to Anthropic messages API and response back to OpenAI format. Fallback chains: ada-reason → ada-fast → ada-fallback (two-step), ada-fast → ada-fallback, ada-classifier → keyword fallback (no LLM fallback).
 - **Execution Guardrails & RM Handoff**: Ada cannot execute trades or claim execution capability. Enforced at 3 layers: system prompt boundary, guardrail regex (7 patterns + hard post-check), orchestrator fallback. Execution requests routed to RM via `advisor_action_queue` (rm_handoff), webhook (api_webhook), or rejected (disabled). Tenant config controls routing.
 - **Shared Schemas**: `shared/schemas/agent.ts` — Zod schemas for AdaAnswer, ToolResult, PolicyDecision, IntentClassification, TenantConfig.
 
@@ -63,7 +63,7 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
 - 40 instruments, market quotes, news items, 1 tenant (bank_demo_uae).
 
 ## Key Configuration
-- **MODEL**: gpt-5-mini via provider aliases (ada-fast → gpt-5-mini, ada-reason → gpt-5-mini). Fallback: ada-fallback → claude-sonnet-4-6 (Anthropic via Replit AI Integrations)
+- **MODEL**: 4-tier model stack via provider aliases: ada-classifier → gpt-4.1-nano (intent classification, follow-up generation), ada-fast → gpt-4.1-mini (Lane 1 conversational), ada-reason → gpt-4.1 (Lane 2 deep reasoning). Fallback: ada-fallback → claude-sonnet-4-6 (Anthropic via Replit AI Integrations, now with tool_calling). Fallback chains: ada-reason → ada-fast → ada-fallback, ada-fast → ada-fallback, ada-classifier → keyword fallback (no LLM fallback)
 - **Default user**: user-aisha (fallback when no X-User-ID header provided)
 - **User switching**: Frontend sends `X-User-ID` header on all API/stream calls; backend `getUserId(req)` extracts it with fallback to default. `GET /api/users` returns all 3 demo personas. `UserContext` provider persists selection to localStorage, `PersonaPicker` bottom sheet for switching. Data isolation via userId-scoped react-query keys (all hooks include userId in queryKey) + `queryClient.removeQueries()` on switch.
 - **Default tenant**: bank_demo_uae
@@ -84,7 +84,7 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
 - **MIGRATION_NOTES.md**: Historical migration and refactoring notes
 
 ## External Dependencies
-- **OpenAI**: AI capabilities via Replit AI Integrations, gpt-5-mini model, SSE streaming
+- **OpenAI**: AI capabilities via Replit AI Integrations, 3 models: gpt-4.1-nano (classifier), gpt-4.1-mini (fast lane), gpt-4.1 (reasoning lane), SSE streaming
 - **PostgreSQL**: Primary database, managed by Replit
 - **Vite**: Frontend build tool and development server
 - **Tailwind CSS**: Utility-first CSS framework

@@ -455,10 +455,10 @@ async function generateSuggestedQuestions(
 
   try {
     const suggestResponse = await resilientCompletion({
-      model: resolveModel('ada-fast'),
+      model: resolveModel('ada-classifier'),
       messages: suggestMessages,
       max_completion_tokens: 256,
-    }, { timeoutMs: 8000, retries: 1, providerAlias });
+    }, { timeoutMs: 3000, retries: 1, providerAlias: 'ada-classifier' });
     const suggestContent = suggestResponse.choices[0]?.message?.content || '';
     const jsonMatch = suggestContent.match(/\[[\s\S]*\]/);
     const questions = jsonMatch ? (JSON.parse(jsonMatch[0]) as string[]).slice(0, 3) : [];
