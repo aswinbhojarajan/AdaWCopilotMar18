@@ -4,5 +4,6 @@ export type StreamEvent =
   | { type: 'simulator'; simulator: { type: string; initialValues?: Record<string, number> } }
   | { type: 'suggested_questions'; suggestedQuestions: string[] }
   | { type: 'thinking'; step: string; detail: string }
+  | { type: 'meta'; lane: string; intent: string; traceId: string; model: string }
   | { type: 'done' }
   | { type: 'error'; content: string };

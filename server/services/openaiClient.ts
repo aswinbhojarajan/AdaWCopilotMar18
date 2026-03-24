@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { getFallbackAlias, type ProviderAlias } from './modelRouter';
 import { getModelCapabilities } from './capabilityRegistry';
+import { logProviderFallback } from './traceLogger';
 
 export const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -294,19 +295,23 @@ export async function resilientCompletion(
 ): Promise<OpenAI.ChatCompletion> {
   const { timeoutMs = 15000, retries = 2, providerAlias } = options ?? {};
 
+  const primaryStart = Date.now();
   const primary = await tryOpenAIWithRetries(params, timeoutMs, retries);
   if (primary.result) return primary.result;
 
+  const primaryFailReason = (primary.lastError as Error)?.message ?? 'unknown';
+
   if (!isProviderError(primary.lastError)) {
-    console.error(`[resilientCompletion] Non-transient error after ${retries} attempts, not falling back:`, (primary.lastError as Error).message);
+    console.error(`[resilientCompletion] Non-transient error after ${retries} attempts, not falling back:`, primaryFailReason);
     throw primary.lastError;
   }
 
   if (!providerAlias) {
+    const switchStart = Date.now();
     console.log(`[resilientCompletion] No providerAlias, falling back directly to Anthropic...`);
     try {
       const result = await anthropicCompletion(params, timeoutMs);
-      console.log(`[resilientCompletion] Anthropic fallback succeeded`);
+      logProviderFallback({ failedProvider: params.model, replacementProvider: 'anthropic', failureReason: primaryFailReason, switchCostMs: Date.now() - switchStart });
       return result;
     } catch (fallbackErr) {
       console.error(`[resilientCompletion] Anthropic fallback failed:`, (fallbackErr as Error).message);
@@ -319,11 +324,13 @@ export async function resilientCompletion(
     const fallbackAlias = getFallbackAliasFromRouter(currentAlias);
     if (!fallbackAlias) break;
 
+    const switchStart = Date.now();
+
     if (fallbackAlias === 'ada-fallback') {
       console.log(`[resilientCompletion] Trying Anthropic fallback (${fallbackAlias})...`);
       try {
         const result = await anthropicCompletion(params, timeoutMs);
-        console.log(`[resilientCompletion] Fallback (${fallbackAlias}) succeeded`);
+        logProviderFallback({ failedProvider: currentAlias, replacementProvider: fallbackAlias, failureReason: primaryFailReason, switchCostMs: Date.now() - switchStart });
         return result;
       } catch (fallbackErr) {
         console.error(`[resilientCompletion] Fallback (${fallbackAlias}) failed:`, (fallbackErr as Error).message);
@@ -341,7 +348,7 @@ export async function resilientCompletion(
         1,
       );
       if (fallbackResult.result) {
-        console.log(`[resilientCompletion] Fallback (${fallbackAlias}) succeeded`);
+        logProviderFallback({ failedProvider: currentAlias, replacementProvider: fallbackAlias, failureReason: primaryFailReason, switchCostMs: Date.now() - switchStart });
         return fallbackResult.result;
       }
       console.error(`[resilientCompletion] Fallback (${fallbackAlias}) failed, continuing chain...`);
@@ -370,11 +377,14 @@ export async function resilientStreamCompletion(
     clearTimeout(timer);
     if (!isProviderError(err)) throw err;
 
+    const failReason = (err as Error)?.message ?? 'unknown';
+
     if (!providerAlias) {
+      const switchStart = Date.now();
       console.log(`[resilientStreamCompletion] No providerAlias, falling back directly to Anthropic...`);
       try {
         const fallbackStream = anthropicStreamCompletion(params, timeoutMs);
-        console.log(`[resilientStreamCompletion] Anthropic fallback initiated`);
+        logProviderFallback({ failedProvider: params.model, replacementProvider: 'anthropic', failureReason: failReason, switchCostMs: Date.now() - switchStart });
         return fallbackStream;
       } catch (fallbackErr) {
         console.error(`[resilientStreamCompletion] Anthropic fallback failed:`, (fallbackErr as Error).message);
@@ -387,11 +397,13 @@ export async function resilientStreamCompletion(
       const fallbackAlias = getFallbackAliasFromRouter(currentAlias);
       if (!fallbackAlias) break;
 
+      const switchStart = Date.now();
+
       if (fallbackAlias === 'ada-fallback') {
         console.log(`[resilientStreamCompletion] Trying Anthropic fallback (${fallbackAlias})...`);
         try {
           const fallbackStream = anthropicStreamCompletion(params, timeoutMs);
-          console.log(`[resilientStreamCompletion] Fallback (${fallbackAlias}) initiated`);
+          logProviderFallback({ failedProvider: currentAlias, replacementProvider: fallbackAlias, failureReason: failReason, switchCostMs: Date.now() - switchStart });
           return fallbackStream;
         } catch (fallbackErr) {
           console.error(`[resilientStreamCompletion] Fallback (${fallbackAlias}) failed:`, (fallbackErr as Error).message);
@@ -411,7 +423,7 @@ export async function resilientStreamCompletion(
             { signal: fallbackController.signal },
           );
           clearTimeout(fallbackTimer);
-          console.log(`[resilientStreamCompletion] Fallback (${fallbackAlias}) initiated`);
+          logProviderFallback({ failedProvider: currentAlias, replacementProvider: fallbackAlias, failureReason: failReason, switchCostMs: Date.now() - switchStart });
           return stream;
         } catch (fallbackErr) {
           clearTimeout(fallbackTimer);

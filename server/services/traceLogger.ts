@@ -15,8 +15,59 @@ export interface StepTimings {
   policy_evaluation_ms?: number;
   tool_execution_ms?: number;
   llm_generation_ms?: number;
+  llm_first_token_ms?: number;
   post_checks_ms?: number;
   total_ms?: number;
+}
+
+const LATENCY_TARGETS: Record<string, { first_token_ms?: number; total_ms: number }> = {
+  lane0: { total_ms: 800 },
+  lane1: { first_token_ms: 1800, total_ms: 5000 },
+  lane2: { first_token_ms: 2500, total_ms: 9000 },
+};
+
+export function checkLatencyTargets(
+  lane: string,
+  timings: StepTimings,
+): { met: boolean; deviations: string[] } {
+  const target = LATENCY_TARGETS[lane];
+  if (!target) return { met: true, deviations: [] };
+
+  const deviations: string[] = [];
+
+  if (target.first_token_ms !== undefined && timings.llm_first_token_ms !== undefined) {
+    if (timings.llm_first_token_ms > target.first_token_ms) {
+      deviations.push(`first_token ${timings.llm_first_token_ms}ms > target ${target.first_token_ms}ms (+${timings.llm_first_token_ms - target.first_token_ms}ms)`);
+    }
+  }
+
+  if (timings.total_ms !== undefined && timings.total_ms > target.total_ms) {
+    deviations.push(`total ${timings.total_ms}ms > target ${target.total_ms}ms (+${timings.total_ms - target.total_ms}ms)`);
+  }
+
+  const met = deviations.length === 0;
+  if (!met) {
+    console.log(`[LatencyTarget] ${lane} EXCEEDED: ${deviations.join('; ')}`);
+  }
+
+  return { met, deviations };
+}
+
+export function logProviderFallback(params: {
+  failedProvider: string;
+  replacementProvider: string;
+  failureReason: string;
+  switchCostMs: number;
+  lane?: string;
+}): void {
+  console.log(
+    `[ProviderFallback] %s → %s | reason=%s | cost=%dms | lane=%s`,
+    params.failedProvider,
+    params.replacementProvider,
+    params.failureReason,
+    params.switchCostMs,
+    params.lane ?? 'unknown',
+  );
 }
 
 export async function logAgentTrace(params: {

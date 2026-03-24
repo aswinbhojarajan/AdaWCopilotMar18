@@ -219,20 +219,36 @@ router.post('/chat/stream', asyncHandler(async (req, res) => {
 
   res.flushHeaders();
 
+  let seqId = 0;
+  let closed = false;
+  req.on('close', () => { closed = true; });
+
+  const keepaliveInterval = setInterval(() => {
+    if (!closed) {
+      res.write(':keepalive\n\n');
+    }
+  }, 10_000);
+
   try {
     const stream = orchestrateStream(userId, body);
 
     for await (const event of stream) {
-      res.write(`data: ${JSON.stringify(event)}\n\n`);
-      if (event.type === 'thinking') {
+      if (closed) break;
+      seqId++;
+      res.write(`id: ${seqId}\ndata: ${JSON.stringify(event)}\n\n`);
+      if (event.type === 'thinking' || event.type === 'meta') {
         const flushable = res as unknown as { flush?: () => void };
         if (typeof flushable.flush === 'function') flushable.flush();
       }
     }
   } catch (err) {
     console.error('[ChatStream] Error during streaming:', (err as Error).message);
-    res.write(`data: ${JSON.stringify({ type: 'error', content: 'An unexpected error occurred. Please try again.' })}\n\n`);
-    res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+    seqId++;
+    res.write(`id: ${seqId}\ndata: ${JSON.stringify({ type: 'error', content: 'An unexpected error occurred. Please try again.' })}\n\n`);
+    seqId++;
+    res.write(`id: ${seqId}\ndata: ${JSON.stringify({ type: 'done' })}\n\n`);
+  } finally {
+    clearInterval(keepaliveInterval);
   }
 
   res.end();

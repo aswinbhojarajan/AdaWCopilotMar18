@@ -34,7 +34,7 @@ import {
 } from './financialTools';
 import { buildAdaAnswer, extractInlineFollowUps, getDeterministicFollowUps, FollowUpStreamFilter } from './responseBuilder';
 import { runPostChecks } from './guardrails';
-import { logAgentTrace, logToolRun } from './traceLogger';
+import { logAgentTrace, logToolRun, checkLatencyTargets } from './traceLogger';
 import type { StepTimings, TraceContext } from './traceLogger';
 import * as wealthEngine from './wealthEngine';
 import { routeToAdvisor } from './rmHandoffService';
@@ -397,6 +397,12 @@ async function* handleLane0(
 
   timings.total_ms = Date.now() - startTime;
 
+  const lane0LatencyCheck = checkLatencyTargets('lane0', timings);
+  const lane0Escalations: string[] = [];
+  if (!lane0LatencyCheck.met) {
+    lane0Escalations.push(`Latency target exceeded: ${lane0LatencyCheck.deviations.join('; ')}`);
+  }
+
   const traceCtx: TraceContext = { conversationId: threadId, messageId, tenantId: tenantConfig.tenant_id, userId };
   logAgentTrace({
     ctx: traceCtx,
@@ -408,7 +414,7 @@ async function* handleLane0(
     responseTimeMs: timings.total_ms,
     stepTimings: timings,
     guardrailInterventions: [],
-    escalationDecisions: [],
+    escalationDecisions: lane0Escalations,
     routeDecision: route,
     scorecard,
   }).catch(() => {});
@@ -501,6 +507,8 @@ export async function* orchestrateStream(
   const scorecard = buildScorecard(intent, channel);
   const route = routeRequest(scorecard, policyDecision);
   console.log('[Orchestrator] route=%s model=%s', route.lane, route.provider_alias);
+
+  yield { type: 'meta' as const, lane: route.lane, intent: intent.primary_intent, traceId: messageId, model: route.provider_alias };
 
   yield* thinkingEvent(verbose, 'routing', `Lane: ${route.lane}, model: ${route.provider_alias} (${getCapabilitySummary(route.provider_alias)})`);
   if (verbose) {
@@ -677,12 +685,17 @@ export async function* orchestrateStream(
       let currentToolIndex = -1;
       let turnBuffer = '';
       const streamFilter = new FollowUpStreamFilter();
+      let firstTokenRecorded = false;
 
       for await (const chunk of response) {
         const delta = chunk.choices[0]?.delta;
         if (!delta) continue;
 
         if (delta.content) {
+          if (!firstTokenRecorded) {
+            timings.llm_first_token_ms = Date.now() - llmStart;
+            firstTokenRecorded = true;
+          }
           turnBuffer += delta.content;
           const safeText = streamFilter.push(delta.content);
           if (safeText) {
@@ -924,6 +937,11 @@ export async function* orchestrateStream(
 
     timings.post_checks_ms = Date.now() - postStart;
     timings.total_ms = Date.now() - startTime;
+
+    const latencyCheck = checkLatencyTargets(route.lane, timings);
+    if (!latencyCheck.met) {
+      escalationDecisions.push(`Latency target exceeded: ${latencyCheck.deviations.join('; ')}`);
+    }
 
     if (streamFollowUps.length === 0) {
       const { cleanText, questions: inlineQuestions } = extractInlineFollowUps(fullResponse);
