@@ -96,6 +96,63 @@ export function extractInlineFollowUps(llmText: string): { cleanText: string; qu
   return { cleanText, questions };
 }
 
+const DELIMITER_TRIGGER = '\n---';
+const BUFFER_SIZE = FOLLOW_UP_DELIMITER.length + 5;
+
+export class FollowUpStreamFilter {
+  private buffer = '';
+  private delimiterDetected = false;
+  private afterDelimiter = '';
+
+  push(chunk: string): string {
+    if (this.delimiterDetected) {
+      this.afterDelimiter += chunk;
+      return '';
+    }
+
+    this.buffer += chunk;
+
+    const delimIdx = this.buffer.indexOf(FOLLOW_UP_DELIMITER);
+    if (delimIdx !== -1) {
+      this.delimiterDetected = true;
+      const safeText = this.buffer.slice(0, delimIdx);
+      this.afterDelimiter = this.buffer.slice(delimIdx + FOLLOW_UP_DELIMITER.length);
+      this.buffer = '';
+      return safeText;
+    }
+
+    const triggerIdx = this.buffer.lastIndexOf(DELIMITER_TRIGGER);
+    if (triggerIdx !== -1 && triggerIdx > this.buffer.length - BUFFER_SIZE) {
+      const safeText = this.buffer.slice(0, triggerIdx);
+      this.buffer = this.buffer.slice(triggerIdx);
+      return safeText;
+    }
+
+    if (this.buffer.length > BUFFER_SIZE) {
+      const safeText = this.buffer.slice(0, this.buffer.length - BUFFER_SIZE);
+      this.buffer = this.buffer.slice(this.buffer.length - BUFFER_SIZE);
+      return safeText;
+    }
+
+    return '';
+  }
+
+  flush(): { remainingText: string; questions: string[] } {
+    if (this.delimiterDetected) {
+      const questions = this.afterDelimiter
+        .trim()
+        .split('\n')
+        .map(l => l.replace(/^\d+[.)]\s*/, '').replace(/^[-•*]\s*/, '').trim())
+        .filter(q => q.length > 5 && q.length < 200)
+        .slice(0, 3);
+      return { remainingText: this.buffer.trimEnd(), questions };
+    }
+
+    const { cleanText, questions } = extractInlineFollowUps(this.buffer);
+    return { remainingText: cleanText, questions };
+  }
+}
+
 export function buildAdaAnswer(params: {
   intent: IntentClassification;
   policyDecision: PolicyDecision;

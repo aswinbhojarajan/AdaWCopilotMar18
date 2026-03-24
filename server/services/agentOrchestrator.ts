@@ -32,7 +32,7 @@ import {
   FINANCIAL_TOOL_DEFINITIONS,
   UI_TOOL_DEFINITIONS,
 } from './financialTools';
-import { buildAdaAnswer, extractInlineFollowUps, getDeterministicFollowUps } from './responseBuilder';
+import { buildAdaAnswer, extractInlineFollowUps, getDeterministicFollowUps, FollowUpStreamFilter } from './responseBuilder';
 import { runPostChecks } from './guardrails';
 import { logAgentTrace, logToolRun } from './traceLogger';
 import type { StepTimings, TraceContext } from './traceLogger';
@@ -599,6 +599,7 @@ export async function* orchestrateStream(
   const escalationDecisions: string[] = [];
   let totalTokens = 0;
   const pendingUiEvents: StreamEvent[] = [];
+  let streamFollowUps: string[] = [];
 
   try {
     const llmStart = Date.now();
@@ -662,6 +663,7 @@ export async function* orchestrateStream(
       const toolCalls: { id: string; name: string; arguments: string }[] = [];
       let currentToolIndex = -1;
       let turnBuffer = '';
+      const streamFilter = new FollowUpStreamFilter();
 
       for await (const chunk of response) {
         const delta = chunk.choices[0]?.delta;
@@ -669,7 +671,10 @@ export async function* orchestrateStream(
 
         if (delta.content) {
           turnBuffer += delta.content;
-          yield { type: 'text', content: delta.content };
+          const safeText = streamFilter.push(delta.content);
+          if (safeText) {
+            yield { type: 'text', content: safeText };
+          }
         }
 
         if (delta.tool_calls) {
@@ -697,12 +702,27 @@ export async function* orchestrateStream(
         if (chunk.usage) totalTokens += chunk.usage.total_tokens;
       }
 
-      fullResponse += turnBuffer;
-
       if (toolCalls.length === 0) {
+        const flushed = streamFilter.flush();
+        if (flushed.remainingText) {
+          yield { type: 'text', content: flushed.remainingText };
+        }
+        const delimIdx = turnBuffer.indexOf('---FOLLOW_UP_QUESTIONS---');
+        fullResponse += delimIdx !== -1
+          ? turnBuffer.slice(0, delimIdx).trimEnd()
+          : turnBuffer;
+        if (flushed.questions.length > 0) {
+          streamFollowUps = flushed.questions;
+        }
         isLastTurn = true;
         break;
       }
+
+      const flushedMidTurn = streamFilter.flush();
+      if (flushedMidTurn.remainingText) {
+        yield { type: 'text', content: flushedMidTurn.remainingText };
+      }
+      fullResponse += turnBuffer;
 
       if (toolCalls.length > maxToolCallsPerRound) {
         console.log(`[Orchestrator] Capping tool calls from ${toolCalls.length} to ${maxToolCallsPerRound} (lane ${laneNumber})`);
@@ -892,14 +912,16 @@ export async function* orchestrateStream(
     timings.post_checks_ms = Date.now() - postStart;
     timings.total_ms = Date.now() - startTime;
 
-    const { cleanText, questions: inlineQuestions } = extractInlineFollowUps(fullResponse);
-    const suggestedQuestions = inlineQuestions.length > 0
-      ? inlineQuestions
-      : getDeterministicFollowUps(intent.primary_intent);
-
-    if (cleanText !== fullResponse) {
-      fullResponse = cleanText;
+    if (streamFollowUps.length === 0) {
+      const { cleanText, questions: inlineQuestions } = extractInlineFollowUps(fullResponse);
+      if (inlineQuestions.length > 0) {
+        streamFollowUps = inlineQuestions;
+        fullResponse = cleanText;
+      }
     }
+    const suggestedQuestions = streamFollowUps.length > 0
+      ? streamFollowUps
+      : getDeterministicFollowUps(intent.primary_intent);
 
     if (suggestedQuestions.length > 0) {
       yield { type: 'suggested_questions', suggestedQuestions };
