@@ -1,4 +1,4 @@
-import type { ProviderRegistry, MarketProvider, NewsProvider, MacroProvider, FxProvider, ResearchProvider, IdentityProvider } from './types';
+import type { ProviderRegistry, PortfolioProvider, MarketProvider, NewsProvider, MacroProvider, FxProvider, ResearchProvider, IdentityProvider } from './types';
 import type { ToolResult } from '../../shared/schemas/agent';
 import { mockPortfolioProvider } from './mock/portfolioProvider';
 import { mockMarketProvider } from './mock/marketProvider';
@@ -13,14 +13,6 @@ import { secEdgarResearchProvider } from './secEdgar';
 import { openFigiIdentityProvider } from './openFigi';
 import { frankfurterFxProvider } from './frankfurter';
 import { cbuaeFxProvider } from './cbuae';
-import {
-  marketauxNewsProvider,
-  ecbMacroProvider,
-  twelveDataMarketProvider,
-  fmpMarketProvider,
-  coinGeckoMarketProvider,
-  yahooFinanceMarketProvider,
-} from './stubs';
 import { isProviderHealthy } from './helpers';
 
 const _registryCache = new Map<string, ProviderRegistry>();
@@ -126,6 +118,7 @@ export function getProviderRegistry(providerConfig?: Record<string, string>): Pr
 
   const config = providerConfig ?? {};
 
+  const portfolioChain = getChainKeys('portfolio', config).map(resolvePortfolioProvider);
   const marketChain = getChainKeys('market', config).map(resolveMarketProvider);
   const newsChain = getChainKeys('news', config).map(resolveNewsProvider);
   const macroChain = getChainKeys('macro', config).map(resolveMacroProvider);
@@ -145,7 +138,7 @@ export function getProviderRegistry(providerConfig?: Record<string, string>): Pr
   }
 
   const registry: ProviderRegistry = {
-    portfolio: mockPortfolioProvider,
+    portfolio: withFallbackChain(portfolioChain, 'portfolio'),
     market: withFallbackChain(marketChain, 'market'),
     news: withFallbackChain(newsChain, 'news'),
     macro: withFallbackChain(macroChain, 'macro'),
@@ -163,18 +156,21 @@ export function resetRegistry(): void {
   _registryCache.clear();
 }
 
+function resolvePortfolioProvider(key: string): PortfolioProvider {
+  switch (key) {
+    case 'demo_db':
+    case 'mock':
+      return mockPortfolioProvider;
+    default:
+      console.warn(`Unknown portfolio provider '${key}', using mock`);
+      return mockPortfolioProvider;
+  }
+}
+
 function resolveMarketProvider(key: string): MarketProvider {
   switch (key) {
     case 'finnhub':
       return finnhubMarketProvider;
-    case 'twelve_data':
-      return twelveDataMarketProvider;
-    case 'fmp':
-      return fmpMarketProvider;
-    case 'coingecko':
-      return coinGeckoMarketProvider;
-    case 'yahoo_finance':
-      return yahooFinanceMarketProvider;
     case 'mock':
       return mockMarketProvider;
     default:
@@ -187,8 +183,6 @@ function resolveNewsProvider(key: string): NewsProvider {
   switch (key) {
     case 'finnhub':
       return finnhubNewsProvider;
-    case 'marketaux':
-      return marketauxNewsProvider;
     case 'mock':
       return mockNewsProvider;
     default:
@@ -201,8 +195,6 @@ function resolveMacroProvider(key: string): MacroProvider {
   switch (key) {
     case 'fred':
       return fredMacroProvider;
-    case 'ecb':
-      return ecbMacroProvider;
     case 'mock':
       return mockMacroProvider;
     default:

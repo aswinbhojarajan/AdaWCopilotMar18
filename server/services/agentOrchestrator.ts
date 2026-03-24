@@ -152,6 +152,11 @@ async function prefetchToolData(
       const start = Date.now();
       const result = await j.promise;
       result.latency_ms = Date.now() - start;
+      logToolRun({
+        toolName: j.name,
+        inputs: { userId, lane: 'prefetch', intent: intent.primary_intent },
+        result,
+      }).catch(() => {});
       return { name: j.name, result };
     }),
   );
@@ -221,6 +226,14 @@ async function* handleLane0(
       const start = Date.now();
       const result = await j.promise;
       result.latency_ms = Date.now() - start;
+      logToolRun({
+        toolName: j.name,
+        inputs: { userId, lane: 'lane0' },
+        result,
+        conversationId: threadId,
+        messageId,
+        userId,
+      }).catch(() => {});
       return { name: j.name, result };
     })),
     goalsPromise,

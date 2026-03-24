@@ -10,25 +10,47 @@ export interface PortfolioContext {
   recentTransactions?: string;
 }
 
+type PrefetchBundle = 'holdings' | 'allocations' | 'goals' | 'accounts' | 'transactions';
+
+const INTENT_PREFETCH_MATRIX: Record<Intent, PrefetchBundle[]> = {
+  balance_query: ['holdings', 'accounts'],
+  portfolio_explain: ['holdings', 'allocations', 'accounts', 'transactions'],
+  allocation_breakdown: ['holdings', 'allocations'],
+  goal_progress: ['goals'],
+  market_context: ['holdings'],
+  news_explain: ['holdings'],
+  scenario_analysis: ['goals', 'allocations'],
+  recommendation_request: ['holdings', 'allocations', 'goals'],
+  execution_request: ['holdings'],
+  support: [],
+  general: ['holdings', 'allocations'],
+};
+
 export async function buildPortfolioContext(userId: string, intent: Intent): Promise<PortfolioContext> {
-  const summaryData = await getPortfolioSummary(userId);
-  const context: PortfolioContext = { summary: summaryData };
+  const bundles = INTENT_PREFETCH_MATRIX[intent] ?? [];
 
-  if (intent === 'portfolio_explain' || intent === 'allocation_breakdown' || intent === 'balance_query' ||
-      intent === 'market_context' || intent === 'news_explain' || intent === 'general' || intent === 'recommendation_request') {
-    context.holdings = await getHoldingsContext(userId);
-    context.allocations = await getAllocationContext(userId);
+  const promises: Promise<void>[] = [];
+  const context: PortfolioContext = { summary: '' };
+
+  promises.push(getPortfolioSummary(userId).then(s => { context.summary = s; }));
+
+  if (bundles.includes('holdings')) {
+    promises.push(getHoldingsContext(userId).then(h => { context.holdings = h; }));
+  }
+  if (bundles.includes('allocations')) {
+    promises.push(getAllocationContext(userId).then(a => { context.allocations = a; }));
+  }
+  if (bundles.includes('goals')) {
+    promises.push(getGoalsContext(userId).then(g => { context.goals = g; }));
+  }
+  if (bundles.includes('accounts')) {
+    promises.push(getAccountsContext(userId).then(a => { context.accounts = a; }));
+  }
+  if (bundles.includes('transactions')) {
+    promises.push(getRecentTransactions(userId).then(t => { context.recentTransactions = t; }));
   }
 
-  if (intent === 'goal_progress' || intent === 'scenario_analysis' || intent === 'recommendation_request' || intent === 'general') {
-    context.goals = await getGoalsContext(userId);
-  }
-
-  if (intent === 'portfolio_explain' || intent === 'balance_query' || intent === 'general') {
-    context.accounts = await getAccountsContext(userId);
-  }
-
-  context.recentTransactions = await getRecentTransactions(userId);
+  await Promise.all(promises);
 
   return context;
 }
