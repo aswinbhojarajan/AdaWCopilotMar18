@@ -2,7 +2,7 @@
 import svgPaths from './svg-qhj5a0ggbh';
 import clsx from 'clsx';
 import { imgEllipse3627 } from './svg-hgsl2';
-import { TopBar as IOSStatusBar } from '../components/ada/TopBar';
+
 import AdaIconButtonSvg from './AdaIconButton.svg';
 import { useUser } from '../contexts/UserContext';
 
@@ -482,7 +482,6 @@ function Container1({ onAdaClick, onProfileClick }: { onAdaClick?: () => void; o
       className="sticky bg-white left-0 top-0 w-full z-10 h-[114px] overflow-hidden"
       data-name="Container"
     >
-      <IOSStatusBar />
       <div className="flex h-[70px] items-center justify-between pb-[18px] pt-0 px-[20px]">
         <Group12 />
         <Container onAdaClick={onAdaClick} onProfileClick={onProfileClick} />
