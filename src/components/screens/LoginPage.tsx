@@ -49,23 +49,18 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   return (
     <div className="h-full w-full bg-[#efede6] overflow-y-auto">
       <div className="flex flex-col items-center px-[24px] pt-[60px] pb-[40px] min-h-full">
-        <div className="mb-[12px]">
-          <div className="w-[56px] h-[56px] rounded-full bg-[#441316] flex items-center justify-center">
-            <div className="[&_svg_path]:fill-white">
-              <AdaLogo className="w-[36px] h-[14px]" />
-            </div>
-          </div>
+        <div className="flex flex-col items-center mb-[32px]">
+          <p className="font-['Crimson_Pro:Regular',sans-serif] font-normal text-[22px] tracking-[-0.44px] text-[#555555] mb-[4px]">
+            Welcome to
+          </p>
+          <AdaLogo className="w-[130px] h-[52px] mb-[12px]" />
+          <p
+            className="font-['DM_Sans:Light',sans-serif] font-light text-[14px] text-[#555555] text-center"
+            style={{ fontVariationSettings: "'opsz' 14" }}
+          >
+            Your modern wealth intelligence platform
+          </p>
         </div>
-
-        <h1 className="font-['Crimson_Pro:Regular',sans-serif] font-normal text-[28px] tracking-[-0.56px] text-[#555555] mb-[4px]">
-          Welcome to Ada
-        </h1>
-        <p
-          className="font-['DM_Sans:Light',sans-serif] font-light text-[14px] text-[#555555] text-center mb-[32px]"
-          style={{ fontVariationSettings: "'opsz' 14" }}
-        >
-          Your AI wealth copilot
-        </p>
 
         <div className="w-full bg-white rounded-[30px] px-[24px] py-[24px] mb-[20px]">
           <form onSubmit={handleSubmit} className="flex flex-col gap-[16px]">
