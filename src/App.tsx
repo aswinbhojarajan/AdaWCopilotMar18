@@ -238,7 +238,7 @@ export default function App() {
         <Suspense fallback={<div className="flex items-center justify-center h-full bg-[#efede6]" />}>
           {isTabView && (
             <div className="relative h-full w-full">
-              <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-0 px-0 w-full z-10">
+              <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-[16px] px-0 w-full z-10">
                 <Header
                   onNotificationsClick={() => navigateTo('notifications')}
                   onClose={() => navigateTo('login')}

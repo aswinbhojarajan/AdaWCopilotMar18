@@ -12,7 +12,7 @@ export function HomeEmptyScreen({ onChatHistoryClick }: HomeEmptyScreenProps = {
 
   return (
     <div className="bg-[#efede6] relative h-screen w-full overflow-hidden">
-      <div className="absolute bg-[#f7f6f2] left-0 top-0 w-full z-10">
+      <div className="absolute bg-[#f7f6f2] left-0 top-0 pt-[16px] w-full z-10">
         <div className="pb-[8px]">
           <Header />
         </div>
