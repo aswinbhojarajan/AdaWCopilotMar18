@@ -450,15 +450,22 @@ export async function* withChunkTimeout<T>(
       throw new Error(`Stream total timeout exceeded (${totalTimeoutMs}ms)`);
     }
 
-    const result = await Promise.race([
-      iterator.next(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Stream chunk timeout (${chunkTimeoutMs}ms without data)`)), chunkTimeoutMs)
-      ),
-    ]);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const result = await Promise.race([
+        iterator.next(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`Stream chunk timeout (${chunkTimeoutMs}ms without data)`)), chunkTimeoutMs);
+        }),
+      ]);
+      if (timer !== undefined) clearTimeout(timer);
 
-    if (result.done) break;
-    yield result.value;
+      if (result.done) break;
+      yield result.value;
+    } catch (err) {
+      if (timer !== undefined) clearTimeout(timer);
+      throw err;
+    }
   }
 }
 
