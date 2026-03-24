@@ -149,7 +149,7 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
                 step={step}
                 value={value}
                 onChange={(e) => handleChange(key, parseFloat(e.target.value))}
-                className="w-full h-[4px] bg-[#E5E5E5] rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-[16px] [&::-webkit-slider-thumb]:h-[16px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#441316] [&::-moz-range-thumb]:w-[16px] [&::-moz-range-thumb]:h-[16px] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#441316] [&::-moz-range-thumb]:border-0"
+                className="w-full h-[48px] bg-transparent rounded-full appearance-none cursor-pointer [&::-webkit-slider-runnable-track]:h-[4px] [&::-webkit-slider-runnable-track]:bg-[#E5E5E5] [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-[24px] [&::-webkit-slider-thumb]:h-[24px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#441316] [&::-webkit-slider-thumb]:mt-[-10px] [&::-moz-range-thumb]:w-[24px] [&::-moz-range-thumb]:h-[24px] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#441316] [&::-moz-range-thumb]:border-0 [&::-moz-range-track]:h-[4px] [&::-moz-range-track]:bg-[#E5E5E5] [&::-moz-range-track]:rounded-full"
               />
             </div>
           );

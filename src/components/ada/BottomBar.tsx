@@ -165,7 +165,7 @@ export function BottomBar({
       </div>
 
       {/* Home Indicator — uses safe-area-inset-bottom for real device home bar clearance */}
-      <div className="relative shrink-0 w-full" style={{ height: 'calc(20px + env(safe-area-inset-bottom, 14px))' }}>
+      <div className="relative shrink-0 w-full h-[20px]">
         <div className="absolute bg-[#555555] bottom-[9px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] translate-x-[-50%] w-[134px]" />
       </div>
     </div>

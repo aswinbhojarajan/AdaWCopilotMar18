@@ -41,7 +41,7 @@ export function NotificationsScreen({ onBack }: NotificationsScreenProps = {}) {
 
   return (
     <div className="bg-[#efede6] relative h-dvh w-full">
-      <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-[15px] px-0 w-full z-10 pt-safe">
+      <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-[15px] pt-[16px] px-0 w-full z-10">
         <ChatHeader onBack={onBack} showNotifications={false} title="Notifications" />
       </div>
 
