@@ -64,38 +64,23 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         <div className="w-full bg-white rounded-[30px] px-[24px] py-[24px] mb-[20px]">
           <form onSubmit={handleSubmit} className="flex flex-col gap-[16px]">
-            <div className="flex flex-col gap-[6px]">
-              <label
-                className="font-['DM_Sans',sans-serif] font-semibold text-[0.625rem] tracking-[0.8px] uppercase text-[#992929]"
-              >
-                EMAIL
-              </label>
-              <input
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full h-[48px] px-[16px] rounded-[50px] border-[0.75px] border-[#d8d8d8] bg-[#f7f6f2] font-['DM_Sans',sans-serif] text-[1rem] text-[#555555] outline-none focus:border-[#441316] transition-colors placeholder:text-[#999]"
-              />
-            </div>
-
-            <div className="flex flex-col gap-[6px]">
-              <label
-                className="font-['DM_Sans',sans-serif] font-semibold text-[0.625rem] tracking-[0.8px] uppercase text-[#992929]"
-              >
-                PASSWORD
-              </label>
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="w-full h-[48px] px-[16px] rounded-[50px] border-[0.75px] border-[#d8d8d8] bg-[#f7f6f2] font-['DM_Sans',sans-serif] text-[1rem] text-[#555555] outline-none focus:border-[#441316] transition-colors placeholder:text-[#999]"
-              />
-            </div>
+            <input
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full h-[48px] px-[16px] rounded-[50px] border-[0.75px] border-[#d8d8d8] bg-white font-['DM_Sans',sans-serif] text-[1rem] text-[#555555] outline-none focus:border-[#441316] transition-colors placeholder:text-[#999]"
+            />
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              className="w-full h-[48px] px-[16px] rounded-[50px] border-[0.75px] border-[#d8d8d8] bg-white font-['DM_Sans',sans-serif] text-[1rem] text-[#555555] outline-none focus:border-[#441316] transition-colors placeholder:text-[#999]"
+            />
 
             <button
               type="submit"
