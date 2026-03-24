@@ -1,7 +1,7 @@
 # Backlog — Ada AI Wealth Copilot
 
 > **Living document** — update as new features are proposed, prioritized, or completed.
-> Last updated: 2026-03-23
+> Last updated: 2026-03-24
 
 ---
 
@@ -337,3 +337,7 @@ Enterprise integration layer:
 | — | Documentation Audit & LLM Resilience Fix (Task #15) | 2026-03-23 |
 | — | AI Orchestration Hardening: Capability Registry, Resilient LLM, Verbose Mode (Task #16) | 2026-03-23 |
 | — | Live Thinking Panel During Streaming (Task #17) | 2026-03-23 |
+| — | Login Page (replaced ClientEnvironment splash) (Task #1) | 2026-03-24 |
+| — | Login Heading Update (Task #2) | 2026-03-24 |
+| — | Font Loading & Typography Fix — Google Fonts + TypeKit (Task #3) | 2026-03-24 |
+| — | Remove Fake Mobile Status Bar / TopBar (Task #4) | 2026-03-24 |

@@ -1,7 +1,7 @@
 # Issues — Ada AI Wealth Copilot
 
 > **Living document** — update continuously as issues are discovered, resolved, or reprioritized.
-> Last updated: 2026-03-23
+> Last updated: 2026-03-24
 
 ---
 
@@ -95,3 +95,6 @@
 | — | Portfolio health field mismatch | Fixed diversificationScore and riskLevel field mappings in portfolioRepository.ts | 2026-03-21 |
 | ISS-022 | LLM streaming timeout with no lane fallback | Added Lane 2 → Lane 1 automatic downgrade when both streaming attempts timeout | 2026-03-23 |
 | — | Thinking events coalesced with content in SSE | Server-side `setImmediate()` ticks + `flush()` after thinking events ensure separate chunk delivery (Task #17) | 2026-03-23 |
+| — | No font loading — all fonts fell back to browser default | Added Google Fonts (Crimson Pro, DM Sans) and TypeKit (RL Limo) to index.html. Fixed ~50 component files with invalid Figma-style font references (Task #3) | 2026-03-24 |
+| — | Fake mobile status bar (TopBar) cluttering UI | Deleted TopBar component and removed from all screens. Added proper top padding (Task #4) | 2026-03-24 |
+| — | ClientEnvironment splash was placeholder, not Ada-branded | Replaced with Ada-styled LoginPage with email/password form and dev persona picker (Task #1) | 2026-03-24 |

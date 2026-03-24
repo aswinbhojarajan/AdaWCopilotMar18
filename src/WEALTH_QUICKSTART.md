@@ -262,7 +262,7 @@ export function MyWealthScreen() {
 
           {/* Holdings */}
           <div className="bg-white rounded-[30px] p-[24px]">
-            <p className="font-['RL_Limo:Regular',sans-serif] text-[#c0180c] text-[10px] mb-[12px]">
+            <p className="font-['rl-limo',sans-serif] text-[#c0180c] text-[10px] mb-[12px]">
               HOLDINGS
             </p>
             {holdings.map(h => <HoldingRow key={h.symbol} {...h} />)}
@@ -316,25 +316,25 @@ ${value.toLocaleString('en-US', {
 ### 4. **Maintain Typography Hierarchy**
 ```tsx
 // Category labels
-className="font-['RL_Limo:Regular',sans-serif] text-[10px] uppercase"
+className="font-['rl-limo',sans-serif] text-[10px] uppercase"
 
 // Headlines
-className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555]"
+className="font-['Crimson_Pro',sans-serif] text-[#555555]"
 
 // Body text
-className="font-['DM_Sans:Regular',sans-serif] text-[#555555]"
+className="font-['DM_Sans',sans-serif] text-[#555555]"
 ```
 
 ### 5. **Consistent Card Structure**
 ```tsx
 <div className="bg-white rounded-[30px] p-[24px]">
   {/* Category label */}
-  <p className="font-['RL_Limo:Regular',sans-serif] text-[#c0180c] text-[10px] uppercase">
+  <p className="font-['rl-limo',sans-serif] text-[#c0180c] text-[10px] uppercase">
     CATEGORY
   </p>
   
   {/* Heading */}
-  <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] tracking-[-0.48px]">
+  <p className="font-['Crimson_Pro',sans-serif] text-[#555555] tracking-[-0.48px]">
     Your Title
   </p>
   

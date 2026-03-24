@@ -1,7 +1,7 @@
 # Ada — AI Wealth Copilot: Product Requirements Document
 
 > **Living document** — update this PRD before and after every build cycle.
-> Last updated: 2026-03-23
+> Last updated: 2026-03-24
 >
 > **Source of truth precedence**: When a mismatch exists between this document and the runtime code/schema, the code is authoritative. Update this PRD to reflect the code, not the other way around.
 >
@@ -76,7 +76,7 @@ Four main tabs displayed via the `Navigation` component:
 
 | Tab | Key | Route |
 |---|---|---|
-| Home | `home` | Default landing after onboarding splash |
+| Home | `home` | Default landing after login |
 | Wealth | `wealth` | Portfolio deep-dive |
 | Discover | `discover` | Content feed |
 | Collective | `collective` | Peer insights & polls |
@@ -85,8 +85,8 @@ Four main tabs displayed via the `Navigation` component:
 
 - **useState-based routing** in `App.tsx` — no React Router.
 - `activeTab` (TabType) controls which tab screen renders.
-- `currentView` (ViewType) controls overlay screens: `chat`, `chat-history`, `notifications`, `home-empty`, `client-environment`.
-- The app starts on `client-environment` (onboarding splash), then navigates to `home`.
+- `currentView` (ViewType) controls overlay screens: `chat`, `chat-history`, `notifications`, `home-empty`, `login`.
+- The app starts on `login` (email/password sign-in page with dev quick-access persona picker), then navigates to `home`.
 
 ### Screen Layout Pattern
 
@@ -94,12 +94,11 @@ Every tab screen follows the same layout:
 
 ```
 ┌─────────────────────┐
-│ TopBar (status bar)  │
 │ Header (logo + icons)│
-│ Navigation (tabs)    │  ← Fixed, z-10
+│ Navigation (tabs)    │  ← Fixed, z-10, pt-[16px]
 ├─────────────────────┤
 │                     │
-│ Scrollable Content  │  ← top-[128px], overflow-y-auto
+│ Scrollable Content  │  ← overflow-y-auto
 │                     │
 ├─────────────────────┤
 │ BottomBar (chat)     │  ← Fixed, z-10
@@ -112,7 +111,7 @@ Every tab screen follows the same layout:
 - **Notifications**: Bell icon in Header opens the NotificationsScreen overlay.
 - **Chat History**: Clock icon in BottomBar opens ChatHistoryScreen listing previous threads from the database.
 - **Resume Chat**: If `hasActiveChatToday` is true, the BottomBar shows a "Resume" option.
-- **Close/Back**: "X" button returns to the client environment splash.
+- **Close/Back**: "X" button returns to the login page.
 - **Slide Notifications**: `SlideNotification` component provides toast-style alerts (used on Wealth and Collective screens for goal alerts after poll voting).
 
 ---
@@ -526,12 +525,13 @@ The original deterministic keyword-matching system (`chatRepository.ts` and `src
 
 ### 6.2 Typography
 
-| Font Family | Weights Used | Usage |
-|---|---|---|
-| **Crimson Pro** | Regular, ExtraLight | Headlines, large values, card titles |
-| **DM Sans** | Light, Regular, Medium, SemiBold | Body text, labels, buttons, category tags |
+| Font Family | Weights Used | Usage | Source |
+|---|---|---|---|
+| **RL Limo** | Regular | "Ada" logo text, section labels (e.g., "TODAY'S SUMMARY", "INVESTORS LIKE YOU") | TypeKit (`use.typekit.net/yua2ikn.css`) |
+| **Crimson Pro** | ExtraLight (200), Light (300), Regular (400), SemiBold (600) | Headlines, large portfolio values, card titles | Google Fonts |
+| **DM Sans** | Light (300), Regular (400), Medium (500), SemiBold (600), Bold (700) | Body text, labels, buttons, category tags, UI elements | Google Fonts |
 
-Font references use CSS custom syntax: `font-['Crimson_Pro:Regular',sans-serif]` and `font-['DM_Sans:SemiBold',sans-serif]`.
+Fonts are loaded via `<link>` tags in `index.html`. Font references use Tailwind arbitrary value syntax with standard font names: `font-['Crimson_Pro',sans-serif]` and `font-['DM_Sans',sans-serif]`, with weights specified via separate Tailwind utilities (e.g., `font-semibold`, `font-light`). RL Limo uses `font-['rl-limo',sans-serif]` (TypeKit naming convention).
 
 ### 6.3 Spacing & Layout
 
@@ -553,8 +553,7 @@ Font references use CSS custom syntax: `font-['Crimson_Pro:Regular',sans-serif]`
 
 | Component | Purpose |
 |---|---|
-| `TopBar` | Mobile status bar simulation |
-| `Header` | App logo, notification bell, close button |
+| `Header` | App logo, persona switcher, notification bell, close button |
 | `Navigation` | 4-tab bar with active state indicator |
 | `BottomBar` | Chat input field, history icon, resume button |
 | `ChatHeader` | Back button + "Ada" title for chat screen |
@@ -986,7 +985,7 @@ main.tsx (QueryClient + prefetch)
 | **PII Detection** | Built | Email, phone, SSN, credit card, passport, IBAN detection with audit logging |
 | **Chat Memory** | Built | Working (in-memory), episodic (DB), semantic facts (DB) — three-tier architecture |
 | **Notifications** | Built | DB-backed alerts, category filtering, unread indicators |
-| **Client Environment** | Built | Onboarding splash screen (Figma-generated) |
+| **Login Page** | Built | Ada-branded sign-in page with email/password form and dev quick-access persona picker. Replaced original ClientEnvironment splash. |
 | **Agent Architecture** | Built | Full agent orchestrator with policy engine, model router, prompt builder, response builder, trace logger, guardrails, wealth engine, financial tools |
 | **External Data Providers** | Built | 6 providers (Finnhub, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE) with primary/secondary/fallback/mock chain, caching, rate limiting, health tracking |
 | **Multi-Tenant Config** | Built | Tenant-level policy, advisory mode, allowed tools, disclosure profile, execution routing |
@@ -1064,3 +1063,8 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-23 | Task #15: Docs Audit & LLM Resilience | Updated all documentation (CHANGELOG, PRD, ISSUES, replit.md) to reflect Tasks #13–14. Added Lane 2 → Lane 1 fallback when both reasoning-model streaming attempts timeout. Added ISS-022 for LLM timeout resilience. |
 | 2026-03-23 | Task #16: AI Orchestration Hardening | Capability registry (`capabilityRegistry.ts`) with model capabilities, lane configs, intent→route mappings, classifier context injection. Anthropic Claude fallback (claude-sonnet-4-6) via Replit AI Integrations. Resilient LLM helpers (`resilientCompletion`, `resilientStreamCompletion`) with timeout+retry+fallback on all call sites. Verbose/thinking mode backend (9 `thinking` SSE events) + frontend (`ThinkingPanel`, "Think" toggle). |
 | 2026-03-23 | Task #17: Live Thinking Panel | Server-side `setImmediate()` async ticks at 4 pipeline boundaries + typed `flush()` after thinking events for reliable SSE chunk separation. New `LiveThinkingBar` component with progressive step reveal (120ms stagger), amber pulsing indicator, step counter. Fixed below chat header during streaming. Post-stream `ThinkingPanel` summary persists as collapsible in-message panel. Toggle edge cases: OFF hides but preserves data, ON restores accumulated steps. |
+| 2026-03-24 | Task #1: Login Page | Replaced Summit Bank ClientEnvironment landing page with Ada-styled LoginPage component. Cream background, Crimson Pro/DM Sans typography, email/password form, burgundy sign-in button, collapsible "Dev Quick Access" persona picker. Wired into App.tsx as default `login` view. |
+| 2026-03-24 | Task #2: Login Heading Update | Removed circular burgundy icon above heading. Split into "Welcome to" (Crimson Pro 22px) + AdaLogo SVG on its own line (~130px). Updated subtitle to "Your modern wealth intelligence platform". |
+| 2026-03-24 | Task #3: Font Loading & Typography Fix | Added Google Fonts (Crimson Pro, DM Sans) and TypeKit (RL Limo) to index.html. Fixed all ~50 component files: replaced invalid Figma-style `:Weight` suffix font references (e.g., `DM_Sans:Regular`) with valid CSS font names + Tailwind weight classes. Updated design tokens. Previously all fonts fell back to browser default sans-serif. |
+| 2026-03-24 | Task #4: Remove TopBar | Deleted fake mobile status bar component (TopBar.tsx) showing static "9:41" time, signal, wifi, battery icons. Removed from all screens. Added 16px top padding to header containers. |
+| 2026-03-24 | Docs Update | Updated PRD, CHANGELOG, ISSUES, BACKLOG, DESIGN_SYSTEM, TYPOGRAPHY_GUIDE, and replit.md to reflect Tasks #1–4 changes. |

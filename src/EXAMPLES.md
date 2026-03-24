@@ -66,18 +66,18 @@ export function MyCustomCard({ title, value, change, timestamp }: MyCustomCardPr
         <div className="content-stretch flex flex-col gap-[16px] items-start pb-[24px] pt-[16px] px-[24px] relative w-full">
           {/* Header */}
           <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
-            <p className="font-['RL_Limo:Regular',sans-serif] text-[#c0180c] text-[10px] tracking-[0.2px] uppercase">
+            <p className="font-['rl-limo',sans-serif] text-[#c0180c] text-[10px] tracking-[0.2px] uppercase">
               {title}
             </p>
           </div>
 
           {/* Value Display */}
           <div className="content-stretch flex items-end justify-between relative shrink-0 w-full">
-            <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555]">
+            <p className="font-['Crimson_Pro',sans-serif] text-[#555555]">
               {value}
             </p>
             <div className="bg-[#a0e622] content-stretch flex gap-[4px] h-[20px] items-center justify-center px-[6px] py-[4px] relative rounded-[4px] shrink-0">
-              <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#2d3a0a] text-nowrap">
+              <p className="font-['DM_Sans',sans-serif] font-semibold text-[#2d3a0a] text-nowrap">
                 {change}
               </p>
             </div>
@@ -87,7 +87,7 @@ export function MyCustomCard({ title, value, change, timestamp }: MyCustomCardPr
           {timestamp && (
             <div className="content-stretch flex gap-[2px] items-center justify-end relative shrink-0 w-full">
               <Clock className="size-[12px] text-[#555555]" strokeWidth={1} />
-              <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-nowrap">
+              <p className="font-['DM_Sans',sans-serif] text-[#555555] text-nowrap">
                 {timestamp}
               </p>
             </div>
@@ -194,11 +194,11 @@ export function PortfolioSummary({ data }: { data: PortfolioData }) {
       <div className="content-stretch flex flex-col gap-[16px] items-start relative shrink-0 w-full">
         {/* Value Display */}
         <div className="content-stretch flex items-end justify-between relative shrink-0 w-full">
-          <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555]">
+          <p className="font-['Crimson_Pro',sans-serif] text-[#555555]">
             {data.value}
           </p>
           <div className="bg-[#a0e622] content-stretch flex gap-[4px] h-[20px] items-center justify-center px-[6px] py-[4px] relative rounded-[4px] shrink-0">
-            <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#2d3a0a] text-nowrap">
+            <p className="font-['DM_Sans',sans-serif] font-semibold text-[#2d3a0a] text-nowrap">
               {data.change} ({data.changePercent})
             </p>
           </div>
@@ -206,10 +206,10 @@ export function PortfolioSummary({ data }: { data: PortfolioData }) {
         
         {/* Performance Metrics */}
         <div className="content-stretch flex gap-[16px] items-center relative shrink-0 w-full">
-          <p className="font-['DM_Sans:Regular',sans-serif] opacity-50 text-[#555555] text-nowrap">
+          <p className="font-['DM_Sans',sans-serif] opacity-50 text-[#555555] text-nowrap">
             Yesterday: {data.yesterday}
           </p>
-          <p className="font-['DM_Sans:Regular',sans-serif] opacity-50 text-[#555555] text-nowrap">
+          <p className="font-['DM_Sans',sans-serif] opacity-50 text-[#555555] text-nowrap">
             Last 7 days: {data.week}
           </p>
         </div>
@@ -331,7 +331,7 @@ export function AssetAllocationCard() {
               className="w-[12px] h-[12px] rounded-full" 
               style={{ backgroundColor: item.color }}
             />
-            <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555]">
+            <p className="font-['DM_Sans',sans-serif] text-[#555555]">
               {item.name}: {item.value}%
             </p>
           </div>

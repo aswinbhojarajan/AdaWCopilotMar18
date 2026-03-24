@@ -4,6 +4,53 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Tasks #1–4 — UI Overhaul: Login Page, Font Loading, TopBar Removal
+**Date:** March 24, 2026
+
+### Task #1 — Login Page
+#### Added
+- **`LoginPage` component** (`src/components/screens/LoginPage.tsx`) — Ada-branded sign-in page replacing the Summit Bank ClientEnvironment splash. Cream background (`#efede6`), Crimson Pro/DM Sans typography, email/password form with burgundy sign-in button, collapsible "Dev Quick Access" panel with persona picker for demo use.
+- **`login` view type** added to `ViewType` in `src/types/index.ts`.
+
+#### Changed
+- **`App.tsx`** — Default `currentView` changed from `'client-environment'` to `'login'`. Header close button navigates to `'login'` instead of `'client-environment'`.
+
+### Task #2 — Login Heading Update
+#### Changed
+- **`LoginPage.tsx`** — Removed circular burgundy Ada icon above heading. Split heading into "Welcome to" (Crimson Pro Regular 22px) on one line and AdaLogo SVG (~130×52px) on its own line. Updated subtitle from "Your AI wealth copilot" to "Your modern wealth intelligence platform".
+
+### Task #3 — Font Loading & Typography Fix
+#### Added
+- **Google Fonts** — Crimson Pro (weights 200, 300, 400, 600) and DM Sans (weights 300, 400, 500, 600, 700) loaded via `<link>` in `index.html` with preconnect.
+- **TypeKit** — RL Limo loaded via `<link rel="stylesheet" href="https://use.typekit.net/yua2ikn.css">` in `index.html`.
+
+#### Changed
+- **~50 component files** — Replaced all Figma-style `:Weight` suffix font references with valid CSS font names and separate Tailwind weight classes:
+  - `font-['DM_Sans:Regular',sans-serif]` → `font-['DM_Sans',sans-serif]`
+  - `font-['DM_Sans:SemiBold',sans-serif]` → `font-['DM_Sans',sans-serif] font-semibold`
+  - `font-['Crimson_Pro:ExtraLight',sans-serif]` → `font-['Crimson_Pro',sans-serif] font-extralight`
+  - `font-['RL_Limo:Regular',sans-serif]` → `font-['rl-limo',sans-serif]`
+  - (and all other weight variants)
+- **`Navigation.tsx`** — Fixed dynamic template literal font construction that embedded weight into font name.
+- **`TopBar.tsx`** — Replaced SF_Pro_Text:Semibold with DM Sans + font-semibold.
+- **`src/styles/design-tokens.css`** — Updated CSS variables to use real font-family names (`'Crimson Pro'`, `'DM Sans'`, `'rl-limo'`).
+
+### Task #4 — Remove TopBar
+#### Removed
+- **`src/components/ada/TopBar.tsx`** — Deleted fake mobile status bar component (static "9:41" time, signal, wifi, battery icons).
+- **TopBar export** removed from `src/components/ada/index.ts`.
+- **`<TopBar />` usage** removed from `App.tsx`, `ChatScreen.tsx`, `HomeEmptyScreen.tsx`, `ChatHistoryScreen.tsx`, `NotificationsScreen.tsx`.
+
+#### Changed
+- **All post-login screens** — Added `pt-[16px]` top padding to header containers to replace the space previously occupied by TopBar.
+
+### Validated (all tasks)
+- TypeScript compiles clean
+- Fonts render correctly across all screens (Crimson Pro for headings, DM Sans for body, RL Limo for brand elements)
+- No layout gaps or shifts from TopBar removal
+
+---
+
 ## Task #17 — Live Thinking Panel During Streaming
 **Date:** March 23, 2026
 

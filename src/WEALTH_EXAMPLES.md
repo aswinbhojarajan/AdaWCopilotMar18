@@ -215,7 +215,7 @@ function TopHoldings() {
 
   return (
     <div className="bg-white rounded-[30px] p-[24px]">
-      <h3 className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] mb-[16px]">
+      <h3 className="font-['Crimson_Pro',sans-serif] text-[#555555] mb-[16px]">
         Top Holdings
       </h3>
       {holdings.map((holding, i) => (
@@ -374,7 +374,7 @@ function MyWealthDashboard() {
 
           {/* Accounts */}
           <div className="bg-white rounded-[30px] p-[24px]">
-            <p className="font-['RL_Limo:Regular',sans-serif] text-[#c0180c] text-[10px] mb-[12px]">
+            <p className="font-['rl-limo',sans-serif] text-[#c0180c] text-[10px] mb-[12px]">
               ACCOUNTS
             </p>
             <ConnectedAccountRow
@@ -411,7 +411,7 @@ function MyWealthDashboard() {
 
           {/* Holdings */}
           <div className="bg-white rounded-[30px] p-[24px]">
-            <p className="font-['RL_Limo:Regular',sans-serif] text-[#c0180c] text-[10px] mb-[12px]">
+            <p className="font-['rl-limo',sans-serif] text-[#c0180c] text-[10px] mb-[12px]">
               HOLDINGS
             </p>
             {holdingsData.map((h, i) => (
@@ -457,7 +457,7 @@ function MetricsDashboard() {
 
   return (
     <div className="bg-white rounded-[30px] p-[24px]">
-      <p className="font-['Crimson_Pro:Regular',sans-serif] text-[#555555] mb-[16px]">
+      <p className="font-['Crimson_Pro',sans-serif] text-[#555555] mb-[16px]">
         Quick Stats
       </p>
       
@@ -467,7 +467,7 @@ function MetricsDashboard() {
             <p className="text-[10px] text-[#555555] opacity-60 mb-[4px]">
               {metric.label}
             </p>
-            <p className="font-['DM_Sans:SemiBold',sans-serif] text-[#555555] mb-[8px]">
+            <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] mb-[8px]">
               ${(metric.value / 1000).toFixed(0)}k
             </p>
             <Sparkline 

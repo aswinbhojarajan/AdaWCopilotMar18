@@ -125,19 +125,19 @@ import {
 
 ```tsx
 /* Brand - Logo */
-className="font-['RL_Limo:Regular',sans-serif]"
+className="font-['rl-limo',sans-serif]"
 
 /* Headlines - Titles */
-className="font-['Crimson_Pro:Regular',sans-serif]"
+className="font-['Crimson_Pro',sans-serif]"
 
 /* Body - Regular */
-className="font-['DM_Sans:Regular',sans-serif]"
+className="font-['DM_Sans',sans-serif]"
 
 /* Body - Light */
-className="font-['DM_Sans:Light',sans-serif]"
+className="font-['DM_Sans',sans-serif] font-light"
 
 /* Body - SemiBold */
-className="font-['DM_Sans:SemiBold',sans-serif]"
+className="font-['DM_Sans',sans-serif] font-semibold"
 ```
 
 ---

@@ -1,7 +1,7 @@
 # Ada Design System
 
 **Version:** 1.0  
-**Last Updated:** December 2025  
+**Last Updated:** March 2026  
 **Created from:** 6 original Figma screens (Home, Discover, Lounge, AI Chat, Wealth Tab)
 
 ---
@@ -53,7 +53,7 @@ Maintain consistent patterns across all screens:
 - Clear visual indicators for interactive elements
 
 ### 4. Sophistication
-- Custom fonts (RL Limo, Crimson Pro, Spalla)
+- Custom fonts (RL Limo, Crimson Pro, DM Sans)
 - Refined letter spacing and tracking
 - Subtle borders (0.5px - 0.75px)
 - Soft color palette with strategic accent use
@@ -127,12 +127,11 @@ Maintain consistent patterns across all screens:
 
 ### Font Families
 
-The Ada design system uses four primary font families:
+The Ada design system uses three font families, loaded via Google Fonts and TypeKit in `index.html`:
 
-1. **RL Limo** - Display font for labels and section titles
-2. **Crimson Pro** - Serif font for headlines, body text, and large numbers
-3. **DM Sans** - Sans-serif font for UI elements, buttons, and supporting text
-4. **Spalla** - Display font for data visualization percentages
+1. **RL Limo** - Display font for the "Ada" logo and section labels. Loaded via TypeKit (`use.typekit.net/yua2ikn.css`). Referenced as `font-['rl-limo',sans-serif]`.
+2. **Crimson Pro** - Serif font for headlines, body text, and large numbers. Loaded via Google Fonts (weights 200, 300, 400, 600). Referenced as `font-['Crimson_Pro',sans-serif]`.
+3. **DM Sans** - Sans-serif font for UI elements, buttons, and supporting text. Loaded via Google Fonts (weights 300, 400, 500, 600, 700). Referenced as `font-['DM_Sans',sans-serif]`.
 
 ### Type Scale
 
@@ -146,27 +145,27 @@ The Ada design system uses four primary font families:
 | **Label** | RL Limo Regular | 10px | 400 | 18px | 0.2px | Category tags, section labels (UPPERCASE) |
 | **Caption** | DM Sans Regular | 12px | 400 | normal | - | Stats, metrics, button text |
 | **Micro** | DM Sans Regular | 9px | 400 | 18px/28px | - | Timestamps, fine print |
-| **Chart Value** | Spalla Regular | 40px/20px/16px | 400 | 28px | - | Percentages in charts |
+| **Chart Value** | Crimson Pro Light | 40px/20px/16px | 300 | 28px | - | Percentages in charts |
 
 ### Typography Implementation
 
 #### Section Label
 ```tsx
-<p className="font-['RL_Limo:Regular',sans-serif] h-[12px] leading-[18px] not-italic text-[#c0180c] text-[10px] tracking-[0.2px] uppercase">
+<p className="font-['rl-limo',sans-serif] h-[12px] leading-[18px] not-italic text-[#c0180c] text-[10px] tracking-[0.2px] uppercase">
   TODAY'S SUMMARY
 </p>
 ```
 
 #### Headline
 ```tsx
-<p className="font-['Crimson_Pro:Regular',sans-serif] font-normal leading-[normal] text-[#555555] text-[24px] tracking-[-0.48px]">
+<p className="font-['Crimson_Pro',sans-serif] font-normal leading-[normal] text-[#555555] text-[24px] tracking-[-0.48px]">
   Aisha, your portfolio is on track today.
 </p>
 ```
 
 #### Body Text
 ```tsx
-<p className="font-['DM_Sans:Light',sans-serif] font-light leading-[normal] text-[#555555] text-[14px]" 
+<p className="font-['DM_Sans',sans-serif] font-light leading-[normal] text-[#555555] text-[14px]" 
    style={{ fontVariationSettings: "'opsz' 14" }}>
   Lower-rate expectations expand growth multiples.
 </p>
@@ -174,7 +173,7 @@ The Ada design system uses four primary font families:
 
 #### Large Display Number
 ```tsx
-<p className="font-['Crimson_Pro:ExtraLight',sans-serif] font-extralight leading-[28px] text-[#555555] text-[40px] tracking-[-1.2px]">
+<p className="font-['Crimson_Pro',sans-serif] font-extralight leading-[28px] text-[#555555] text-[40px] tracking-[-1.2px]">
   $131,230.19
 </p>
 ```
@@ -310,18 +309,18 @@ Ada uses two distinct card layout patterns for different content types:
     {/* Category with Icon - Left Aligned */}
     <div className="flex gap-[12px] items-center w-full">
       <div className="size-[12px]">{/* Icon */}</div>
-      <p className="font-['RL_Limo:Regular',sans-serif] text-[10px] uppercase tracking-[0.2px] text-[#c0180c]">
+      <p className="font-['rl-limo',sans-serif] text-[10px] uppercase tracking-[0.2px] text-[#c0180c]">
         CATEGORY
       </p>
     </div>
     
     {/* Title - Left Aligned */}
-    <p className="font-['Crimson_Pro:Regular',sans-serif] text-[24px] tracking-[-0.48px] text-[#555555] w-full">
+    <p className="font-['Crimson_Pro',sans-serif] text-[24px] tracking-[-0.48px] text-[#555555] w-full">
       Card Title
     </p>
     
     {/* Description - Left Aligned */}
-    <p className="font-['DM_Sans:Light',sans-serif] text-[14px] text-[#555555] w-full">
+    <p className="font-['DM_Sans',sans-serif] font-light text-[14px] text-[#555555] w-full">
       Description text
     </p>
     
@@ -349,7 +348,7 @@ Ada uses two distinct card layout patterns for different content types:
     <div className="flex flex-col items-center w-full">
       {/* Category with Divider - Centered */}
       <div className="flex flex-col gap-[10px] items-center w-full">
-        <p className="font-['RL_Limo:Regular',sans-serif] text-[10px] uppercase tracking-[0.2px] text-[#c0180c] text-center">
+        <p className="font-['rl-limo',sans-serif] text-[10px] uppercase tracking-[0.2px] text-[#c0180c] text-center">
           INSIGHT | PEER SNAPSHOT
         </p>
         <div className="h-0 w-[162px]">
@@ -358,12 +357,12 @@ Ada uses two distinct card layout patterns for different content types:
       </div>
       
       {/* Title - Centered with Fixed Width */}
-      <p className="font-['Crimson_Pro:Regular',sans-serif] text-[24px] tracking-[-0.48px] text-[#555555] text-center w-[277px]">
+      <p className="font-['Crimson_Pro',sans-serif] text-[24px] tracking-[-0.48px] text-[#555555] text-center w-[277px]">
         Card Title
       </p>
       
       {/* Description - Centered with Fixed Width */}
-      <p className="font-['DM_Sans:Regular',sans-serif] text-[14px] tracking-[-0.28px] text-[#555555] text-center w-[273px]">
+      <p className="font-['DM_Sans',sans-serif] text-[14px] tracking-[-0.28px] text-[#555555] text-center w-[273px]">
         Description text
       </p>
     </div>
@@ -986,7 +985,7 @@ const chartColors = {
 ### Chart Typography
 
 - **Chart Labels**: DM Sans Regular 12px
-- **Chart Values**: Spalla Regular 16px-40px
+- **Chart Values**: Crimson Pro Light 16px-40px
 - **Axis Labels**: DM Sans Regular 10px
 - **Legend**: DM Sans Regular 12px
 
@@ -1079,7 +1078,7 @@ export function YourScreen() {
 ```tsx
 <button className="bg-[#f7f6f2] flex h-[44px] items-center justify-center px-[14px] py-[10px] rounded-[50px]">
   <div aria-hidden="true" className="absolute border-[#d8d8d8] border-[0.75px] border-solid inset-0 pointer-events-none rounded-[50px]" />
-  <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic text-[#555555] text-[12px]">
+  <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic text-[#555555] text-[12px]">
     Button Text
   </p>
 </button>
@@ -1089,7 +1088,7 @@ export function YourScreen() {
 ```tsx
 <button className="flex h-[44px] items-center justify-center px-[14px] py-[10px] rounded-[50px]">
   <div aria-hidden="true" className="absolute border-[#d8d8d8] border-[0.75px] border-solid inset-0 pointer-events-none rounded-[50px]" />
-  <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] not-italic text-[#555555] text-[12px]">
+  <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic text-[#555555] text-[12px]">
     Button Text
   </p>
 </button>
@@ -1103,7 +1102,7 @@ export function YourScreen() {
   <div className="size-[8px]">
     {/* Up arrow icon */}
   </div>
-  <p className="font-['DM_Sans:Regular',sans-serif] leading-[normal] text-[#03561a] text-[12px]">
+  <p className="font-['DM_Sans',sans-serif] leading-[normal] text-[#03561a] text-[12px]">
     +$2,210.1 (+2.44%)
   </p>
 </div>
@@ -1143,7 +1142,7 @@ export function YourScreen() {
             stroke="#555555" strokeLinecap="round" strokeLinejoin="round" strokeWidth="0.5" />
     </svg>
   </div>
-  <p className="font-['DM_Sans:Regular',sans-serif] text-[#555555] text-[9px] leading-[18px]">
+  <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[9px] leading-[18px]">
     4 days remaining
   </p>
 </div>
