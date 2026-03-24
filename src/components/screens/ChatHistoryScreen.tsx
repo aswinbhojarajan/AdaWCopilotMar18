@@ -61,8 +61,8 @@ export function ChatHistoryScreen({ onBack, onThreadClick }: ChatHistoryScreenPr
   };
 
   return (
-    <div className="bg-[#efede6] relative h-screen w-full overflow-hidden">
-      <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-[16px] pt-[16px] px-0 w-full z-10">
+    <div className="bg-[#efede6] relative h-dvh w-full overflow-hidden">
+      <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-[16px] px-0 w-full z-10 pt-safe">
         <ChatHeader onBack={handleBack} showNotifications={false} />
       </div>
 
@@ -114,7 +114,7 @@ export function ChatHistoryScreen({ onBack, onThreadClick }: ChatHistoryScreenPr
 
               {filteredThreads.length === 0 && (
                 <div className="w-full py-[40px] text-center">
-                  <p className="font-['DM_Sans',sans-serif] text-[#667085] text-[14px]">
+                  <p className="font-['DM_Sans',sans-serif] text-[#667085] text-[0.875rem]">
                     No threads found
                   </p>
                 </div>

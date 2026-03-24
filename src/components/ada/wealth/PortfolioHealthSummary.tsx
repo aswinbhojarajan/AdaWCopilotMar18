@@ -40,7 +40,7 @@ export function PortfolioHealthSummary({
 
             <div className="flex-1 flex flex-col gap-[4px]">
               <div className="flex items-center gap-[8px]">
-                <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[14px]">
+                <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[0.875rem]">
                   Portfolio Health
                 </p>
                 <div
@@ -48,7 +48,7 @@ export function PortfolioHealthSummary({
                   style={{ backgroundColor: `${getRiskColor()}20` }}
                 >
                   <p
-                    className="font-['DM_Sans',sans-serif] text-[10px] capitalize"
+                    className="font-['DM_Sans',sans-serif] text-[0.625rem] capitalize"
                     style={{ color: getRiskColor() }}
                   >
                     {riskLevel}
@@ -58,16 +58,16 @@ export function PortfolioHealthSummary({
 
               <div className="flex items-center gap-[12px]">
                 <div className="flex items-center gap-[4px]">
-                  <p className="font-['DM_Sans',sans-serif] text-[12px] text-[#555555] opacity-60">
+                  <p className="font-['DM_Sans',sans-serif] text-[0.75rem] text-[#555555] opacity-60">
                     Diversification:
                   </p>
-                  <p className="font-['DM_Sans',sans-serif] font-semibold text-[12px] text-[#555555]">
+                  <p className="font-['DM_Sans',sans-serif] font-semibold text-[0.75rem] text-[#555555]">
                     {diversificationScore}/100
                   </p>
                 </div>
 
                 {!isExpanded && (
-                  <p className="font-['DM_Sans',sans-serif] text-[11px] text-[#555555] opacity-60 line-clamp-1">
+                  <p className="font-['DM_Sans',sans-serif] text-[0.6875rem] text-[#555555] opacity-60 line-clamp-1">
                     {topSuggestion}
                   </p>
                 )}
@@ -93,18 +93,18 @@ export function PortfolioHealthSummary({
 
               <div className="content-stretch flex flex-col gap-[16px] items-start px-[24px] pb-[20px] w-full">
                 <div className="mt-[16px] flex flex-col gap-[8px]">
-                  <p className="font-['DM_Sans',sans-serif] font-semibold text-[13px] text-[#555555]">
+                  <p className="font-['DM_Sans',sans-serif] font-semibold text-[0.8125rem] text-[#555555]">
                     Suggested Actions
                   </p>
 
                   <ul className="flex flex-col gap-[6px]">
-                    <li className="font-['DM_Sans',sans-serif] text-[13px] text-[#555555] leading-[1.4] pl-[16px] relative before:content-['•'] before:absolute before:left-[4px]">
+                    <li className="font-['DM_Sans',sans-serif] text-[0.8125rem] text-[#555555] leading-[1.4] pl-[16px] relative before:content-['•'] before:absolute before:left-[4px]">
                       {topSuggestion}
                     </li>
                     {additionalSuggestions.map((suggestion, index) => (
                       <li
                         key={index}
-                        className="font-['DM_Sans',sans-serif] text-[13px] text-[#555555] leading-[1.4] pl-[16px] relative before:content-['•'] before:absolute before:left-[4px]"
+                        className="font-['DM_Sans',sans-serif] text-[0.8125rem] text-[#555555] leading-[1.4] pl-[16px] relative before:content-['•'] before:absolute before:left-[4px]"
                       >
                         {suggestion}
                       </li>

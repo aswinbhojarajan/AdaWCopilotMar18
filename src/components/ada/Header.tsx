@@ -14,7 +14,7 @@ export function Header({ onNotificationsClick, onClose }: HeaderProps = {}) {
   return (
     <div className="relative shrink-0 w-full">
       <div className="size-full">
-        <div className="content-stretch flex flex-col items-start px-[24px] py-0 relative w-full">
+        <div className="content-stretch flex flex-col items-start py-0 relative w-full" style={{ paddingLeft: 'var(--container-pad)', paddingRight: 'var(--container-pad)' }}>
           <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
             <div className="content-stretch flex items-center gap-[10px] relative shrink-0">
               <div className="flex items-center justify-center h-[28px] relative shrink-0 w-[66px]">
@@ -26,11 +26,11 @@ export function Header({ onNotificationsClick, onClose }: HeaderProps = {}) {
                   className="flex items-center gap-[6px] bg-[#efede6] rounded-full px-[10px] py-[3px] hover:bg-[#e3e1d9] transition-colors cursor-pointer"
                 >
                   <div className="w-[18px] h-[18px] rounded-full bg-[#441316] flex items-center justify-center">
-                    <span className="text-white text-[9px] font-['DM_Sans',sans-serif] font-medium">
+                    <span className="text-white text-[0.5625rem] font-['DM_Sans',sans-serif] font-medium">
                       {activePersona.firstName.charAt(0)}{activePersona.lastName.charAt(0)}
                     </span>
                   </div>
-                  <span className="font-['DM_Sans',sans-serif] font-medium text-[12px] text-[#555] tracking-[-0.2px]">
+                  <span className="font-['DM_Sans',sans-serif] font-medium text-[0.75rem] text-[#555] tracking-[-0.2px]">
                     {activePersona.firstName}
                   </span>
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
@@ -43,14 +43,14 @@ export function Header({ onNotificationsClick, onClose }: HeaderProps = {}) {
             <div className="h-[24px] relative shrink-0 w-[64px]">
               <button
                 onClick={onNotificationsClick}
-                className="absolute left-0 top-0 w-[24px] h-[24px] -m-[2px] cursor-pointer hover:opacity-70 transition-opacity z-10"
+                className="absolute left-[-12px] top-[-12px] w-[48px] h-[48px] cursor-pointer hover:opacity-70 transition-opacity z-10 flex items-center justify-center"
                 aria-label="Notifications"
               >
-                <div className="absolute top-0 right-0 size-[10px] bg-[#441316] rounded-full border-2 border-[#f7f6f2]" />
+                <div className="absolute top-[10px] right-[10px] size-[10px] bg-[#441316] rounded-full border-2 border-[#f7f6f2]" />
               </button>
               <button
                 onClick={onClose}
-                className="absolute right-0 top-0 w-[24px] h-[24px] -m-[2px] cursor-pointer hover:opacity-70 transition-opacity z-10"
+                className="absolute right-[-12px] top-[-12px] w-[48px] h-[48px] cursor-pointer hover:opacity-70 transition-opacity z-10 flex items-center justify-center"
                 aria-label="Close"
               />
               <div className="absolute inset-0 pointer-events-none">

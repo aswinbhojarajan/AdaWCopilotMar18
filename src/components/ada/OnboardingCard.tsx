@@ -26,7 +26,7 @@ export function OnboardingCard({
           {/* Header with divider */}
           <div className="content-stretch flex flex-col gap-[10px] items-center relative shrink-0 w-full">
             <div className="content-stretch flex items-end justify-between relative shrink-0 w-full">
-              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[10px] text-center tracking-[0.8px] uppercase w-[138px]">
+              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[0.625rem] text-center tracking-[0.8px] uppercase w-[138px]">
                 {title}
               </p>
             </div>
@@ -46,7 +46,7 @@ export function OnboardingCard({
 
           {/* Headline */}
           <div className="content-stretch flex flex-col items-center relative shrink-0 w-full">
-            <p className="font-['Crimson_Pro',sans-serif] font-light leading-[40px] relative shrink-0 text-[#555555] text-[42px] text-center tracking-[-0.84px] w-full">
+            <p className="font-['Crimson_Pro',sans-serif] font-light leading-[40px] relative shrink-0 text-[#555555] text-[2.625rem] text-center tracking-[-0.84px] w-full">
               {headline}
             </p>
           </div>
@@ -80,7 +80,7 @@ export function OnboardingCard({
           </div>
 
           {/* Description */}
-          <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[14px] text-center tracking-[-0.28px] w-[239px]">
+          <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[0.875rem] text-center tracking-[-0.28px] w-[239px]">
             {description}
           </p>
 
@@ -94,14 +94,14 @@ export function OnboardingCard({
                 aria-hidden="true"
                 className="absolute border-[#d8d8d8] border-[0.75px] border-solid inset-0 pointer-events-none rounded-[50px]"
               />
-              <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
+              <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[0.75rem] text-nowrap whitespace-pre">
                 {buttonText}
               </p>
             </button>
 
             <div className="content-stretch flex gap-[6px] items-center justify-center opacity-70 relative shrink-0">
               <Clock className="size-[7px] text-[#555555]" strokeWidth={0.5} />
-              <div className="flex flex-col font-['DM_Sans',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#555555] text-[9px] text-nowrap">
+              <div className="flex flex-col font-['DM_Sans',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#555555] text-[0.5625rem] text-nowrap">
                 <p className="leading-[18px] whitespace-pre">{timeEstimate}</p>
               </div>
             </div>

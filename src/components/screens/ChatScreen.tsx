@@ -337,14 +337,14 @@ export function ChatScreen({
   };
 
   return (
-    <div className="bg-[#efede6] relative h-screen w-full overflow-hidden">
-      <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-[16px] pt-[16px] px-0 w-full z-10">
+    <div className="bg-[#efede6] relative h-dvh w-full overflow-hidden">
+      <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-[16px] px-0 w-full z-10 pt-safe">
         <div className="relative w-full">
           <ChatHeader onBack={handleBack} />
           {verboseModeAvailable && (
             <button
               onClick={toggleVerbose}
-              className={`absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center gap-[4px] px-[8px] py-[4px] rounded-full text-[10px] font-['DM_Sans',sans-serif] tracking-[-0.2px] transition-colors z-20 ${
+              className={`absolute right-[16px] top-1/2 -translate-y-1/2 flex items-center gap-[4px] px-[8px] py-[4px] rounded-full text-[0.625rem] font-['DM_Sans',sans-serif] tracking-[-0.2px] transition-colors z-20 ${
                 verbose
                   ? 'bg-amber-100 text-amber-700 border border-amber-300'
                   : 'bg-[#f0ede5] text-[#999] border border-[#e0ddd5]'
@@ -376,7 +376,7 @@ export function ChatScreen({
             <>
               <div className="w-full flex items-center justify-center mb-[12px] mt-[16px]">
                 <div className="bg-white/60 rounded-full px-[16px] py-[6px] border border-[#e3e3e3]">
-                  <p className="font-['DM_Sans',sans-serif] font-light text-[#555555] text-[11px] tracking-[-0.22px] text-center">
+                  <p className="font-['DM_Sans',sans-serif] font-light text-[#555555] text-[0.6875rem] tracking-[-0.22px] text-center">
                     Today
                   </p>
                 </div>
@@ -384,7 +384,7 @@ export function ChatScreen({
 
               <div className="w-full flex items-center justify-center mb-[16px]">
                 <div className="max-w-[90%]">
-                  <p className="font-['DM_Sans',sans-serif] font-light text-[#555555] text-[12px] tracking-[-0.24px] text-center leading-[1.5] opacity-70">
+                  <p className="font-['DM_Sans',sans-serif] font-light text-[#555555] text-[0.75rem] tracking-[-0.24px] text-center leading-[1.5] opacity-70">
                     I can analyze your portfolio, model risk scenarios, explore investment
                     opportunities, and provide personalized guidance.
                   </p>
@@ -454,10 +454,10 @@ export function ChatScreen({
                 <AtomIcon size={55} />
               </div>
 
-              <p className="font-['Crimson_Pro',sans-serif] text-[#555555] text-[24px] tracking-[-0.48px] text-center mb-[6px]">
+              <p className="font-['Crimson_Pro',sans-serif] text-[#555555] text-[1.5rem] tracking-[-0.48px] text-center mb-[6px]">
                 How can I help you today?
               </p>
-              <p className="font-['DM_Sans',sans-serif] font-light text-[#555555] text-[14px] text-center opacity-70">
+              <p className="font-['DM_Sans',sans-serif] font-light text-[#555555] text-[0.875rem] text-center opacity-70">
                 Ask me anything about your portfolio,
                 <br />
                 investments, or market insights.
@@ -472,7 +472,7 @@ export function ChatScreen({
                 <div className="w-[6px] h-[6px] bg-[#555555] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                 <div className="w-[6px] h-[6px] bg-[#555555] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <p className="font-['DM_Sans',sans-serif] font-light text-[#555555] text-[12px] mt-[12px]">Loading conversation...</p>
+              <p className="font-['DM_Sans',sans-serif] font-light text-[#555555] text-[0.75rem] mt-[12px]">Loading conversation...</p>
             </div>
           )}
         </div>

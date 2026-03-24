@@ -60,8 +60,8 @@ export function Button({
   };
 
   const sizeStyles = {
-    sm: 'h-[24px] px-[8px] py-[10px]',
-    md: 'h-[44px] px-[14px] py-[10px]',
+    sm: 'h-[32px] px-[8px] py-[10px]',
+    md: 'h-[48px] px-[14px] py-[10px]',
     lg: 'h-[52px] px-[20px] py-[12px]',
   };
 
@@ -90,7 +90,7 @@ export function Button({
           </div>
         )}
         <p
-          className={`${variant === 'primary' || variant === 'ai-primary' ? "font-['DM_Sans',sans-serif] font-semibold" : "font-['DM_Sans',sans-serif]"} not-italic relative shrink-0 ${textColor} text-[12px] text-nowrap whitespace-pre`}
+          className={`${variant === 'primary' || variant === 'ai-primary' ? "font-['DM_Sans',sans-serif] font-semibold" : "font-['DM_Sans',sans-serif]"} not-italic relative shrink-0 ${textColor} text-[0.75rem] text-nowrap whitespace-pre`}
         >
           {children}
         </p>

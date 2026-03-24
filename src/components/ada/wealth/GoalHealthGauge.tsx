@@ -46,7 +46,7 @@ export function GoalHealthGauge({ score, label }: GoalHealthGaugeProps) {
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
           <span
-            className="font-['DM_Sans',sans-serif] font-semibold text-[20px]"
+            className="font-['DM_Sans',sans-serif] font-semibold text-[1.25rem]"
             style={{ color }}
           >
             {score}
@@ -54,10 +54,10 @@ export function GoalHealthGauge({ score, label }: GoalHealthGaugeProps) {
         </div>
       </div>
       <div className="flex flex-col gap-[2px] min-w-0">
-        <p className="font-['DM_Sans',sans-serif] font-semibold text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+        <p className="font-['DM_Sans',sans-serif] font-semibold text-[#992929] text-[0.625rem] tracking-[0.8px] uppercase">
           PLAN HEALTH
         </p>
-        <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[13px] leading-[1.4]">
+        <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[0.8125rem] leading-[1.4]">
           {label}
         </p>
       </div>

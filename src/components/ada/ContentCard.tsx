@@ -192,7 +192,7 @@ export function ContentCard({
                     style={{ backgroundColor: `${accentColor}15` }}
                   >
                     <p
-                      className="font-['DM_Sans',sans-serif] font-semibold leading-[18px] not-italic relative shrink-0 text-[10px] tracking-[0.8px] uppercase"
+                      className="font-['DM_Sans',sans-serif] font-semibold leading-[18px] not-italic relative shrink-0 text-[0.625rem] tracking-[0.8px] uppercase"
                       style={{ color: accentColor }}
                     >
                       {config.intent}
@@ -202,14 +202,14 @@ export function ContentCard({
 
                 {/* Topic label */}
                 <p
-                  className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase"
+                  className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[0.625rem] tracking-[0.8px] uppercase"
                   style={{ color: topicLabelColor || '#992929' }}
                 >
                   {customTopic || config.topic}
                 </p>
 
                 {/* Title */}
-                <p className="font-['Crimson_Pro',sans-serif] font-normal leading-[normal] relative shrink-0 text-[#555555] text-[24px] tracking-[-0.48px] w-full">
+                <p className="font-['Crimson_Pro',sans-serif] font-normal leading-[normal] relative shrink-0 text-[#555555] text-[1.5rem] tracking-[-0.48px] w-full">
                   {title}
                 </p>
 
@@ -240,7 +240,7 @@ export function ContentCard({
               {/* Description */}
               {description && (
                 <p
-                  className="font-['DM_Sans',sans-serif] font-light leading-[normal] relative shrink-0 text-[#555555] text-[14px] w-full"
+                  className="font-['DM_Sans',sans-serif] font-light leading-[normal] relative shrink-0 text-[#555555] text-[0.875rem] w-full"
                   style={{ fontVariationSettings: "'opsz' 14" }}
                 >
                   {description}
@@ -253,10 +253,10 @@ export function ContentCard({
                   {detailSections.map((section, index) => (
                     <div
                       key={index}
-                      className="font-['DM_Sans',sans-serif] font-light leading-[normal] relative shrink-0 text-[#555555] text-[14px] w-full"
+                      className="font-['DM_Sans',sans-serif] font-light leading-[normal] relative shrink-0 text-[#555555] text-[0.875rem] w-full"
                       style={{ fontVariationSettings: "'opsz' 14" }}
                     >
-                      <p className="font-['DM_Sans',sans-serif] font-semibold leading-[18px] not-italic relative shrink-0 text-[10px] tracking-[0.8px] uppercase">
+                      <p className="font-['DM_Sans',sans-serif] font-semibold leading-[18px] not-italic relative shrink-0 text-[0.625rem] tracking-[0.8px] uppercase">
                         {section.title}
                       </p>
                       {Array.isArray(section.content) ? (
@@ -297,7 +297,7 @@ export function ContentCard({
                     />
                   </div>
                   <p
-                    className={`font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[12px] text-nowrap whitespace-pre ${forceSecondaryButtonStyle || isNewsType ? 'text-[#555555]' : 'text-white'}`}
+                    className={`font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[0.75rem] text-nowrap whitespace-pre ${forceSecondaryButtonStyle || isNewsType ? 'text-[#555555]' : 'text-white'}`}
                   >
                     {buttonText}
                   </p>
@@ -315,7 +315,7 @@ export function ContentCard({
                     <div className="relative shrink-0 size-[24px] flex items-center justify-center">
                       <SparkIcon color="#555555" />
                     </div>
-                    <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[12px] text-nowrap whitespace-pre">
+                    <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[0.75rem] text-nowrap whitespace-pre">
                       {secondaryButtonText}
                     </p>
                   </button>
@@ -326,7 +326,7 @@ export function ContentCard({
             {/* Timestamp */}
             <div className="content-stretch flex gap-[2px] items-center justify-end relative shrink-0 w-full">
               <Clock className="size-[12px] text-[#555555]" strokeWidth={1} />
-              <div className="flex flex-col font-['DM_Sans',sans-serif] justify-center not-italic relative shrink-0 text-[#555555] text-[9px] text-nowrap text-right">
+              <div className="flex flex-col font-['DM_Sans',sans-serif] justify-center not-italic relative shrink-0 text-[#555555] text-[0.5625rem] text-nowrap text-right">
                 <p className="leading-[normal]">{timestamp}</p>
               </div>
             </div>

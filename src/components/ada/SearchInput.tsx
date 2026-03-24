@@ -18,11 +18,13 @@ export function SearchInput({
         <div className="content-stretch flex gap-[8px] items-center justify-center px-[22px] py-[8px] relative w-full">
           <Search className="size-[15px] text-[#cacaca]" strokeWidth={1.2} />
           <input
-            type="text"
+            type="search"
+            inputMode="search"
+            autoComplete="off"
             value={value}
             onChange={(e) => onChange?.(e.target.value)}
             placeholder={placeholder}
-            className="flex-1 font-['DM_Sans',sans-serif] font-medium text-[#cacaca] text-[14px] tracking-[-0.28px] bg-transparent border-none outline-none placeholder:text-[#cacaca]"
+            className="flex-1 min-h-[48px] font-['DM_Sans',sans-serif] font-medium text-[#cacaca] text-[0.875rem] tracking-[-0.28px] bg-transparent border-none outline-none placeholder:text-[#cacaca]"
           />
         </div>
       </div>

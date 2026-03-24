@@ -23,7 +23,7 @@ export function HoldingRow({
       {/* Left: Symbol + Name */}
       <div className="flex flex-col gap-[2px] flex-1">
         <p className="font-['DM_Sans',sans-serif] text-[#555555]">{symbol}</p>
-        <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[12px] opacity-60">
+        <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[0.75rem] opacity-60">
           {name}
         </p>
       </div>
@@ -51,7 +51,7 @@ export function HoldingRow({
           }`}
         >
           <p
-            className={`font-['DM_Sans',sans-serif] font-semibold not-italic relative shrink-0 text-[10px] text-nowrap whitespace-pre ${
+            className={`font-['DM_Sans',sans-serif] font-semibold not-italic relative shrink-0 text-[0.625rem] text-nowrap whitespace-pre ${
               isPositive ? 'text-[#03561a]' : 'text-[#560303]'
             }`}
           >

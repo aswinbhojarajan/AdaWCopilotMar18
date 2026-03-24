@@ -40,8 +40,8 @@ export function NotificationsScreen({ onBack }: NotificationsScreenProps = {}) {
   };
 
   return (
-    <div className="bg-[#efede6] relative h-screen w-full">
-      <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-[15px] pt-[16px] px-0 w-full z-10">
+    <div className="bg-[#efede6] relative h-dvh w-full">
+      <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-[15px] px-0 w-full z-10 pt-safe">
         <ChatHeader onBack={onBack} showNotifications={false} title="Notifications" />
       </div>
 
@@ -90,10 +90,10 @@ export function NotificationsScreen({ onBack }: NotificationsScreenProps = {}) {
 
               {filteredNotifications.length === 0 && (
                 <div className="bg-white rounded-[12px] px-[24px] py-[48px] text-center w-full">
-                  <p className="font-['DM_Sans',sans-serif] font-medium text-[#3a3a3a] text-[16px] mb-[8px]">
+                  <p className="font-['DM_Sans',sans-serif] font-medium text-[#3a3a3a] text-[1rem] mb-[8px]">
                     No notifications
                   </p>
-                  <p className="font-['DM_Sans',sans-serif] text-[#667085] text-[14px] leading-[20px]">
+                  <p className="font-['DM_Sans',sans-serif] text-[#667085] text-[0.875rem] leading-[20px]">
                     You're all caught up! Check back later for new updates.
                   </p>
                 </div>

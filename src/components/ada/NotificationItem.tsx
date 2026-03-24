@@ -93,14 +93,14 @@ export function NotificationItem({
       {/* Title with Unread Indicator */}
       <div className="w-full flex items-center gap-[8px]">
         {unread && <div className="h-[8px] w-[8px] rounded-full bg-[#992929] shrink-0" />}
-        <p className="font-['Crimson_Pro',sans-serif] font-extralight text-[#3a3a3a] text-[18px] leading-[24px] flex-1">
+        <p className="font-['Crimson_Pro',sans-serif] font-extralight text-[#3a3a3a] text-[1.125rem] leading-[24px] flex-1">
           {title}
         </p>
       </div>
 
       {/* Message */}
       <div className="w-full" style={{ paddingLeft: unread ? '16px' : '0' }}>
-        <p className="font-['DM_Sans',sans-serif] text-[#667085] text-[13px] leading-[18px]">
+        <p className="font-['DM_Sans',sans-serif] text-[#667085] text-[0.8125rem] leading-[18px]">
           {message}
         </p>
       </div>
@@ -108,7 +108,7 @@ export function NotificationItem({
       {/* Timestamp - Bottom Right */}
       <div className="flex items-center justify-end w-full gap-[4px]">
         <Clock className="h-[12px] w-[12px] text-[#98989d]" strokeWidth={2} />
-        <p className="font-['DM_Sans',sans-serif] text-[#98989d] text-[11px] leading-[normal] whitespace-nowrap">
+        <p className="font-['DM_Sans',sans-serif] text-[#98989d] text-[0.6875rem] leading-[normal] whitespace-nowrap">
           {timestamp}
         </p>
       </div>

@@ -16,15 +16,15 @@ function AllocationChart() {
 
   return (
     <div className="bg-white border border-[#E5E5E5] rounded-[12px] p-[16px] my-[8px]">
-      <h4 className="text-[13px] text-[#1A1A1A] font-medium mb-[12px]">Asset Allocation</h4>
+      <h4 className="text-[0.8125rem] text-[#1A1A1A] font-medium mb-[12px]">Asset Allocation</h4>
       <div className="space-y-[8px]">
         {(allocations as AssetAllocation[]).map((a, i) => {
           const pct = total > 0 ? ((Number(a.amount || a.value || 0) / total) * 100) : 0;
           return (
             <div key={i}>
               <div className="flex justify-between items-center mb-[4px] gap-[8px]">
-                <span className="text-[12px] text-[#555555] flex-1 min-w-0 truncate">{a.label}</span>
-                <span className="text-[12px] text-[#1A1A1A] font-medium tabular-nums shrink-0">{pct.toFixed(1)}%</span>
+                <span className="text-[0.75rem] text-[#555555] flex-1 min-w-0 truncate">{a.label}</span>
+                <span className="text-[0.75rem] text-[#1A1A1A] font-medium tabular-nums shrink-0">{pct.toFixed(1)}%</span>
               </div>
               <div className="h-[4px] bg-[#F0F0F0] rounded-full overflow-hidden">
                 <div
@@ -51,17 +51,17 @@ function HoldingsSummary() {
 
   return (
     <div className="bg-white border border-[#E5E5E5] rounded-[12px] p-[16px] my-[8px]">
-      <h4 className="text-[13px] text-[#1A1A1A] font-medium mb-[12px]">Top Holdings</h4>
+      <h4 className="text-[0.8125rem] text-[#1A1A1A] font-medium mb-[12px]">Top Holdings</h4>
       <div className="space-y-[10px]">
         {sorted.map((h, i) => (
           <div key={i} className="flex justify-between items-center">
             <div>
-              <span className="text-[12px] text-[#1A1A1A] font-medium">{h.symbol}</span>
-              <span className="text-[11px] text-[#888888] ml-[6px]">{h.name}</span>
+              <span className="text-[0.75rem] text-[#1A1A1A] font-medium">{h.symbol}</span>
+              <span className="text-[0.6875rem] text-[#888888] ml-[6px]">{h.name}</span>
             </div>
             <div className="text-right">
-              <span className="text-[12px] text-[#1A1A1A] tabular-nums">${Number(h.value).toLocaleString()}</span>
-              <span className={`text-[11px] ml-[6px] tabular-nums ${Number(h.changePercent) >= 0 ? 'text-[#0F6F4E]' : 'text-[#C1464F]'}`}>
+              <span className="text-[0.75rem] text-[#1A1A1A] tabular-nums">${Number(h.value).toLocaleString()}</span>
+              <span className={`text-[0.6875rem] ml-[6px] tabular-nums ${Number(h.changePercent) >= 0 ? 'text-[#0F6F4E]' : 'text-[#C1464F]'}`}>
                 {Number(h.changePercent) >= 0 ? '+' : ''}{Number(h.changePercent).toFixed(1)}%
               </span>
             </div>
@@ -81,7 +81,7 @@ function GoalProgress() {
 
   return (
     <div className="bg-white border border-[#E5E5E5] rounded-[12px] p-[16px] my-[8px]">
-      <h4 className="text-[13px] text-[#1A1A1A] font-medium mb-[12px]">Goal Progress</h4>
+      <h4 className="text-[0.8125rem] text-[#1A1A1A] font-medium mb-[12px]">Goal Progress</h4>
       <div className="space-y-[12px]">
         {(goals as unknown as GoalData[]).map((g, i) => {
           const pct = (Number(g.currentAmount) / Number(g.targetAmount)) * 100;
@@ -89,8 +89,8 @@ function GoalProgress() {
           return (
             <div key={i}>
               <div className="flex justify-between items-center mb-[4px]">
-                <span className="text-[12px] text-[#1A1A1A]">{g.title}</span>
-                <span className="text-[11px] tabular-nums" style={{ color: statusColor }}>
+                <span className="text-[0.75rem] text-[#1A1A1A]">{g.title}</span>
+                <span className="text-[0.6875rem] tabular-nums" style={{ color: statusColor }}>
                   {g.healthStatus.replace('-', ' ')}
                 </span>
               </div>
@@ -101,8 +101,8 @@ function GoalProgress() {
                 />
               </div>
               <div className="flex justify-between">
-                <span className="text-[11px] text-[#888888] tabular-nums">${Number(g.currentAmount).toLocaleString()}</span>
-                <span className="text-[11px] text-[#888888] tabular-nums">${Number(g.targetAmount).toLocaleString()}</span>
+                <span className="text-[0.6875rem] text-[#888888] tabular-nums">${Number(g.currentAmount).toLocaleString()}</span>
+                <span className="text-[0.6875rem] text-[#888888] tabular-nums">${Number(g.targetAmount).toLocaleString()}</span>
               </div>
             </div>
           );
@@ -123,17 +123,17 @@ function PortfolioSummaryWidget() {
 
   return (
     <div className="bg-white border border-[#E5E5E5] rounded-[12px] p-[16px] my-[8px]">
-      <h4 className="text-[13px] text-[#1A1A1A] font-medium mb-[8px]">Portfolio Summary</h4>
+      <h4 className="text-[0.8125rem] text-[#1A1A1A] font-medium mb-[8px]">Portfolio Summary</h4>
       <div className="flex justify-between items-end">
         <div>
-          <p className="text-[20px] text-[#1A1A1A] font-medium tabular-nums">
+          <p className="text-[1.25rem] text-[#1A1A1A] font-medium tabular-nums">
             ${Number(overview.totalValue).toLocaleString()}
           </p>
-          <p className={`text-[13px] tabular-nums ${isPositive ? 'text-[#0F6F4E]' : 'text-[#C1464F]'}`}>
+          <p className={`text-[0.8125rem] tabular-nums ${isPositive ? 'text-[#0F6F4E]' : 'text-[#C1464F]'}`}>
             {isPositive ? '+' : ''}${Number(overview.dailyChangeAmount).toLocaleString()} ({Number(overview.dailyChangePercent).toFixed(2)}%)
           </p>
         </div>
-        <span className="text-[11px] text-[#888888]">Today</span>
+        <span className="text-[0.6875rem] text-[#888888]">Today</span>
       </div>
     </div>
   );
@@ -157,16 +157,16 @@ function AdvisorHandoffWidget({ advisorName, actionContext, queueId }: { advisor
           </svg>
         </div>
         <div className="flex-1">
-          <h4 className="text-[13px] text-[#441316] font-medium mb-[4px]">{title}</h4>
+          <h4 className="text-[0.8125rem] text-[#441316] font-medium mb-[4px]">{title}</h4>
           {actionContext && (
-            <p className="text-[12px] text-[#441316] bg-[#FFF0E0] rounded-[6px] px-[8px] py-[4px] mb-[8px]">
+            <p className="text-[0.75rem] text-[#441316] bg-[#FFF0E0] rounded-[6px] px-[8px] py-[4px] mb-[8px]">
               {actionContext}
             </p>
           )}
-          <p className="text-[12px] text-[#555555] mb-[10px]">
+          <p className="text-[0.75rem] text-[#555555] mb-[10px]">
             {description}
           </p>
-          <button className="bg-[#441316] text-white text-[12px] font-medium px-[16px] py-[8px] rounded-[8px]">
+          <button className="bg-[#441316] text-white text-[0.75rem] font-medium px-[16px] py-[8px] rounded-[8px]">
             Contact {advisorName || 'Your Advisor'}
           </button>
         </div>
@@ -178,7 +178,7 @@ function AdvisorHandoffWidget({ advisorName, actionContext, queueId }: { advisor
 function WidgetSkeleton({ title }: { title: string }) {
   return (
     <div className="bg-white border border-[#E5E5E5] rounded-[12px] p-[16px] my-[8px] animate-pulse">
-      <div className="text-[13px] text-[#1A1A1A] font-medium mb-[12px]">{title}</div>
+      <div className="text-[0.8125rem] text-[#1A1A1A] font-medium mb-[12px]">{title}</div>
       <div className="space-y-[8px]">
         <div className="h-[12px] bg-[#F0F0F0] rounded w-3/4" />
         <div className="h-[12px] bg-[#F0F0F0] rounded w-1/2" />

@@ -60,4 +60,25 @@
   --ada-font-body-light: 'DM Sans', sans-serif;
   --ada-font-body-semibold: 'DM Sans', sans-serif;
   --ada-font-system: -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Safe Areas (requires viewport-fit=cover in meta tag) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Fluid Spacing (scales smoothly across 384–430px device widths) */
+  --space-xs: clamp(0.25rem, 1vw, 0.5rem);
+  --space-sm: clamp(0.5rem, 2vw, 0.75rem);
+  --space-md: clamp(0.75rem, 3vw, 1.25rem);
+  --space-lg: clamp(1rem, 4vw, 1.5rem);
+  --space-xl: clamp(1.5rem, 5vw, 2.5rem);
+
+  /* Container */
+  --container-max: 430px;
+  --container-pad: clamp(1rem, 5vw, 1.5rem);
+
+  /* Touch */
+  --touch-min: 48px;
+  --touch-gap: 8px;
 }

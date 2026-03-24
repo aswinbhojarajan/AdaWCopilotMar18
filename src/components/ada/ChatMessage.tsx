@@ -136,12 +136,12 @@ export function ChatMessage({
           <div className="flex items-center justify-center overflow-clip rounded-[inherit]">
             <div className="content-stretch flex flex-col items-start justify-center px-[16px] py-[12px] relative w-full">
               <div
-                className={`font-['DM_Sans',sans-serif] font-light ${isUser ? 'text-white' : 'text-[#555555]'} text-[13px] leading-[20.8px]`}
+                className={`font-['DM_Sans',sans-serif] font-light ${isUser ? 'text-white' : 'text-[#555555]'} text-[0.8125rem] leading-[20.8px]`}
                 style={{ fontVariationSettings: "'opsz' 14" }}
               >
                 {/* Context prefix inline with message for user messages */}
                 {contextPrefix && isUser && (
-                  <span className="text-white/70 font-['DM_Sans',sans-serif] font-light text-[12px] tracking-[-0.24px]">
+                  <span className="text-white/70 font-['DM_Sans',sans-serif] font-light text-[0.75rem] tracking-[-0.24px]">
                     {contextPrefix} ·
                   </span>
                 )}

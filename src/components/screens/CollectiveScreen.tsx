@@ -112,7 +112,7 @@ export function CollectiveScreen({
             >
               <div className="content-stretch flex gap-[6px] items-center justify-center opacity-70 w-full">
                 <Clock className="shrink-0" size={12} strokeWidth={1.5} color="#555555" />
-                <div className="flex flex-col font-['DM_Sans',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#555555] text-[9px] text-nowrap">
+                <div className="flex flex-col font-['DM_Sans',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#555555] text-[0.5625rem] text-nowrap">
                   <p className="leading-[18px] whitespace-pre">Insights refreshing in 4 days</p>
                 </div>
               </div>
@@ -140,15 +140,15 @@ export function CollectiveScreen({
                       <div className="content-stretch flex flex-col gap-[16px] items-start relative shrink-0 w-full">
                         <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 w-full">
                           <div className="content-stretch flex gap-[12px] items-center relative shrink-0 w-full">
-                            <p className="font-['DM_Sans',sans-serif] font-semibold h-[14px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+                            <p className="font-['DM_Sans',sans-serif] font-semibold h-[14px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[0.625rem] tracking-[0.8px] uppercase">
                               Investors like you
                             </p>
                           </div>
-                          <p className="font-['Crimson_Pro',sans-serif] font-normal leading-[normal] relative shrink-0 text-[#555555] text-[24px] tracking-[-0.48px] w-full">
+                          <p className="font-['Crimson_Pro',sans-serif] font-normal leading-[normal] relative shrink-0 text-[#555555] text-[1.5rem] tracking-[-0.48px] w-full">
                             You allocate more to stocks than 68% of similar investors
                           </p>
                           <p
-                            className="font-['DM_Sans',sans-serif] font-light leading-[normal] relative shrink-0 text-[#555555] text-[12px] w-full"
+                            className="font-['DM_Sans',sans-serif] font-light leading-[normal] relative shrink-0 text-[#555555] text-[0.75rem] w-full"
                             style={{ fontVariationSettings: "'opsz' 14" }}
                           >
                             Average portfolio allocation comparison
@@ -160,14 +160,14 @@ export function CollectiveScreen({
                             {peerComparisons.map((item) => (
                               <div key={item.assetClass} className="flex flex-col gap-[4px]">
                                 <div className="flex items-center justify-between">
-                                  <p className="font-['Crimson_Pro',sans-serif] font-extralight text-[12px] text-[#555555]">
+                                  <p className="font-['Crimson_Pro',sans-serif] font-extralight text-[0.75rem] text-[#555555]">
                                     {item.assetClass}
                                   </p>
                                   <div className="flex gap-[12px]">
-                                    <p className="font-['DM_Sans',sans-serif] font-medium text-[12px] text-[#992929]">
+                                    <p className="font-['DM_Sans',sans-serif] font-medium text-[0.75rem] text-[#992929]">
                                       You: {item.userPercent}%
                                     </p>
-                                    <p className="font-['DM_Sans',sans-serif] text-[12px] text-[#555555] opacity-60">
+                                    <p className="font-['DM_Sans',sans-serif] text-[0.75rem] text-[#555555] opacity-60">
                                       Peers: {item.peerPercent}%
                                     </p>
                                   </div>
@@ -189,13 +189,13 @@ export function CollectiveScreen({
                             <div className="flex gap-[16px] items-center justify-center pt-[8px] border-t border-[#555555] border-opacity-20">
                               <div className="flex gap-[6px] items-center">
                                 <div className="w-[12px] h-[12px] bg-[#a87174] rounded-[2px]" />
-                                <p className="font-['DM_Sans',sans-serif] text-[10px] text-[#555555]">
+                                <p className="font-['DM_Sans',sans-serif] text-[0.625rem] text-[#555555]">
                                   Your allocation
                                 </p>
                               </div>
                               <div className="flex gap-[6px] items-center">
                                 <div className="w-[12px] h-[12px] bg-[#441316] opacity-30 rounded-[2px]" />
-                                <p className="font-['DM_Sans',sans-serif] text-[10px] text-[#555555]">
+                                <p className="font-['DM_Sans',sans-serif] text-[0.625rem] text-[#555555]">
                                   Peer average
                                 </p>
                               </div>
@@ -204,11 +204,11 @@ export function CollectiveScreen({
                         </div>
 
                         <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 w-full">
-                          <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic relative shrink-0 text-[#555555] text-[14px] w-full">
+                          <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic relative shrink-0 text-[#555555] text-[0.875rem] w-full">
                             Your higher stock allocation positions you for stronger long-term growth
                             potential.
                           </p>
-                          <p className="font-['DM_Sans',sans-serif] font-light leading-[normal] not-italic relative shrink-0 text-[#555555] text-[14px] w-full">
+                          <p className="font-['DM_Sans',sans-serif] font-light leading-[normal] not-italic relative shrink-0 text-[#555555] text-[0.875rem] w-full">
                             This positioning can enhance upside potential while accepting slightly
                             higher short-term volatility.
                           </p>
@@ -257,15 +257,15 @@ export function CollectiveScreen({
                       <div className="content-stretch flex flex-col gap-[16px] items-start relative shrink-0 w-full">
                         <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 w-full">
                           <div className="content-stretch flex gap-[12px] items-center relative shrink-0 w-full">
-                            <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+                            <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[0.625rem] tracking-[0.8px] uppercase">
                               COMMUNITY PULSE
                             </p>
                           </div>
-                          <p className="font-['Crimson_Pro',sans-serif] font-normal leading-[normal] relative shrink-0 text-[#555555] text-[24px] tracking-[-0.48px] w-full">
+                          <p className="font-['Crimson_Pro',sans-serif] font-normal leading-[normal] relative shrink-0 text-[#555555] text-[1.5rem] tracking-[-0.48px] w-full">
                             {poll.question}
                           </p>
                           <p
-                            className="font-['DM_Sans',sans-serif] font-light leading-[normal] relative shrink-0 text-[#555555] text-[14px] w-full"
+                            className="font-['DM_Sans',sans-serif] font-light leading-[normal] relative shrink-0 text-[#555555] text-[0.875rem] w-full"
                             style={{ fontVariationSettings: "'opsz' 14" }}
                           >
                             Vote to see where sentiment is strongest and how you compare to the
@@ -309,7 +309,7 @@ export function CollectiveScreen({
                           </div>
                         )}
 
-                        <p className="font-['DM_Sans',sans-serif] leading-[normal] relative shrink-0 text-[#555555] text-[12px] opacity-60 w-full">
+                        <p className="font-['DM_Sans',sans-serif] leading-[normal] relative shrink-0 text-[#555555] text-[0.75rem] opacity-60 w-full">
                           {hasVoted ? 'Thank you for voting' : 'View results after you vote'}
                         </p>
                       </div>

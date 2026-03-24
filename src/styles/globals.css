@@ -199,3 +199,25 @@
 html {
   font-size: var(--font-size);
 }
+
+/* Dynamic viewport height: use 100dvh with 100vh fallback for full-height layouts.
+   Prevents content from overflowing behind mobile browser chrome on iOS Safari & Chrome. */
+.h-dvh {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.min-h-dvh {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Safe area padding for fixed/sticky bottom elements (home bar clearance) */
+.pb-safe {
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Safe area padding for fixed/sticky top elements (notch/Dynamic Island clearance) */
+.pt-safe {
+  padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
+}

@@ -94,7 +94,7 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
 
   return (
     <div className="bg-white border border-[#E5E5E5] rounded-[12px] p-[20px] my-[16px]">
-      <h3 className="text-[16px] text-[#1A1A1A] mb-[20px] font-medium">
+      <h3 className="text-[1rem] text-[#1A1A1A] mb-[20px] font-medium">
         {type === 'retirement' && 'Retirement Scenario'}
         {type === 'investment' && 'Investment Comparison'}
         {type === 'spending' && 'Spending Projection'}
@@ -137,8 +137,8 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
           return (
             <div key={key}>
               <div className="flex justify-between items-center mb-[8px]">
-                <label className="text-[14px] text-[#555555]">{labels[key]}</label>
-                <span className="text-[14px] text-[#1A1A1A] font-medium min-w-[100px] text-right tabular-nums">
+                <label className="text-[0.875rem] text-[#555555]">{labels[key]}</label>
+                <span className="text-[0.875rem] text-[#1A1A1A] font-medium min-w-[100px] text-right tabular-nums">
                   {isCurrency ? formatCurrency(value) : isPercentage ? `${value}%` : value}
                 </span>
               </div>
@@ -161,20 +161,20 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
         {type === 'retirement' && (
           <>
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-[#555555]">Total at Retirement</span>
-              <span className="text-[18px] text-[#441316] font-medium min-w-[130px] text-right tabular-nums">
+              <span className="text-[0.875rem] text-[#555555]">Total at Retirement</span>
+              <span className="text-[1.125rem] text-[#441316] font-medium min-w-[130px] text-right tabular-nums">
                 {formatCurrency(results.total)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-[#555555]">Your Contributions</span>
-              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
+              <span className="text-[0.875rem] text-[#555555]">Your Contributions</span>
+              <span className="text-[0.875rem] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
                 {formatCurrency(results.contributions)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-[#555555]">Investment Gains</span>
-              <span className="text-[14px] text-[#0F6F4E] min-w-[130px] text-right tabular-nums">
+              <span className="text-[0.875rem] text-[#555555]">Investment Gains</span>
+              <span className="text-[0.875rem] text-[#0F6F4E] min-w-[130px] text-right tabular-nums">
                 {formatCurrency(results.gains)}
               </span>
             </div>
@@ -183,20 +183,20 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
         {type === 'investment' && (
           <>
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-[#555555]">Future Value</span>
-              <span className="text-[18px] text-[#441316] font-medium min-w-[130px] text-right tabular-nums">
+              <span className="text-[0.875rem] text-[#555555]">Future Value</span>
+              <span className="text-[1.125rem] text-[#441316] font-medium min-w-[130px] text-right tabular-nums">
                 {formatCurrency(results.total)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[12px] text-[#555555]">Total Invested</span>
-              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
+              <span className="text-[0.75rem] text-[#555555]">Total Invested</span>
+              <span className="text-[0.875rem] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
                 {formatCurrency(results.contributions)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[12px] text-[#555555]">Expected Gains</span>
-              <span className="text-[14px] text-[#0F6F4E] min-w-[130px] text-right tabular-nums">
+              <span className="text-[0.75rem] text-[#555555]">Expected Gains</span>
+              <span className="text-[0.875rem] text-[#0F6F4E] min-w-[130px] text-right tabular-nums">
                 {formatCurrency(results.gains)}
               </span>
             </div>
@@ -205,22 +205,22 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
         {type === 'spending' && (
           <>
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-[#555555]">Current Annual</span>
-              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
+              <span className="text-[0.875rem] text-[#555555]">Current Annual</span>
+              <span className="text-[0.875rem] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
                 {formatCurrency(results.currentAnnual)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-[#555555]">
+              <span className="text-[0.875rem] text-[#555555]">
                 Future Annual (Year {values.years})
               </span>
-              <span className="text-[18px] text-[#441316] font-medium min-w-[130px] text-right tabular-nums">
+              <span className="text-[1.125rem] text-[#441316] font-medium min-w-[130px] text-right tabular-nums">
                 {formatCurrency(results.futureAnnual)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-[#555555]">Total Spent ({values.years} years)</span>
-              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
+              <span className="text-[0.875rem] text-[#555555]">Total Spent ({values.years} years)</span>
+              <span className="text-[0.875rem] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
                 {formatCurrency(results.totalSpent)}
               </span>
             </div>
@@ -229,20 +229,20 @@ export function ScenarioSimulator({ type, initialValues = {} }: ScenarioSimulato
         {type === 'tax' && (
           <>
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-[#555555]">Taxable Income</span>
-              <span className="text-[14px] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
+              <span className="text-[0.875rem] text-[#555555]">Taxable Income</span>
+              <span className="text-[0.875rem] text-[#1A1A1A] min-w-[130px] text-right tabular-nums">
                 {formatCurrency(results.taxableIncome)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-[#555555]">Estimated Tax</span>
-              <span className="text-[18px] text-[#C1464F] font-medium min-w-[130px] text-right tabular-nums">
+              <span className="text-[0.875rem] text-[#555555]">Estimated Tax</span>
+              <span className="text-[1.125rem] text-[#C1464F] font-medium min-w-[130px] text-right tabular-nums">
                 {formatCurrency(results.estimatedTax)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-[14px] text-[#555555]">After-Tax Income</span>
-              <span className="text-[14px] text-[#0F6F4E] min-w-[130px] text-right tabular-nums">
+              <span className="text-[0.875rem] text-[#555555]">After-Tax Income</span>
+              <span className="text-[0.875rem] text-[#0F6F4E] min-w-[130px] text-right tabular-nums">
                 {formatCurrency(results.afterTax)}
               </span>
             </div>

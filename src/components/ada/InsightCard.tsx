@@ -27,7 +27,7 @@ export function InsightCard({
           <div className="content-stretch flex flex-col gap-[16px] items-center relative shrink-0 w-full">
             <div className="content-stretch flex flex-col gap-[10px] items-center relative shrink-0 w-full">
               <div className="content-stretch flex items-end justify-between relative shrink-0 w-full">
-                <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[10px] text-center tracking-[0.8px] uppercase">
+                <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[0.625rem] text-center tracking-[0.8px] uppercase">
                   {type === 'INSIGHT'
                     ? 'INSIGHT | PEER SNAPSHOT'
                     : type === 'POLL'
@@ -49,12 +49,12 @@ export function InsightCard({
               </div>
             </div>
 
-            <p className="font-['Crimson_Pro',sans-serif] font-normal leading-[normal] relative shrink-0 text-[#555555] text-[24px] text-center tracking-[-0.48px] w-[277px]">
+            <p className="font-['Crimson_Pro',sans-serif] font-normal leading-[normal] relative shrink-0 text-[#555555] text-[1.5rem] text-center tracking-[-0.48px] w-[277px]">
               {title}
             </p>
 
             {description && (
-              <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[14px] text-center tracking-[-0.28px] w-[273px]">
+              <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#555555] text-[0.875rem] text-center tracking-[-0.28px] w-[273px]">
                 {description}
               </p>
             )}
@@ -92,7 +92,7 @@ export function InsightCard({
                           </svg>
                         </div>
                       </div>
-                      <div className="flex flex-col font-['DM_Sans',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#555555] text-[9px] text-nowrap">
+                      <div className="flex flex-col font-['DM_Sans',sans-serif] justify-center leading-[0] not-italic relative shrink-0 text-[#555555] text-[0.5625rem] text-nowrap">
                         <p className="leading-[18px] whitespace-pre">{timestamp}</p>
                       </div>
                     </div>

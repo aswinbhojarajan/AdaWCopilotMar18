@@ -95,9 +95,9 @@ export function LiveThinkingBar({ steps, isStreaming, visible }: LiveThinkingBar
           <div className="flex items-center gap-[6px] overflow-x-auto scrollbar-none">
             {visibleSteps.map((s, i) => (
               <React.Fragment key={i}>
-                {i > 0 && <span className="text-[9px] text-[#ccc] shrink-0">→</span>}
+                {i > 0 && <span className="text-[0.5625rem] text-[#ccc] shrink-0">→</span>}
                 <span
-                  className={`text-[10px] font-['DM_Sans',sans-serif] tracking-[-0.2px] whitespace-nowrap shrink-0 transition-opacity duration-200 ${
+                  className={`text-[0.625rem] font-['DM_Sans',sans-serif] tracking-[-0.2px] whitespace-nowrap shrink-0 transition-opacity duration-200 ${
                     i === visibleSteps.length - 1 ? 'text-amber-700 font-medium' : 'text-[#aaa]'
                   }`}
                 >
@@ -115,13 +115,13 @@ export function LiveThinkingBar({ steps, isStreaming, visible }: LiveThinkingBar
           </div>
         </div>
         {latestVisible && (
-          <span className="text-[9px] text-[#bbb] font-['DM_Sans',sans-serif] shrink-0 tabular-nums">
+          <span className="text-[0.5625rem] text-[#bbb] font-['DM_Sans',sans-serif] shrink-0 tabular-nums">
             {displayedCount}/{steps.length}
           </span>
         )}
       </div>
       {latestVisible && (
-        <p className="font-['DM_Sans',sans-serif] font-light text-[9px] text-[#999] tracking-[-0.2px] mt-[2px] truncate pl-[14px]">
+        <p className="font-['DM_Sans',sans-serif] font-light text-[0.5625rem] text-[#999] tracking-[-0.2px] mt-[2px] truncate pl-[14px]">
           {latestVisible.detail}
         </p>
       )}
@@ -143,7 +143,7 @@ export function ThinkingPanel({ steps, isStreaming }: ThinkingPanelProps) {
         className="flex items-center gap-[6px] px-[12px] py-[6px] rounded-[12px] bg-[#f0ede5] border border-[#ddd8cc] text-left w-full transition-colors hover:bg-[#e8e4db]"
       >
         <div className={`w-[8px] h-[8px] rounded-full ${isStreaming ? 'bg-amber-400 animate-pulse' : 'bg-green-500'}`} />
-        <span className="font-['DM_Sans',sans-serif] text-[11px] text-[#777] tracking-[-0.2px] flex-1 truncate">
+        <span className="font-['DM_Sans',sans-serif] text-[0.6875rem] text-[#777] tracking-[-0.2px] flex-1 truncate">
           {isStreaming
             ? `Thinking: ${STEP_LABELS[latestStep?.step] || latestStep?.step || '...'}`
             : buildCompletedSummary(steps)
@@ -165,10 +165,10 @@ export function ThinkingPanel({ steps, isStreaming }: ThinkingPanelProps) {
             <div key={i} className="flex items-start gap-[8px]">
               <div className="mt-[5px] w-[6px] h-[6px] rounded-full bg-[#bbb] shrink-0" />
               <div className="min-w-0">
-                <p className="font-['DM_Sans',sans-serif] font-medium text-[11px] text-[#555] tracking-[-0.2px]">
+                <p className="font-['DM_Sans',sans-serif] font-medium text-[0.6875rem] text-[#555] tracking-[-0.2px]">
                   {STEP_LABELS[s.step] || s.step}
                 </p>
-                <p className="font-['DM_Sans',sans-serif] font-light text-[10px] text-[#888] tracking-[-0.2px] break-words">
+                <p className="font-['DM_Sans',sans-serif] font-light text-[0.625rem] text-[#888] tracking-[-0.2px] break-words">
                   {s.detail}
                 </p>
               </div>

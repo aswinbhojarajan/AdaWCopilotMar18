@@ -83,16 +83,16 @@ export function BottomBar({
             {/* Chat History Button (left side) */}
             <button
               onClick={onChatHistoryClick}
-              className="relative shrink-0 size-[44px] z-10 cursor-pointer"
+              className="relative shrink-0 size-[48px] z-10 cursor-pointer"
             >
               <svg
                 className="block size-full"
                 fill="none"
                 preserveAspectRatio="none"
-                viewBox="0 0 44 44"
+                viewBox="0 0 48 48"
               >
                 <g id="Frame 47755">
-                  <rect fill="rgba(255,255,255,0.98)" height="44" rx="22" width="44" />
+                  <rect fill="rgba(255,255,255,0.98)" height="48" rx="24" width="48" />
                   <path d={svgPaths.p80d9900} fill="#555555" id="Vector" />
                 </g>
               </svg>
@@ -100,7 +100,7 @@ export function BottomBar({
 
             {/* Input Field with Mic or Resume Chat Button */}
             <div
-              className={`basis-0 bg-white/95 grow h-[44px] min-h-px min-w-px relative rounded-[23.321px] shrink-0 backdrop-blur-sm z-10 shadow-[0_1px_3px_rgba(68,19,22,0.08)] ${
+              className={`basis-0 bg-white/95 grow h-[48px] min-h-px min-w-px relative rounded-[24px] shrink-0 backdrop-blur-sm z-10 shadow-[0_1px_3px_rgba(68,19,22,0.08)] ${
                 !isOnChatScreen ? 'cursor-pointer' : ''
               }`}
               style={{ WebkitBackdropFilter: 'blur(8px)' } as React.CSSProperties}
@@ -111,7 +111,7 @@ export function BottomBar({
                   {hasActiveChatToday && !isOnChatScreen ? (
                     // Resume chat mode (only show when NOT on chat screen)
                     <div className="flex items-center justify-between w-full">
-                      <span className="font-['DM_Sans',sans-serif] text-[14px] text-[#441316]">
+                      <span className="font-['DM_Sans',sans-serif] text-[0.875rem] text-[#441316]">
                         Continue today's conversation
                       </span>
                       <ChevronRight className="size-[18px] text-[#441316]" strokeWidth={1.5} />
@@ -121,11 +121,13 @@ export function BottomBar({
                     <>
                       <input
                         type="text"
+                        inputMode="search"
+                        autoComplete="off"
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
                         placeholder="Ask anything"
-                        className="basis-0 font-['DM_Sans',sans-serif] grow min-h-px min-w-px not-italic relative shrink-0 text-black bg-transparent border-none outline-none placeholder:opacity-70 text-[14px]"
+                        className="basis-0 font-['DM_Sans',sans-serif] grow min-h-px min-w-px not-italic relative shrink-0 text-black bg-transparent border-none outline-none placeholder:opacity-70 text-[1rem]"
                         ref={inputRef}
                       />
                       <button
@@ -147,7 +149,7 @@ export function BottomBar({
             <button
               onClick={hasActiveChatToday && !isOnChatScreen ? undefined : handleSubmit}
               disabled={(hasActiveChatToday && !isOnChatScreen) || !inputValue.trim()}
-              className={`relative shrink-0 size-[44px] z-10 rounded-full flex items-center justify-center transition-opacity ${
+              className={`relative shrink-0 size-[48px] z-10 rounded-full flex items-center justify-center transition-opacity ${
                 hasActiveChatToday && !isOnChatScreen
                   ? 'opacity-30 pointer-events-none'
                   : !inputValue.trim()
@@ -162,8 +164,8 @@ export function BottomBar({
         </div>
       </div>
 
-      {/* Home Indicator */}
-      <div className="h-[34px] relative shrink-0 w-full">
+      {/* Home Indicator — uses safe-area-inset-bottom for real device home bar clearance */}
+      <div className="relative shrink-0 w-full" style={{ height: 'calc(20px + env(safe-area-inset-bottom, 14px))' }}>
         <div className="absolute bg-[#555555] bottom-[9px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] translate-x-[-50%] w-[134px]" />
       </div>
     </div>

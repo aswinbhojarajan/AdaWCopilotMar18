@@ -28,7 +28,7 @@ export function Tag({ children, active = false, onClick }: TagProps) {
         aria-hidden="true"
         className="absolute border-[#441316] border-[0.5px] border-solid inset-0 pointer-events-none rounded-[50px]"
       />
-      <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#441316] text-[12px] text-nowrap whitespace-pre">
+      <p className="font-['DM_Sans',sans-serif] leading-[normal] not-italic relative shrink-0 text-[#441316] text-[0.75rem] text-nowrap whitespace-pre">
         {children}
       </p>
     </button>

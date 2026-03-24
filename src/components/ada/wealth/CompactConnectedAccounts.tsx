@@ -38,10 +38,10 @@ export function CompactConnectedAccounts({
             </div>
 
             <div className="flex-1 flex flex-col gap-[2px]">
-              <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[14px]">
+              <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[0.875rem]">
                 Connected Accounts
               </p>
-              <p className="font-['DM_Sans',sans-serif] leading-[1.3] not-italic text-[#555555] text-[12px] opacity-60">
+              <p className="font-['DM_Sans',sans-serif] leading-[1.3] not-italic text-[#555555] text-[0.75rem] opacity-60">
                 {accounts.length} account{accounts.length !== 1 ? 's' : ''} · $
                 {totalBalance.toLocaleString('en-US', {
                   minimumFractionDigits: 2,
@@ -69,13 +69,13 @@ export function CompactConnectedAccounts({
 
               <div className="content-stretch flex flex-col items-start px-[24px] pb-[16px] w-full">
                 <div className="mt-[12px] w-full flex flex-col gap-[4px]">
-                  <p className="font-['DM_Sans',sans-serif] font-semibold text-[#992929] text-[10px] tracking-[0.8px] uppercase">
+                  <p className="font-['DM_Sans',sans-serif] font-semibold text-[#992929] text-[0.625rem] tracking-[0.8px] uppercase">
                     CONNECTED ACCOUNTS
                   </p>
-                  <p className="font-['Crimson_Pro',sans-serif] text-[#555555] text-[20px] tracking-[-0.4px] mb-[4px]">
+                  <p className="font-['Crimson_Pro',sans-serif] text-[#555555] text-[1.25rem] tracking-[-0.4px] mb-[4px]">
                     Your integrated financial accounts
                   </p>
-                  <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[13px] opacity-60 mb-[8px]">
+                  <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[0.8125rem] opacity-60 mb-[8px]">
                     Securely synced from external institutions and automatically updated in one
                     place.
                   </p>

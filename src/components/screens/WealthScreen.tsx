@@ -232,7 +232,7 @@ export function WealthScreen({
                   summary: `${topPct}% in ${topClass.toLowerCase()}`,
                   fullContent: (
                     <div className="flex flex-col gap-[8px]">
-                      <p className="font-['DM_Sans',sans-serif] font-light leading-[1.5] text-[#555555] text-[14px] tracking-[-0.28px]">
+                      <p className="font-['DM_Sans',sans-serif] font-light leading-[1.5] text-[#555555] text-[0.875rem] tracking-[-0.28px]">
                         {topPct}% of your invested wealth is currently concentrated in {topClass.toLowerCase()}.{' '}
                         <span className="font-['DM_Sans',sans-serif]">
                           {topPct > 50
@@ -259,7 +259,7 @@ export function WealthScreen({
                   summary: 'Potential drawdown could exceed comfort range in correction',
                   fullContent: (
                     <div className="flex flex-col gap-[8px]">
-                      <p className="font-['DM_Sans',sans-serif] font-light leading-[1.5] text-[#555555] text-[14px] tracking-[-0.28px]">
+                      <p className="font-['DM_Sans',sans-serif] font-light leading-[1.5] text-[#555555] text-[0.875rem] tracking-[-0.28px]">
                         If markets experience a 15–20% correction, your portfolio drawdown
                         could exceed your comfort range.{' '}
                         <span className="font-['DM_Sans',sans-serif]">
@@ -313,10 +313,10 @@ export function WealthScreen({
                 <CalendarPlus className="size-[16px] text-[#992929]" strokeWidth={1.5} />
               </div>
               <div className="flex flex-col gap-[1px]">
-                <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] text-[14px]">
+                <p className="font-['DM_Sans',sans-serif] font-semibold text-[#555555] text-[0.875rem]">
                   Log a life event
                 </p>
-                <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[12px] opacity-60">
+                <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[0.75rem] opacity-60">
                   Get AI-powered goal suggestions
                 </p>
               </div>

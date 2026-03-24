@@ -15,10 +15,10 @@ export function ChatHeader({
   return (
     <div className="relative shrink-0 w-full">
       <div className="size-full">
-        <div className="content-stretch flex flex-col items-start px-[24px] py-0 relative w-full">
+        <div className="content-stretch flex flex-col items-start py-0 relative w-full" style={{ paddingLeft: 'var(--container-pad)', paddingRight: 'var(--container-pad)' }}>
           <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
             {/* Back Button */}
-            <button onClick={onBack} className="h-[20px] relative shrink-0 w-[64px] z-10">
+            <button onClick={onBack} className="min-h-[48px] h-[48px] relative shrink-0 w-[64px] z-10 flex items-center">
               <div className="absolute inset-0">
                 <svg
                   className="block size-full"
@@ -43,14 +43,14 @@ export function ChatHeader({
               {title === 'Ada' ? (
                 <AdaLogo className="w-[65px] h-[26px]" />
               ) : (
-                <p className="font-['rl-limo',sans-serif] text-[20px] text-[#441316] text-center">
+                <p className="font-['rl-limo',sans-serif] text-[1.25rem] text-[#441316] text-center">
                   {title}
                 </p>
               )}
             </div>
 
             {/* Spacer for layout balance */}
-            <div className="h-[20px] relative shrink-0 w-[64px]" />
+            <div className="h-[48px] relative shrink-0 w-[64px]" />
           </div>
         </div>
       </div>

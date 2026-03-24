@@ -48,15 +48,15 @@ function KeyMoverRow({ mover }: { mover: MorningSentinelKeyMover }) {
     <div className="flex items-center justify-between py-[8px]">
       <div className="flex items-center gap-[10px]">
         <div className="bg-[#f7f6f2] rounded-full size-[32px] flex items-center justify-center shrink-0">
-          <span className="font-['DM_Sans',sans-serif] font-semibold text-[10px] text-[#555555] tracking-[0.5px]">
+          <span className="font-['DM_Sans',sans-serif] font-semibold text-[0.625rem] text-[#555555] tracking-[0.5px]">
             {mover.symbol.slice(0, 3)}
           </span>
         </div>
         <div>
-          <p className="font-['DM_Sans',sans-serif] text-[13px] text-[#333333]">
+          <p className="font-['DM_Sans',sans-serif] text-[0.8125rem] text-[#333333]">
             {mover.name}
           </p>
-          <p className="font-['DM_Sans',sans-serif] text-[11px] text-[#888888]">
+          <p className="font-['DM_Sans',sans-serif] text-[0.6875rem] text-[#888888]">
             {mover.detail}
           </p>
         </div>
@@ -69,7 +69,7 @@ function KeyMoverRow({ mover }: { mover: MorningSentinelKeyMover }) {
             <path d="M4 8 L8 0 L0 0 Z" fill="currentColor" />
           )}
         </svg>
-        <span className="font-['DM_Sans',sans-serif] text-[11px]">
+        <span className="font-['DM_Sans',sans-serif] text-[0.6875rem]">
           {isUp ? 'Up' : 'Down'}
         </span>
       </div>
@@ -82,10 +82,10 @@ function RiskRow({ risk }: { risk: MorningSentinelRisk }) {
     <div className="flex gap-[10px] py-[6px]">
       <SeverityDot severity={risk.severity} />
       <div className="flex-1">
-        <p className="font-['DM_Sans',sans-serif] font-semibold text-[13px] text-[#333333]">
+        <p className="font-['DM_Sans',sans-serif] font-semibold text-[0.8125rem] text-[#333333]">
           {risk.title}
         </p>
-        <p className="font-['DM_Sans',sans-serif] text-[12px] text-[#777777] leading-[18px]">
+        <p className="font-['DM_Sans',sans-serif] text-[0.75rem] text-[#777777] leading-[18px]">
           {risk.description}
         </p>
       </div>
@@ -103,10 +103,10 @@ function ActionRow({
   return (
     <div className="flex items-start justify-between gap-[12px] py-[8px]">
       <div className="flex-1">
-        <p className="font-['DM_Sans',sans-serif] font-semibold text-[13px] text-[#333333]">
+        <p className="font-['DM_Sans',sans-serif] font-semibold text-[0.8125rem] text-[#333333]">
           {action.title}
         </p>
-        <p className="font-['DM_Sans',sans-serif] text-[12px] text-[#777777] leading-[18px]">
+        <p className="font-['DM_Sans',sans-serif] text-[0.75rem] text-[#777777] leading-[18px]">
           {action.description}
         </p>
       </div>
@@ -122,7 +122,7 @@ function ActionRow({
         className="bg-[#441316] shrink-0 flex items-center gap-[4px] px-[12px] py-[6px] rounded-full mt-[2px]"
       >
         <SparkIcon size={12} color="#d8d8d8" />
-        <span className="font-['DM_Sans',sans-serif] text-[11px] text-white whitespace-nowrap">
+        <span className="font-['DM_Sans',sans-serif] text-[0.6875rem] text-white whitespace-nowrap">
           {action.ctaText}
         </span>
       </button>
@@ -175,13 +175,13 @@ function StreamingSentinel({ metrics, text }: { metrics: Partial<MorningSentinel
         <div className="flex flex-col gap-[16px]">
           <div className="flex flex-col gap-[10px]">
             <div className="flex items-end justify-between w-full">
-              <div className="flex flex-col font-['DM_Sans',sans-serif] h-[7px] justify-center leading-[0] text-[#555555] text-[9px] w-[75px]">
+              <div className="flex flex-col font-['DM_Sans',sans-serif] h-[7px] justify-center leading-[0] text-[#555555] text-[0.5625rem] w-[75px]">
                 <p className="leading-[18px]">{hasMetrics ? `Updated ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` : ''}</p>
               </div>
-              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[#992929] text-[10px] text-center tracking-[0.8px] uppercase w-[138px]">
+              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[#992929] text-[0.625rem] text-center tracking-[0.8px] uppercase w-[138px]">
                 MORNING SENTINEL
               </p>
-              <p className="font-['DM_Sans',sans-serif] h-[17px] leading-[28px] text-[#555555] text-[9px] text-right w-[75px]">
+              <p className="font-['DM_Sans',sans-serif] h-[17px] leading-[28px] text-[#555555] text-[0.5625rem] text-right w-[75px]">
                 {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
             </div>
@@ -190,11 +190,11 @@ function StreamingSentinel({ metrics, text }: { metrics: Partial<MorningSentinel
 
           {hasMetrics && (
             <div className="flex flex-col gap-[12px]">
-              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[10px] tracking-[0.8px] uppercase">
+              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[0.625rem] tracking-[0.8px] uppercase">
                 Portfolio Value
               </p>
               <div className="flex items-end justify-between">
-                <p className="font-['Crimson_Pro',sans-serif] font-extralight leading-[28px] text-[#555555] text-[40px] tracking-[-1.2px]">
+                <p className="font-['Crimson_Pro',sans-serif] font-extralight leading-[28px] text-[#555555] text-[2.5rem] tracking-[-1.2px]">
                   {formatCurrency(metrics.portfolioValue!)}
                 </p>
                 <div className={`${isPositive ? 'bg-[#c6ff6a]' : 'bg-[#ffd4d4]'} flex gap-[6px] h-[24px] items-center justify-center px-[8px] py-[10px] rounded-[50px]`}>
@@ -207,7 +207,7 @@ function StreamingSentinel({ metrics, text }: { metrics: Partial<MorningSentinel
                       )}
                     </svg>
                   </div>
-                  <p className={`font-['DM_Sans',sans-serif] text-[12px] ${isPositive ? 'text-[#03561a]' : 'text-[#c0392b]'}`}>
+                  <p className={`font-['DM_Sans',sans-serif] text-[0.75rem] ${isPositive ? 'text-[#03561a]' : 'text-[#c0392b]'}`}>
                     {`${isPositive ? '+' : ''}${formatCurrency(metrics.dailyChangeAmount!)} (${isPositive ? '+' : ''}${metrics.dailyChangePercent}%) 1D`}
                   </p>
                 </div>
@@ -217,11 +217,11 @@ function StreamingSentinel({ metrics, text }: { metrics: Partial<MorningSentinel
 
           {text ? (
             <div className="flex flex-col gap-[8px]">
-              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[10px] tracking-[0.8px] uppercase">
+              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[0.625rem] tracking-[0.8px] uppercase">
                 Generating your briefing...
               </p>
               <div className="bg-[#f7f6f2] rounded-[16px] px-[16px] py-[12px] min-h-[60px]">
-                <p className="font-['DM_Sans',sans-serif] text-[12px] text-[#777777] leading-[18px] whitespace-pre-wrap">
+                <p className="font-['DM_Sans',sans-serif] text-[0.75rem] text-[#777777] leading-[18px] whitespace-pre-wrap">
                   {text}
                   <span className="inline-block w-[6px] h-[14px] bg-[#992929] ml-[2px] animate-pulse rounded-sm" />
                 </p>
@@ -264,12 +264,12 @@ export function MorningSentinelCard({
   if (isError || !data) {
     return (
       <div className="bg-white rounded-[30px] w-full p-[24px]">
-        <p className="font-['DM_Sans',sans-serif] text-[14px] text-[#555555] text-center">
+        <p className="font-['DM_Sans',sans-serif] text-[0.875rem] text-[#555555] text-center">
           Unable to generate your briefing right now.
         </p>
         <button
           onClick={onRetry}
-          className="mt-[12px] mx-auto block font-['DM_Sans',sans-serif] text-[13px] text-[#992929] underline"
+          className="mt-[12px] mx-auto block font-['DM_Sans',sans-serif] text-[0.8125rem] text-[#992929] underline"
         >
           Try again
         </button>
@@ -287,13 +287,13 @@ export function MorningSentinelCard({
         <div className="flex flex-col gap-[16px]">
           <div className="flex flex-col gap-[10px]">
             <div className="flex items-end justify-between w-full">
-              <div className="flex flex-col font-['DM_Sans',sans-serif] h-[7px] justify-center leading-[0] text-[#555555] text-[9px] w-[75px]">
+              <div className="flex flex-col font-['DM_Sans',sans-serif] h-[7px] justify-center leading-[0] text-[#555555] text-[0.5625rem] w-[75px]">
                 <p className="leading-[18px]">Updated {formatTime(data.generatedAt)}</p>
               </div>
-              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[#992929] text-[10px] text-center tracking-[0.8px] uppercase w-[138px]">
+              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[#992929] text-[0.625rem] text-center tracking-[0.8px] uppercase w-[138px]">
                 MORNING SENTINEL
               </p>
-              <p className="font-['DM_Sans',sans-serif] h-[17px] leading-[28px] text-[#555555] text-[9px] text-right w-[75px]">
+              <p className="font-['DM_Sans',sans-serif] h-[17px] leading-[28px] text-[#555555] text-[0.5625rem] text-right w-[75px]">
                 {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
             </div>
@@ -301,21 +301,21 @@ export function MorningSentinelCard({
           </div>
 
           <div className="text-center">
-            <p className="font-['Crimson_Pro',sans-serif] text-[18px] text-[#555555] tracking-[-0.36px] leading-normal">
+            <p className="font-['Crimson_Pro',sans-serif] text-[1.125rem] text-[#555555] tracking-[-0.36px] leading-normal">
               {data.headline}
             </p>
           </div>
 
-          <p className="font-['Crimson_Pro',sans-serif] text-[15px] text-[#555555] tracking-[-0.3px] leading-[22px] text-center opacity-70">
+          <p className="font-['Crimson_Pro',sans-serif] text-[0.9375rem] text-[#555555] tracking-[-0.3px] leading-[22px] text-center opacity-70">
             {data.overview}
           </p>
 
           <div className="flex flex-col gap-[12px]">
-            <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[10px] tracking-[0.8px] uppercase">
+            <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[0.625rem] tracking-[0.8px] uppercase">
               Portfolio Value
             </p>
             <div className="flex items-end justify-between">
-              <p className="font-['Crimson_Pro',sans-serif] font-extralight leading-[28px] text-[#555555] text-[40px] tracking-[-1.2px]">
+              <p className="font-['Crimson_Pro',sans-serif] font-extralight leading-[28px] text-[#555555] text-[2.5rem] tracking-[-1.2px]">
                 {formatCurrency(data.portfolioValue)}
               </p>
               <div className={`${isPositive ? 'bg-[#c6ff6a]' : 'bg-[#ffd4d4]'} flex gap-[6px] h-[24px] items-center justify-center px-[8px] py-[10px] rounded-[50px]`}>
@@ -328,7 +328,7 @@ export function MorningSentinelCard({
                     )}
                   </svg>
                 </div>
-                <p className={`font-['DM_Sans',sans-serif] text-[12px] ${isPositive ? 'text-[#03561a]' : 'text-[#c0392b]'}`}>
+                <p className={`font-['DM_Sans',sans-serif] text-[0.75rem] ${isPositive ? 'text-[#03561a]' : 'text-[#c0392b]'}`}>
                   {changeText}
                 </p>
               </div>
@@ -337,7 +337,7 @@ export function MorningSentinelCard({
 
           {data.keyMovers.length > 0 && (
             <div className="flex flex-col gap-[4px]">
-              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[10px] tracking-[0.8px] uppercase">
+              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[0.625rem] tracking-[0.8px] uppercase">
                 Key Movers
               </p>
               <div className="divide-y divide-[#f0efe9]">
@@ -350,7 +350,7 @@ export function MorningSentinelCard({
 
           {data.risks.length > 0 && (
             <div className="flex flex-col gap-[6px]">
-              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[10px] tracking-[0.8px] uppercase">
+              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[0.625rem] tracking-[0.8px] uppercase">
                 Flagged Risks
               </p>
               {data.risks.map((risk, i) => (
@@ -361,7 +361,7 @@ export function MorningSentinelCard({
 
           {data.actions.length > 0 && (
             <div className="flex flex-col gap-[4px]">
-              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[10px] tracking-[0.8px] uppercase">
+              <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[0.625rem] tracking-[0.8px] uppercase">
                 Suggested Actions
               </p>
               <div className="divide-y divide-[#f0efe9]">
@@ -374,7 +374,7 @@ export function MorningSentinelCard({
 
           {data.benchmarkNote && (
             <div className="bg-[#f7f6f2] rounded-[16px] px-[16px] py-[12px]">
-              <p className="font-['DM_Sans',sans-serif] text-[12px] text-[#777777] leading-[18px]">
+              <p className="font-['DM_Sans',sans-serif] text-[0.75rem] text-[#777777] leading-[18px]">
                 {data.benchmarkNote}
               </p>
             </div>
@@ -395,7 +395,7 @@ export function MorningSentinelCard({
               <div className="size-[24px] flex items-center justify-center">
                 <SparkIcon />
               </div>
-              <p className="font-['DM_Sans',sans-serif] text-white text-[12px] whitespace-nowrap">
+              <p className="font-['DM_Sans',sans-serif] text-white text-[0.75rem] whitespace-nowrap">
                 Dive deeper
               </p>
             </button>
@@ -411,7 +411,7 @@ export function MorningSentinelCard({
               className="relative flex h-[44px] items-center justify-center px-[14px] py-[10px] rounded-[50px]"
             >
               <div className="absolute border-[#d8d8d8] border-[0.75px] border-solid inset-0 pointer-events-none rounded-[50px]" />
-              <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[12px] whitespace-nowrap">
+              <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[0.75rem] whitespace-nowrap">
                 Weekly focus
               </p>
             </button>

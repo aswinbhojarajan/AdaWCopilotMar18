@@ -38,19 +38,19 @@ export function SourcesBadge({ sourcesCount }: SourcesBadgeProps) {
       <div className="flex items-center -space-x-[6px]">
         {/* Bloomberg logo */}
         <div className="size-[18px] rounded-full bg-[#0E9CFF] flex items-center justify-center border-[1.5px] border-white relative z-10">
-          <span className="font-['DM_Sans',sans-serif] font-bold text-white text-[9px] leading-none">
+          <span className="font-['DM_Sans',sans-serif] font-bold text-white text-[0.5625rem] leading-none">
             B
           </span>
         </div>
         {/* Financial Times logo */}
         <div className="size-[18px] rounded-full bg-[#FF6B9D] flex items-center justify-center border-[1.5px] border-white relative z-0">
-          <span className="font-['DM_Sans',sans-serif] font-bold text-white text-[6px] leading-none">
+          <span className="font-['DM_Sans',sans-serif] font-bold text-white text-[0.375rem] leading-none">
             FT
           </span>
         </div>
       </div>
       {/* Sources count text */}
-      <p className="font-['DM_Sans',sans-serif] text-[#999999] text-[11px] leading-normal">
+      <p className="font-['DM_Sans',sans-serif] text-[#999999] text-[0.6875rem] leading-normal">
         {sourcesCount} sources
       </p>
     </div>

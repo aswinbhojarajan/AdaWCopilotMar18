@@ -36,11 +36,11 @@ export function CompactHoldings({ holdings }: CompactHoldingsProps) {
             </div>
 
             <div className="flex-1 flex flex-col gap-[2px]">
-              <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[14px]">
+              <p className="font-['DM_Sans',sans-serif] font-semibold leading-[normal] not-italic text-[#555555] text-[0.875rem]">
                 Top Holdings
               </p>
               {!isExpanded && topHoldings.length > 0 && (
-                <p className="font-['DM_Sans',sans-serif] leading-[1.3] not-italic text-[#555555] text-[12px] opacity-60">
+                <p className="font-['DM_Sans',sans-serif] leading-[1.3] not-italic text-[#555555] text-[0.75rem] opacity-60">
                   {topHoldings.map((h) => h.symbol).join(', ')} · +
                   {topHoldings[0].changePercent.toFixed(1)}% avg
                 </p>
@@ -66,7 +66,7 @@ export function CompactHoldings({ holdings }: CompactHoldingsProps) {
 
               <div className="content-stretch flex flex-col items-start px-[24px] pb-[16px] w-full">
                 <div className="mt-[12px] w-full">
-                  <p className="font-['DM_Sans',sans-serif] font-semibold text-[#992929] text-[10px] tracking-[0.8px] uppercase mb-[8px]">
+                  <p className="font-['DM_Sans',sans-serif] font-semibold text-[#992929] text-[0.625rem] tracking-[0.8px] uppercase mb-[8px]">
                     YOUR TOP GAINERS THIS YEAR
                   </p>
                   <div className="content-stretch flex flex-col items-start relative shrink-0 w-full">

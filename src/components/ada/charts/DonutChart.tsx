@@ -94,12 +94,12 @@ export function DonutChart({
       {(centerLabel || centerValue) && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           {centerValue && (
-            <p className="font-['Crimson_Pro',sans-serif] font-extralight text-[#555555] tracking-[-0.48px] text-[24px]">
+            <p className="font-['Crimson_Pro',sans-serif] font-extralight text-[#555555] tracking-[-0.48px] text-[1.5rem]">
               {centerValue}
             </p>
           )}
           {centerLabel && (
-            <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[12px] opacity-60">
+            <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[0.75rem] opacity-60">
               {centerLabel}
             </p>
           )}

@@ -230,15 +230,15 @@ export default function App() {
   };
 
   return (
-    <div className="relative w-full min-h-screen bg-[#999999] flex items-center justify-center overflow-hidden">
+    <div className="relative w-full min-h-dvh bg-[#999999] flex items-center justify-center overflow-hidden">
       <div
-        className="relative w-full max-w-[430px] h-screen bg-[#efede6] shadow-2xl overflow-hidden"
+        className="relative w-full max-w-[430px] h-dvh bg-[#efede6] shadow-2xl overflow-hidden"
         style={{ isolation: 'isolate' } as React.CSSProperties}
       >
         <Suspense fallback={<div className="flex items-center justify-center h-full bg-[#efede6]" />}>
           {isTabView && (
             <div className="relative h-full w-full">
-              <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 pt-[16px] px-0 w-full z-10">
+              <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 px-0 w-full z-10 pt-safe">
                 <Header
                   onNotificationsClick={() => navigateTo('notifications')}
                   onClose={() => navigateTo('login')}

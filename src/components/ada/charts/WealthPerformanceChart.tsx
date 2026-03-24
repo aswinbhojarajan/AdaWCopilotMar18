@@ -91,7 +91,7 @@ export function WealthPerformanceChart({
         {(title || summaryMetric) && (
           <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
             {title && (
-              <p className="font-['rl-limo',sans-serif] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.2px] uppercase">
+              <p className="font-['rl-limo',sans-serif] not-italic relative shrink-0 text-[#992929] text-[0.625rem] tracking-[0.2px] uppercase">
                 {title}
               </p>
             )}
@@ -112,7 +112,7 @@ export function WealthPerformanceChart({
           className="content-stretch relative shrink-0 w-full flex items-center justify-center bg-[rgba(68,19,22,0.02)] rounded-[8px]"
           style={{ height: `${height}px` }}
         >
-          <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[12px] opacity-50">
+          <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[0.75rem] opacity-50">
             Loading chart data...
           </p>
         </div>
@@ -128,7 +128,7 @@ export function WealthPerformanceChart({
         {(title || summaryMetric) && (
           <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
             {title && (
-              <p className="font-['rl-limo',sans-serif] not-italic relative shrink-0 text-[#992929] text-[10px] tracking-[0.2px] uppercase">
+              <p className="font-['rl-limo',sans-serif] not-italic relative shrink-0 text-[#992929] text-[0.625rem] tracking-[0.2px] uppercase">
                 {title}
               </p>
             )}
@@ -149,7 +149,7 @@ export function WealthPerformanceChart({
           className="content-stretch relative shrink-0 w-full flex items-center justify-center bg-[rgba(68,19,22,0.02)] rounded-[8px]"
           style={{ height: `${height}px` }}
         >
-          <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[12px] opacity-50">
+          <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[0.75rem] opacity-50">
             Insufficient data for this time range
           </p>
         </div>
@@ -272,7 +272,7 @@ export function WealthPerformanceChart({
       {(title || summaryMetric) && (
         <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
           {title && (
-            <p className="font-['DM_Sans',sans-serif] font-semibold not-italic relative shrink-0 text-[rgba(85,85,85,0.8)] text-[10px] tracking-[0.8px] uppercase">
+            <p className="font-['DM_Sans',sans-serif] font-semibold not-italic relative shrink-0 text-[rgba(85,85,85,0.8)] text-[0.625rem] tracking-[0.8px] uppercase">
               {title}
             </p>
           )}
@@ -281,7 +281,7 @@ export function WealthPerformanceChart({
               className={`px-[8px] py-[4px] rounded-[50px] ${summaryMetric.isPositive ? 'bg-[#c6ff6a]' : 'bg-[#ffcccb]'}`}
             >
               <p
-                className={`font-['DM_Sans',sans-serif] font-semibold text-[12px] ${summaryMetric.isPositive ? 'text-[#03561a]' : 'text-[#992929]'}`}
+                className={`font-['DM_Sans',sans-serif] font-semibold text-[0.75rem] ${summaryMetric.isPositive ? 'text-[#03561a]' : 'text-[#992929]'}`}
               >
                 {summaryMetric.value}
               </p>
@@ -313,7 +313,7 @@ export function WealthPerformanceChart({
         {yAxisLabels.map((label, i) => (
           <p
             key={i}
-            className={`absolute left-0 font-['DM_Sans',sans-serif] text-[#555555] text-[9px] opacity-30 pointer-events-none ${
+            className={`absolute left-0 font-['DM_Sans',sans-serif] text-[#555555] text-[0.5625rem] opacity-30 pointer-events-none ${
               i === 0 ? '' : i === yAxisLabels.length - 1 ? '-translate-y-full' : '-translate-y-1/2'
             }`}
             style={{ top: `${label.top}px` }}
@@ -442,10 +442,10 @@ export function WealthPerformanceChart({
             }}
           >
             <div className="bg-[#a87174] rounded-[8px] px-[10px] py-[6px] shadow-lg">
-              <p className="font-['DM_Sans',sans-serif] font-semibold text-white text-[11px] leading-tight whitespace-nowrap">
+              <p className="font-['DM_Sans',sans-serif] font-semibold text-white text-[0.6875rem] leading-tight whitespace-nowrap">
                 {formatValue(displayedPoint.value)}
               </p>
-              <p className="font-['DM_Sans',sans-serif] text-white text-[9px] opacity-70 leading-tight whitespace-nowrap">
+              <p className="font-['DM_Sans',sans-serif] text-white text-[0.5625rem] opacity-70 leading-tight whitespace-nowrap">
                 {displayedPoint.label}
               </p>
             </div>
@@ -456,7 +456,7 @@ export function WealthPerformanceChart({
         {xAxisLabels.map((label, i) => (
           <p
             key={i}
-            className={`absolute bottom-0 font-['DM_Sans',sans-serif] text-[#555555] text-[10px] opacity-50 pointer-events-none ${
+            className={`absolute bottom-0 font-['DM_Sans',sans-serif] text-[#555555] text-[0.625rem] opacity-50 pointer-events-none ${
               i === 0 ? '' : i === xAxisLabels.length - 1 ? '-translate-x-full' : '-translate-x-1/2'
             }`}
             style={{ left: `${label.left}%` }}
@@ -468,7 +468,7 @@ export function WealthPerformanceChart({
         {/* Flat performance indicator */}
         {isFlat && (
           <div className="absolute top-[50%] left-[50%] transform -translate-x-1/2 -translate-y-1/2">
-            <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[10px] opacity-40">
+            <p className="font-['DM_Sans',sans-serif] text-[#555555] text-[0.625rem] opacity-40">
               Flat performance
             </p>
           </div>
