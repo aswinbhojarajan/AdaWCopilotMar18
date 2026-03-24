@@ -8,7 +8,7 @@ import * as intentClassifier from './intentClassifier';
 import * as ragService from './ragService';
 import * as memoryService from './memoryService';
 import * as piiDetector from './piiDetector';
-import { getCapabilitySummary } from './capabilityRegistry';
+import { getCapabilitySummary, getLaneConfig } from './capabilityRegistry';
 import * as contentRepo from '../repositories/contentRepository';
 import * as userRepo from '../repositories/userRepository';
 import * as agentRepo from '../repositories/agentRepository';
@@ -672,16 +672,19 @@ export async function* orchestrateStream(
     const llmStart = Date.now();
     yield* thinkingEvent(verbose, 'llm_generation', `Streaming response from ${modelSelection.model}...`);
 
-    const MAX_TOOL_TURNS = 3;
+    const laneNumber = route.lane === 'lane2' ? 2 : route.lane === 'lane1' ? 1 : 0;
+    const laneConfig = getLaneConfig(laneNumber);
+    const maxToolRounds = laneConfig?.toolRounds ?? 1;
+    const maxToolCallsPerRound = laneConfig?.maxToolCallsPerRound ?? 3;
     let currentMessages = [...messages];
     let turnCount = 0;
     let isLastTurn = false;
 
-    while (turnCount < MAX_TOOL_TURNS) {
+    while (turnCount < maxToolRounds + 1) {
       turnCount++;
 
       const skipTools = intent.primary_intent === 'other' || intent.primary_intent === 'support';
-      const useTools = tools.length > 0 && turnCount === 1 && !skipTools;
+      const useTools = tools.length > 0 && turnCount <= maxToolRounds && !skipTools;
 
       const createLLMStream = (attempt: number) => {
         const timeoutMs = attempt === 1 ? 15000 : 20000;
@@ -713,7 +716,7 @@ export async function* orchestrateStream(
                 tools: useTools ? tools : undefined,
                 stream: true,
                 max_completion_tokens: 4096,
-              }, { timeoutMs: 20000 });
+              }, { timeoutMs: 20000, providerAlias: 'ada-fast' });
             } catch (fallbackErr) {
               console.error('[Orchestrator] Lane 1 fallback also failed:', (fallbackErr as Error).message);
               throw fallbackErr;
@@ -767,6 +770,11 @@ export async function* orchestrateStream(
       if (toolCalls.length === 0) {
         isLastTurn = true;
         break;
+      }
+
+      if (toolCalls.length > maxToolCallsPerRound) {
+        console.log(`[Orchestrator] Capping tool calls from ${toolCalls.length} to ${maxToolCallsPerRound} (lane ${laneNumber})`);
+        toolCalls.length = maxToolCallsPerRound;
       }
 
       const assistantMsg: OpenAI.ChatCompletionAssistantMessageParam = {
