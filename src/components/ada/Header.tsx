@@ -14,7 +14,7 @@ export function Header({ onNotificationsClick, onClose }: HeaderProps = {}) {
   return (
     <div className="relative shrink-0 w-full">
       <div className="size-full">
-        <div className="content-stretch flex flex-col items-start py-0 relative w-full" style={{ paddingLeft: 'var(--container-pad)', paddingRight: 'var(--container-pad)' }}>
+        <div className="content-stretch flex flex-col items-start py-0 relative w-full px-[24px]">
           <div className="content-stretch flex items-center justify-between relative shrink-0 w-full">
             <div className="content-stretch flex items-center gap-[10px] relative shrink-0">
               <div className="flex items-center justify-center h-[28px] relative shrink-0 w-[66px]">
@@ -40,7 +40,7 @@ export function Header({ onNotificationsClick, onClose }: HeaderProps = {}) {
               )}
             </div>
 
-            <div className="flex items-center gap-[16px] shrink-0">
+            <div className="flex items-center shrink-0 -mr-[14px]">
               <button
                 onClick={onNotificationsClick}
                 className="relative w-[48px] h-[48px] cursor-pointer hover:opacity-70 transition-opacity z-10 flex items-center justify-center"
