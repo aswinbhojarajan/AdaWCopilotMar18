@@ -7,7 +7,7 @@ import * as portfolioService from '../services/portfolioService';
 import * as goalService from '../services/goalService';
 import * as morningSentinelService from '../services/morningSentinelService';
 import * as memoryService from '../services/memoryService';
-import * as intentClassifier from '../services/intentClassifier';
+
 import * as agentRepo from '../repositories/agentRepository';
 import { orchestrateStream } from '../services/agentOrchestrator';
 import type { ChatMessageRequest, PollVoteRequest, LifeEventType } from '../../shared/types';
@@ -404,22 +404,21 @@ async function processMessageSync(
 }
 
 async function finalizeSession(userId: string, threadId: string): Promise<void> {
-  const workingMem = memoryService.getWorkingMemory(threadId);
+  const workingMem = await memoryService.getWorkingMemory(threadId);
 
   if (workingMem.length >= 2) {
     try {
-      const conversationText = workingMem.map(t => t.content).join(' ');
-      const topics = intentClassifier.extractTopics(conversationText);
-      const summary = workingMem
-        .map(t => `${t.role}: ${t.content.slice(0, 100)}`)
-        .join(' | ');
-      await memoryService.saveEpisodicMemory(userId, threadId, summary, topics);
+      const episodic = await memoryService.generateEpisodicSummary(workingMem);
+      await memoryService.saveEpisodicMemory(
+        userId, threadId, episodic.summary, episodic.topics,
+        episodic.preferences, episodic.watchedEntities, episodic.unresolvedTopics,
+      );
     } catch {
       // episodic save is best-effort
     }
   }
 
-  memoryService.clearWorkingMemory(threadId);
+  await memoryService.clearWorkingMemory(threadId);
 
   await memoryService.logAudit({
     userId,

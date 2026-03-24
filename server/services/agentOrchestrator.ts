@@ -39,6 +39,33 @@ import type { StepTimings, TraceContext } from './traceLogger';
 import * as wealthEngine from './wealthEngine';
 import { routeToAdvisor } from './rmHandoffService';
 
+interface WorkingTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+async function summarizeEpisodicAsync(
+  userId: string,
+  threadId: string,
+  turns: WorkingTurn[],
+): Promise<void> {
+  try {
+    const episodic = await memoryService.generateEpisodicSummary(turns);
+    await memoryService.saveEpisodicMemory(
+      userId,
+      threadId,
+      episodic.summary,
+      episodic.topics,
+      episodic.preferences,
+      episodic.watchedEntities,
+      episodic.unresolvedTopics,
+    );
+    console.log('[Orchestrator] Episodic summary saved for thread=%s topics=%s', threadId, episodic.topics.join(','));
+  } catch (err) {
+    console.log('[Orchestrator] Episodic summarization failed (best-effort):', (err as Error).message);
+  }
+}
+
 function inferSuggestedTools(intent: IntentClassification['primary_intent'], message: string): string[] {
   const tools: string[] = [];
   const lower = message.toLowerCase();
@@ -391,7 +418,7 @@ async function* handleLane0(
 
   const fullResponse = narration;
   const widgetsJson = widgets.length > 0 ? JSON.stringify(widgets) : null;
-  memoryService.addToWorkingMemory(threadId, { role: 'assistant', content: fullResponse });
+  await memoryService.addToWorkingMemory(threadId, { role: 'assistant', content: fullResponse });
   await contentRepo.insertChatMessageWithWidgets(threadId, 'assistant', fullResponse, widgetsJson);
   await contentRepo.updateThreadPreview(threadId, fullResponse.slice(0, 100));
 
@@ -520,7 +547,7 @@ export async function* orchestrateStream(
 
   await contentRepo.ensureChatThread(userId, threadId, req.message.slice(0, 60));
   await contentRepo.insertChatMessage(threadId, 'user', req.message);
-  memoryService.addToWorkingMemory(threadId, { role: 'user', content: sanitizedMessage });
+  await memoryService.addToWorkingMemory(threadId, { role: 'user', content: sanitizedMessage });
 
   const ENTITY_KEYWORDS = ['tech', 'technology', 'healthcare', 'energy', 'financial', 'real estate', 'consumer',
     'industrial', 'telecom', 'utilities', 'materials', 'us ', 'europe', 'asia', 'gcc', 'emerging',
@@ -609,7 +636,7 @@ export async function* orchestrateStream(
     providerAlias: route.provider_alias,
   });
 
-  const conversationHistory = memoryService.getWorkingMemory(threadId);
+  const conversationHistory = await memoryService.getWorkingMemory(threadId);
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     ...conversationHistory,
@@ -1007,22 +1034,16 @@ export async function* orchestrateStream(
   }
 
   if (fullResponse) {
-    memoryService.addToWorkingMemory(threadId, { role: 'assistant', content: fullResponse });
+    await memoryService.addToWorkingMemory(threadId, { role: 'assistant', content: fullResponse });
     const widgetsJson = widgets.length > 0 ? JSON.stringify(widgets) : null;
     await contentRepo.insertChatMessageWithWidgets(threadId, 'assistant', fullResponse, widgetsJson);
     await contentRepo.updateThreadPreview(threadId, fullResponse.slice(0, 100));
   }
 
-  const workingMem = memoryService.getWorkingMemory(threadId);
-  if (workingMem.length >= 10) {
-    try {
-      const topics = intentClassifier.extractTopics(workingMem.map(t => t.content).join(' '));
-      const summary = workingMem.slice(0, 6).map(t => `${t.role}: ${t.content.slice(0, 80)}`).join(' | ');
-      await memoryService.saveEpisodicMemory(userId, threadId, summary, topics);
-    } catch {
-      // best-effort
-    }
-  }
-
   yield { type: 'done' };
+
+  const workingMem = await memoryService.getWorkingMemory(threadId);
+  if (workingMem.length >= 8) {
+    summarizeEpisodicAsync(userId, threadId, workingMem).catch(() => {});
+  }
 }

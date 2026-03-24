@@ -382,6 +382,25 @@ CREATE TABLE IF NOT EXISTS conversation_summaries (
   UNIQUE(conversation_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS working_memory (
+  thread_id TEXT PRIMARY KEY,
+  turns JSONB NOT NULL DEFAULT '[]',
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='episodic_memories' AND column_name='preferences') THEN
+    ALTER TABLE episodic_memories ADD COLUMN preferences TEXT[] NOT NULL DEFAULT '{}';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='episodic_memories' AND column_name='watched_entities') THEN
+    ALTER TABLE episodic_memories ADD COLUMN watched_entities TEXT[] NOT NULL DEFAULT '{}';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='episodic_memories' AND column_name='unresolved_topics') THEN
+    ALTER TABLE episodic_memories ADD COLUMN unresolved_topics TEXT[] NOT NULL DEFAULT '{}';
+  END IF;
+END $$;
+
 -- Add tenant_id to users (nullable for backward compatibility)
 DO $$
 BEGIN
