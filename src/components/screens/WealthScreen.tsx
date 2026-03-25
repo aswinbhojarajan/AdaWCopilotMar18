@@ -12,6 +12,7 @@ import {
   PullToRefresh,
   LifeGapCards,
   LifeEventModal,
+  ErrorBoundary,
 } from '../ada';
 import { Home, GraduationCap, AlertTriangle, TrendingDown, Wallet, Target, CalendarPlus } from 'lucide-react';
 import { SkeletonList } from '../ada/Skeleton';
@@ -65,19 +66,9 @@ export function WealthScreen({
   const lifeEventMutation = useLifeEventSuggestions();
   const createGoalMutation = useCreateGoal();
 
-  const loading =
-    overviewQuery.isLoading ||
-    allocationsQuery.isLoading ||
-    holdingsQuery.isLoading ||
-    goalsQuery.isLoading ||
-    accountsQuery.isLoading;
+  const loading = overviewQuery.isLoading;
 
-  const hasError =
-    overviewQuery.isError ||
-    allocationsQuery.isError ||
-    holdingsQuery.isError ||
-    goalsQuery.isError ||
-    accountsQuery.isError;
+  const hasError = overviewQuery.isError;
 
   const refetchAll = () => {
     overviewQuery.refetch();
@@ -204,7 +195,7 @@ export function WealthScreen({
   const topPct = insights?.topAllocationPercent ?? 0;
 
   return (
-    <>
+    <ErrorBoundary fallbackMessage="Unable to load your wealth dashboard. Please try again.">
       <PullToRefresh
         ref={pullToRefreshRef}
         onRefresh={async () => { await Promise.all([overviewQuery.refetch(), holdingsQuery.refetch(), allocationsQuery.refetch(), goalsQuery.refetch(), accountsQuery.refetch()]); }}
@@ -376,6 +367,6 @@ export function WealthScreen({
           setShouldScrollToGoal(true);
         }}
       />
-    </>
+    </ErrorBoundary>
   );
 }

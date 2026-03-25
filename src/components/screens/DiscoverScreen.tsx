@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tag, ContentCard, PullToRefresh } from '../ada';
+import { Tag, ContentCard, PullToRefresh, ErrorBoundary } from '../ada';
 import { SkeletonList } from '../ada/Skeleton';
 import { ErrorBanner } from '../ada/ErrorBanner';
 import { useDiscoverContent } from '../../hooks/useContent';
@@ -18,6 +18,7 @@ export function DiscoverScreen({
   const displayedContent = data ?? [];
 
   return (
+    <ErrorBoundary fallbackMessage="Unable to load content. Please try again.">
     <PullToRefresh
       onRefresh={async () => { await refetch(); }}
       className="h-full"
@@ -72,5 +73,6 @@ export function DiscoverScreen({
         </div>
       )}
     </PullToRefresh>
+    </ErrorBoundary>
   );
 }

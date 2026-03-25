@@ -220,10 +220,10 @@ function StreamingSentinel({ metrics, text }: { metrics: Partial<MorningSentinel
               <p className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] text-[rgba(85,85,85,0.8)] text-[0.625rem] tracking-[0.8px] uppercase">
                 Generating your briefing...
               </p>
-              <div className="bg-[#f7f6f2] rounded-[16px] px-[16px] py-[12px] min-h-[60px]">
-                <p className="font-['DM_Sans',sans-serif] text-[0.75rem] text-[#777777] leading-[18px] whitespace-pre-wrap">
-                  {text}
-                  <span className="inline-block w-[6px] h-[14px] bg-[#992929] ml-[2px] animate-pulse rounded-sm" />
+              <div className="bg-[#f7f6f2] rounded-[16px] px-[16px] py-[12px] min-h-[60px] flex items-center gap-[10px]">
+                <span className="inline-block w-[6px] h-[14px] bg-[#992929] animate-pulse rounded-sm shrink-0" />
+                <p className="font-['DM_Sans',sans-serif] text-[0.75rem] text-[#777777] leading-[18px]">
+                  Ada is analyzing your portfolio and market data...
                 </p>
               </div>
             </div>

@@ -221,10 +221,21 @@ function mapRowToContentItem(r: Record<string, unknown>): ContentItem {
   };
 }
 
+function parseDetailSections(raw: unknown): DiscoverContentItem['detailSections'] | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (!Array.isArray(parsed)) return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
 function mapRowToDiscoverItem(r: Record<string, unknown>): DiscoverContentItem {
   return {
     ...mapRowToContentItem(r),
-    detailSections: r.detail_sections ? (r.detail_sections as DiscoverContentItem['detailSections']) : undefined,
+    detailSections: parseDetailSections(r.detail_sections),
     stackButtons: r.stack_buttons ? Boolean(r.stack_buttons) : undefined,
     hideIntent: r.hide_intent ? Boolean(r.hide_intent) : undefined,
     customTopic: r.custom_topic ? String(r.custom_topic) : undefined,
