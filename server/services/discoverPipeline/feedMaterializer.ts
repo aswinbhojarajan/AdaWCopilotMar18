@@ -189,17 +189,32 @@ function getPrimaryTheme(card: CardRow): string {
   return tags?.themes?.[0] || 'general';
 }
 
+function extractTaxonomyThemes(taxonomyTags: Record<string, unknown>): string[] {
+  const themes: string[] = [];
+  const tags = taxonomyTags as {
+    asset_classes?: string[];
+    themes?: string[];
+    geographies?: string[];
+    wealth_topics?: string[];
+  };
+  if (tags.asset_classes) themes.push(...tags.asset_classes.map(t => t.toLowerCase()));
+  if (tags.themes) themes.push(...tags.themes.map(t => t.toLowerCase()));
+  if (tags.geographies) themes.push(...tags.geographies.map(t => t.toLowerCase()));
+  if (tags.wealth_topics) themes.push(...tags.wealth_topics.map(t => t.toLowerCase()));
+  return themes;
+}
+
 async function fetchEngagementSignals(userId?: string): Promise<{
-  tappedTags: Set<string>;
-  dismissedTags: Set<string>;
+  tappedThemes: Set<string>;
+  dismissedThemes: Set<string>;
 }> {
-  const tappedTags = new Set<string>();
-  const dismissedTags = new Set<string>();
-  if (!userId) return { tappedTags, dismissedTags };
+  const tappedThemes = new Set<string>();
+  const dismissedThemes = new Set<string>();
+  if (!userId) return { tappedThemes, dismissedThemes };
 
   try {
     const { rows: tapped } = await pool.query(
-      `SELECT DISTINCT dc.relevance_tags
+      `SELECT DISTINCT dc.taxonomy_tags
        FROM user_content_interactions uci
        JOIN discover_cards dc ON dc.id = uci.card_id
        WHERE uci.user_id = $1 AND uci.action IN ('cta_tap', 'click', 'expand')
@@ -208,12 +223,12 @@ async function fetchEngagementSignals(userId?: string): Promise<{
       [userId],
     );
     for (const row of tapped) {
-      const tags = Array.isArray(row.relevance_tags) ? row.relevance_tags : [];
-      for (const tag of tags) tappedTags.add(tag);
+      const raw = typeof row.taxonomy_tags === 'string' ? JSON.parse(row.taxonomy_tags) : row.taxonomy_tags || {};
+      for (const theme of extractTaxonomyThemes(raw)) tappedThemes.add(theme);
     }
 
     const { rows: dismissed } = await pool.query(
-      `SELECT DISTINCT dc.relevance_tags
+      `SELECT DISTINCT dc.taxonomy_tags
        FROM user_content_interactions uci
        JOIN discover_cards dc ON dc.id = uci.card_id
        WHERE uci.user_id = $1 AND uci.action = 'dismiss'
@@ -222,29 +237,29 @@ async function fetchEngagementSignals(userId?: string): Promise<{
       [userId],
     );
     for (const row of dismissed) {
-      const tags = Array.isArray(row.relevance_tags) ? row.relevance_tags : [];
-      for (const tag of tags) dismissedTags.add(tag);
+      const raw = typeof row.taxonomy_tags === 'string' ? JSON.parse(row.taxonomy_tags) : row.taxonomy_tags || {};
+      for (const theme of extractTaxonomyThemes(raw)) dismissedThemes.add(theme);
     }
   } catch {
   }
 
-  return { tappedTags, dismissedTags };
+  return { tappedThemes, dismissedThemes };
 }
 
 function applyEngagementRerank(
   scored: Array<{ card: CardRow; score: number }>,
-  signals: { tappedTags: Set<string>; dismissedTags: Set<string> },
+  signals: { tappedThemes: Set<string>; dismissedThemes: Set<string> },
 ): void {
-  if (signals.tappedTags.size === 0 && signals.dismissedTags.size === 0) return;
+  if (signals.tappedThemes.size === 0 && signals.dismissedThemes.size === 0) return;
 
   for (const entry of scored) {
-    const cardTags = entry.card.relevance_tags || [];
+    const cardThemes = extractTaxonomyThemes(entry.card.taxonomy_tags || {});
     let boost = 0;
     let penalty = 0;
 
-    for (const tag of cardTags) {
-      if (signals.tappedTags.has(tag)) boost++;
-      if (signals.dismissedTags.has(tag)) penalty++;
+    for (const theme of cardThemes) {
+      if (signals.tappedThemes.has(theme)) boost++;
+      if (signals.dismissedThemes.has(theme)) penalty++;
     }
 
     if (boost > 0) entry.score = Math.round(entry.score * (1 + 0.10 * Math.min(boost, 3)));
@@ -306,7 +321,7 @@ function applyGuardrailsWithEngagement(
   cards: CardRow[],
   countBand: { min: number; max: number },
   userProfile: UserProfileForScoring | null,
-  engagementSignals: { tappedTags: Set<string>; dismissedTags: Set<string> },
+  engagementSignals: { tappedThemes: Set<string>; dismissedThemes: Set<string> },
 ): CardRow[] {
   const scored = cards.map(c => ({ card: c, score: computeCardScore(c, userProfile) }));
   applyEngagementRerank(scored, engagementSignals);
@@ -460,7 +475,10 @@ async function materializeUserFeed(
   profile: UserProfileForScoring,
   allCards: CardRow[],
 ): Promise<void> {
-  const forYouCards = allCards.filter(c => c.tab === 'forYou' || c.tab === 'both');
+  const forYouCards = allCards.filter(c => {
+    if (c.card_type === 'milestone' && !c.id.includes(userId)) return false;
+    return c.tab === 'forYou' || c.tab === 'both';
+  });
   const whatsNewCards = allCards.filter(c => c.tab === 'whatsNew' || c.tab === 'both');
 
   const dismissedResult = await pool.query(
@@ -661,6 +679,27 @@ export async function runFeedMaterializer(): Promise<number> {
   } catch (err) {
     console.error('[FeedMaterializer] Fatal error:', (err as Error).message);
     return 0;
+  }
+}
+
+export async function runFeedMaterializerForUser(userId: string): Promise<void> {
+  console.log(`[FeedMaterializer] Materializing feed for single user ${userId}...`);
+  try {
+    const profile = await getUserProfileForScoring(userId);
+    if (!profile) {
+      console.warn(`[FeedMaterializer] No profile found for user ${userId}, skipping`);
+      return;
+    }
+
+    const { rows: allCards } = await pool.query(
+      `SELECT id, card_type, tab, confidence, source_count, relevance_tags, taxonomy_tags, is_editorial, created_at
+       FROM discover_cards WHERE is_active = TRUE ORDER BY created_at DESC`,
+    );
+
+    await materializeUserFeed(userId, profile, allCards as CardRow[]);
+    console.log(`[FeedMaterializer] Single-user feed materialized for ${userId}`);
+  } catch (err) {
+    console.error(`[FeedMaterializer] Single-user materialization error for ${userId}: ${(err as Error).message}`);
   }
 }
 

@@ -8,7 +8,7 @@ import { runEventCalendar } from './eventCalendarWorker';
 import { runMorningBriefing } from './morningBriefingWorker';
 import { runMilestoneDetection } from './milestoneWorker';
 import { runExpiryEnforcement } from './expiryWorker';
-import { runFeedMaterializer } from './feedMaterializer';
+import { runFeedMaterializer, runFeedMaterializerForUser } from './feedMaterializer';
 import { computeUserProfileGaps } from './userProfileEnricher';
 
 const INGEST_INTERVAL_MS = 10 * 60 * 1000;
@@ -219,6 +219,7 @@ async function migrateCardTypeConstraint(): Promise<void> {
 export async function getDiscoverPipelineHealth(): Promise<{
   isRunning: boolean;
   lastRunTimes: Record<string, string | null>;
+  pipelineLag: Record<string, number | null>;
   cardStats: {
     total_active: number;
     by_type: Record<string, number>;
@@ -227,6 +228,11 @@ export async function getDiscoverPipelineHealth(): Promise<{
     confidence_distribution: Record<string, number>;
     oldest_active_hours: number;
     newest_active_hours: number;
+  } | null;
+  feedFreshness: {
+    total_user_feeds: number;
+    median_age_hours: number;
+    oldest_feed_hours: number;
   } | null;
   articleStats: { total: number; last_24h: number } | null;
   clusterStats: { total: number; unsynthesized: number } | null;
@@ -292,21 +298,54 @@ export async function getDiscoverPipelineHealth(): Promise<{
   } catch {
   }
 
+  let feedFreshness = null;
+  try {
+    const { rows: feedRows } = await pool.query(
+      `SELECT COUNT(DISTINCT user_id) as total_feeds,
+              COALESCE(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600), 0) as median_age_h,
+              COALESCE(MAX(EXTRACT(EPOCH FROM (NOW() - created_at)) / 3600), 0) as oldest_feed_h
+       FROM user_discover_feed`,
+    );
+    const ff = feedRows[0];
+    feedFreshness = {
+      total_user_feeds: Number(ff?.total_feeds) || 0,
+      median_age_hours: Math.round((Number(ff?.median_age_h) || 0) * 10) / 10,
+      oldest_feed_hours: Math.round((Number(ff?.oldest_feed_h) || 0) * 10) / 10,
+    };
+  } catch {
+  }
+
+  const now = Date.now();
+  const pipelineLag: Record<string, number | null> = {};
+  for (const [stage, lastRun] of Object.entries(lastRunTimes)) {
+    if (lastRun) {
+      pipelineLag[stage] = Math.round((now - lastRun.getTime()) / 60000);
+    } else {
+      pipelineLag[stage] = null;
+    }
+  }
+
   return {
     isRunning,
     lastRunTimes: Object.fromEntries(
       Object.entries(lastRunTimes).map(([k, v]) => [k, v?.toISOString() ?? null]),
     ),
+    pipelineLag,
     cardStats,
+    feedFreshness,
     articleStats,
     clusterStats,
   };
 }
 
-export async function triggerEventDrivenRefresh(): Promise<void> {
-  console.log('[DiscoverPipeline] Event-driven refresh triggered');
+export async function triggerEventDrivenRefresh(userId?: string): Promise<void> {
+  console.log(`[DiscoverPipeline] Event-driven refresh triggered${userId ? ` for user ${userId}` : ''}`);
   try {
-    await runFeedMaterializer();
+    if (userId) {
+      await runFeedMaterializerForUser(userId);
+    } else {
+      await runFeedMaterializer();
+    }
     lastRunTimes.materialization = new Date();
   } catch (err) {
     console.error('[DiscoverPipeline] Event-driven refresh error:', (err as Error).message);

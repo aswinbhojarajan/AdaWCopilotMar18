@@ -168,7 +168,7 @@ router.post('/wealth/goals', asyncHandler(async (req, res) => {
     color: color || '#a87174',
   });
   res.status(201).json(goal);
-  triggerEventDrivenRefresh().catch(err => {
+  triggerEventDrivenRefresh(userId).catch(err => {
     console.error(`[EventRefresh] Failed: ${(err as Error).message}`);
   });
 }));
@@ -188,7 +188,7 @@ router.post('/wealth/accounts', asyncHandler(async (req, res) => {
   }
   const account = await portfolioRepo.createAccount(userId, institutionName, accountType);
   res.status(201).json(account);
-  triggerEventDrivenRefresh().catch(err => {
+  triggerEventDrivenRefresh(userId).catch(err => {
     console.error(`[EventRefresh] Failed: ${(err as Error).message}`);
   });
 }));
