@@ -467,11 +467,22 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   target_alternatives_pct NUMERIC(5,2) NOT NULL DEFAULT 10,
   target_cash_pct NUMERIC(5,2) NOT NULL DEFAULT 10,
   target_real_estate_pct NUMERIC(5,2) NOT NULL DEFAULT 5,
+  risk_tolerance TEXT NOT NULL DEFAULT 'moderate' CHECK (risk_tolerance IN ('conservative', 'moderate', 'aggressive')),
+  interests TEXT[] NOT NULL DEFAULT '{}',
   top_asset_classes JSONB NOT NULL DEFAULT '[]',
   allocation_gaps JSONB NOT NULL DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_profiles' AND column_name='risk_tolerance') THEN
+    ALTER TABLE user_profiles ADD COLUMN risk_tolerance TEXT NOT NULL DEFAULT 'moderate' CHECK (risk_tolerance IN ('conservative', 'moderate', 'aggressive'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_profiles' AND column_name='interests') THEN
+    ALTER TABLE user_profiles ADD COLUMN interests TEXT[] NOT NULL DEFAULT '{}';
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS raw_articles (
   id SERIAL PRIMARY KEY,

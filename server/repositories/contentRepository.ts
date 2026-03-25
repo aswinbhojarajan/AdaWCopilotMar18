@@ -78,17 +78,12 @@ async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: num
     ? `AND (tab = 'whatsNew' OR tab = 'both')`
     : '';
 
-  const cursorFilter = cursor ? `AND created_at < $1` : '';
-  const params: (string | number)[] = [];
-  if (cursor) {
-    params.push(cursor);
-  }
-  params.push(Math.min(limit, 20));
+  const cursorOffset = cursor ? parseInt(cursor, 10) : 0;
+  const safeOffset = Number.isFinite(cursorOffset) && cursorOffset >= 0 ? cursorOffset : 0;
+  const safeLimit = Math.min(limit, 20);
 
   const isForYou = tab === 'forYou';
-  const fetchLimit = isForYou && userId ? Math.min(limit * 3, 20) : limit;
-  const fetchParams = [...params];
-  fetchParams[fetchParams.length - 1] = fetchLimit;
+  const fetchLimit = isForYou && userId ? Math.min(safeLimit * 3, 20) : safeLimit;
 
   const { rows } = await pool.query(
     `SELECT id, card_type, tab, title, summary, detail_sections, supporting_articles,
@@ -96,10 +91,10 @@ async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: num
             confidence, taxonomy_tags, ctas, why_you_are_seeing_this,
             is_editorial, priority_score, feed_position, created_at, updated_at
      FROM discover_cards
-     WHERE is_active = TRUE ${tabFilter} ${cursorFilter}
+     WHERE is_active = TRUE ${tabFilter}
      ORDER BY priority_score DESC, feed_position ASC NULLS LAST, created_at DESC
-     LIMIT $${fetchParams.length}`,
-    fetchParams,
+     OFFSET $1 LIMIT $2`,
+    [safeOffset, fetchLimit],
   );
 
   let sortedRows = rows;

@@ -644,17 +644,20 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================
 INSERT INTO user_profiles (user_id, geo_focus, investment_horizon, income_preference, aum_tier,
   target_equities_pct, target_fixed_income_pct, target_alternatives_pct, target_cash_pct, target_real_estate_pct,
-  top_asset_classes, allocation_gaps) VALUES
-  ('user-aisha', 'UAE', 'medium', 'balanced', 'mass_affluent',
+  risk_tolerance, interests, top_asset_classes, allocation_gaps) VALUES
+  ('user-aisha', 'UAE/GCC', 'medium', 'balanced', 'mass_affluent',
    50, 25, 10, 10, 5,
+   'moderate', ARRAY['equities', 'crypto', 'ai_tech', 'gcc_markets'],
    '["Equities", "Fixed Income", "Crypto"]',
    '{"equities": -5.2, "fixed_income": -10.3, "alternatives": 2.1, "cash": 10.2, "real_estate": 0}'),
-  ('user-khalid', 'Saudi Arabia', 'long', 'income', 'hnw',
+  ('user-khalid', 'Saudi Arabia/GCC', 'long', 'income', 'hnw',
    20, 45, 10, 20, 5,
+   'conservative', ARRAY['fixed_income', 'commodities', 'gcc_markets', 'esg'],
    '["Fixed Income", "Equities", "Gold"]',
    '{"equities": -3.5, "fixed_income": -6.8, "alternatives": 1.2, "cash": 8.5, "real_estate": 0}'),
-  ('user-raj', 'India', 'short', 'growth', 'affluent',
+  ('user-raj', 'India/Global', 'short', 'growth', 'affluent',
    65, 5, 15, 10, 5,
+   'aggressive', ARRAY['equities', 'ai_tech', 'crypto', 'macro'],
    '["Equities", "Crypto", "ETFs"]',
    '{"equities": 8.3, "fixed_income": -4.2, "alternatives": 12.5, "cash": -5.8, "real_estate": -5.0}')
 ON CONFLICT (user_id) DO UPDATE SET
@@ -667,6 +670,8 @@ ON CONFLICT (user_id) DO UPDATE SET
   target_alternatives_pct = EXCLUDED.target_alternatives_pct,
   target_cash_pct = EXCLUDED.target_cash_pct,
   target_real_estate_pct = EXCLUDED.target_real_estate_pct,
+  risk_tolerance = EXCLUDED.risk_tolerance,
+  interests = EXCLUDED.interests,
   top_asset_classes = EXCLUDED.top_asset_classes,
   allocation_gaps = EXCLUDED.allocation_gaps,
   updated_at = NOW();

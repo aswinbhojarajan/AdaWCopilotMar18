@@ -279,7 +279,7 @@ export async function getUserProfileForScoring(userId: string): Promise<UserProf
       allocation_gaps: typeof p.allocation_gaps === 'string' ? JSON.parse(p.allocation_gaps) : p.allocation_gaps || {},
       top_asset_classes: typeof p.top_asset_classes === 'string' ? JSON.parse(p.top_asset_classes) : p.top_asset_classes || [],
       risk_tolerance: p.risk_tolerance || 'moderate',
-      interests: typeof p.interests === 'string' ? JSON.parse(p.interests) : p.interests || [],
+      interests: Array.isArray(p.interests) ? p.interests : typeof p.interests === 'string' ? JSON.parse(p.interests) : [],
     };
   } catch {
     return null;

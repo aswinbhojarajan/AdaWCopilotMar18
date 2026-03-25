@@ -7,6 +7,7 @@ import * as portfolioService from '../services/portfolioService';
 import * as goalService from '../services/goalService';
 import * as morningSentinelService from '../services/morningSentinelService';
 import * as memoryService from '../services/memoryService';
+import { runFeedMaterializer } from '../services/discoverPipeline/feedMaterializer';
 
 import * as agentRepo from '../repositories/agentRepository';
 import { orchestrateStream } from '../services/agentOrchestrator';
@@ -310,12 +311,18 @@ router.get('/content/discover', asyncHandler(async (req, res) => {
   const usePagination = cursor !== undefined || limit !== undefined;
   const items = await contentRepo.getDiscoverContent(tab, cursor, limit, userId);
   if (usePagination) {
-    const lastItem = items[items.length - 1];
-    const nextCursor = lastItem ? (lastItem as unknown as { createdAt?: string }).createdAt : undefined;
+    const offset = cursor ? parseInt(cursor, 10) : 0;
+    const safeOffset = Number.isFinite(offset) && offset >= 0 ? offset : 0;
+    const nextCursor = items.length > 0 ? String(safeOffset + items.length) : undefined;
     res.json({ items, nextCursor });
   } else {
     res.json(items);
   }
+}));
+
+router.post('/content/discover/refresh', asyncHandler(async (_req, res) => {
+  const materialized = await runFeedMaterializer();
+  res.json({ ok: true, materialized });
 }));
 
 router.get('/polls', asyncHandler(async (req, res) => {

@@ -63,7 +63,10 @@ export function DiscoverScreen({
   return (
     <ErrorBoundary fallbackMessage="Unable to load content. Please try again.">
     <PullToRefresh
-      onRefresh={async () => { await refetch(); }}
+      onRefresh={async () => {
+        try { await fetch('/api/content/discover/refresh', { method: 'POST' }); } catch {}
+        await refetch();
+      }}
       className="h-full"
     >
       {isLoading && !data ? (
