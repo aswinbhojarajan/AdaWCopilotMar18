@@ -134,7 +134,11 @@ function computeWeightedScore(card: CardRow, profile: UserProfileForScoring, wei
   } else {
     if (card.card_type === 'portfolio_impact') suitability = 80;
     else if (card.card_type === 'allocation_gap') suitability = 70;
+    else if (card.card_type === 'product_opportunity') suitability = 65;
   }
+
+  if (card.card_type === 'morning_briefing') suitability = Math.max(suitability, 85);
+  if (card.card_type === 'milestone') suitability = Math.max(suitability, 90);
 
   let geoScore = 30;
   const userGeoTokens = (profile.geo_focus || '').split('/').map(g => g.trim());
@@ -185,6 +189,71 @@ function getPrimaryTheme(card: CardRow): string {
   return tags?.themes?.[0] || 'general';
 }
 
+async function fetchEngagementSignals(userId?: string): Promise<{
+  tappedTags: Set<string>;
+  dismissedTags: Set<string>;
+}> {
+  const tappedTags = new Set<string>();
+  const dismissedTags = new Set<string>();
+  if (!userId) return { tappedTags, dismissedTags };
+
+  try {
+    const { rows: tapped } = await pool.query(
+      `SELECT DISTINCT dc.relevance_tags
+       FROM user_content_interactions uci
+       JOIN discover_cards dc ON dc.id = uci.card_id
+       WHERE uci.user_id = $1 AND uci.action IN ('cta_tap', 'click', 'expand')
+         AND uci.created_at > NOW() - INTERVAL '14 days'
+       LIMIT 50`,
+      [userId],
+    );
+    for (const row of tapped) {
+      const tags = Array.isArray(row.relevance_tags) ? row.relevance_tags : [];
+      for (const tag of tags) tappedTags.add(tag);
+    }
+
+    const { rows: dismissed } = await pool.query(
+      `SELECT DISTINCT dc.relevance_tags
+       FROM user_content_interactions uci
+       JOIN discover_cards dc ON dc.id = uci.card_id
+       WHERE uci.user_id = $1 AND uci.action = 'dismiss'
+         AND uci.created_at > NOW() - INTERVAL '14 days'
+       LIMIT 50`,
+      [userId],
+    );
+    for (const row of dismissed) {
+      const tags = Array.isArray(row.relevance_tags) ? row.relevance_tags : [];
+      for (const tag of tags) dismissedTags.add(tag);
+    }
+  } catch {
+  }
+
+  return { tappedTags, dismissedTags };
+}
+
+function applyEngagementRerank(
+  scored: Array<{ card: CardRow; score: number }>,
+  signals: { tappedTags: Set<string>; dismissedTags: Set<string> },
+): void {
+  if (signals.tappedTags.size === 0 && signals.dismissedTags.size === 0) return;
+
+  for (const entry of scored) {
+    const cardTags = entry.card.relevance_tags || [];
+    let boost = 0;
+    let penalty = 0;
+
+    for (const tag of cardTags) {
+      if (signals.tappedTags.has(tag)) boost++;
+      if (signals.dismissedTags.has(tag)) penalty++;
+    }
+
+    if (boost > 0) entry.score = Math.round(entry.score * (1 + 0.10 * Math.min(boost, 3)));
+    if (penalty > 0) entry.score = Math.round(entry.score * (1 - 0.20 * Math.min(penalty, 2)));
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+}
+
 function applyGuardrails(cards: CardRow[], countBand: { min: number; max: number }, userProfile?: UserProfileForScoring | null): CardRow[] {
   const scored = cards.map(c => ({ card: c, score: computeCardScore(c, userProfile) }));
   scored.sort((a, b) => b.score - a.score);
@@ -208,6 +277,54 @@ function applyGuardrails(cards: CardRow[], countBand: { min: number; max: number
     assetClassCounts[assetClass] = (assetClassCounts[assetClass] || 0) + 1;
     themeCounts[theme] = (themeCounts[theme] || 0) + 1;
     cardTypesIncluded.add(card.card_type);
+    if (hasGCCRelevance(card)) gccCount++;
+  }
+
+  if (gccCount < MIN_GCC_CARDS) {
+    const gccCards = scored.filter(s => hasGCCRelevance(s.card) && !result.includes(s.card));
+    for (const { card } of gccCards.slice(0, MIN_GCC_CARDS - gccCount)) {
+      const insertPos = Math.min(4, result.length);
+      if (result.length >= countBand.max) {
+        result.splice(insertPos, 1, card);
+      } else {
+        result.splice(insertPos, 0, card);
+      }
+      gccCount++;
+    }
+  }
+
+  while (result.length < countBand.min && scored.length > result.length) {
+    const next = scored.find(s => !result.includes(s.card));
+    if (!next) break;
+    result.push(next.card);
+  }
+
+  return result.slice(0, countBand.max);
+}
+
+function applyGuardrailsWithEngagement(
+  cards: CardRow[],
+  countBand: { min: number; max: number },
+  userProfile: UserProfileForScoring | null,
+  engagementSignals: { tappedTags: Set<string>; dismissedTags: Set<string> },
+): CardRow[] {
+  const scored = cards.map(c => ({ card: c, score: computeCardScore(c, userProfile) }));
+  applyEngagementRerank(scored, engagementSignals);
+
+  const result: CardRow[] = [];
+  const assetClassCounts: Record<string, number> = {};
+  const themeCounts: Record<string, number> = {};
+  let gccCount = 0;
+
+  for (const { card } of scored) {
+    if (result.length >= countBand.max) break;
+    const assetClass = getPrimaryAssetClass(card);
+    const theme = getPrimaryTheme(card);
+    if ((assetClassCounts[assetClass] || 0) >= MAX_PER_ASSET_CLASS) continue;
+    if (result.length < 5 && (themeCounts[theme] || 0) >= MAX_PER_THEME_IN_TOP5) continue;
+    result.push(card);
+    assetClassCounts[assetClass] = (assetClassCounts[assetClass] || 0) + 1;
+    themeCounts[theme] = (themeCounts[theme] || 0) + 1;
     if (hasGCCRelevance(card)) gccCount++;
   }
 
@@ -355,7 +472,15 @@ async function materializeUserFeed(
   const filteredForYou = forYouCards.filter(c => !dismissedIds.has(c.id));
   const filteredWhatsNew = whatsNewCards.filter(c => !dismissedIds.has(c.id));
 
-  const rankedForYou = applyGuardrails(filteredForYou, FOR_YOU_COUNT, profile);
+  const morningBriefingCard = filteredForYou.find(c => c.card_type === 'morning_briefing');
+  const nonBriefingForYou = filteredForYou.filter(c => c.card_type !== 'morning_briefing');
+
+  const engagementSignals = await fetchEngagementSignals(userId);
+  const rankedRemainder = applyGuardrailsWithEngagement(nonBriefingForYou, FOR_YOU_COUNT, profile, engagementSignals);
+
+  const rankedForYou = morningBriefingCard
+    ? [morningBriefingCard, ...rankedRemainder.slice(0, FOR_YOU_COUNT.max - 1)]
+    : rankedRemainder;
   const rankedWhatsNew = applyGuardrails(filteredWhatsNew, WHATS_NEW_COUNT);
 
   const overlays = await generatePersonalizedOverlays(rankedForYou, profile);

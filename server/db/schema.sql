@@ -555,7 +555,8 @@ CREATE TABLE IF NOT EXISTS discover_cards (
   card_type TEXT NOT NULL CHECK (card_type IN (
     'portfolio_impact', 'trend_brief', 'market_pulse',
     'explainer', 'wealth_planning', 'allocation_gap',
-    'event_calendar', 'ada_view', 'product_opportunity'
+    'event_calendar', 'ada_view', 'product_opportunity',
+    'morning_briefing', 'milestone'
   )),
   tab TEXT NOT NULL DEFAULT 'whatsNew' CHECK (tab IN ('forYou', 'whatsNew', 'both')),
   title TEXT NOT NULL,

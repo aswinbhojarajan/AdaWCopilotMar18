@@ -307,6 +307,8 @@ function mapCardTypeToCategoryType(cardType: string): string {
     case 'event_calendar': return 'NEWS';
     case 'ada_view': return 'INSIGHT';
     case 'product_opportunity': return 'MARKET OPPORTUNITY INSIGHT';
+    case 'morning_briefing': return 'INSIGHT';
+    case 'milestone': return 'ACTION ITEM';
     default: return 'NEWS';
   }
 }
@@ -320,6 +322,9 @@ function mapCardTypeToColor(cardType: string): string {
     case 'explainer': return '#555555';
     case 'wealth_planning': return '#059669';
     case 'ada_view': return '#992929';
+    case 'product_opportunity': return '#059669';
+    case 'morning_briefing': return '#992929';
+    case 'milestone': return '#d97706';
     default: return '#992929';
   }
 }

@@ -37,10 +37,10 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **Ada View** (Phase 2): Weekly editorial synthesis from top discover cards. LLM generates "Ada's View" card tying week's themes together. Runs every 6 hours, deduplicates via 5-day window. File: `adaViewWorker.ts`.
 - **Event Calendar** (Phase 2): Fetches Finnhub earnings calendar, filters for user holdings + major GCC-relevant symbols, groups by week, creates event_calendar cards. Highlights portfolio holdings with ★ marker. File: `eventCalendarWorker.ts`.
 - **Materialize**: Deactivates expired and low-confidence cards, maintains feed health. Phase 2 adds per-user feed materialization with weighted scoring (30% portfolio relevance, 20% allocation gap, 15% suitability, 10% geo, 10% importance, 10% freshness, 5% novelty) and LLM personalized overlays for top-3 For You cards.
-- **Card Types**: portfolio_impact, trend_brief, market_pulse, explainer, wealth_planning, allocation_gap, event_calendar, ada_view, product_opportunity.
-- **Pipeline Files**: `server/services/discoverPipeline/` — ingestWorker.ts, enrichmentWorker.ts, clusteringWorker.ts, synthesisWorker.ts, adaViewWorker.ts, eventCalendarWorker.ts, feedMaterializer.ts, userProfileEnricher.ts, index.ts.
-- **Pipeline Timers**: Ingest: 10min, Cluster+Synth: 15min, Materialize: 60min, Editorial (Ada View + Event Calendar): 6hr.
-- **Health Endpoint**: `GET /api/pipeline/health` — returns pipeline status and last run times.
+- **Card Types**: portfolio_impact, trend_brief, market_pulse, explainer, wealth_planning, allocation_gap, event_calendar, ada_view, product_opportunity, morning_briefing, milestone.
+- **Pipeline Files**: `server/services/discoverPipeline/` — ingestWorker.ts, enrichmentWorker.ts, clusteringWorker.ts, synthesisWorker.ts, adaViewWorker.ts, eventCalendarWorker.ts, morningBriefingWorker.ts, milestoneWorker.ts, expiryWorker.ts, feedMaterializer.ts, userProfileEnricher.ts, index.ts.
+- **Pipeline Timers**: Ingest: 10min, Cluster+Synth: 15min, Materialize: 60min, Editorial (Ada View + Event Calendar): 6hr, Expiry: 4hr, Morning/Milestone: 6hr.
+- **Health Endpoint**: `GET /api/discover/health` — returns pipeline status, last run times, card stats (by type, tab, confidence), article and cluster stats.
 - **Discover Tab**: Two sub-tabs: "For You" (personalized, scored) and "What's New" (chronological). Reads from `user_discover_feed` cache first, falls back to live query.
 - **UI Enhancements**: ContentCard supports `whyYouAreSeeingThis`, expandable `supportingArticles`, `intentBadge`, `cardType`, `freshnessLabel`, `isNew` badge, `personalizedOverlay`, dismiss/feedback flow, enriched chat context handoff.
 
@@ -56,6 +56,15 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **Enriched Chat Context**: CTA taps pass `DiscoverCardContext` (card_id, card_type, card_summary, why_seen, entities, evidence_facts, cta_family) to chat. promptBuilder incorporates card context including evidence facts into system prompt.
 - **New Tables**: `user_segments`, `user_discover_feed`, `user_content_interactions`, `user_discover_visits`.
 - **New Files**: `adaViewWorker.ts`, `eventCalendarWorker.ts`, `userProfileEnricher.ts`.
+
+**Discover Phase 3 — Scale, Engagement & Premium Features:**
+- **Product Opportunity Cards**: Editorial seed cards for investment products (sukuk, PE co-investments) with Screen/Advisor CTA families and suitability metadata. card_type: `product_opportunity`.
+- **Engagement Re-ranking**: After deterministic scoring, engagement signals from user interactions (last 14 days) adjust card scores: +10% boost per shared tag with tapped/clicked cards, -20% penalty per shared tag with dismissed cards. Capped at 3 boosts and 2 penalties.
+- **Morning Briefing Card**: Daily LLM-synthesized morning brief from overnight discover cards. Positioned at #1 in For You feed with priority 95. Auto-deactivates previous briefings. 16-hour expiry. File: `morningBriefingWorker.ts`.
+- **Milestone Cards**: Monitors portfolio snapshots for value threshold crossings ($25K–$1M) and strong daily performance (>2%). Generates celebratory cards with Review/Advisor CTAs. Prevents duplicate milestones via card ID convention. File: `milestoneWorker.ts`.
+- **Event-Driven Refresh**: Portfolio-mutating endpoints (create goal, create account) trigger immediate feed materialization bypass of hourly schedule. Fire-and-forget via `triggerEventDrivenRefresh()`.
+- **Pipeline Health Endpoint**: `GET /api/discover/health` — comprehensive stats: card counts by type/tab/confidence, average source count, feed freshness, article and cluster pipeline stats.
+- **Expiry Enforcement**: Per-card-type maximum age rules (market_pulse: 24h, trend_brief: 48h, explainer: 30d, etc.). Archives old articles >14 days and synthesized clusters >14 days. Compacts impression/view interaction logs >30 days. Runs every 4 hours. File: `expiryWorker.ts`.
 
 **Database (PostgreSQL):**
 - Contains 39 tables for core app data, agent architecture components, discover pipeline, and execution routing.

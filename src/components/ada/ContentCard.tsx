@@ -86,6 +86,8 @@ const cardTypeConfig: Record<string, {
   'event_calendar': { accentColor: '#555555', icon: Newspaper, topic: 'Event', intent: undefined },
   'ada_view': { accentColor: '#992929', icon: Lightbulb, topic: 'Ada View', intent: 'Insight' },
   'product_opportunity': { accentColor: '#059669', icon: Lightbulb, topic: 'Product', intent: 'Opportunity' },
+  'morning_briefing': { accentColor: '#992929', icon: Newspaper, topic: 'Morning Brief', intent: 'Briefing' },
+  'milestone': { accentColor: '#d97706', icon: Lightbulb, topic: 'Milestone', intent: 'Achievement' },
 };
 
 const categoryConfig: Record<

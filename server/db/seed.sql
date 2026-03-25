@@ -698,7 +698,11 @@ INSERT INTO cta_templates (card_type, cta_family, template_text, is_primary, int
   ('ada_view', 'impact', 'Dive deeper into these themes', TRUE, 'impact_analysis'),
   ('ada_view', 'explain', 'What should I focus on this week?', FALSE, 'explanation'),
   ('product_opportunity', 'screen', 'Show me suitable options', TRUE, 'screening'),
-  ('product_opportunity', 'advisor', 'Connect me with my advisor', FALSE, 'advisor');
+  ('product_opportunity', 'advisor', 'Connect me with my advisor', FALSE, 'advisor'),
+  ('morning_briefing', 'explain', 'Walk me through today''s outlook', TRUE, 'explanation'),
+  ('morning_briefing', 'impact', 'How does this affect my portfolio?', FALSE, 'impact_analysis'),
+  ('milestone', 'explain', 'Review my journey so far', TRUE, 'explanation'),
+  ('milestone', 'advisor', 'Share with my advisor', FALSE, 'advisor');
 
 -- ============================================================
 -- Editorial Discover Cards (seed content for Phase 1)
@@ -765,6 +769,37 @@ INSERT INTO discover_cards (id, card_type, tab, title, summary, detail_sections,
    '{"asset_classes":["Equities","Fixed Income"],"sectors":[],"geographies":["Global"],"themes":["esg","sustainable_investing"],"wealth_topics":["education","values_alignment"]}',
    '[{"text":"Analyze my portfolio ESG score","family":"impact","context":{"card_summary":"ESG portfolio analysis","entities":[],"evidence_facts":["18% less volatility"]}},{"text":"Show ESG alternatives for my holdings","family":"screen","context":{"card_summary":"ESG alternatives screening","entities":[],"evidence_facts":[]}}]',
    NULL, TRUE, TRUE, NOW() + INTERVAL '30 days')
+ON CONFLICT (id) DO UPDATE SET
+  title = EXCLUDED.title,
+  summary = EXCLUDED.summary,
+  detail_sections = EXCLUDED.detail_sections,
+  ctas = EXCLUDED.ctas,
+  taxonomy_tags = EXCLUDED.taxonomy_tags,
+  updated_at = NOW();
+
+-- ============================================================
+-- Product Opportunity Cards (Phase 3)
+-- ============================================================
+INSERT INTO discover_cards (id, card_type, tab, title, summary, detail_sections, image_url, source_count,
+  intent_badge, topic_label, relevance_tags, confidence, taxonomy_tags, ctas,
+  why_you_are_seeing_this, is_active, is_editorial, expires_at) VALUES
+  ('disc-prod-1', 'product_opportunity', 'forYou',
+   'Sukuk yields climb to 5.8%: A fixed-income opportunity for conservative portfolios',
+   'Investment-grade sukuk offering attractive yields with Shariah compliance. Suitable for conservative to moderate risk profiles.',
+   '[{"title":"Opportunity overview","type":"bullets","content":["Investment-grade sukuk yielding 5.8% annualized","Shariah-compliant fixed income","3-5 year maturities available","Minimum investment: $50,000"]},{"title":"Suitability","type":"paragraph","content":["Best suited for conservative to moderate investors seeking income with capital preservation. Complements existing fixed income allocation."]}]',
+   NULL, 12, 'opportunity', 'Product', ARRAY['sukuk', 'fixed_income', 'shariah'], 'high',
+   '{"asset_classes":["Fixed Income"],"sectors":[],"geographies":["GCC","UAE"],"themes":["sukuk","islamic_finance","yield"],"wealth_topics":["income_generation"]}',
+   '[{"text":"Show me suitable sukuk options","family":"screen","context":{"card_summary":"Sukuk fixed-income opportunity","entities":[],"evidence_facts":["5.8% yield","Investment-grade"]}},{"text":"Connect me with my advisor","family":"advisor","context":{"card_summary":"Sukuk investment discussion","entities":[],"evidence_facts":[]}}]',
+   'Matches your fixed-income allocation gap', TRUE, TRUE, NOW() + INTERVAL '14 days'),
+
+  ('disc-prod-2', 'product_opportunity', 'forYou',
+   'Private equity co-investment: Access pre-IPO tech at institutional pricing',
+   'Exclusive co-investment opportunity in late-stage technology companies approaching IPO. Limited allocation available.',
+   '[{"title":"Opportunity details","type":"bullets","content":["Late-stage technology co-investment","Pre-IPO pricing with 2-3 year horizon","Minimum ticket: $100,000","Historical IRR: 22-28% for similar vintage"]},{"title":"Risk considerations","type":"bullets","content":["Illiquid investment with 2-3 year lock-up","Concentrated single-company exposure","Suitable for aggressive risk profiles only"]}]',
+   NULL, 8, 'opportunity', 'Product', ARRAY['private_equity', 'tech', 'pre_ipo'], 'high',
+   '{"asset_classes":["Alternatives","Private Equity"],"sectors":["Technology"],"geographies":["Global","US"],"themes":["private_equity","pre_ipo","tech_investing"],"wealth_topics":["growth","alternatives"]}',
+   '[{"text":"Show me the investment details","family":"screen","context":{"card_summary":"Pre-IPO tech co-investment","entities":[],"evidence_facts":["22-28% historical IRR"]}},{"text":"Connect me with my advisor","family":"advisor","context":{"card_summary":"PE co-investment discussion","entities":[],"evidence_facts":[]}}]',
+   'Matches your interest in alternatives and technology', TRUE, TRUE, NOW() + INTERVAL '14 days')
 ON CONFLICT (id) DO UPDATE SET
   title = EXCLUDED.title,
   summary = EXCLUDED.summary,

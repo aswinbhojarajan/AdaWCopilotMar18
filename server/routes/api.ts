@@ -8,6 +8,7 @@ import * as goalService from '../services/goalService';
 import * as morningSentinelService from '../services/morningSentinelService';
 import * as memoryService from '../services/memoryService';
 import { runFeedMaterializer } from '../services/discoverPipeline/feedMaterializer';
+import { getDiscoverPipelineHealth, triggerEventDrivenRefresh } from '../services/discoverPipeline/index';
 import { recordInteraction, recordDiscoverVisit } from '../repositories/contentRepository';
 
 import * as agentRepo from '../repositories/agentRepository';
@@ -167,6 +168,9 @@ router.post('/wealth/goals', asyncHandler(async (req, res) => {
     color: color || '#a87174',
   });
   res.status(201).json(goal);
+  triggerEventDrivenRefresh().catch(err => {
+    console.error(`[EventRefresh] Failed: ${(err as Error).message}`);
+  });
 }));
 
 router.get('/wealth/accounts', asyncHandler(async (req, res) => {
@@ -184,6 +188,9 @@ router.post('/wealth/accounts', asyncHandler(async (req, res) => {
   }
   const account = await portfolioRepo.createAccount(userId, institutionName, accountType);
   res.status(201).json(account);
+  triggerEventDrivenRefresh().catch(err => {
+    console.error(`[EventRefresh] Failed: ${(err as Error).message}`);
+  });
 }));
 
 router.get('/notifications', asyncHandler(async (req, res) => {
@@ -351,6 +358,11 @@ router.post('/discover/interact', asyncHandler(async (req, res) => {
   recordInteraction(userId, cardId, action, metadata || {}).catch(err => {
     console.error(`[Interact] Failed to record interaction: ${(err as Error).message}`);
   });
+}));
+
+router.get('/discover/health', asyncHandler(async (_req, res) => {
+  const health = await getDiscoverPipelineHealth();
+  res.json({ ...health, timestamp: new Date().toISOString() });
 }));
 
 router.post('/discover/visit', asyncHandler(async (req, res) => {
