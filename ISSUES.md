@@ -1,7 +1,7 @@
 # Issues — Ada AI Wealth Copilot
 
 > **Living document** — update continuously as issues are discovered, resolved, or reprioritized.
-> Last updated: 2026-03-24
+> Last updated: 2026-03-25
 
 ---
 
@@ -98,3 +98,7 @@
 | — | No font loading — all fonts fell back to browser default | Added Google Fonts (Crimson Pro, DM Sans) and TypeKit (RL Limo) to index.html. Fixed ~50 component files with invalid Figma-style font references (Task #3) | 2026-03-24 |
 | — | Fake mobile status bar (TopBar) cluttering UI | Deleted TopBar component and removed from all screens. Added proper top padding (Task #4) | 2026-03-24 |
 | — | ClientEnvironment splash was placeholder, not Ada-branded | Replaced with Ada-styled LoginPage with email/password form and dev persona picker (Task #1) | 2026-03-24 |
+| — | Morning Sentinel JSON flash during streaming | Replaced raw JSON chunk rendering with friendly "Ada is analyzing..." message during SSE streaming (Project Task #16) | 2026-03-25 |
+| — | Wealth tab blank when non-critical queries slow | Loading now gates only on overview query; non-critical queries render independently with ErrorBoundary (Project Task #16) | 2026-03-25 |
+| — | Discover tab "something went wrong" on malformed JSONB | Added safe JSONB parser `parseDetailSections()` + `keepPreviousData` during tab switching + ErrorBoundary (Project Task #16) | 2026-03-25 |
+| — | Chat follow-ups lose context (e.g., "do across all" misclassified) | Intent classifier now receives last 4 conversation turns; continuation heuristic + post-classification override preserves prior intent (Project Task #17) | 2026-03-25 |

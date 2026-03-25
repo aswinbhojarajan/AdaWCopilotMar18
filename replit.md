@@ -32,12 +32,13 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
     - `rmHandoffService.ts`: Execution request routing (rm_handoff/api_webhook/disabled)
     - `aiService.ts`: OpenAI client and streaming completions
     - `streamTypes.ts`: StreamEvent type definition for SSE events
-    - `intentClassifier.ts`: LLM-based intent classification with `classifyIntentAsync()` (gpt-4.1-nano via ada-classifier alias, 1.2s timeout, keyword fallback on timeout/error). Emits 11 direct routing intents: balance_query, portfolio_explain, allocation_breakdown, goal_progress, market_context, news_explain, scenario_analysis, recommendation_request, execution_request, support, general. Enriched structured output: intent, confidence, reasoning_effort, needs_live_data, needs_tooling, mentioned_entities, followup_mode. Priority-based rule engine fallback classifier. No translation layer (mapOldIntentToNew removed).
+    - `intentClassifier.ts`: LLM-based intent classification with `classifyIntentAsync()` (gpt-4.1-nano via ada-classifier alias, 1.2s timeout, keyword fallback on timeout/error). Emits 11 direct routing intents: balance_query, portfolio_explain, allocation_breakdown, goal_progress, market_context, news_explain, scenario_analysis, recommendation_request, execution_request, support, general. Enriched structured output: intent, confidence, reasoning_effort, needs_live_data, needs_tooling, mentioned_entities, followup_mode. Priority-based rule engine fallback classifier. No translation layer (mapOldIntentToNew removed). **Context-aware follow-ups**: accepts optional `recentHistory` (last 4 conversation turns from working memory); LLM prompt includes `<recent_conversation>` block with follow-up resolution rules; `isLikelyContinuation()` heuristic (≤6 words + 12 continuation patterns like "do across all", "tell me more"); post-classification override inherits prior intent when LLM returns "general" for a likely continuation.
     - `ragService.ts`: Portfolio context building from PostgreSQL
     - `memoryService.ts`: Three-tier memory (working/episodic/semantic)
     - `piiDetector.ts`: PII detection and redaction
     - `goalService.ts`: Goal health scores, life gap analysis, life event suggestions
     - `morningSentinelService.ts`: AI daily briefing with anomaly detection
+- **ErrorBoundary** (`src/components/ada/ErrorBoundary.tsx`): React class component wrapping WealthScreen and DiscoverScreen. Catches rendering crashes and displays user-friendly error with retry button.
 - **6 Repositories**: user, portfolio, content, chat, poll, agent
 - **Provider Pattern**: 6 external data providers with priority chain per domain:
     - **Stock/Market Data**: Finnhub (primary) → mock fallback. Env: `MARKET_PROVIDER_*`

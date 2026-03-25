@@ -4,6 +4,43 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Project Task #17 — Context-Aware Chat Follow-Up Handling
+**Date:** March 25, 2026
+
+### Changed
+- **`intentClassifier.ts`** — `classifyIntentAsync()` now accepts optional `recentHistory` parameter (last 4 conversation turns from working memory). LLM classification prompt includes a `<recent_conversation>` block with follow-up resolution rules instructing the model to resolve ambiguous references ("do across all", "tell me more") against prior context. Added `ConversationContext` interface, `CONTINUATION_PATTERNS` array (12 patterns: "do across all", "tell me more", "what about the rest", "expand on", etc.), and `isLikelyContinuation()` heuristic (≤6 words + explicit continuation pattern match). Post-classification override: when LLM returns `general` intent for a message detected as likely continuation, inherits the prior turn's intent instead. `classifyIntentFallback()` also inherits prior intent on continuation detection.
+- **`agentOrchestrator.ts`** — Before intent classification, fetches `getWorkingMemory(threadId)` and passes the last 4 user/assistant turns as `classifierHistory` to `buildIntentClassification()`.
+
+### Behavior
+- "What's the latest news on NVDA?" → `news_explain` (as before)
+- "Do across all holdings" (follow-up) → `news_explain` (was: `balance_query` or `general`)
+- "Tell me more" (follow-up) → inherits prior intent instead of defaulting to `general`
+
+### Validated
+- TypeScript compiles clean
+- Follow-up messages correctly inherit contextual intent from prior conversation turns
+
+---
+
+## Project Task #16 — Intermittent UI Bug Fixes
+**Date:** March 25, 2026
+
+### Fixed
+- **Morning Sentinel JSON flash** — `MorningSentinelCard.tsx` streaming text area was rendering raw JSON chunks (e.g., `{"headline":"..."}`) during SSE streaming. Replaced streaming text display with a friendly "Ada is analyzing your portfolio..." message while streaming is in progress. Final parsed content displays only after stream completion.
+- **Wealth tab blank screen** — `WealthScreen.tsx` loading state was gated on all 5 parallel queries (`overviewQuery`, `goalsQuery`, `healthScoreQuery`, `lifeGapsQuery`, `alertsQuery`), causing the entire screen to show a spinner if any single query was slow or failed. Changed to gate loading only on `overviewQuery` (the critical data). Non-critical queries render independently with their own loading/error states.
+- **Discover tab "something went wrong"** — `contentRepository.ts` `detail_sections` JSONB column was failing `JSON.parse()` on malformed or null values, crashing the entire Discover tab. Added `parseDetailSections()` safe JSONB parser with try/catch fallback to empty array. `useContent.ts` hook now uses `keepPreviousData: true` (via `placeholderData`) to prevent blank flashes during tab switching.
+
+### Added
+- **`ErrorBoundary` component** (`src/components/ada/ErrorBoundary.tsx`) — React class component error boundary with retry button. Wraps `WealthScreen` and `DiscoverScreen` to catch rendering crashes and display a user-friendly error message with "Try Again" instead of a white screen.
+
+### Validated
+- TypeScript compiles clean
+- Morning Sentinel displays friendly loading message during streaming
+- Wealth tab loads immediately when overview data is available
+- Discover tab handles malformed JSONB gracefully and maintains previous data during tab switches
+
+---
+
 ## Tasks #1–4 — UI Overhaul: Login Page, Font Loading, TopBar Removal
 **Date:** March 24, 2026
 

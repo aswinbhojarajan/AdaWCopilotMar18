@@ -1,7 +1,7 @@
 # Backlog — Ada AI Wealth Copilot
 
 > **Living document** — update as new features are proposed, prioritized, or completed.
-> Last updated: 2026-03-24
+> Last updated: 2026-03-25
 
 ---
 
@@ -341,3 +341,5 @@ Enterprise integration layer:
 | — | Login Heading Update (Task #2) | 2026-03-24 |
 | — | Font Loading & Typography Fix — Google Fonts + TypeKit (Task #3) | 2026-03-24 |
 | — | Remove Fake Mobile Status Bar / TopBar (Task #4) | 2026-03-24 |
+| — | Intermittent UI Bug Fixes: Morning Sentinel JSON flash, Wealth tab blank, Discover tab crash (Project Task #16) | 2026-03-25 |
+| — | Context-Aware Chat Follow-Up Handling (Project Task #17) | 2026-03-25 |
