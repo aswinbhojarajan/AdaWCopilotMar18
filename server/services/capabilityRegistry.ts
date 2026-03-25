@@ -1,4 +1,5 @@
 import type { IntentClassification } from '../../shared/schemas/agent';
+import { getAllManifests, getProfileToolMap } from './toolRegistry';
 
 export type Capability =
   | 'streaming'
@@ -222,12 +223,30 @@ export function getClassifierContext(): string {
     `- Lane ${l.lane} (${l.label}): ${l.description}`
   );
 
+  const profileMap = getProfileToolMap();
+  const profileLines = Object.entries(profileMap).map(([profile, tools]) =>
+    `- ${profile}: ${tools.join(', ')}`
+  );
+
+  const manifests = getAllManifests();
+  const toolLines = manifests.map(m => {
+    const desc = m.definition.type === 'function' ? m.definition.function.description : '';
+    const shortDesc = desc.split('.')[0];
+    return `- ${m.name} [${m.group}/${m.profile}]: ${shortDesc}`;
+  });
+
   return [
     'ROUTING LANES:',
     ...laneLines,
     '',
     'INTENT→LANE MAPPING:',
     ...intentLines,
+    '',
+    'AVAILABLE TOOL PROFILES:',
+    ...profileLines,
+    '',
+    'AVAILABLE TOOLS:',
+    ...toolLines,
   ].join('\n');
 }
 
