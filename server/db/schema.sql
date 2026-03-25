@@ -450,3 +450,131 @@ DO $$ BEGIN
     ALTER TABLE tenant_configs ADD COLUMN can_prepare_trade_plans BOOLEAN NOT NULL DEFAULT TRUE;
   END IF;
 END $$;
+
+-- ============================================================
+-- Discover Pipeline Tables (Phase 1)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id SERIAL PRIMARY KEY,
+  user_id TEXT UNIQUE REFERENCES users(id),
+  geo_focus TEXT NOT NULL DEFAULT 'Global',
+  investment_horizon TEXT NOT NULL DEFAULT 'medium' CHECK (investment_horizon IN ('short', 'medium', 'long')),
+  income_preference TEXT NOT NULL DEFAULT 'balanced' CHECK (income_preference IN ('income', 'balanced', 'growth')),
+  aum_tier TEXT NOT NULL DEFAULT 'affluent' CHECK (aum_tier IN ('mass_affluent', 'affluent', 'hnw', 'uhnw')),
+  target_equities_pct NUMERIC(5,2) NOT NULL DEFAULT 50,
+  target_fixed_income_pct NUMERIC(5,2) NOT NULL DEFAULT 25,
+  target_alternatives_pct NUMERIC(5,2) NOT NULL DEFAULT 10,
+  target_cash_pct NUMERIC(5,2) NOT NULL DEFAULT 10,
+  target_real_estate_pct NUMERIC(5,2) NOT NULL DEFAULT 5,
+  top_asset_classes JSONB NOT NULL DEFAULT '[]',
+  allocation_gaps JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS raw_articles (
+  id SERIAL PRIMARY KEY,
+  external_id TEXT UNIQUE NOT NULL,
+  source_provider TEXT NOT NULL DEFAULT 'finnhub',
+  url TEXT,
+  title TEXT NOT NULL,
+  summary TEXT,
+  body TEXT,
+  image_url TEXT,
+  publisher TEXT,
+  published_at TIMESTAMPTZ,
+  tickers TEXT[] NOT NULL DEFAULT '{}',
+  regions TEXT[] NOT NULL DEFAULT '{}',
+  category TEXT,
+  is_processed BOOLEAN NOT NULL DEFAULT FALSE,
+  ingested_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_raw_articles_external_id ON raw_articles(external_id);
+CREATE INDEX IF NOT EXISTS idx_raw_articles_is_processed ON raw_articles(is_processed) WHERE is_processed = FALSE;
+CREATE INDEX IF NOT EXISTS idx_raw_articles_published_at ON raw_articles(published_at DESC);
+
+CREATE TABLE IF NOT EXISTS article_enrichment (
+  id SERIAL PRIMARY KEY,
+  article_id INTEGER UNIQUE REFERENCES raw_articles(id),
+  tickers TEXT[] NOT NULL DEFAULT '{}',
+  entities JSONB NOT NULL DEFAULT '{}',
+  sentiment_score NUMERIC(5,3) NOT NULL DEFAULT 0,
+  importance_score NUMERIC(5,3) NOT NULL DEFAULT 0,
+  taxonomy_tags JSONB NOT NULL DEFAULT '{}',
+  dedup_hash TEXT,
+  is_duplicate BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_article_enrichment_article_id ON article_enrichment(article_id);
+CREATE INDEX IF NOT EXISTS idx_article_enrichment_dedup_hash ON article_enrichment(dedup_hash);
+
+CREATE TABLE IF NOT EXISTS article_clusters (
+  id SERIAL PRIMARY KEY,
+  theme TEXT NOT NULL,
+  fingerprint TEXT UNIQUE,
+  article_ids INTEGER[] NOT NULL DEFAULT '{}',
+  article_count INTEGER NOT NULL DEFAULT 0,
+  narrative_headline TEXT,
+  aggregate_importance NUMERIC(5,3) NOT NULL DEFAULT 0,
+  primary_asset_class TEXT,
+  primary_geography TEXT,
+  primary_themes TEXT[] NOT NULL DEFAULT '{}',
+  is_synthesized BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='article_clusters' AND column_name='fingerprint') THEN
+    ALTER TABLE article_clusters ADD COLUMN fingerprint TEXT UNIQUE;
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_article_clusters_is_synthesized ON article_clusters(is_synthesized) WHERE is_synthesized = FALSE;
+
+CREATE TABLE IF NOT EXISTS discover_cards (
+  id TEXT PRIMARY KEY,
+  card_type TEXT NOT NULL CHECK (card_type IN (
+    'portfolio_impact', 'trend_brief', 'market_pulse',
+    'explainer', 'wealth_planning', 'allocation_gap',
+    'event_calendar', 'ada_view', 'product_opportunity'
+  )),
+  tab TEXT NOT NULL DEFAULT 'whatsNew' CHECK (tab IN ('forYou', 'whatsNew', 'both')),
+  title TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  detail_sections JSONB NOT NULL DEFAULT '[]',
+  supporting_articles JSONB NOT NULL DEFAULT '[]',
+  image_url TEXT,
+  source_count INTEGER NOT NULL DEFAULT 0,
+  intent_badge TEXT CHECK (intent_badge IN ('alert', 'opportunity', 'analysis', 'action', NULL)),
+  topic_label TEXT,
+  relevance_tags TEXT[] NOT NULL DEFAULT '{}',
+  confidence TEXT NOT NULL DEFAULT 'medium' CHECK (confidence IN ('high', 'medium', 'low')),
+  taxonomy_tags JSONB NOT NULL DEFAULT '{}',
+  ctas JSONB NOT NULL DEFAULT '[]',
+  why_you_are_seeing_this TEXT,
+  personalized_overlay TEXT,
+  cluster_id INTEGER REFERENCES article_clusters(id),
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  is_editorial BOOLEAN NOT NULL DEFAULT FALSE,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_discover_cards_active ON discover_cards(is_active, tab) WHERE is_active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_discover_cards_type ON discover_cards(card_type);
+CREATE INDEX IF NOT EXISTS idx_discover_cards_created ON discover_cards(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS cta_templates (
+  id SERIAL PRIMARY KEY,
+  card_type TEXT NOT NULL,
+  cta_family TEXT NOT NULL,
+  template_text TEXT NOT NULL,
+  is_primary BOOLEAN NOT NULL DEFAULT TRUE,
+  intent TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);

@@ -11,7 +11,7 @@ interface DiscoverScreenProps {
 export function DiscoverScreen({
   onChatSubmit,
 }: DiscoverScreenProps) {
-  const [activeFilter, setActiveFilter] = useState<'forYou' | 'whatsHappening'>('forYou');
+  const [activeFilter, setActiveFilter] = useState<'forYou' | 'whatsNew'>('forYou');
 
   const { data, isLoading, isError, refetch } = useDiscoverContent(activeFilter);
 
@@ -38,10 +38,10 @@ export function DiscoverScreen({
                   For You
                 </Tag>
                 <Tag
-                  active={activeFilter === 'whatsHappening'}
-                  onClick={() => setActiveFilter('whatsHappening')}
+                  active={activeFilter === 'whatsNew'}
+                  onClick={() => setActiveFilter('whatsNew')}
                 >
-                  What's Happening
+                  What's New
                 </Tag>
               </div>
             </div>
@@ -55,7 +55,7 @@ export function DiscoverScreen({
               title={item.title}
               contextTitle={item.contextTitle}
               description={item.description}
-              timestamp={item.timestamp}
+              timestamp={item.freshnessLabel || item.timestamp}
               buttonText={item.buttonText}
               secondaryButtonText={item.secondaryButtonText}
               image={item.image}
@@ -68,6 +68,9 @@ export function DiscoverScreen({
               customTopic={item.customTopic}
               onChatSubmit={onChatSubmit}
               forceSecondaryButtonStyle={true}
+              whyYouAreSeeingThis={item.whyYouAreSeeingThis}
+              supportingArticles={item.supportingArticles}
+              cardType={item.cardType}
             />
           ))}
         </div>

@@ -251,6 +251,13 @@ export interface DiscoverContentItem extends ContentItem {
   stackButtons?: boolean;
   hideIntent?: boolean;
   customTopic?: string;
+  cardType?: string;
+  intentBadge?: string | null;
+  topicLabel?: string;
+  whyYouAreSeeingThis?: string | null;
+  supportingArticles?: Array<{ title: string; publisher: string; published_at: string }>;
+  freshnessLabel?: string;
+  confidence?: string;
 }
 
 export interface PollOption {

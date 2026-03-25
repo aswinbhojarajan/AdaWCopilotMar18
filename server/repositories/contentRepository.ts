@@ -2,10 +2,17 @@ import pool from '../db/pool';
 import type { ContentItem, Alert, ChatThread, ChatMessage, PeerComparison } from '../../shared/types';
 
 export interface DiscoverContentItem extends ContentItem {
-  detailSections?: { title: string; content: string | string[] }[];
+  detailSections?: { title: string; type?: string; content: string | string[] }[];
   stackButtons?: boolean;
   hideIntent?: boolean;
   customTopic?: string;
+  cardType?: string;
+  intentBadge?: string | null;
+  topicLabel?: string;
+  whyYouAreSeeingThis?: string | null;
+  supportingArticles?: Array<{ title: string; publisher: string; published_at: string }>;
+  freshnessLabel?: string;
+  confidence?: string;
 }
 
 export async function getHomeContent(_userId: string): Promise<ContentItem[]> {
@@ -20,6 +27,10 @@ export async function getHomeContent(_userId: string): Promise<ContentItem[]> {
 }
 
 export async function getDiscoverContent(tab?: string): Promise<DiscoverContentItem[]> {
+  const hasDiscoverCards = await checkDiscoverCardsExist();
+  if (hasDiscoverCards) {
+    return getDiscoverCardsContent(tab);
+  }
   const query = tab
     ? `SELECT id, category, category_type, title, context_title, description,
               timestamp, button_text, secondary_button_text, image, sources_count,
@@ -33,6 +44,122 @@ export async function getDiscoverContent(tab?: string): Promise<DiscoverContentI
        ORDER BY id`;
   const { rows } = tab ? await pool.query(query, [tab]) : await pool.query(query);
   return rows.map(mapRowToDiscoverItem);
+}
+
+async function checkDiscoverCardsExist(): Promise<boolean> {
+  try {
+    const { rows } = await pool.query(`SELECT COUNT(*) as cnt FROM discover_cards WHERE is_active = TRUE`);
+    return Number(rows[0]?.cnt) > 0;
+  } catch {
+    return false;
+  }
+}
+
+function computeFreshnessLabel(createdAt: Date): string {
+  const now = Date.now();
+  const diffMs = now - createdAt.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'Just now';
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return `${Math.floor(diffDays / 7)}w ago`;
+}
+
+async function getDiscoverCardsContent(tab?: string): Promise<DiscoverContentItem[]> {
+  const tabFilter = tab === 'forYou'
+    ? `AND (tab = 'forYou' OR tab = 'both')`
+    : tab === 'whatsNew' || tab === 'whatsHappening'
+    ? `AND (tab = 'whatsNew' OR tab = 'both')`
+    : '';
+
+  const { rows } = await pool.query(
+    `SELECT id, card_type, tab, title, summary, detail_sections, supporting_articles,
+            image_url, source_count, intent_badge, topic_label, relevance_tags,
+            confidence, taxonomy_tags, ctas, why_you_are_seeing_this,
+            is_editorial, created_at, updated_at
+     FROM discover_cards
+     WHERE is_active = TRUE ${tabFilter}
+     ORDER BY created_at DESC
+     LIMIT 20`,
+  );
+
+  return rows.map((r: Record<string, unknown>) => {
+    const ctas = parseJson(r.ctas) as Array<{ text: string; family: string; context?: Record<string, unknown> }> | null;
+    const primaryCta = ctas?.[0];
+    const secondaryCta = ctas?.[1];
+    const cardType = r.card_type as string;
+    const intentBadge = r.intent_badge as string | null;
+    const createdAt = new Date(r.created_at as string);
+
+    const categoryType = mapCardTypeToCategoryType(cardType);
+
+    return {
+      id: r.id as string,
+      category: (r.topic_label as string) || 'News',
+      categoryType,
+      title: r.title as string,
+      contextTitle: r.title as string,
+      description: r.summary as string,
+      timestamp: computeFreshnessLabel(createdAt),
+      buttonText: primaryCta?.text || 'Tell me more',
+      secondaryButtonText: secondaryCta?.text || undefined,
+      image: (r.image_url as string) || undefined,
+      sourcesCount: Number(r.source_count) || undefined,
+      topicLabelColor: mapCardTypeToColor(cardType),
+      detailSections: parseJson(r.detail_sections) as DiscoverContentItem['detailSections'],
+      stackButtons: false,
+      hideIntent: !intentBadge,
+      customTopic: r.topic_label as string,
+      cardType,
+      intentBadge,
+      topicLabel: r.topic_label as string,
+      whyYouAreSeeingThis: r.why_you_are_seeing_this as string | null,
+      supportingArticles: parseJson(r.supporting_articles) as DiscoverContentItem['supportingArticles'],
+      freshnessLabel: computeFreshnessLabel(createdAt),
+      confidence: r.confidence as string,
+    };
+  });
+}
+
+function mapCardTypeToCategoryType(cardType: string): string {
+  switch (cardType) {
+    case 'portfolio_impact': return 'PORTFOLIO RISK ALERT';
+    case 'allocation_gap': return 'MARKET OPPORTUNITY INSIGHT';
+    case 'trend_brief': return 'MARKET ANALYSIS';
+    case 'market_pulse': return 'NEWS';
+    case 'explainer': return 'EDUCATIONAL';
+    case 'wealth_planning': return 'ACTION ITEM';
+    case 'event_calendar': return 'NEWS';
+    case 'ada_view': return 'INSIGHT';
+    case 'product_opportunity': return 'MARKET OPPORTUNITY INSIGHT';
+    default: return 'NEWS';
+  }
+}
+
+function mapCardTypeToColor(cardType: string): string {
+  switch (cardType) {
+    case 'portfolio_impact': return '#d97706';
+    case 'allocation_gap': return '#059669';
+    case 'trend_brief': return '#992929';
+    case 'market_pulse': return '#555555';
+    case 'explainer': return '#555555';
+    case 'wealth_planning': return '#059669';
+    case 'ada_view': return '#992929';
+    default: return '#992929';
+  }
+}
+
+function parseJson(raw: unknown): unknown {
+  if (!raw) return null;
+  try {
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
+  } catch {
+    return null;
+  }
 }
 
 export async function getAlertsByUserId(userId: string): Promise<Alert[]> {

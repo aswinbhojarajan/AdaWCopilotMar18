@@ -1,5 +1,5 @@
-import React from 'react';
-import { Clock, AlertTriangle, Lightbulb, Newspaper } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, AlertTriangle, Lightbulb, Newspaper, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { SparkIcon } from './SparkIcon';
 import { SourcesBadge } from './SourcesBadge';
 
@@ -36,10 +36,14 @@ interface ContentCardProps {
   sourcesCount?: number;
   detailSections?: Array<{
     title: string;
+    type?: string;
     content: string[] | string;
   }>;
   stackButtons?: boolean;
-  forceSecondaryButtonStyle?: boolean; // Force all buttons to use secondary styling
+  forceSecondaryButtonStyle?: boolean;
+  whyYouAreSeeingThis?: string | null;
+  supportingArticles?: Array<{ title: string; publisher: string; published_at: string }>;
+  cardType?: string;
 }
 
 // Category configuration
@@ -123,7 +127,11 @@ export function ContentCard({
   sourcesCount,
   stackButtons: _stackButtons,
   forceSecondaryButtonStyle,
+  whyYouAreSeeingThis,
+  supportingArticles,
+  cardType: _cardType,
 }: ContentCardProps) {
+  const [showSources, setShowSources] = useState(false);
   // Determine category type from category string if not explicitly provided
   const determinedCategoryType =
     (categoryType ||
@@ -322,6 +330,38 @@ export function ContentCard({
                 )}
               </div>
             </div>
+
+            {supportingArticles && supportingArticles.length > 0 && (
+              <div className="w-full">
+                <button
+                  onClick={() => setShowSources(!showSources)}
+                  className="flex items-center gap-[4px] text-[#992929] font-['DM_Sans',sans-serif] text-[0.6875rem] font-medium"
+                >
+                  <Newspaper className="size-[12px]" strokeWidth={1.5} />
+                  <span>{supportingArticles.length} source{supportingArticles.length > 1 ? 's' : ''}</span>
+                  {showSources ? <ChevronUp className="size-[12px]" /> : <ChevronDown className="size-[12px]" />}
+                </button>
+                {showSources && (
+                  <div className="mt-[6px] flex flex-col gap-[4px] pl-[16px] border-l-[2px] border-[#f0e8e8]">
+                    {supportingArticles.map((article, i) => (
+                      <div key={i} className="font-['DM_Sans',sans-serif] text-[0.6875rem] text-[#777777] leading-[1.3]">
+                        <span className="text-[#555555]">{article.title}</span>
+                        <span className="text-[#999999]"> — {article.publisher}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {whyYouAreSeeingThis && (
+              <div className="flex items-start gap-[4px] w-full">
+                <Info className="size-[11px] text-[#999999] mt-[2px] shrink-0" strokeWidth={1.5} />
+                <p className="font-['DM_Sans',sans-serif] text-[0.625rem] text-[#999999] leading-[1.3] italic">
+                  {whyYouAreSeeingThis}
+                </p>
+              </div>
+            )}
 
             {/* Timestamp */}
             <div className="content-stretch flex gap-[2px] items-center justify-end relative shrink-0 w-full">

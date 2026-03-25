@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import apiRouter from './routes/api';
 import { initDatabase } from './db/init';
 import { validateRegistry } from './services/toolRegistry';
+import { initDiscoverPipeline, getDiscoverPipelineHealth } from './services/discoverPipeline/index';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +19,10 @@ app.use(express.json());
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/pipeline/health', (_req, res) => {
+  res.json(getDiscoverPipelineHealth());
 });
 
 app.use('/api', apiRouter);
@@ -54,6 +59,7 @@ async function start() {
   console.log('[ToolRegistry] All tool manifests validated successfully');
 
   await initDatabase();
+  await initDiscoverPipeline();
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`API server running on port ${PORT}`);
   });

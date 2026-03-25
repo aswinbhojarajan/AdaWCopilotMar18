@@ -639,3 +639,132 @@ INSERT INTO chat_messages (id, thread_id, sender, message, created_at) VALUES
   ('msg-raj-2-2', 'thread-raj-2', 'assistant', 'At your age, even a small allocation to index funds alongside your active trading can compound significantly.', NOW() - INTERVAL '1 day')
 ON CONFLICT (id) DO NOTHING;
 
+-- ============================================================
+-- User Profiles (Discover personalization metadata)
+-- ============================================================
+INSERT INTO user_profiles (user_id, geo_focus, investment_horizon, income_preference, aum_tier,
+  target_equities_pct, target_fixed_income_pct, target_alternatives_pct, target_cash_pct, target_real_estate_pct,
+  top_asset_classes, allocation_gaps) VALUES
+  ('user-aisha', 'UAE', 'medium', 'balanced', 'mass_affluent',
+   50, 25, 10, 10, 5,
+   '["Equities", "Fixed Income", "Crypto"]',
+   '{"equities": -5.2, "fixed_income": -10.3, "alternatives": 2.1, "cash": 10.2, "real_estate": 0}'),
+  ('user-khalid', 'Saudi Arabia', 'long', 'income', 'hnw',
+   20, 45, 10, 20, 5,
+   '["Fixed Income", "Equities", "Gold"]',
+   '{"equities": -3.5, "fixed_income": -6.8, "alternatives": 1.2, "cash": 8.5, "real_estate": 0}'),
+  ('user-raj', 'India', 'short', 'growth', 'affluent',
+   65, 5, 15, 10, 5,
+   '["Equities", "Crypto", "ETFs"]',
+   '{"equities": 8.3, "fixed_income": -4.2, "alternatives": 12.5, "cash": -5.8, "real_estate": -5.0}')
+ON CONFLICT (user_id) DO UPDATE SET
+  geo_focus = EXCLUDED.geo_focus,
+  investment_horizon = EXCLUDED.investment_horizon,
+  income_preference = EXCLUDED.income_preference,
+  aum_tier = EXCLUDED.aum_tier,
+  target_equities_pct = EXCLUDED.target_equities_pct,
+  target_fixed_income_pct = EXCLUDED.target_fixed_income_pct,
+  target_alternatives_pct = EXCLUDED.target_alternatives_pct,
+  target_cash_pct = EXCLUDED.target_cash_pct,
+  target_real_estate_pct = EXCLUDED.target_real_estate_pct,
+  top_asset_classes = EXCLUDED.top_asset_classes,
+  allocation_gaps = EXCLUDED.allocation_gaps,
+  updated_at = NOW();
+
+-- ============================================================
+-- CTA Templates (8 families × card types)
+-- ============================================================
+DELETE FROM cta_templates;
+INSERT INTO cta_templates (card_type, cta_family, template_text, is_primary, intent) VALUES
+  ('portfolio_impact', 'impact', 'How does this affect my portfolio?', TRUE, 'impact_analysis'),
+  ('portfolio_impact', 'plan', 'Should I rebalance now?', FALSE, 'rebalance'),
+  ('trend_brief', 'explain', 'Explain what this means for me', TRUE, 'explanation'),
+  ('trend_brief', 'compare', 'Compare to my holdings', FALSE, 'comparison'),
+  ('market_pulse', 'impact', 'What does this mean for me?', TRUE, 'impact_analysis'),
+  ('market_pulse', 'watch', 'Keep me updated on this', FALSE, 'watch'),
+  ('explainer', 'explain', 'Tell me more about this', TRUE, 'education'),
+  ('explainer', 'compare', 'How does this compare to my current strategy?', FALSE, 'comparison'),
+  ('wealth_planning', 'plan', 'Model this scenario for me', TRUE, 'planning'),
+  ('wealth_planning', 'simulate', 'What would this look like for my portfolio?', FALSE, 'simulation'),
+  ('allocation_gap', 'screen', 'Show me options that fit', TRUE, 'screening'),
+  ('allocation_gap', 'impact', 'How would this change my risk?', FALSE, 'impact_analysis'),
+  ('event_calendar', 'impact', 'How might this affect me?', TRUE, 'impact_analysis'),
+  ('event_calendar', 'watch', 'Alert me after the event', FALSE, 'watch'),
+  ('ada_view', 'impact', 'Dive deeper into these themes', TRUE, 'impact_analysis'),
+  ('ada_view', 'explain', 'What should I focus on this week?', FALSE, 'explanation'),
+  ('product_opportunity', 'screen', 'Show me suitable options', TRUE, 'screening'),
+  ('product_opportunity', 'advisor', 'Connect me with my advisor', FALSE, 'advisor');
+
+-- ============================================================
+-- Editorial Discover Cards (seed content for Phase 1)
+-- ============================================================
+INSERT INTO discover_cards (id, card_type, tab, title, summary, detail_sections, image_url, source_count,
+  intent_badge, topic_label, relevance_tags, confidence, taxonomy_tags, ctas,
+  why_you_are_seeing_this, is_active, is_editorial, expires_at) VALUES
+  ('disc-ed-1', 'wealth_planning', 'forYou',
+   'Multi-generational wealth transfer: Structuring for tax efficiency',
+   'New regulations create opportunities to reduce estate tax burden by up to 35% through strategic trust structures.',
+   '[{"title":"Regulatory changes","type":"bullets","content":["Estate tax reduction up to 35%","Strategic trust structures","Multi-generational wealth planning"]},{"title":"Implementation approach","type":"paragraph","content":["Work with a financial advisor to model different scenarios and choose the most tax-efficient structure."]}]',
+   'https://images.unsplash.com/photo-1554224155-6726b3ff858f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
+   28, 'action', 'Planning', ARRAY['estate_planning', 'tax_efficiency'], 'high',
+   '{"asset_classes":["Fixed Income"],"sectors":[],"geographies":["UAE","GCC"],"themes":["estate_planning","tax_optimization"],"wealth_topics":["succession","trusts"]}',
+   '[{"text":"Model my estate tax scenarios","family":"plan","context":{"card_summary":"Estate tax reduction opportunities","entities":[],"evidence_facts":["Up to 35% tax reduction"]}},{"text":"Compare trust structures for me","family":"simulate","context":{"card_summary":"Trust structure comparison","entities":[],"evidence_facts":[]}}]',
+   'Relevant to wealth planning', TRUE, TRUE, NOW() + INTERVAL '30 days'),
+
+  ('disc-ed-2', 'allocation_gap', 'forYou',
+   'Alternative investments show 23% lower correlation to public markets',
+   'Your alternatives allocation is below the recommended range for portfolios seeking true diversification.',
+   '[{"title":"Why alternatives matter","type":"bullets","content":["Hedged risk during market downturns","Access to unique return streams","Portfolio protection in high-inflation environments"]},{"title":"Available opportunities","type":"paragraph","content":["Private equity and private credit are available options beyond your current holdings."]}]',
+   'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
+   41, 'opportunity', 'Opportunity', ARRAY['underweight_alternatives', 'diversification'], 'high',
+   '{"asset_classes":["Alternatives","Private Equity","Private Credit"],"sectors":[],"geographies":["Global"],"themes":["diversification","alternative_investments"],"wealth_topics":["asset_allocation"]}',
+   '[{"text":"Show me alternatives that fit my portfolio","family":"screen","context":{"card_summary":"Alternatives allocation gap","entities":[],"evidence_facts":["23% lower correlation"]}},{"text":"How would this change my risk?","family":"impact","context":{"card_summary":"Risk impact of alternatives","entities":[],"evidence_facts":[]}}]',
+   'Low alternatives allocation', TRUE, TRUE, NOW() + INTERVAL '7 days'),
+
+  ('disc-ed-3', 'portfolio_impact', 'forYou',
+   'Your tech allocation outperformed by 12% this quarter',
+   'AI and semiconductor holdings drove strong gains. Consider rebalancing to lock in profits while maintaining growth exposure.',
+   '[{"title":"Performance breakdown","type":"bullets","content":["Tech holdings: +12.3% vs +8.1% sector average","AI infrastructure stocks: +18.2%","Semiconductor positions: +15.7%"]},{"title":"Advisor recommendation","type":"paragraph","content":["Consider taking 20% profits from strongest performers to maintain your risk target while preserving upside potential."]}]',
+   'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
+   0, 'opportunity', 'Portfolio Impact', ARRAY['tech_holdings', 'outperformance'], 'high',
+   '{"asset_classes":["Equities"],"sectors":["Technology","Semiconductors"],"geographies":["US"],"themes":["ai_infrastructure","tech_earnings"],"wealth_topics":["rebalancing"]}',
+   '[{"text":"Should I rebalance now?","family":"plan","context":{"card_summary":"Tech outperformance rebalancing","entities":["AAPL","MSFT","NVDA"],"evidence_facts":["+12.3% vs +8.1% sector avg"]}},{"text":"Show optimal profit-taking strategy","family":"simulate","context":{"card_summary":"Profit-taking analysis","entities":["AAPL","MSFT","NVDA"],"evidence_facts":[]}}]',
+   'Based on your tech holdings', TRUE, TRUE, NOW() + INTERVAL '1 day'),
+
+  ('disc-ed-4', 'explainer', 'whatsNew',
+   'How private credit differs from public bonds',
+   'Private credit offers higher yields with less liquidity. Understanding the trade-offs is key for portfolio construction.',
+   '[{"title":"What it is","type":"paragraph","content":["Private credit involves direct lending to companies outside public bond markets, offering higher yields in exchange for less liquidity and longer lock-up periods."]},{"title":"Key data points","type":"bullets","content":["Average yield: 8-12% vs 4-6% for investment-grade bonds","Typical lock-up: 3-7 years","Default rate: 2.1% (lower than high-yield bonds at 3.8%)"]},{"title":"Considerations","type":"bullets","content":["Minimum investment typically $100K-$500K","Limited secondary market","Due diligence complexity","Manager selection is critical"]}]',
+   'https://images.unsplash.com/photo-1554224155-6726b3ff858f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
+   0, NULL, 'Explainer', ARRAY['private_credit', 'fixed_income'], 'high',
+   '{"asset_classes":["Fixed Income","Private Credit"],"sectors":[],"geographies":["Global"],"themes":["private_credit","yield_enhancement"],"wealth_topics":["education","asset_allocation"]}',
+   '[{"text":"Tell me more about private credit","family":"explain","context":{"card_summary":"Private credit education","entities":[],"evidence_facts":["8-12% yield vs 4-6% bonds"]}},{"text":"How does this compare to my current bonds?","family":"compare","context":{"card_summary":"Private credit vs public bonds","entities":[],"evidence_facts":[]}}]',
+   NULL, TRUE, TRUE, NOW() + INTERVAL '30 days'),
+
+  ('disc-ed-5', 'explainer', 'whatsNew',
+   'GCC real estate yields outpace global averages by 3.2%',
+   'Dubai and Riyadh property markets deliver 7-9% rental yields, supported by population growth and economic diversification.',
+   '[{"title":"Market overview","type":"paragraph","content":["GCC real estate has emerged as a compelling income-generating asset class, with rental yields in prime locations significantly exceeding global averages."]},{"title":"Key metrics","type":"bullets","content":["Dubai prime residential yield: 7.2%","Riyadh commercial yield: 8.5%","Global average comparable yield: 4.1%","Capital appreciation: 12-18% annually in prime segments"]},{"title":"Access options","type":"bullets","content":["Direct property investment","REIT exposure through listed vehicles","Private real estate funds with quarterly liquidity"]}]',
+   'https://images.unsplash.com/photo-1764675107575-7a33cbdb7905?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
+   0, NULL, 'Explainer', ARRAY['gcc_real_estate', 'income'], 'high',
+   '{"asset_classes":["Real Estate"],"sectors":["Property"],"geographies":["UAE","Saudi Arabia","GCC"],"themes":["gcc_property","rental_yield"],"wealth_topics":["education","income_generation"]}',
+   '[{"text":"Tell me more about GCC property yields","family":"explain","context":{"card_summary":"GCC real estate yields","entities":[],"evidence_facts":["7-9% rental yields"]}},{"text":"Should I increase property allocation?","family":"impact","context":{"card_summary":"Property allocation analysis","entities":[],"evidence_facts":[]}}]',
+   NULL, TRUE, TRUE, NOW() + INTERVAL '30 days'),
+
+  ('disc-ed-6', 'explainer', 'whatsNew',
+   'Sustainable investing delivers competitive returns with lower risk',
+   'ESG-screened portfolios matched market returns with 18% less volatility over the past 5 years.',
+   '[{"title":"Performance insights","type":"bullets","content":["ESG leaders: +9.8% annualized vs +9.6% for broad market","Sharpe ratio: 0.82 vs 0.69 for conventional portfolios","Downside capture: 82% vs market average of 95%"]},{"title":"Implementation","type":"paragraph","content":["Multiple ESG integration approaches exist, from negative screening to impact investing. The key is aligning your values with your return objectives."]}]',
+   'https://images.unsplash.com/photo-1743352476730-056502fba10b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
+   0, NULL, 'Explainer', ARRAY['esg', 'sustainable_investing'], 'high',
+   '{"asset_classes":["Equities","Fixed Income"],"sectors":[],"geographies":["Global"],"themes":["esg","sustainable_investing"],"wealth_topics":["education","values_alignment"]}',
+   '[{"text":"Analyze my portfolio ESG score","family":"impact","context":{"card_summary":"ESG portfolio analysis","entities":[],"evidence_facts":["18% less volatility"]}},{"text":"Show ESG alternatives for my holdings","family":"screen","context":{"card_summary":"ESG alternatives screening","entities":[],"evidence_facts":[]}}]',
+   NULL, TRUE, TRUE, NOW() + INTERVAL '30 days')
+ON CONFLICT (id) DO UPDATE SET
+  title = EXCLUDED.title,
+  summary = EXCLUDED.summary,
+  detail_sections = EXCLUDED.detail_sections,
+  ctas = EXCLUDED.ctas,
+  taxonomy_tags = EXCLUDED.taxonomy_tags,
+  updated_at = NOW();
+
