@@ -3,26 +3,33 @@ import { runIngest } from './ingestWorker';
 import { runEnrichment } from './enrichmentWorker';
 import { runClustering } from './clusteringWorker';
 import { runSynthesis } from './synthesisWorker';
+import { runAdaView } from './adaViewWorker';
+import { runEventCalendar } from './eventCalendarWorker';
 import { runFeedMaterializer } from './feedMaterializer';
 import { computeUserProfileGaps } from './userProfileEnricher';
 
 const INGEST_INTERVAL_MS = 10 * 60 * 1000;
 const CLUSTER_INTERVAL_MS = 15 * 60 * 1000;
 const MATERIALIZE_INTERVAL_MS = 60 * 60 * 1000;
+const EDITORIAL_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 let ingestTimer: ReturnType<typeof setInterval> | null = null;
 let clusterTimer: ReturnType<typeof setInterval> | null = null;
 let materializeTimer: ReturnType<typeof setInterval> | null = null;
+let editorialTimer: ReturnType<typeof setInterval> | null = null;
 let isRunning = false;
 let pipelineLock = false;
 let ingestLock = false;
 let clusterLock = false;
+let editorialLock = false;
 let lastRunTimes: Record<string, Date | null> = {
   ingest: null,
   enrichment: null,
   clustering: null,
   synthesis: null,
   materialization: null,
+  ada_view: null,
+  event_calendar: null,
 };
 
 async function runFullPipeline(): Promise<void> {
@@ -44,6 +51,12 @@ async function runFullPipeline(): Promise<void> {
 
     await runSynthesis();
     lastRunTimes.synthesis = new Date();
+
+    await runAdaView();
+    lastRunTimes.ada_view = new Date();
+
+    await runEventCalendar();
+    lastRunTimes.event_calendar = new Date();
 
     await runFeedMaterializer();
     lastRunTimes.materialization = new Date();
@@ -80,6 +93,8 @@ export async function initDiscoverPipeline(): Promise<void> {
         await runFullPipeline();
       } else {
         console.log(`[DiscoverPipeline] ${rows[0]?.cnt} live cards already exist, skipping initial pipeline run`);
+        await runAdaView().catch(e => console.warn('[DiscoverPipeline] Ada View error:', (e as Error).message));
+        await runEventCalendar().catch(e => console.warn('[DiscoverPipeline] Event Calendar error:', (e as Error).message));
         await runFeedMaterializer();
       }
     } catch (err) {
@@ -126,7 +141,22 @@ export async function initDiscoverPipeline(): Promise<void> {
     }
   }, MATERIALIZE_INTERVAL_MS);
 
-  console.log('[DiscoverPipeline] Scheduled — Ingest: 10min, Cluster+Synth: 15min, Materialize: 60min');
+  editorialTimer = setInterval(async () => {
+    if (editorialLock) return;
+    editorialLock = true;
+    try {
+      await runAdaView();
+      lastRunTimes.ada_view = new Date();
+      await runEventCalendar();
+      lastRunTimes.event_calendar = new Date();
+    } catch (err) {
+      console.error('[DiscoverPipeline] Editorial cycle error:', (err as Error).message);
+    } finally {
+      editorialLock = false;
+    }
+  }, EDITORIAL_INTERVAL_MS);
+
+  console.log('[DiscoverPipeline] Scheduled — Ingest: 10min, Cluster+Synth: 15min, Materialize: 60min, Editorial: 6hr');
 }
 
 export function getDiscoverPipelineHealth(): {
@@ -145,9 +175,11 @@ export function stopDiscoverPipeline(): void {
   if (ingestTimer) clearInterval(ingestTimer);
   if (clusterTimer) clearInterval(clusterTimer);
   if (materializeTimer) clearInterval(materializeTimer);
+  if (editorialTimer) clearInterval(editorialTimer);
   ingestTimer = null;
   clusterTimer = null;
   materializeTimer = null;
+  editorialTimer = null;
   isRunning = false;
   console.log('[DiscoverPipeline] Stopped');
 }

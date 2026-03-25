@@ -9,12 +9,22 @@ export type ViewType =
   | 'client-environment'
   | 'login';
 
+export interface DiscoverCardContext {
+  card_id?: string;
+  card_type?: string;
+  card_summary?: string;
+  why_seen?: string;
+  entities?: string[];
+  cta_family?: string;
+}
+
 export interface ChatContext {
   category: string;
   categoryType: string;
   title: string;
   sourceScreen?: string;
   adaResponse?: string;
+  discoverCard?: DiscoverCardContext;
 }
 
 export interface SimulatorConfig {
@@ -259,6 +269,8 @@ export interface DiscoverContentItem extends ContentItem {
   freshnessLabel?: string;
   confidence?: string;
   createdAt?: string;
+  isNew?: boolean;
+  personalizedOverlay?: string | null;
 }
 
 export interface PollOption {

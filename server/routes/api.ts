@@ -8,6 +8,7 @@ import * as goalService from '../services/goalService';
 import * as morningSentinelService from '../services/morningSentinelService';
 import * as memoryService from '../services/memoryService';
 import { runFeedMaterializer } from '../services/discoverPipeline/feedMaterializer';
+import { recordInteraction, recordDiscoverVisit } from '../repositories/contentRepository';
 
 import * as agentRepo from '../repositories/agentRepository';
 import { orchestrateStream } from '../services/agentOrchestrator';
@@ -323,6 +324,36 @@ router.get('/content/discover', asyncHandler(async (req, res) => {
 router.post('/content/discover/refresh', asyncHandler(async (_req, res) => {
   const materialized = await runFeedMaterializer();
   res.json({ ok: true, materialized });
+}));
+
+router.post('/discover/interact', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  const { cardId, action, metadata } = req.body as {
+    cardId: string;
+    action: string;
+    metadata?: Record<string, unknown>;
+  };
+  if (!cardId || !action) {
+    res.status(400).json({ error: 'cardId and action are required' });
+    return;
+  }
+  const validActions = ['impression', 'click', 'cta_tap', 'dismiss', 'feedback', 'share'];
+  if (!validActions.includes(action)) {
+    res.status(400).json({ error: `action must be one of: ${validActions.join(', ')}` });
+    return;
+  }
+  res.status(202).json({ ok: true });
+  recordInteraction(userId, cardId, action, metadata || {}).catch(err => {
+    console.error(`[Interact] Failed to record interaction: ${(err as Error).message}`);
+  });
+}));
+
+router.post('/discover/visit', asyncHandler(async (req, res) => {
+  const userId = getUserId(req);
+  res.status(202).json({ ok: true });
+  recordDiscoverVisit(userId).catch(err => {
+    console.error(`[Visit] Failed to record visit: ${(err as Error).message}`);
+  });
 }));
 
 router.get('/polls', asyncHandler(async (req, res) => {

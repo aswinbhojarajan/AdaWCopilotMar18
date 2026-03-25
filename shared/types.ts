@@ -274,6 +274,15 @@ export interface MorningSentinelResponse {
   hasAnomalies: boolean;
 }
 
+export interface DiscoverCardContext {
+  card_id?: string;
+  card_type?: string;
+  card_summary?: string;
+  why_seen?: string;
+  entities?: string[];
+  cta_family?: string;
+}
+
 export interface ChatMessageRequest {
   message: string;
   threadId?: string;
@@ -283,6 +292,7 @@ export interface ChatMessageRequest {
     categoryType: string;
     title: string;
     sourceScreen?: string;
+    discoverCard?: DiscoverCardContext;
   };
 }
 

@@ -605,3 +605,58 @@ CREATE TABLE IF NOT EXISTS cta_templates (
   intent TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ============================================================
+-- Phase 2: Personalization & Interactions
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS user_segments (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  description TEXT,
+  scoring_weights JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='user_profiles' AND column_name='segment_id') THEN
+    ALTER TABLE user_profiles ADD COLUMN segment_id TEXT REFERENCES user_segments(id);
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS user_discover_feed (
+  id SERIAL PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  card_id TEXT NOT NULL REFERENCES discover_cards(id),
+  personalized_overlay TEXT,
+  personalized_why TEXT,
+  personalized_ctas JSONB,
+  score NUMERIC(8,2) NOT NULL DEFAULT 0,
+  position INTEGER NOT NULL DEFAULT 0,
+  tab TEXT NOT NULL DEFAULT 'forYou' CHECK (tab IN ('forYou', 'whatsNew')),
+  is_dismissed BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ,
+  UNIQUE(user_id, card_id, tab)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_discover_feed_user_tab ON user_discover_feed(user_id, tab, position) WHERE is_dismissed = FALSE;
+CREATE INDEX IF NOT EXISTS idx_user_discover_feed_card ON user_discover_feed(card_id);
+
+CREATE TABLE IF NOT EXISTS user_content_interactions (
+  id SERIAL PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  card_id TEXT NOT NULL REFERENCES discover_cards(id),
+  action TEXT NOT NULL CHECK (action IN ('impression', 'click', 'cta_tap', 'dismiss', 'feedback', 'share')),
+  metadata JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_content_interactions_user ON user_content_interactions(user_id, action);
+CREATE INDEX IF NOT EXISTS idx_user_content_interactions_card ON user_content_interactions(card_id, action);
+
+CREATE TABLE IF NOT EXISTS user_discover_visits (
+  user_id TEXT PRIMARY KEY REFERENCES users(id),
+  last_visited_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  visit_count INTEGER NOT NULL DEFAULT 1
+);

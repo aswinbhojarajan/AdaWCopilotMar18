@@ -11,7 +11,19 @@ interface PromptContext {
   portfolioSummary?: string;
   episodicMemories?: string[];
   semanticFacts?: string[];
-  chatContext?: { category: string; title: string; sourceScreen?: string };
+  chatContext?: {
+    category: string;
+    title: string;
+    sourceScreen?: string;
+    discoverCard?: {
+      card_id?: string;
+      card_type?: string;
+      card_summary?: string;
+      why_seen?: string;
+      entities?: string[];
+      cta_family?: string;
+    };
+  };
   toolNames?: string[];
   providerAlias?: string;
 }
@@ -45,7 +57,20 @@ export function buildAgentPrompt(ctx: PromptContext): string {
   }
 
   if (ctx.chatContext) {
-    blocks.push(`\nNAVIGATION CONTEXT: User came from the ${ctx.chatContext.sourceScreen || 'app'} screen, looking at "${ctx.chatContext.title}" (${ctx.chatContext.category}). Tailor your response to this context.`);
+    let navBlock = `\nNAVIGATION CONTEXT: User came from the ${ctx.chatContext.sourceScreen || 'app'} screen, looking at "${ctx.chatContext.title}" (${ctx.chatContext.category}). Tailor your response to this context.`;
+    if (ctx.chatContext.discoverCard) {
+      const dc = ctx.chatContext.discoverCard;
+      const parts: string[] = [];
+      if (dc.card_type) parts.push(`Card type: ${dc.card_type}`);
+      if (dc.card_summary) parts.push(`Summary: ${dc.card_summary}`);
+      if (dc.why_seen) parts.push(`Why shown: ${dc.why_seen}`);
+      if (dc.entities && dc.entities.length > 0) parts.push(`Related entities: ${dc.entities.join(', ')}`);
+      if (dc.cta_family) parts.push(`CTA intent: ${dc.cta_family}`);
+      if (parts.length > 0) {
+        navBlock += `\nDISCOVER CARD CONTEXT:\n${parts.map(p => `• ${p}`).join('\n')}`;
+      }
+    }
+    blocks.push(navBlock);
   }
 
   blocks.push(`\nCLASSIFIED INTENT: ${ctx.intent.primary_intent} (confidence: ${ctx.intent.confidence})`);

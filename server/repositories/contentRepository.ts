@@ -15,6 +15,8 @@ export interface DiscoverContentItem extends ContentItem {
   supportingArticles?: Array<{ title: string; publisher: string; published_at: string }>;
   freshnessLabel?: string;
   confidence?: string;
+  isNew?: boolean;
+  personalizedOverlay?: string | null;
 }
 
 export async function getHomeContent(_userId: string): Promise<ContentItem[]> {
@@ -92,6 +94,72 @@ function computeFreshnessLabel(createdAt: Date): string {
   return `${Math.floor(diffDays / 7)}w ago`;
 }
 
+async function getUserLastVisit(userId: string): Promise<Date | null> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT last_visited_at FROM user_discover_visits WHERE user_id = $1`,
+      [userId],
+    );
+    return rows.length > 0 ? new Date(rows[0].last_visited_at) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function getDiscoverCardsFromUserFeed(
+  userId: string,
+  tab: string,
+  offset: number,
+  limit: number,
+): Promise<{ rows: Record<string, unknown>[]; fromCache: boolean }> {
+  try {
+    const { rows: feedRows } = await pool.query(
+      `SELECT udf.card_id, udf.personalized_overlay, udf.personalized_why, udf.score, udf.position
+       FROM user_discover_feed udf
+       WHERE udf.user_id = $1 AND udf.tab = $2 AND udf.is_dismissed = FALSE
+         AND udf.expires_at > NOW()
+       ORDER BY udf.position ASC
+       OFFSET $3 LIMIT $4`,
+      [userId, tab, offset, limit],
+    );
+
+    if (feedRows.length === 0) return { rows: [], fromCache: false };
+
+    const cardIds = feedRows.map((r: Record<string, unknown>) => r.card_id);
+    const { rows: cardRows } = await pool.query(
+      `SELECT id, card_type, tab, title, summary, detail_sections, supporting_articles,
+              image_url, source_count, intent_badge, topic_label, relevance_tags,
+              confidence, taxonomy_tags, ctas, why_you_are_seeing_this,
+              is_editorial, priority_score, feed_position, created_at, updated_at
+       FROM discover_cards
+       WHERE id = ANY($1) AND is_active = TRUE`,
+      [cardIds],
+    );
+
+    const cardMap = new Map<string, Record<string, unknown>>();
+    for (const row of cardRows) {
+      cardMap.set(row.id as string, row);
+    }
+
+    const merged: Record<string, unknown>[] = [];
+    for (const feedRow of feedRows) {
+      const card = cardMap.get(feedRow.card_id as string);
+      if (card) {
+        merged.push({
+          ...card,
+          _personalized_overlay: feedRow.personalized_overlay,
+          _personalized_why: feedRow.personalized_why,
+          _feed_score: feedRow.score,
+        });
+      }
+    }
+
+    return { rows: merged, fromCache: true };
+  } catch {
+    return { rows: [], fromCache: false };
+  }
+}
+
 async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: number = 20, userId?: string): Promise<DiscoverContentItem[]> {
   const tabFilter = tab === 'forYou'
     ? `AND (tab = 'forYou' OR tab = 'both')`
@@ -104,40 +172,77 @@ async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: num
   const safeLimit = Math.min(limit, 20);
 
   const isForYou = tab === 'forYou';
-  const fetchLimit = isForYou && userId ? Math.min(safeLimit * 3, 20) : safeLimit;
+  let lastVisit: Date | null = null;
 
-  const { rows } = await pool.query(
-    `SELECT id, card_type, tab, title, summary, detail_sections, supporting_articles,
-            image_url, source_count, intent_badge, topic_label, relevance_tags,
-            confidence, taxonomy_tags, ctas, why_you_are_seeing_this,
-            is_editorial, priority_score, feed_position, created_at, updated_at
-     FROM discover_cards
-     WHERE is_active = TRUE ${tabFilter}
-     ORDER BY priority_score DESC, feed_position ASC NULLS LAST, created_at DESC
-     OFFSET $1 LIMIT $2`,
-    [safeOffset, fetchLimit],
-  );
+  if (userId) {
+    lastVisit = await getUserLastVisit(userId);
+  }
 
-  let sortedRows = rows;
-  if (isForYou && userId) {
-    const profile = await getUserProfileForScoring(userId);
-    if (profile) {
-      const scored = rows.map((r: Record<string, unknown>) => {
-        const cardForScoring: CardRow = {
-          id: r.id as string,
-          card_type: r.card_type as string,
-          tab: r.tab as string,
-          confidence: r.confidence as string,
-          source_count: Number(r.source_count) || 0,
-          relevance_tags: r.relevance_tags as string[] || [],
-          taxonomy_tags: (typeof r.taxonomy_tags === 'string' ? JSON.parse(r.taxonomy_tags as string) : r.taxonomy_tags || {}) as Record<string, unknown>,
-          is_editorial: r.is_editorial as boolean,
-          created_at: new Date(r.created_at as string),
-        };
-        return { row: r, score: computeCardScore(cardForScoring, profile) };
-      });
-      scored.sort((a, b) => b.score - a.score);
-      sortedRows = scored.slice(0, limit).map(s => s.row);
+  let sortedRows: Record<string, unknown>[];
+  let usedCache = false;
+
+  if (userId && isForYou) {
+    const cached = await getDiscoverCardsFromUserFeed(userId, 'forYou', safeOffset, safeLimit);
+    if (cached.fromCache && cached.rows.length > 0) {
+      sortedRows = cached.rows;
+      usedCache = true;
+    }
+  }
+
+  if (!usedCache && userId && (tab === 'whatsNew' || tab === 'whatsHappening')) {
+    const cached = await getDiscoverCardsFromUserFeed(userId, 'whatsNew', safeOffset, safeLimit);
+    if (cached.fromCache && cached.rows.length > 0) {
+      sortedRows = cached.rows;
+      usedCache = true;
+    }
+  }
+
+  if (!usedCache) {
+    const fetchLimit = isForYou && userId ? Math.min(safeLimit * 3, 20) : safeLimit;
+
+    const { rows } = await pool.query(
+      `SELECT id, card_type, tab, title, summary, detail_sections, supporting_articles,
+              image_url, source_count, intent_badge, topic_label, relevance_tags,
+              confidence, taxonomy_tags, ctas, why_you_are_seeing_this,
+              is_editorial, priority_score, feed_position, created_at, updated_at
+       FROM discover_cards
+       WHERE is_active = TRUE ${tabFilter}
+       ORDER BY priority_score DESC, feed_position ASC NULLS LAST, created_at DESC
+       OFFSET $1 LIMIT $2`,
+      [safeOffset, fetchLimit],
+    );
+
+    sortedRows = rows;
+
+    if (isForYou && userId) {
+      const profile = await getUserProfileForScoring(userId);
+      if (profile) {
+        const scored = rows.map((r: Record<string, unknown>) => {
+          const cardForScoring: CardRow = {
+            id: r.id as string,
+            card_type: r.card_type as string,
+            tab: r.tab as string,
+            confidence: r.confidence as string,
+            source_count: Number(r.source_count) || 0,
+            relevance_tags: r.relevance_tags as string[] || [],
+            taxonomy_tags: (typeof r.taxonomy_tags === 'string' ? JSON.parse(r.taxonomy_tags as string) : r.taxonomy_tags || {}) as Record<string, unknown>,
+            is_editorial: r.is_editorial as boolean,
+            created_at: new Date(r.created_at as string),
+          };
+          return { row: r, score: computeCardScore(cardForScoring, profile) };
+        });
+        scored.sort((a, b) => b.score - a.score);
+        sortedRows = scored.slice(0, limit).map(s => s.row);
+      }
+    }
+
+    if (userId) {
+      const dismissedResult = await pool.query(
+        `SELECT card_id FROM user_content_interactions WHERE user_id = $1 AND action = 'dismiss'`,
+        [userId],
+      );
+      const dismissedIds = new Set(dismissedResult.rows.map((r: { card_id: string }) => r.card_id));
+      sortedRows = sortedRows.filter(r => !dismissedIds.has(r.id as string));
     }
   }
 
@@ -148,8 +253,12 @@ async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: num
     const cardType = r.card_type as string;
     const intentBadge = r.intent_badge as string | null;
     const createdAt = new Date(r.created_at as string);
+    const personalizedOverlay = (r._personalized_overlay as string | null) || null;
+    const personalizedWhy = (r._personalized_why as string | null) || null;
 
     const categoryType = mapCardTypeToCategoryType(cardType);
+
+    const isNew = lastVisit ? createdAt > lastVisit : false;
 
     return {
       id: r.id as string,
@@ -171,11 +280,13 @@ async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: num
       cardType,
       intentBadge,
       topicLabel: r.topic_label as string,
-      whyYouAreSeeingThis: r.why_you_are_seeing_this as string | null,
+      whyYouAreSeeingThis: personalizedWhy || (r.why_you_are_seeing_this as string | null),
       supportingArticles: parseJson(r.supporting_articles) as DiscoverContentItem['supportingArticles'],
       freshnessLabel: computeFreshnessLabel(createdAt),
       confidence: r.confidence as string,
       createdAt: createdAt.toISOString(),
+      isNew,
+      personalizedOverlay,
     };
   });
 }
@@ -215,6 +326,37 @@ function parseJson(raw: unknown): unknown {
   } catch {
     return null;
   }
+}
+
+export async function recordInteraction(
+  userId: string,
+  cardId: string,
+  action: string,
+  metadata: Record<string, unknown> = {},
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO user_content_interactions (user_id, card_id, action, metadata)
+     VALUES ($1, $2, $3, $4)`,
+    [userId, cardId, action, JSON.stringify(metadata)],
+  );
+
+  if (action === 'dismiss') {
+    await pool.query(
+      `UPDATE user_discover_feed SET is_dismissed = TRUE WHERE user_id = $1 AND card_id = $2`,
+      [userId, cardId],
+    );
+  }
+}
+
+export async function recordDiscoverVisit(userId: string): Promise<void> {
+  await pool.query(
+    `INSERT INTO user_discover_visits (user_id, last_visited_at, visit_count)
+     VALUES ($1, NOW(), 1)
+     ON CONFLICT (user_id) DO UPDATE SET
+       last_visited_at = NOW(),
+       visit_count = user_discover_visits.visit_count + 1`,
+    [userId],
+  );
 }
 
 export async function getAlertsByUserId(userId: string): Promise<Alert[]> {

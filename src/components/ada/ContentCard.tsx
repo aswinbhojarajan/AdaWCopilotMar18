@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, AlertTriangle, Lightbulb, Newspaper, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { Clock, AlertTriangle, Lightbulb, Newspaper, ChevronDown, ChevronUp, Info, X } from 'lucide-react';
 import { SparkIcon } from './SparkIcon';
 import { SourcesBadge } from './SourcesBadge';
 
@@ -14,6 +14,7 @@ export type CategoryType =
   | 'MARKET ANALYSIS';
 
 interface ContentCardProps {
+  id?: string;
   category?: string;
   categoryType?: string;
   title: React.ReactNode;
@@ -28,7 +29,7 @@ interface ContentCardProps {
   contextTitle?: string;
   onChatSubmit?: (
     message: string,
-    context?: { category: string; categoryType: string; title: string; sourceScreen?: string },
+    context?: { category: string; categoryType: string; title: string; sourceScreen?: string; discoverCard?: { card_id?: string; card_type?: string; card_summary?: string; why_seen?: string; entities?: string[]; cta_family?: string } },
   ) => void;
   customTopic?: string;
   topicLabelColor?: string;
@@ -44,6 +45,10 @@ interface ContentCardProps {
   whyYouAreSeeingThis?: string | null;
   supportingArticles?: Array<{ title: string; publisher: string; published_at: string }>;
   cardType?: string;
+  isNew?: boolean;
+  personalizedOverlay?: string | null;
+  onDismiss?: (cardId: string) => void;
+  onFeedback?: (cardId: string, feedback: string) => void;
 }
 
 function formatArticleTime(dateStr: string): string {
@@ -80,7 +85,6 @@ const cardTypeConfig: Record<string, {
   'product_opportunity': { accentColor: '#059669', icon: Lightbulb, topic: 'Product', intent: 'Opportunity' },
 };
 
-// Category configuration
 const categoryConfig: Record<
   CategoryType,
   {
@@ -91,49 +95,49 @@ const categoryConfig: Record<
   }
 > = {
   'PORTFOLIO RISK ALERT': {
-    accentColor: '#d97706', // vibrant amber/orange
+    accentColor: '#d97706',
     icon: AlertTriangle,
     topic: 'Portfolio Risk',
     intent: 'Alert',
   },
   'MARKET OPPORTUNITY INSIGHT': {
-    accentColor: '#059669', // vibrant emerald green
+    accentColor: '#059669',
     icon: Lightbulb,
     topic: 'Market Insight',
     intent: 'Opportunity',
   },
   NEWS: {
-    accentColor: '#555555', // neutral gray
+    accentColor: '#555555',
     icon: Newspaper,
     topic: 'News',
-    intent: undefined, // no intent badge for news
+    intent: undefined,
   },
   'ACTION ITEM': {
-    accentColor: '#059669', // vibrant emerald green
+    accentColor: '#059669',
     icon: Lightbulb,
     topic: 'Action Item',
     intent: 'Action',
   },
   INSIGHT: {
-    accentColor: '#059669', // vibrant emerald green
+    accentColor: '#059669',
     icon: Lightbulb,
     topic: 'Insight',
     intent: 'Insight',
   },
   EDUCATIONAL: {
-    accentColor: '#555555', // neutral gray
+    accentColor: '#555555',
     icon: Newspaper,
     topic: 'Educational',
     intent: undefined,
   },
   'RECOMMENDED READ': {
-    accentColor: '#555555', // neutral gray
+    accentColor: '#555555',
     icon: Newspaper,
     topic: 'Recommended Read',
     intent: undefined,
   },
   'MARKET ANALYSIS': {
-    accentColor: '#059669', // vibrant emerald green
+    accentColor: '#059669',
     icon: Lightbulb,
     topic: 'Market Analysis',
     intent: 'Analysis',
@@ -141,6 +145,7 @@ const categoryConfig: Record<
 };
 
 export function ContentCard({
+  id,
   category = 'NEWS',
   categoryType,
   title,
@@ -164,9 +169,15 @@ export function ContentCard({
   whyYouAreSeeingThis,
   supportingArticles,
   cardType,
+  isNew,
+  personalizedOverlay,
+  onDismiss,
+  onFeedback,
 }: ContentCardProps) {
   const [showSources, setShowSources] = useState(false);
-  // Determine category type from category string if not explicitly provided
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
+
   const determinedCategoryType =
     (categoryType ||
     (category.toUpperCase().includes('RISK') || category.toUpperCase().includes('ALERT')
@@ -175,13 +186,11 @@ export function ContentCard({
         ? 'MARKET OPPORTUNITY INSIGHT'
         : 'NEWS')) as CategoryType;
 
-  // Get config with fallback to NEWS if category type is not found
   const ctConfig = cardType ? cardTypeConfig[cardType] : undefined;
   const config = ctConfig || categoryConfig[determinedCategoryType] || categoryConfig['NEWS'];
   const accentColor = config.accentColor;
   const _CategoryIcon = config.icon;
 
-  // Create wrapped handlers that pass context if onChatSubmit is provided
   const handleButtonClick = () => {
     if (onChatSubmit && buttonText && contextTitle) {
       onChatSubmit(buttonText, {
@@ -189,6 +198,13 @@ export function ContentCard({
         categoryType: determinedCategoryType,
         title: contextTitle,
         sourceScreen: 'Discover',
+        discoverCard: id ? {
+          card_id: id,
+          card_type: cardType,
+          card_summary: typeof description === 'string' ? description : contextTitle,
+          why_seen: whyYouAreSeeingThis || undefined,
+          cta_family: 'primary',
+        } : undefined,
       });
     } else if (onButtonClick) {
       onButtonClick();
@@ -202,14 +218,44 @@ export function ContentCard({
         categoryType: determinedCategoryType,
         title: contextTitle,
         sourceScreen: 'Discover',
+        discoverCard: id ? {
+          card_id: id,
+          card_type: cardType,
+          card_summary: typeof description === 'string' ? description : contextTitle,
+          why_seen: whyYouAreSeeingThis || undefined,
+          cta_family: 'secondary',
+        } : undefined,
       });
     } else if (onSecondaryButtonClick) {
       onSecondaryButtonClick();
     }
   };
 
-  // Determine if this is a news-type card that should use secondary button styling
-  // Includes: NEWS, EDUCATIONAL, RECOMMENDED READ, and also checks for "NEWS" or "EDUCATION" in the original category string
+  const handleDismiss = () => {
+    if (id && onDismiss) {
+      setShowFeedback(true);
+    }
+  };
+
+  const handleFeedbackSubmit = (reason: string) => {
+    if (id) {
+      onDismiss?.(id);
+      onFeedback?.(id, reason);
+    }
+    setShowFeedback(false);
+    setIsDismissed(true);
+  };
+
+  const handleDismissWithoutFeedback = () => {
+    if (id) {
+      onDismiss?.(id);
+    }
+    setShowFeedback(false);
+    setIsDismissed(true);
+  };
+
+  if (isDismissed) return null;
+
   const isNewsType =
     determinedCategoryType === 'NEWS' ||
     determinedCategoryType === 'EDUCATIONAL' ||
@@ -219,31 +265,80 @@ export function ContentCard({
       (categoryType.toUpperCase().includes('NEWS') ||
         categoryType.toUpperCase().includes('EDUCATION')));
 
+  if (showFeedback) {
+    return (
+      <div className="bg-white relative rounded-[30px] shrink-0 w-full">
+        <div className="p-[20px]">
+          <div className="flex items-center justify-between mb-[12px]">
+            <p className="font-['DM_Sans',sans-serif] font-semibold text-[0.875rem] text-[#555555]">
+              Why are you dismissing this?
+            </p>
+            <button onClick={handleDismissWithoutFeedback} className="p-[4px]">
+              <X className="size-[16px] text-[#999999]" strokeWidth={1.5} />
+            </button>
+          </div>
+          <div className="flex flex-col gap-[8px]">
+            {['Not relevant to me', 'Already seen this', 'Not interested in this topic', 'Too many similar cards'].map((reason) => (
+              <button
+                key={reason}
+                onClick={() => handleFeedbackSubmit(reason)}
+                className="text-left px-[14px] py-[10px] rounded-[12px] border border-[#e8e0e0] font-['DM_Sans',sans-serif] text-[0.8125rem] text-[#555555] hover:bg-[#faf7f7] transition-colors"
+              >
+                {reason}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={handleDismissWithoutFeedback}
+            className="mt-[8px] w-full text-center py-[8px] font-['DM_Sans',sans-serif] text-[0.75rem] text-[#999999]"
+          >
+            Skip
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white relative rounded-[30px] shrink-0 w-full">
       <div className="size-full">
         <div className="content-stretch flex flex-col items-start pb-[20px] pt-[20px] px-[20px] relative w-full">
           <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full">
-            {/* Content */}
             <div className="content-stretch flex flex-col gap-[12px] items-start relative shrink-0 w-full">
-              {/* Header Section */}
               <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 w-full">
-                {/* Intent badge above topic label */}
-                {!hideIntent && config.intent && (
-                  <div
-                    className="flex items-center justify-center px-[8px] py-[2px] rounded-[4px]"
-                    style={{ backgroundColor: `${accentColor}15` }}
-                  >
-                    <p
-                      className="font-['DM_Sans',sans-serif] font-semibold leading-[18px] not-italic relative shrink-0 text-[0.625rem] tracking-[0.8px] uppercase"
-                      style={{ color: accentColor }}
-                    >
-                      {config.intent}
-                    </p>
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-[6px]">
+                    {isNew && (
+                      <div className="flex items-center justify-center px-[6px] py-[2px] rounded-[4px] bg-[#992929]">
+                        <p className="font-['DM_Sans',sans-serif] font-semibold leading-[14px] text-[0.5625rem] tracking-[0.5px] uppercase text-white">
+                          New
+                        </p>
+                      </div>
+                    )}
+                    {!hideIntent && config.intent && (
+                      <div
+                        className="flex items-center justify-center px-[8px] py-[2px] rounded-[4px]"
+                        style={{ backgroundColor: `${accentColor}15` }}
+                      >
+                        <p
+                          className="font-['DM_Sans',sans-serif] font-semibold leading-[18px] not-italic relative shrink-0 text-[0.625rem] tracking-[0.8px] uppercase"
+                          style={{ color: accentColor }}
+                        >
+                          {config.intent}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
+                  {id && onDismiss && (
+                    <button
+                      onClick={handleDismiss}
+                      className="p-[4px] -mr-[4px] -mt-[4px] opacity-40 hover:opacity-80 transition-opacity"
+                    >
+                      <X className="size-[14px] text-[#555555]" strokeWidth={1.5} />
+                    </button>
+                  )}
+                </div>
 
-                {/* Topic label */}
                 <p
                   className="font-['DM_Sans',sans-serif] font-semibold h-[12px] leading-[18px] not-italic relative shrink-0 text-[#992929] text-[0.625rem] tracking-[0.8px] uppercase"
                   style={{ color: topicLabelColor || '#992929' }}
@@ -251,16 +346,13 @@ export function ContentCard({
                   {customTopic || config.topic}
                 </p>
 
-                {/* Title */}
                 <p className="font-['Crimson_Pro',sans-serif] font-normal leading-[normal] relative shrink-0 text-[#555555] text-[1.5rem] tracking-[-0.48px] w-full">
                   {title}
                 </p>
 
-                {/* Sources Badge */}
                 {sourcesCount && <SourcesBadge sourcesCount={sourcesCount} />}
               </div>
 
-              {/* Image */}
               {image && (
                 <div className="h-[184px] relative shrink-0 w-full rounded-[8px] overflow-hidden">
                   <img
@@ -280,7 +372,14 @@ export function ContentCard({
                 </div>
               )}
 
-              {/* Description */}
+              {personalizedOverlay && (
+                <div className="w-full px-[12px] py-[8px] rounded-[8px] bg-[#faf5f5] border border-[#f0e8e8]">
+                  <p className="font-['DM_Sans',sans-serif] text-[0.8125rem] text-[#992929] leading-[1.4] italic">
+                    {personalizedOverlay}
+                  </p>
+                </div>
+              )}
+
               {description && (
                 <p
                   className="font-['DM_Sans',sans-serif] font-light leading-[normal] relative shrink-0 text-[#555555] text-[0.875rem] w-full"
@@ -290,7 +389,6 @@ export function ContentCard({
                 </p>
               )}
 
-              {/* Detail Sections */}
               {detailSections && detailSections.length > 0 && (
                 <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
                   {detailSections.map((section, index) => (
@@ -318,7 +416,6 @@ export function ContentCard({
                 </div>
               )}
 
-              {/* Buttons */}
               <div className="content-stretch flex flex-col gap-[10px] items-start relative shrink-0 w-full mt-[12px]">
                 <button
                   onClick={handleButtonClick}
@@ -403,7 +500,6 @@ export function ContentCard({
               </div>
             )}
 
-            {/* Timestamp */}
             <div className="content-stretch flex gap-[2px] items-center justify-end relative shrink-0 w-full">
               <Clock className="size-[12px] text-[#555555]" strokeWidth={1} />
               <div className="flex flex-col font-['DM_Sans',sans-serif] justify-center not-italic relative shrink-0 text-[#555555] text-[0.5625rem] text-nowrap text-right">

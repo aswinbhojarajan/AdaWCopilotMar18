@@ -5,7 +5,7 @@ import { ErrorBanner } from '../ada/ErrorBanner';
 import { useDiscoverContentPaginated } from '../../hooks/useContent';
 
 interface DiscoverScreenProps {
-  onChatSubmit?: (message: string, context?: { category: string; categoryType: string; title: string; sourceScreen?: string }) => void;
+  onChatSubmit?: (message: string, context?: { category: string; categoryType: string; title: string; sourceScreen?: string; discoverCard?: { card_id?: string; card_type?: string; card_summary?: string; why_seen?: string; entities?: string[]; cta_family?: string } }) => void;
 }
 
 export function DiscoverScreen({
@@ -13,14 +13,23 @@ export function DiscoverScreen({
 }: DiscoverScreenProps) {
   const [activeFilter, setActiveFilter] = useState<'forYou' | 'whatsNew'>('forYou');
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  const [dismissedCardIds, setDismissedCardIds] = useState<Set<string>>(new Set());
   const scrollSentinelRef = useRef<HTMLDivElement>(null);
+  const visitRecordedRef = useRef(false);
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useDiscoverContentPaginated(activeFilter);
 
+  useEffect(() => {
+    if (!visitRecordedRef.current) {
+      visitRecordedRef.current = true;
+      fetch('/api/discover/visit', { method: 'POST' }).catch(() => {});
+    }
+  }, []);
+
   const displayedContent = useMemo(() => {
     if (!data?.pages) return [];
-    return data.pages.flatMap(page => page.items);
-  }, [data]);
+    return data.pages.flatMap(page => page.items).filter(item => !dismissedCardIds.has(item.id || ''));
+  }, [data, dismissedCardIds]);
 
   const handleTabChange = useCallback((tab: 'forYou' | 'whatsNew') => {
     if (tab === activeFilter) return;
@@ -30,6 +39,23 @@ export function DiscoverScreen({
       setSlideDirection(null);
     }, 200);
   }, [activeFilter]);
+
+  const handleDismiss = useCallback((cardId: string) => {
+    setDismissedCardIds(prev => new Set(prev).add(cardId));
+    fetch('/api/discover/interact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cardId, action: 'dismiss' }),
+    }).catch(() => {});
+  }, []);
+
+  const handleFeedback = useCallback((cardId: string, feedback: string) => {
+    fetch('/api/discover/interact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cardId, action: 'feedback', metadata: { reason: feedback } }),
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const sentinel = scrollSentinelRef.current;
@@ -97,6 +123,7 @@ export function DiscoverScreen({
             {displayedContent.map((item, index) => (
               <ContentCard
                 key={`${activeFilter}-${item.id ?? index}`}
+                id={item.id}
                 category={item.category}
                 categoryType={item.categoryType}
                 title={item.title}
@@ -118,6 +145,10 @@ export function DiscoverScreen({
                 whyYouAreSeeingThis={item.whyYouAreSeeingThis}
                 supportingArticles={item.supportingArticles}
                 cardType={item.cardType}
+                isNew={item.isNew}
+                personalizedOverlay={item.personalizedOverlay}
+                onDismiss={handleDismiss}
+                onFeedback={handleFeedback}
               />
             ))}
             {isFetchingNextPage && (

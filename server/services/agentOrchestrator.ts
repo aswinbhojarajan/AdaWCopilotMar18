@@ -362,6 +362,7 @@ export async function* orchestrateStream(
       category: req.context.category,
       title: req.context.title,
       sourceScreen: req.context.sourceScreen,
+      discoverCard: req.context.discoverCard,
     } : undefined,
     toolNames: allowedToolNames,
     providerAlias: route.provider_alias,

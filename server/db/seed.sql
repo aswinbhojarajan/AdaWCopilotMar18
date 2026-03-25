@@ -773,3 +773,25 @@ ON CONFLICT (id) DO UPDATE SET
   taxonomy_tags = EXCLUDED.taxonomy_tags,
   updated_at = NOW();
 
+-- ============================================================
+-- User Segments (Phase 2: Personalization)
+-- ============================================================
+INSERT INTO user_segments (id, label, description, scoring_weights) VALUES
+  ('seg-conservative-gcc', 'Conservative GCC',
+   'Risk-averse GCC investors focused on income and capital preservation',
+   '{"portfolio_relevance": 0.25, "allocation_gap": 0.25, "suitability": 0.20, "geo": 0.15, "importance": 0.05, "freshness": 0.05, "novelty": 0.05}'),
+  ('seg-balanced-gcc', 'Balanced GCC',
+   'Moderate-risk GCC investors seeking growth with downside protection',
+   '{"portfolio_relevance": 0.30, "allocation_gap": 0.20, "suitability": 0.15, "geo": 0.10, "importance": 0.10, "freshness": 0.10, "novelty": 0.05}'),
+  ('seg-aggressive-global', 'Aggressive Global',
+   'Growth-oriented investors with global exposure and higher risk appetite',
+   '{"portfolio_relevance": 0.30, "allocation_gap": 0.15, "suitability": 0.15, "geo": 0.05, "importance": 0.15, "freshness": 0.15, "novelty": 0.05}')
+ON CONFLICT (id) DO UPDATE SET
+  label = EXCLUDED.label,
+  description = EXCLUDED.description,
+  scoring_weights = EXCLUDED.scoring_weights;
+
+UPDATE user_profiles SET segment_id = 'seg-balanced-gcc' WHERE user_id = 'user-aisha' AND (segment_id IS NULL OR segment_id != 'seg-balanced-gcc');
+UPDATE user_profiles SET segment_id = 'seg-conservative-gcc' WHERE user_id = 'user-khalid' AND (segment_id IS NULL OR segment_id != 'seg-conservative-gcc');
+UPDATE user_profiles SET segment_id = 'seg-aggressive-global' WHERE user_id = 'user-raj' AND (segment_id IS NULL OR segment_id != 'seg-aggressive-global');
+

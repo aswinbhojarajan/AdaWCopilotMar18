@@ -28,18 +28,33 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **Execution Guardrails & RM Handoff**: Ada cannot execute trades; this is enforced at multiple layers (system prompt, guardrail regex, orchestrator fallback). Execution requests are routed to RM via `advisor_action_queue`, webhook, or rejected based on tenant configuration.
 - **Shared Schemas**: Zod schemas for core agent types are defined for validation.
 
-**Discover Pipeline (Phase 1):**
-- **Content Pipeline**: Automated 5-stage pipeline (Ingest → Enrich → Cluster → Synthesize → Materialize) running on `setInterval` timers with concurrency guards.
+**Discover Pipeline (Phase 1 + Phase 2):**
+- **Content Pipeline**: Automated 7-stage pipeline (Ingest → Enrich → Cluster → Synthesize → Ada View → Event Calendar → Materialize) running on `setInterval` timers with concurrency guards.
 - **Ingest**: Fetches news from Finnhub every 10 minutes, extracts tickers and regions, stores in `raw_articles`.
 - **Enrich**: Classifies articles against 12-category taxonomy (equities, fixed_income, crypto, etc.), computes sentiment and importance scores, deduplicates via MD5 hash.
 - **Cluster**: Groups related articles using Jaccard similarity on feature sets (tickers, taxonomy, regions, keywords). Uses deterministic fingerprinting to prevent duplicate clusters.
 - **Synthesize**: Uses LLM (gpt-4o-mini via `resilientCompletion`) to generate discover cards from article clusters. Maps to card types (portfolio_impact, trend_brief, market_pulse) with CTAs from templates.
-- **Materialize**: Deactivates expired and low-confidence cards, maintains feed health.
+- **Ada View** (Phase 2): Weekly editorial synthesis from top discover cards. LLM generates "Ada's View" card tying week's themes together. Runs every 6 hours, deduplicates via 5-day window. File: `adaViewWorker.ts`.
+- **Event Calendar** (Phase 2): Fetches Finnhub earnings calendar, filters for user holdings + major GCC-relevant symbols, groups by week, creates event_calendar cards. Highlights portfolio holdings with ★ marker. File: `eventCalendarWorker.ts`.
+- **Materialize**: Deactivates expired and low-confidence cards, maintains feed health. Phase 2 adds per-user feed materialization with weighted scoring (30% portfolio relevance, 20% allocation gap, 15% suitability, 10% geo, 10% importance, 10% freshness, 5% novelty) and LLM personalized overlays for top-3 For You cards.
 - **Card Types**: portfolio_impact, trend_brief, market_pulse, explainer, wealth_planning, allocation_gap, event_calendar, ada_view, product_opportunity.
-- **Pipeline Files**: `server/services/discoverPipeline/` — ingestWorker.ts, enrichmentWorker.ts, clusteringWorker.ts, synthesisWorker.ts, feedMaterializer.ts, index.ts.
+- **Pipeline Files**: `server/services/discoverPipeline/` — ingestWorker.ts, enrichmentWorker.ts, clusteringWorker.ts, synthesisWorker.ts, adaViewWorker.ts, eventCalendarWorker.ts, feedMaterializer.ts, userProfileEnricher.ts, index.ts.
+- **Pipeline Timers**: Ingest: 10min, Cluster+Synth: 15min, Materialize: 60min, Editorial (Ada View + Event Calendar): 6hr.
 - **Health Endpoint**: `GET /api/pipeline/health` — returns pipeline status and last run times.
-- **Discover Tab**: Renamed from "What's Happening" to "What's New". Reads from `discover_cards` table with fallback to legacy `content_items`.
-- **UI Enhancements**: ContentCard supports `whyYouAreSeeingThis`, expandable `supportingArticles`, `intentBadge`, `cardType`, `freshnessLabel`.
+- **Discover Tab**: Two sub-tabs: "For You" (personalized, scored) and "What's New" (chronological). Reads from `user_discover_feed` cache first, falls back to live query.
+- **UI Enhancements**: ContentCard supports `whyYouAreSeeingThis`, expandable `supportingArticles`, `intentBadge`, `cardType`, `freshnessLabel`, `isNew` badge, `personalizedOverlay`, dismiss/feedback flow, enriched chat context handoff.
+
+**Discover Phase 2 — Personalization & Interactions:**
+- **User Segments**: 3 segments (Conservative GCC, Balanced GCC, Aggressive Global) with custom scoring weights. Assigned to user_profiles.
+- **Scoring Engine**: Deterministic weighted scoring per user segment. Guardrails enforce diversity (max 2 per asset class, max 1 per theme in top 5, min 1 GCC card).
+- **LLM Personalized Overlays**: Top 3 For You cards get GPT-generated personalized insight connecting the card to the user's portfolio.
+- **Pre-computed Feeds**: `user_discover_feed` table caches scored/ranked cards per user, refreshed every materialization cycle.
+- **Interaction Tracking**: `POST /api/discover/interact` (fire-and-forget), `POST /api/discover/visit` for last-visit timestamp. Dismissed cards filtered from feed.
+- **Card Dismiss + Feedback**: X button on cards opens feedback modal with 4 preset reasons. Both dismiss and feedback recorded.
+- **"New" Badge**: Cards created after user's last visit get a burgundy "NEW" badge.
+- **Enriched Chat Context**: CTA taps pass `DiscoverCardContext` (card_id, card_type, card_summary, why_seen, entities, cta_family) to chat. promptBuilder incorporates card context into system prompt.
+- **New Tables**: `user_segments`, `user_discover_feed`, `user_content_interactions`, `user_discover_visits`.
+- **New Files**: `adaViewWorker.ts`, `eventCalendarWorker.ts`, `userProfileEnricher.ts`.
 
 **Database (PostgreSQL):**
 - Contains 39 tables for core app data, agent architecture components, discover pipeline, and execution routing.
