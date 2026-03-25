@@ -132,14 +132,14 @@ async function assignUserSegments(): Promise<void> {
     if (profiles.length === 0) return;
 
     const { rows: segments } = await pool.query(
-      `SELECT id, name FROM user_segments`,
+      `SELECT id, label FROM user_segments`,
     );
 
     if (segments.length === 0) return;
 
     const segmentMap: Record<string, string> = {};
     for (const s of segments) {
-      segmentMap[s.name.toLowerCase()] = s.id;
+      segmentMap[s.label.toLowerCase()] = s.id;
     }
 
     for (const p of profiles) {

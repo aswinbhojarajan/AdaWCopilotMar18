@@ -294,7 +294,7 @@ export function ContentCard({
             </button>
           </div>
           <div className="flex flex-col gap-[8px]">
-            {['Not relevant to me', 'Already seen this', 'Not interested in this topic', 'Too many similar cards'].map((reason) => (
+            {['Not relevant', 'Already know this', 'Too complex', 'Too basic'].map((reason) => (
               <button
                 key={reason}
                 onClick={() => handleFeedbackSubmit(reason)}

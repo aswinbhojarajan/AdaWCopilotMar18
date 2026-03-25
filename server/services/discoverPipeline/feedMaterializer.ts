@@ -114,9 +114,10 @@ function computeWeightedScore(card: CardRow, profile: UserProfileForScoring, wei
     for (const [gapKey, gapValue] of Object.entries(profile.allocation_gaps)) {
       const assetClassName = assetClassMap[gapKey] || gapKey;
       if (cardAssetClasses.includes(gapKey) || cardAssetClasses.includes(assetClassName)) {
-        if (Math.abs(gapValue) > 10) allocationGap += 50;
-        else if (Math.abs(gapValue) > 5) allocationGap += 30;
-        else allocationGap += 10;
+        if (gapValue < -10) allocationGap += 50;
+        else if (gapValue < -5) allocationGap += 30;
+        else if (gapValue < 0) allocationGap += 15;
+        else allocationGap += 5;
       }
     }
   }
@@ -152,13 +153,8 @@ function computeWeightedScore(card: CardRow, profile: UserProfileForScoring, wei
   importance += Math.min(card.source_count * 5, 40);
   importance = Math.min(importance, 100);
 
-  let freshness = 0;
   const ageHours = (Date.now() - card.created_at.getTime()) / 3600000;
-  if (ageHours < 1) freshness = 100;
-  else if (ageHours < 6) freshness = 80;
-  else if (ageHours < 24) freshness = 50;
-  else if (ageHours < 48) freshness = 25;
-  else freshness = 10;
+  const freshness = Math.round(100 * Math.exp(-0.03 * ageHours));
 
   const novelty = card.is_editorial ? 30 : 60;
 
