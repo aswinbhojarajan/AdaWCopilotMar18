@@ -204,13 +204,29 @@ function extractTaxonomyThemes(taxonomyTags: Record<string, unknown>): string[] 
   return themes;
 }
 
-async function fetchEngagementSignals(userId?: string): Promise<{
+async function fetchSegmentPeers(userId: string): Promise<string[]> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT up2.user_id FROM user_profiles up1
+       JOIN user_profiles up2 ON up1.segment_id = up2.segment_id AND up2.user_id != up1.user_id
+       WHERE up1.user_id = $1 LIMIT 20`,
+      [userId],
+    );
+    return rows.map((r: { user_id: string }) => r.user_id);
+  } catch {
+    return [];
+  }
+}
+
+async function fetchEngagementSignals(userId?: string, segmentId?: string | null): Promise<{
   tappedThemes: Set<string>;
   dismissedThemes: Set<string>;
+  segmentTappedThemes: Map<string, number>;
 }> {
   const tappedThemes = new Set<string>();
   const dismissedThemes = new Set<string>();
-  if (!userId) return { tappedThemes, dismissedThemes };
+  const segmentTappedThemes = new Map<string, number>();
+  if (!userId) return { tappedThemes, dismissedThemes, segmentTappedThemes };
 
   try {
     const { rows: tapped } = await pool.query(
@@ -240,30 +256,57 @@ async function fetchEngagementSignals(userId?: string): Promise<{
       const raw = typeof row.taxonomy_tags === 'string' ? JSON.parse(row.taxonomy_tags) : row.taxonomy_tags || {};
       for (const theme of extractTaxonomyThemes(raw)) dismissedThemes.add(theme);
     }
+
+    if (segmentId) {
+      const peerIds = await fetchSegmentPeers(userId);
+      if (peerIds.length > 0) {
+        const { rows: peerTapped } = await pool.query(
+          `SELECT dc.taxonomy_tags
+           FROM user_content_interactions uci
+           JOIN discover_cards dc ON dc.id = uci.card_id
+           WHERE uci.user_id = ANY($1) AND uci.action IN ('cta_tap', 'click', 'expand')
+             AND uci.created_at > NOW() - INTERVAL '14 days'
+           LIMIT 100`,
+          [peerIds],
+        );
+        for (const row of peerTapped) {
+          const raw = typeof row.taxonomy_tags === 'string' ? JSON.parse(row.taxonomy_tags) : row.taxonomy_tags || {};
+          for (const theme of extractTaxonomyThemes(raw)) {
+            segmentTappedThemes.set(theme, (segmentTappedThemes.get(theme) || 0) + 1);
+          }
+        }
+      }
+    }
   } catch {
   }
 
-  return { tappedThemes, dismissedThemes };
+  return { tappedThemes, dismissedThemes, segmentTappedThemes };
 }
 
 function applyEngagementRerank(
   scored: Array<{ card: CardRow; score: number }>,
-  signals: { tappedThemes: Set<string>; dismissedThemes: Set<string> },
+  signals: { tappedThemes: Set<string>; dismissedThemes: Set<string>; segmentTappedThemes: Map<string, number> },
 ): void {
-  if (signals.tappedThemes.size === 0 && signals.dismissedThemes.size === 0) return;
+  const hasPersonal = signals.tappedThemes.size > 0 || signals.dismissedThemes.size > 0;
+  const hasSegment = signals.segmentTappedThemes.size > 0;
+  if (!hasPersonal && !hasSegment) return;
 
   for (const entry of scored) {
     const cardThemes = extractTaxonomyThemes(entry.card.taxonomy_tags || {});
     let boost = 0;
     let penalty = 0;
+    let segmentBoost = 0;
 
     for (const theme of cardThemes) {
       if (signals.tappedThemes.has(theme)) boost++;
       if (signals.dismissedThemes.has(theme)) penalty++;
+      const segmentCount = signals.segmentTappedThemes.get(theme) || 0;
+      if (segmentCount >= 2 && !signals.tappedThemes.has(theme)) segmentBoost++;
     }
 
     if (boost > 0) entry.score = Math.round(entry.score * (1 + 0.10 * Math.min(boost, 3)));
     if (penalty > 0) entry.score = Math.round(entry.score * (1 - 0.20 * Math.min(penalty, 2)));
+    if (segmentBoost > 0) entry.score = Math.round(entry.score * (1 + 0.05 * Math.min(segmentBoost, 3)));
   }
 
   scored.sort((a, b) => b.score - a.score);
@@ -321,7 +364,7 @@ function applyGuardrailsWithEngagement(
   cards: CardRow[],
   countBand: { min: number; max: number },
   userProfile: UserProfileForScoring | null,
-  engagementSignals: { tappedThemes: Set<string>; dismissedThemes: Set<string> },
+  engagementSignals: { tappedThemes: Set<string>; dismissedThemes: Set<string>; segmentTappedThemes: Map<string, number> },
 ): CardRow[] {
   const scored = cards.map(c => ({ card: c, score: computeCardScore(c, userProfile) }));
   applyEngagementRerank(scored, engagementSignals);
@@ -476,7 +519,7 @@ async function materializeUserFeed(
   allCards: CardRow[],
 ): Promise<void> {
   const forYouCards = allCards.filter(c => {
-    if (c.card_type === 'milestone' && !c.id.includes(userId)) return false;
+    if (c.card_type === 'milestone' && !c.id.startsWith(`disc-mile-${userId}-`)) return false;
     return c.tab === 'forYou' || c.tab === 'both';
   });
   const whatsNewCards = allCards.filter(c => c.tab === 'whatsNew' || c.tab === 'both');
@@ -493,7 +536,7 @@ async function materializeUserFeed(
   const morningBriefingCard = filteredForYou.find(c => c.card_type === 'morning_briefing');
   const nonBriefingForYou = filteredForYou.filter(c => c.card_type !== 'morning_briefing');
 
-  const engagementSignals = await fetchEngagementSignals(userId);
+  const engagementSignals = await fetchEngagementSignals(userId, profile.segment_id);
   const rankedRemainder = applyGuardrailsWithEngagement(nonBriefingForYou, FOR_YOU_COUNT, profile, engagementSignals);
 
   const rankedForYou = morningBriefingCard

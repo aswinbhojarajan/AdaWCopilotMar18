@@ -1,7 +1,11 @@
 import pool from '../../db/pool';
 import { resilientCompletion } from '../openaiClient';
+import { generateBriefing } from '../morningSentinelService';
 
-const BRIEFING_PROMPT = `You are Ada, an AI wealth copilot for GCC HNW investors. Create a concise morning briefing card summarizing overnight market developments.
+const BRIEFING_PROMPT = `You are Ada, an AI wealth copilot for GCC HNW investors. Create a concise morning briefing card combining the user's portfolio sentinel insights with overnight market developments.
+
+Morning Sentinel Portfolio Context:
+{SENTINEL_CONTEXT}
 
 Top overnight discover cards:
 {CARDS}
@@ -9,8 +13,9 @@ Top overnight discover cards:
 Respond in JSON with these exact fields:
 {
   "title": "A crisp morning headline (max 10 words, e.g. 'Your Wednesday Brief: Markets Shift on Fed Signal')",
-  "summary": "2-3 sentence overview of the most important overnight developments (max 200 chars)",
+  "summary": "2-3 sentence overview combining portfolio-relevant and market developments (max 200 chars)",
   "detail_sections": [
+    {"title": "Your portfolio", "type": "bullets", "content": ["key portfolio insight 1", "key portfolio insight 2"]},
     {"title": "Overnight movers", "type": "bullets", "content": ["key development 1", "key development 2", "key development 3"]},
     {"title": "What to watch today", "type": "paragraph", "content": ["1-2 sentence forward-looking note for the day ahead"]}
   ],
@@ -72,11 +77,27 @@ export async function runMorningBriefing(): Promise<number> {
       return 0;
     }
 
+    let sentinelContext = 'No portfolio context available';
+    try {
+      const { rows: users } = await pool.query(`SELECT user_id FROM user_profiles LIMIT 1`);
+      const primaryUserId = users[0]?.user_id;
+      if (primaryUserId) {
+        const sentinel = await generateBriefing(primaryUserId, true);
+        sentinelContext = [
+          `Portfolio: $${sentinel.portfolioValue?.toLocaleString() || 'N/A'} (${sentinel.dailyChangePercent >= 0 ? '+' : ''}${sentinel.dailyChangePercent?.toFixed(2) || 0}% today)`,
+          sentinel.headline || '',
+          ...(sentinel.risks || []).map((r) => `Risk: ${r.title} — ${r.description}`),
+        ].filter(Boolean).join('\n');
+      }
+    } catch (err) {
+      console.warn('[MorningBriefingWorker] Sentinel fetch failed, continuing without:', (err as Error).message);
+    }
+
     const cardsText = overnightCards
       .map((c, i) => `${i + 1}. [${c.card_type}] "${c.title}" — ${c.summary} (Topic: ${c.topic_label})`)
       .join('\n');
 
-    const prompt = BRIEFING_PROMPT.replace('{CARDS}', cardsText);
+    const prompt = BRIEFING_PROMPT.replace('{CARDS}', cardsText).replace('{SENTINEL_CONTEXT}', sentinelContext);
 
     const completion = await resilientCompletion({
       model: 'gpt-4o-mini',
