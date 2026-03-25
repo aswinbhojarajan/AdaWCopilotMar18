@@ -20,8 +20,54 @@ export interface ClassifierOutput {
   followup_mode: 'suggest' | 'none' | 'inline';
 }
 
-function buildClassificationPrompt(): string {
+export interface ConversationContext {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+const CONTINUATION_PATTERNS = [
+  'do across', 'do it for', 'do that for', 'do the same', 'same for',
+  'across all', 'for all', 'all of them', 'every one', 'each one',
+  'tell me more', 'more detail', 'go deeper', 'elaborate', 'expand on',
+  'what about', 'how about', 'and for', 'also for', 'and what about',
+  'yes', 'yeah', 'sure', 'please do', 'go on', 'continue',
+  'can you also', 'now do', 'now for', 'next', 'the rest',
+  'break it down', 'break that down', 'explain more', 'why is that',
+  'show me', 'give me more', 'keep going',
+];
+
+function isLikelyContinuation(message: string): boolean {
+  const lower = message.toLowerCase().trim();
+  const wordCount = lower.split(/\s+/).length;
+
+  if (wordCount <= 6 && CONTINUATION_PATTERNS.some(p => lower.includes(p))) {
+    return true;
+  }
+
+  return false;
+}
+
+function buildClassificationPrompt(recentHistory?: ConversationContext[]): string {
   const routingContext = getClassifierContext();
+
+  let historyBlock = '';
+  if (recentHistory && recentHistory.length > 0) {
+    const formatted = recentHistory.map(t =>
+      `${t.role === 'user' ? 'User' : 'Assistant'}: ${t.content.slice(0, 300)}`
+    ).join('\n');
+    historyBlock = `
+RECENT CONVERSATION (for context — use this to resolve ambiguous follow-up messages):
+${formatted}
+
+FOLLOW-UP RESOLUTION RULES:
+- If the current message is short, vague, or refers back to the prior conversation (e.g., "do across all", "tell me more", "what about bonds", "yes", "continue"), classify it with the SAME intent as the user's prior question, not as "general" or "balance_query".
+- "do across all" / "for all" / "all of them" after a news/analysis question → same intent (e.g., news_explain or portfolio_explain)
+- "tell me more" / "elaborate" / "go deeper" → same intent as the prior turn
+- "what about X" → same intent, with X as a mentioned entity
+- Only classify as a NEW intent if the user clearly changes topic.
+`;
+  }
+
   return `You are an intent classifier for a wealth management AI copilot serving GCC HNW investors. Classify the user's message into exactly ONE intent.
 
 INTENTS:
@@ -38,7 +84,7 @@ INTENTS:
 - general: Greetings, small talk, off-topic, or anything that doesn't fit the above
 
 ${routingContext}
-
+${historyBlock}
 Respond with ONLY a JSON object:
 {"intent":"<intent>","confidence":<0.0-1.0>,"reasoning_effort":"low|medium|high","needs_live_data":<bool>,"needs_tooling":<bool>,"mentioned_entities":["<ticker_or_entity>"],"followup_mode":"suggest|none|inline"}
 
@@ -83,12 +129,15 @@ function buildFallbackOutput(intent: Intent, message: string): ClassifierOutput 
   };
 }
 
-export async function classifyIntentAsync(message: string): Promise<ClassifierOutput> {
+export async function classifyIntentAsync(
+  message: string,
+  recentHistory?: ConversationContext[],
+): Promise<ClassifierOutput> {
   try {
     const response = await resilientCompletion({
       model: resolveModel('ada-classifier'),
       messages: [
-        { role: 'system', content: buildClassificationPrompt() },
+        { role: 'system', content: buildClassificationPrompt(recentHistory) },
         { role: 'user', content: message },
       ],
       max_completion_tokens: 200,
@@ -97,20 +146,20 @@ export async function classifyIntentAsync(message: string): Promise<ClassifierOu
     const content = response.choices[0]?.message?.content?.trim();
     if (!content) {
       console.log('[IntentClassifier] LLM returned empty content');
-      return buildFallbackOutput(classifyIntentFallback(message), message);
+      return buildFallbackOutput(classifyIntentFallback(message, recentHistory), message);
     }
 
     const jsonMatch = content.match(/\{[\s\S]+\}/);
     if (!jsonMatch) {
       console.log('[IntentClassifier] LLM response not JSON:', content.slice(0, 80));
-      return buildFallbackOutput(classifyIntentFallback(message), message);
+      return buildFallbackOutput(classifyIntentFallback(message, recentHistory), message);
     }
 
     const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
     const intent = parsed.intent as Intent;
     if (!VALID_INTENTS.includes(intent)) {
       console.log('[IntentClassifier] LLM returned invalid intent:', parsed.intent);
-      return buildFallbackOutput(classifyIntentFallback(message), message);
+      return buildFallbackOutput(classifyIntentFallback(message, recentHistory), message);
     }
 
     const confidence = typeof parsed.confidence === 'number' ? Math.min(1, Math.max(0, parsed.confidence)) : 0.8;
@@ -129,7 +178,7 @@ export async function classifyIntentAsync(message: string): Promise<ClassifierOu
     return { intent, confidence, reasoning_effort, needs_live_data, needs_tooling, mentioned_entities, followup_mode };
   } catch (err) {
     console.error('[IntentClassifier] LLM classification failed, using fallback:', (err as Error).message);
-    return buildFallbackOutput(classifyIntentFallback(message), message);
+    return buildFallbackOutput(classifyIntentFallback(message, recentHistory), message);
   }
 }
 
@@ -137,7 +186,16 @@ export function classifyIntent(message: string): Intent {
   return classifyIntentFallback(message);
 }
 
-function classifyIntentFallback(message: string): Intent {
+function extractPriorUserIntent(history: ConversationContext[]): Intent | null {
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i].role === 'user') {
+      return classifyIntentFallback(history[i].content);
+    }
+  }
+  return null;
+}
+
+function classifyIntentFallback(message: string, recentHistory?: ConversationContext[]): Intent {
   const lower = message.toLowerCase();
 
   interface IntentRule { intent: Intent; keywords: string[]; priority: number }
@@ -243,6 +301,14 @@ function classifyIntentFallback(message: string): Intent {
   for (const rule of INTENT_RULES) {
     if (rule.keywords.some(k => lower.includes(k))) {
       return rule.intent;
+    }
+  }
+
+  if (recentHistory && recentHistory.length > 0 && isLikelyContinuation(message)) {
+    const priorIntent = extractPriorUserIntent(recentHistory);
+    if (priorIntent && priorIntent !== 'general') {
+      console.log('[IntentClassifier] Fallback: detected continuation, inheriting prior intent:', priorIntent);
+      return priorIntent;
     }
   }
 

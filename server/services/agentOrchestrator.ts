@@ -125,8 +125,11 @@ function extractSymbols(message: string): string[] {
   return matches.filter(m => !commonWords.has(m));
 }
 
-async function buildIntentClassification(message: string): Promise<IntentClassification> {
-  const classifierResult = await intentClassifier.classifyIntentAsync(message);
+async function buildIntentClassification(
+  message: string,
+  recentHistory?: Array<{ role: 'user' | 'assistant'; content: string }>,
+): Promise<IntentClassification> {
+  const classifierResult = await intentClassifier.classifyIntentAsync(message, recentHistory);
   const symbols = extractSymbols(message);
   const suggestedTools = inferSuggestedTools(classifierResult.intent, message);
 
@@ -249,8 +252,13 @@ export async function* orchestrateStream(
     inputPreview: piiResult.hasPii ? piiResult.sanitized.slice(0, 100) : req.message.slice(0, 100),
   });
 
+  const recentHistory = await memoryService.getWorkingMemory(threadId);
+  const classifierHistory = recentHistory.slice(-4).map(t => ({
+    role: t.role as 'user' | 'assistant',
+    content: t.content,
+  }));
   const intentStart = Date.now();
-  const intent = await buildIntentClassification(sanitizedMessage);
+  const intent = await buildIntentClassification(sanitizedMessage, classifierHistory.length > 0 ? classifierHistory : undefined);
   timings.intent_classification_ms = Date.now() - intentStart;
   console.log('[Orchestrator] intent=%s confidence=%s lane=%s ms=%d', intent.primary_intent, intent.confidence, intent.suggested_tools.length > 0 ? 'lane1+' : 'tbd', timings.intent_classification_ms);
 
