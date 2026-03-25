@@ -895,18 +895,48 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+---
+
+## Task #1 — Connect All Free External Data Providers (2026-03-25)
+
+### Added
+- **Yahoo Finance provider** (`server/providers/yahooFinance.ts`): Full `MarketProvider` + `NewsProvider` implementation using `yahoo-finance2` npm package. Supports quotes, historical prices, company profiles, earnings history, and news search. Registered as `yahoo_finance` key in provider registry with caching, rate limiting, and health tracking.
+- **6 new LLM tool definitions** in `financialTools.ts`:
+  - `getMacroIndicator` → FRED provider (inflation, GDP, yields, VIX, oil, gold, consumer sentiment)
+  - `getCompanyFilings` → SEC EDGAR provider (10-K, 10-Q, 8-K filings + XBRL financial facts)
+  - `lookupInstrument` → OpenFIGI provider (ticker/ISIN/CUSIP → FIGI resolution)
+  - `getFxRate` → Frankfurter/CBUAE providers (FX rates with AED-aware routing)
+  - `getHistoricalPrices` → Finnhub/Yahoo Finance (price history over N days)
+  - `getCompanyProfile` → Finnhub/Yahoo Finance (company info, industry, market cap)
+- **Provider status endpoint** (`GET /api/providers/status`): Returns health state, domain configuration, cache stats, and per-provider attempt/failure counts for all 7 providers.
+- **Enhanced tool routing**: `inferSuggestedTools` in orchestrator now maps macro, FX, filing, company, historical, and instrument-lookup keywords to the appropriate new tools.
+- **Enhanced system prompt**: `promptBuilder.ts` now generates a per-request TOOL GUIDE section describing each available tool with its data source and usage guidance.
+
+### Changed
+- **Provider activation**: All 7 providers now activated via environment variables (Finnhub, Yahoo Finance, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE). Mock fallback retained as last resort in all chains.
+- **Lane 1 tool groups**: Added `market_intel` to Lane 1 tool groups in `modelRouter.ts` so market data tools are available in standard conversational queries (previously only Lane 2 had them).
+- **Intent route configs**: `market_context` and `news_explain` intents now support Lane 2 escalation and include optional tool categories for macro, FX, identity, and research providers.
+- **SEC EDGAR User-Agent**: Changed from placeholder email to configurable via `EDGAR_USER_AGENT` env var with production-appropriate default.
+- **Tool group map**: All 6 new tools registered under `market_intel` group for proper lane-based filtering.
+
+### Resolved
+- **ISS-004**: All external providers default to mock → Now all providers are live with proper fallback chains.
+- **BL-004**: Real external data provider configuration → Complete.
+
+---
+
 ## Summary Statistics
 
 | Metric | Value |
 |--------|-------|
 | PostgreSQL tables | 33 |
-| API endpoints | 34 (including 2 SSE streams) |
+| API endpoints | 35 (including 2 SSE streams + providers/status) |
 | React components | 65+ |
 | React hooks | 15+ |
 | Backend services | 17 (agent orchestrator, policy engine, model router, prompt builder, response builder, trace logger, guardrails, wealth engine, financial tools, RM handoff, AI, chat, intent, RAG, memory, PII, goal, sentinel) |
 | Database repositories | 6 (user, portfolio, content, chat, poll, agent) |
-| External data providers | 6 (Finnhub, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE) |
-| AI tools | 9 (portfolio snapshot, holdings detail, market data, news summary, wealth metric, route to advisor, simulator, widget, fact extraction) |
+| External data providers | 7 (Finnhub, Yahoo Finance, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE) |
+| AI tools | 15 (portfolio snapshot, holdings detail, market quotes, historical prices, company profile, macro indicator, company filings, instrument lookup, FX rate, news summary, wealth metric, route to advisor, simulator, widget, fact extraction) |
 | Memory tiers | 3 (working, episodic, semantic) |
 | SSE streams | 2 (chat, morning sentinel) |
 | Guardrail checks | 7 (blocked phrases, execution claims ×7 regex, hard post-check, education advisory, security naming, data freshness, disclosures) |

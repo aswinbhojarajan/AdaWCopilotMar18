@@ -89,10 +89,19 @@ function inferSuggestedTools(intent: IntentClassification['primary_intent'], mes
       break;
     case 'market_context':
       if (message.match(/\b[A-Z]{2,5}\b/)) tools.push('getQuotes');
+      if (lower.includes('inflat') || lower.includes('gdp') || lower.includes('interest rate') || lower.includes('yield') || lower.includes('fed') || lower.includes('cpi') || lower.includes('unemployment') || lower.includes('economy') || lower.includes('macro') || lower.includes('vix') || lower.includes('oil') || lower.includes('gold') || lower.includes('treasury')) {
+        tools.push('getMacroIndicator');
+      }
+      if (lower.includes('currency') || lower.includes('exchange rate') || lower.includes('fx') || lower.includes('convert') || lower.includes('aed') || lower.includes('dirham') || lower.includes('usd to') || lower.includes('eur to') || lower.includes('gbp to')) {
+        tools.push('getFxRate');
+      }
       break;
     case 'news_explain':
       tools.push('getHoldingsRelevantNews');
       if (message.match(/\b[A-Z]{2,5}\b/)) tools.push('getQuotes');
+      if (lower.includes('filing') || lower.includes('10-k') || lower.includes('10-q') || lower.includes('8-k') || lower.includes('sec') || lower.includes('annual report') || lower.includes('quarterly')) {
+        tools.push('getCompanyFilings');
+      }
       break;
     case 'scenario_analysis':
       tools.push('getPortfolioSnapshot');
@@ -110,6 +119,20 @@ function inferSuggestedTools(intent: IntentClassification['primary_intent'], mes
 
   if (lower.includes('simulat') || lower.includes('retire') || lower.includes('what if')) {
     if (!tools.includes('show_simulator')) tools.push('show_simulator');
+  }
+
+  if (lower.includes('history') || lower.includes('historical') || lower.includes('chart') || lower.includes('trend') || lower.includes('past') || lower.includes('performance over')) {
+    if (!tools.includes('getHistoricalPrices')) tools.push('getHistoricalPrices');
+  }
+
+  if (lower.includes('company') || lower.includes('profile') || lower.includes('about') || lower.includes('what is') || lower.includes('who is') || lower.includes('tell me about')) {
+    if (message.match(/\b[A-Z]{2,5}\b/) && !tools.includes('getCompanyProfile')) {
+      tools.push('getCompanyProfile');
+    }
+  }
+
+  if (lower.includes('isin') || lower.includes('cusip') || lower.includes('figi') || lower.includes('identifier') || lower.includes('look up') || lower.includes('lookup')) {
+    if (!tools.includes('lookupInstrument')) tools.push('lookupInstrument');
   }
 
   return [...new Set(tools)];

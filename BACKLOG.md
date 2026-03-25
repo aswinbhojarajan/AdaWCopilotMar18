@@ -61,15 +61,11 @@ Production security baseline:
 - Input sanitization beyond PII detection
 
 ### BL-004: Real External Data Provider Configuration
-**Status:** Proposed
+**Status:** Complete
 **Priority:** Must Have
 
-Move from mock to real data for at least core providers:
-- Finnhub for real-time market quotes and company data
-- FRED for macroeconomic indicators
-- Configure API keys in production environment
-- Set up provider health monitoring alerts
-- Validate data freshness and accuracy
+~~Move from mock to real data for at least core providers:~~
+All 7 providers now live: Finnhub (market+news), Yahoo Finance (fallback market+news), FRED (macro), SEC EDGAR (filings), OpenFIGI (instrument lookup), Frankfurter (FX), CBUAE (AED FX). 6 new LLM tools added. Provider health endpoint at `/api/providers/status`. See Task #1.
 
 ### BL-005: Error Monitoring & Alerting
 **Status:** Proposed

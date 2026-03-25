@@ -100,6 +100,21 @@ export function isProviderHealthy(provider: string): boolean {
   return (recentFailures / recentAttempts) < FAILURE_RATE_THRESHOLD;
 }
 
+export function getProviderHealthStatus(provider: string): { healthy: boolean; attempts: number; failures: number; lastAttempt: number | null; lastFailure: number | null } {
+  const entry = healthCounters.get(provider);
+  if (!entry) return { healthy: true, attempts: 0, failures: 0, lastAttempt: null, lastFailure: null };
+  const cutoff = Date.now() - HEALTH_WINDOW_MS;
+  const recentAttempts = entry.attemptTimestamps.filter((t) => t > cutoff);
+  const recentFailures = entry.failureTimestamps.filter((t) => t > cutoff);
+  return {
+    healthy: isProviderHealthy(provider),
+    attempts: recentAttempts.length,
+    failures: recentFailures.length,
+    lastAttempt: recentAttempts.length > 0 ? Math.max(...recentAttempts) : null,
+    lastFailure: recentFailures.length > 0 ? Math.max(...recentFailures) : null,
+  };
+}
+
 export async function fetchWithTimeout(url: string, options: RequestInit & { timeout?: number } = {}): Promise<Response> {
   const { timeout = 10_000, ...fetchOpts } = options;
   const controller = new AbortController();

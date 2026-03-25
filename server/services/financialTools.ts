@@ -9,6 +9,12 @@ const TOOL_GROUP_MAP: Record<string, ToolGroup> = {
   getHoldings: 'financial_data',
   getQuotes: 'market_intel',
   getHoldingsRelevantNews: 'market_intel',
+  getHistoricalPrices: 'market_intel',
+  getCompanyProfile: 'market_intel',
+  getMacroIndicator: 'market_intel',
+  getCompanyFilings: 'market_intel',
+  lookupInstrument: 'market_intel',
+  getFxRate: 'market_intel',
   calculatePortfolioHealth: 'financial_data',
   route_to_advisor: 'crm_actions',
   show_simulator: 'ui_actions',
@@ -89,6 +95,134 @@ export const FINANCIAL_TOOL_DEFINITIONS: OpenAI.ChatCompletionTool[] = [
           },
         },
         required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getHistoricalPrices',
+      description: 'Get historical price data for a stock or ETF over a specified number of days. Call this when the user asks about price history, trends, or charts for a specific instrument.',
+      parameters: {
+        type: 'object',
+        properties: {
+          symbol: {
+            type: 'string',
+            description: 'The ticker symbol (e.g., "AAPL", "NVDA")',
+          },
+          days: {
+            type: 'number',
+            description: 'Number of days of history to retrieve (e.g., 7, 30, 90, 365). Default 30.',
+          },
+        },
+        required: ['symbol'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getCompanyProfile',
+      description: 'Get detailed company information: name, industry, sector, market cap, exchange, country, website. Call this when the user asks about a specific company or wants background on a stock.',
+      parameters: {
+        type: 'object',
+        properties: {
+          symbol: {
+            type: 'string',
+            description: 'The ticker symbol (e.g., "AAPL", "MSFT")',
+          },
+        },
+        required: ['symbol'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getMacroIndicator',
+      description: 'Get macroeconomic indicators from FRED: inflation (CPI), GDP, unemployment, treasury yields, Fed Funds Rate, VIX, oil/gold prices, consumer sentiment, and more. Call this when the user asks about the economy, interest rates, inflation, macro outlook, or market conditions.',
+      parameters: {
+        type: 'object',
+        properties: {
+          seriesIds: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'FRED series IDs to fetch. Common: FEDFUNDS (Fed rate), DGS10 (10Y yield), DGS2 (2Y yield), CPIAUCSL (CPI), UNRATE (unemployment), GDP, T10Y2Y (yield curve), VIXCLS (VIX), DCOILBRENTEU (oil), GOLDAMGBD228NLBM (gold), UMCSENT (consumer sentiment)',
+          },
+        },
+        required: ['seriesIds'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getCompanyFilings',
+      description: 'Search SEC EDGAR for company filings (10-K, 10-Q, 8-K, etc.) and XBRL financial facts (revenue, net income, assets). Call this when the user asks about SEC filings, annual reports, quarterly earnings filings, or fundamental financial data from regulatory filings.',
+      parameters: {
+        type: 'object',
+        properties: {
+          company: {
+            type: 'string',
+            description: 'Company ticker symbol (e.g., "AAPL") or name',
+          },
+          type: {
+            type: 'string',
+            description: 'Filing type filter: "10-K" (annual), "10-Q" (quarterly), "8-K" (current events), "DEF 14A" (proxy). Omit for all types.',
+          },
+          includeFacts: {
+            type: 'boolean',
+            description: 'If true, also fetch XBRL financial facts (revenue, net income, EPS, assets, liabilities). Default false.',
+          },
+          limit: {
+            type: 'number',
+            description: 'Max number of filings to return. Default 5.',
+          },
+        },
+        required: ['company'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'lookupInstrument',
+      description: 'Look up a financial instrument by ticker, ISIN, CUSIP, or FIGI to get standardized identifiers and exchange information. Call this when the user asks about an instrument identifier, wants to verify a security, or needs to map between different ID systems.',
+      parameters: {
+        type: 'object',
+        properties: {
+          queries: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Instrument identifiers to resolve (tickers like "AAPL", ISINs like "US0378331005", CUSIPs, or FIGIs)',
+          },
+        },
+        required: ['queries'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getFxRate',
+      description: 'Get current or historical foreign exchange rates. Supports all major currencies including AED (UAE Dirham) via CBUAE and global rates via ECB. Call this when the user asks about currency conversion, exchange rates, or FX.',
+      parameters: {
+        type: 'object',
+        properties: {
+          base: {
+            type: 'string',
+            description: 'Base currency code (e.g., "USD", "AED", "EUR")',
+          },
+          target: {
+            type: 'string',
+            description: 'Target currency code (e.g., "AED", "USD", "GBP")',
+          },
+          date: {
+            type: 'string',
+            description: 'Optional date for historical rate in YYYY-MM-DD format. Omit for latest rate.',
+          },
+        },
+        required: ['base', 'target'],
       },
     },
   },
@@ -242,6 +376,81 @@ export async function executeFinancialTool(
         : [];
       const limit = (args.limit as number) ?? 5;
       return registry.news.getHoldingsRelevantNews(holdings, limit);
+    }
+
+    case 'getHistoricalPrices': {
+      const symbol = (args.symbol as string) ?? '';
+      const days = (args.days as number) ?? 30;
+      if (!symbol) {
+        return { status: 'error', source_name: 'market', source_type: 'market_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'No symbol provided' };
+      }
+      return registry.market.getHistoricalPrices(symbol, days);
+    }
+
+    case 'getCompanyProfile': {
+      const symbol = (args.symbol as string) ?? '';
+      if (!symbol) {
+        return { status: 'error', source_name: 'market', source_type: 'market_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'No symbol provided' };
+      }
+      return registry.market.getCompanyProfile(symbol);
+    }
+
+    case 'getMacroIndicator': {
+      const seriesIds = (args.seriesIds as string[]) ?? [];
+      if (seriesIds.length === 0) {
+        return { status: 'error', source_name: 'macro', source_type: 'macro_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'No series IDs provided' };
+      }
+      if (seriesIds.length === 1) {
+        return registry.macro.getIndicator(seriesIds[0]);
+      }
+      return registry.macro.getMultipleIndicators(seriesIds);
+    }
+
+    case 'getCompanyFilings': {
+      const company = (args.company as string) ?? '';
+      const filingType = args.type as string | undefined;
+      const includeFacts = (args.includeFacts as boolean) ?? false;
+      const filingLimit = (args.limit as number) ?? 5;
+      if (!company) {
+        return { status: 'error', source_name: 'research', source_type: 'research_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'No company provided' };
+      }
+      const filingsResult = await registry.research.getFilings(company, filingType, filingLimit);
+      if (includeFacts) {
+        const factsResult = await registry.research.getCompanyFacts(company);
+        if (factsResult.status === 'ok') {
+          return {
+            ...filingsResult,
+            data: { filings: filingsResult.data, facts: factsResult.data },
+          };
+        }
+      }
+      return filingsResult;
+    }
+
+    case 'lookupInstrument': {
+      const queries = (args.queries as string[]) ?? [];
+      if (queries.length === 0) {
+        return { status: 'error', source_name: 'identity', source_type: 'identity_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'No queries provided' };
+      }
+      if (queries.length === 1) {
+        return registry.identity.resolveInstrument(queries[0]);
+      }
+      return registry.identity.resolveMultiple(queries);
+    }
+
+    case 'getFxRate': {
+      const base = (args.base as string) ?? '';
+      const target = (args.target as string) ?? '';
+      const date = args.date as string | undefined;
+      if (!base || !target) {
+        return { status: 'error', source_name: 'fx', source_type: 'fx_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'Both base and target currencies are required' };
+      }
+      const isAed = base.toUpperCase() === 'AED' || target.toUpperCase() === 'AED';
+      const fxProvider = isAed ? registry.fxLocalized : registry.fx;
+      if (date) {
+        return fxProvider.getHistoricalRate(base, target, date);
+      }
+      return fxProvider.getRate(base, target);
     }
 
     case 'calculatePortfolioHealth': {

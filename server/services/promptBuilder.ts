@@ -120,13 +120,31 @@ function buildCapabilityBlock(providerAlias: string | undefined, _intent: Intent
 function buildToolRulesBlock(toolNames: string[]): string {
   if (toolNames.length === 0) return '';
 
+  const toolGuide: string[] = [];
+
+  if (toolNames.includes('getQuotes')) toolGuide.push('• getQuotes — live stock/ETF prices from Finnhub (fallback: Yahoo Finance)');
+  if (toolNames.includes('getHistoricalPrices')) toolGuide.push('• getHistoricalPrices — price history/charts for a symbol over N days');
+  if (toolNames.includes('getCompanyProfile')) toolGuide.push('• getCompanyProfile — company info (industry, market cap, sector, exchange)');
+  if (toolNames.includes('getMacroIndicator')) toolGuide.push('• getMacroIndicator — macro data from FRED (CPI, GDP, yields, VIX, oil, gold). Use series IDs: FEDFUNDS, DGS10, DGS2, CPIAUCSL, UNRATE, GDP, T10Y2Y, VIXCLS, DCOILBRENTEU, GOLDAMGBD228NLBM, UMCSENT');
+  if (toolNames.includes('getCompanyFilings')) toolGuide.push('• getCompanyFilings — SEC filings (10-K, 10-Q, 8-K) and XBRL financial facts from SEC EDGAR');
+  if (toolNames.includes('lookupInstrument')) toolGuide.push('• lookupInstrument — resolve ticker/ISIN/CUSIP to standardized FIGI via OpenFIGI');
+  if (toolNames.includes('getFxRate')) toolGuide.push('• getFxRate — FX rates via ECB (Frankfurter) and CBUAE for AED pairs');
+  if (toolNames.includes('getHoldingsRelevantNews')) toolGuide.push('• getHoldingsRelevantNews — news relevant to portfolio holdings');
+  if (toolNames.includes('getPortfolioSnapshot')) toolGuide.push('• getPortfolioSnapshot — portfolio value, daily change, cash %, P&L');
+  if (toolNames.includes('getHoldings')) toolGuide.push('• getHoldings — current holdings with weights and details');
+  if (toolNames.includes('calculatePortfolioHealth')) toolGuide.push('• calculatePortfolioHealth — health score, diversification, concentration risk');
+
   return `
 TOOL-USE RULES:
 • You MUST call tools to get data before answering data-dependent questions
 • NEVER invent portfolio values, prices, account balances, or performance figures
 • Call tools in parallel when they are independent of each other
 • If a tool returns an error, acknowledge the limitation and answer with available data
-• Available tools: ${toolNames.join(', ')}`;
+• For macro questions (inflation, rates, GDP), call getMacroIndicator with the right FRED series IDs
+• For FX/currency questions, call getFxRate. Use AED pairs for UAE clients
+• For SEC filings, call getCompanyFilings with the company ticker
+• Available tools: ${toolNames.join(', ')}
+${toolGuide.length > 0 ? '\nTOOL GUIDE:\n' + toolGuide.join('\n') : ''}`;
 }
 
 function buildExecutionBoundaryBlock(): string {

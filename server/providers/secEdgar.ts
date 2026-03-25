@@ -5,7 +5,7 @@ import { cacheGet, cacheSet, cacheKey } from './cache';
 
 const EFTS_BASE = 'https://efts.sec.gov/LATEST';
 const DATA_BASE = 'https://data.sec.gov';
-const USER_AGENT = 'AdaWealthCopilot/1.0 (ada-wealth@example.com)';
+const USER_AGENT = process.env.EDGAR_USER_AGENT ?? 'AdaWealthCopilot/1.0 (compliance@adawealth.app)';
 
 const TICKER_CIK_MAP = new Map<string, string>();
 

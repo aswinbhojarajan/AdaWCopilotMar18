@@ -161,7 +161,7 @@ export function routeRequest(
 
   const lane1Config = getLaneConfig(1);
   const lane1ToolGroups: ToolGroup[] = scorecard.needs_tooling
-    ? ['financial_data', 'ui_actions']
+    ? ['financial_data', 'market_intel', 'ui_actions']
     : [];
   const lane1Rationale = scorecard.needs_tooling
     ? ['Standard query — fast lane']

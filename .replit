@@ -73,3 +73,16 @@ run = ["npm", "run", "start"]
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 120000
+
+[userenv]
+
+[userenv.shared]
+MARKET_PROVIDER_PRIMARY = "finnhub"
+MARKET_PROVIDER_SECONDARY = "yahoo_finance"
+NEWS_PROVIDER_PRIMARY = "finnhub"
+NEWS_PROVIDER_SECONDARY = "yahoo_finance"
+MACRO_PROVIDER_PRIMARY = "fred"
+FX_PROVIDER_PRIMARY = "frankfurter"
+FX_PROVIDER_SECONDARY = "cbuae"
+FILING_PROVIDER_PRIMARY = "sec_edgar"
+IDENTITY_PROVIDER_PRIMARY = "openfigi"

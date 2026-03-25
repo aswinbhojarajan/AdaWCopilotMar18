@@ -10,6 +10,9 @@ import * as memoryService from '../services/memoryService';
 
 import * as agentRepo from '../repositories/agentRepository';
 import { orchestrateStream } from '../services/agentOrchestrator';
+import { getProviderRegistry } from '../providers/registry';
+import { getProviderHealthStatus } from '../providers/helpers';
+import { getCacheStats } from '../providers/cache';
 import type { ChatMessageRequest, PollVoteRequest, LifeEventType } from '../../shared/types';
 
 const router = Router();
@@ -363,6 +366,48 @@ router.post('/chat/:threadId/close', asyncHandler(async (req, res) => {
   const threadId = req.params.threadId as string;
   await finalizeSession(userId, threadId);
   res.json({ success: true });
+}));
+
+router.get('/providers/status', asyncHandler(async (_req, res) => {
+  const providerNames = ['finnhub', 'yahoo_finance', 'fred', 'sec_edgar', 'openfigi', 'frankfurter', 'cbuae'];
+
+  const domains = {
+    market: {
+      primary: process.env.MARKET_PROVIDER_PRIMARY ?? 'mock',
+      secondary: process.env.MARKET_PROVIDER_SECONDARY ?? undefined,
+    },
+    news: {
+      primary: process.env.NEWS_PROVIDER_PRIMARY ?? 'mock',
+      secondary: process.env.NEWS_PROVIDER_SECONDARY ?? undefined,
+    },
+    macro: {
+      primary: process.env.MACRO_PROVIDER_PRIMARY ?? 'mock',
+    },
+    fx: {
+      primary: process.env.FX_PROVIDER_PRIMARY ?? 'mock',
+      secondary: process.env.FX_PROVIDER_SECONDARY ?? undefined,
+    },
+    filing: {
+      primary: process.env.FILING_PROVIDER_PRIMARY ?? 'mock',
+    },
+    identity: {
+      primary: process.env.IDENTITY_PROVIDER_PRIMARY ?? 'mock',
+    },
+  };
+
+  const providers: Record<string, unknown> = {};
+  for (const name of providerNames) {
+    providers[name] = getProviderHealthStatus(name);
+  }
+
+  const cache = getCacheStats();
+
+  res.json({
+    domains,
+    providers,
+    cache,
+    timestamp: new Date().toISOString(),
+  });
 }));
 
 async function processMessageSync(

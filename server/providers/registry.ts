@@ -13,6 +13,7 @@ import { secEdgarResearchProvider } from './secEdgar';
 import { openFigiIdentityProvider } from './openFigi';
 import { frankfurterFxProvider } from './frankfurter';
 import { cbuaeFxProvider } from './cbuae';
+import { yahooFinanceMarketProvider, yahooFinanceNewsProvider } from './yahooFinance';
 import { isProviderHealthy } from './helpers';
 
 const _registryCache = new Map<string, ProviderRegistry>();
@@ -171,6 +172,8 @@ function resolveMarketProvider(key: string): MarketProvider {
   switch (key) {
     case 'finnhub':
       return finnhubMarketProvider;
+    case 'yahoo_finance':
+      return yahooFinanceMarketProvider;
     case 'mock':
       return mockMarketProvider;
     default:
@@ -183,6 +186,8 @@ function resolveNewsProvider(key: string): NewsProvider {
   switch (key) {
     case 'finnhub':
       return finnhubNewsProvider;
+    case 'yahoo_finance':
+      return yahooFinanceNewsProvider;
     case 'mock':
       return mockNewsProvider;
     default:

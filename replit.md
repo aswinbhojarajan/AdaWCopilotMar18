@@ -28,7 +28,7 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
     - `traceLogger.ts`: Agent trace and tool run persistence with lane metadata, scorecard, and route decision telemetry
     - `guardrails.ts`: Post-response sanitization (blocked phrases, execution claims, security naming, data freshness, disclosures)
     - `wealthEngine.ts`: Deterministic financial calculations (portfolio health, concentration, drift, rebalance)
-    - `financialTools.ts`: 9 OpenAI function-calling tools with multi-turn support, tool group mapping (financial_data/market_intel/ui_actions/crm_actions), lane-based filtering
+    - `financialTools.ts`: 15 OpenAI function-calling tools with multi-turn support, tool group mapping (financial_data/market_intel/ui_actions/crm_actions), lane-based filtering
     - `rmHandoffService.ts`: Execution request routing (rm_handoff/api_webhook/disabled)
     - `aiService.ts`: OpenAI client and streaming completions
     - `streamTypes.ts`: StreamEvent type definition for SSE events
@@ -40,19 +40,25 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
     - `morningSentinelService.ts`: AI daily briefing with anomaly detection
 - **ErrorBoundary** (`src/components/ada/ErrorBoundary.tsx`): React class component wrapping WealthScreen and DiscoverScreen. Catches rendering crashes and displays user-friendly error with retry button.
 - **6 Repositories**: user, portfolio, content, chat, poll, agent
-- **Provider Pattern**: 6 external data providers with priority chain per domain:
-    - **Stock/Market Data**: Finnhub (primary) → mock fallback. Env: `MARKET_PROVIDER_*`
-    - **Macro/Economic**: FRED (primary) → mock fallback. Env: `MACRO_PROVIDER_*`
-    - **Company Filings**: SEC EDGAR (primary) → mock fallback. Env: `FILINGS_PROVIDER_*`
-    - **Instrument Lookup**: OpenFIGI (primary) → mock fallback. Env: `INSTRUMENT_PROVIDER_*`
-    - **FX Rates**: Frankfurter (primary) → CBUAE (secondary) → mock fallback. Env: `FX_PROVIDER_*`
-    - **Regional Rates**: CBUAE (primary) → mock fallback. Env: `REGIONAL_PROVIDER_*`
-    Each provider implements: in-memory cache (configurable TTL), rate limiting, sliding-window health tracking, automatic failover. All default to mock; real providers activate via `*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK` env vars.
-  - **Phase Strategy**:
-    - Phase 1 (Demo/current): All mock. Tools return seeded data.
-    - Phase 2 (Pilot): Finnhub (market) + Frankfurter/CBUAE (FX) live. Set `MARKET_PROVIDER_PRIMARY=finnhub`, `FX_PROVIDER_PRIMARY=frankfurter`, `FX_PROVIDER_SECONDARY=cbuae`.
-    - Phase 3 (Production): All 6 providers live with full failover. Add keys for FRED, SEC EDGAR, OpenFIGI, CBUAE.
-  - **Tool → Provider Mappings**: `get_market_data` → Finnhub, `get_macro_data` → FRED, `get_filings` → SEC EDGAR, `lookup_instrument` → OpenFIGI, `get_fx_rate` → Frankfurter → CBUAE.
+- **Provider Pattern**: 7 external data providers with priority chain per domain (all LIVE):
+    - **Stock/Market Data**: Finnhub (primary) → Yahoo Finance (secondary) → mock fallback. Env: `MARKET_PROVIDER_PRIMARY=finnhub`, `MARKET_PROVIDER_SECONDARY=yahoo_finance`
+    - **News**: Finnhub (primary) → Yahoo Finance (secondary) → mock fallback. Env: `NEWS_PROVIDER_PRIMARY=finnhub`, `NEWS_PROVIDER_SECONDARY=yahoo_finance`
+    - **Macro/Economic**: FRED (primary) → mock fallback. Env: `MACRO_PROVIDER_PRIMARY=fred`
+    - **Company Filings**: SEC EDGAR (primary) → mock fallback. Env: `FILING_PROVIDER_PRIMARY=sec_edgar`
+    - **Instrument Lookup**: OpenFIGI (primary) → mock fallback. Env: `IDENTITY_PROVIDER_PRIMARY=openfigi`
+    - **FX Rates**: Frankfurter (primary) → CBUAE (secondary) → mock fallback. Env: `FX_PROVIDER_PRIMARY=frankfurter`, `FX_PROVIDER_SECONDARY=cbuae`
+    - **Regional FX (AED)**: CBUAE (primary) → Frankfurter → mock fallback
+    Each provider implements: in-memory cache (configurable TTL), rate limiting, sliding-window health tracking, automatic failover. Provider status available via `GET /api/providers/status`.
+  - **Tool → Provider Mappings (all wired to LLM)**:
+    - `getQuotes` → Finnhub → Yahoo Finance (market quotes)
+    - `getHistoricalPrices` → Finnhub → Yahoo Finance (price history)
+    - `getCompanyProfile` → Finnhub → Yahoo Finance (company info)
+    - `getMacroIndicator` → FRED (inflation, GDP, yields, VIX, etc.)
+    - `getCompanyFilings` → SEC EDGAR (10-K, 10-Q, 8-K, XBRL facts)
+    - `lookupInstrument` → OpenFIGI (ticker/ISIN/CUSIP → FIGI)
+    - `getFxRate` → Frankfurter/CBUAE (FX rates, AED pairs)
+    - `getHoldingsRelevantNews` → Finnhub → Yahoo Finance (news)
+  - **Required Secrets**: `FINNHUB_API_KEY` (free tier: 60 calls/min), `FRED_API_KEY` (free: 120 req/min). SEC EDGAR (User-Agent only, configurable via `EDGAR_USER_AGENT`), OpenFIGI (optional `OPENFIGI_API_KEY`), Frankfurter, CBUAE, Yahoo Finance — no keys needed.
 - **Capability Registry** (`capabilityRegistry.ts`): Model capability registry mapping 4 provider aliases (ada-classifier, ada-fast, ada-reason, ada-fallback) to capabilities (streaming, tool_calling, json_mode, reasoning, etc.), cost tiers, and context limits. Lane configs include per-lane temperature (Lane 1: 0.15, Lane 2: 0.10), max output tokens (Lane 1: 1800, Lane 2: 2600), and tool round limits (Lane 1: 1 round/3 calls, Lane 2: 2 rounds/4 calls). Also contains intent→lane→tool routing metadata (LaneConfig, IntentRouteConfig) injected into classifier prompt via `getClassifierContext()`. Used by orchestrator for model selection, prompt builder for capability context, and verbose mode output.
 - **LLM Resilience & Fallback Provider**: Streaming timeout+retry with AbortController (attempt 1: 15s, attempt 2: 20s). Lane 2 → Lane 1 automatic downgrade when both reasoning-model attempts fail — retries with ada-fast at lower max_tokens (4096) for degraded-but-functional responses. Lane 0 deterministic queries bypass LLM entirely. `resilientCompletion()` and `resilientStreamCompletion()` helpers in `openaiClient.ts` provide configurable timeout+retry for non-streaming calls. When OpenAI primary provider fails all retries, automatic fallback to Anthropic Claude (claude-sonnet-4-6 via Replit AI Integrations, now with tool_calling support). Anthropic adapter converts OpenAI message format to Anthropic messages API and response back to OpenAI format. Fallback chains: ada-reason → ada-fast → ada-fallback (two-step), ada-fast → ada-fallback, ada-classifier → keyword fallback (no LLM fallback).
 - **Execution Guardrails & RM Handoff**: Ada cannot execute trades or claim execution capability. Enforced at 3 layers: system prompt boundary, guardrail regex (7 patterns + hard post-check), orchestrator fallback. Execution requests routed to RM via `advisor_action_queue` (rm_handoff), webhook (api_webhook), or rejected (disabled). Tenant config controls routing.
@@ -86,6 +92,14 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
 
 ## External Dependencies
 - **OpenAI**: AI capabilities via Replit AI Integrations, 3 models: gpt-4.1-nano (classifier), gpt-4.1-mini (fast lane), gpt-4.1 (reasoning lane), SSE streaming
+- **Anthropic**: Fallback AI provider via Replit AI Integrations (claude-sonnet-4-6)
+- **Finnhub**: Live market data, company profiles, news (free tier, needs `FINNHUB_API_KEY`)
+- **Yahoo Finance**: Secondary market data and news provider via `yahoo-finance2` npm package (no key needed)
+- **FRED**: Federal Reserve Economic Data for macro indicators (free, needs `FRED_API_KEY`)
+- **SEC EDGAR**: Company filings and XBRL financial facts (no key, User-Agent header only)
+- **OpenFIGI**: Instrument identifier resolution (no key required, optional `OPENFIGI_API_KEY`)
+- **Frankfurter**: ECB reference FX rates (no key needed)
+- **CBUAE**: UAE Central Bank AED exchange rates (no key needed)
 - **PostgreSQL**: Primary database, managed by Replit
 - **Vite**: Frontend build tool and development server
 - **Tailwind CSS**: Utility-first CSS framework
