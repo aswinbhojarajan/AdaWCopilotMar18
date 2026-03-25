@@ -375,23 +375,29 @@ router.get('/providers/status', asyncHandler(async (_req, res) => {
     market: {
       primary: process.env.MARKET_PROVIDER_PRIMARY ?? 'mock',
       secondary: process.env.MARKET_PROVIDER_SECONDARY ?? undefined,
+      fallback: 'mock',
     },
     news: {
       primary: process.env.NEWS_PROVIDER_PRIMARY ?? 'mock',
       secondary: process.env.NEWS_PROVIDER_SECONDARY ?? undefined,
+      fallback: 'mock',
     },
     macro: {
       primary: process.env.MACRO_PROVIDER_PRIMARY ?? 'mock',
+      fallback: 'mock',
     },
     fx: {
       primary: process.env.FX_PROVIDER_PRIMARY ?? 'mock',
       secondary: process.env.FX_PROVIDER_SECONDARY ?? undefined,
+      fallback: 'mock',
     },
     filing: {
       primary: process.env.FILING_PROVIDER_PRIMARY ?? 'mock',
+      fallback: 'mock',
     },
     identity: {
       primary: process.env.IDENTITY_PROVIDER_PRIMARY ?? 'mock',
+      fallback: 'mock',
     },
   };
 
