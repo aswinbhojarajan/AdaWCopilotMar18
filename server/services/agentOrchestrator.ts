@@ -29,9 +29,11 @@ import {
   executeFinancialTool,
   isFinancialTool,
   filterToolNamesByGroups,
-  FINANCIAL_TOOL_DEFINITIONS,
-  UI_TOOL_DEFINITIONS,
 } from './financialTools';
+import {
+  getAllToolNames as registryAllToolNames,
+  inferSuggestedTools as registryInferSuggestedTools,
+} from './toolRegistry';
 import { buildAdaAnswer, extractInlineFollowUps, getDeterministicFollowUps, FollowUpStreamFilter } from './responseBuilder';
 import { runPostChecks } from './guardrails';
 import { logAgentTrace, logToolRun, checkLatencyTargets } from './traceLogger';
@@ -68,74 +70,7 @@ async function summarizeEpisodicAsync(
 }
 
 function inferSuggestedTools(intent: IntentClassification['primary_intent'], message: string): string[] {
-  const tools: string[] = [];
-  const lower = message.toLowerCase();
-
-  switch (intent) {
-    case 'balance_query':
-      tools.push('getPortfolioSnapshot');
-      break;
-    case 'portfolio_explain':
-      tools.push('getPortfolioSnapshot', 'getHoldings');
-      if (lower.includes('health') || lower.includes('risk') || lower.includes('diversif') || lower.includes('rebalance')) {
-        tools.push('calculatePortfolioHealth');
-      }
-      break;
-    case 'allocation_breakdown':
-      tools.push('getPortfolioSnapshot', 'getHoldings');
-      break;
-    case 'goal_progress':
-      tools.push('getPortfolioSnapshot');
-      break;
-    case 'market_context':
-      if (message.match(/\b[A-Z]{2,5}\b/)) tools.push('getQuotes');
-      if (lower.includes('inflat') || lower.includes('gdp') || lower.includes('interest rate') || lower.includes('yield') || lower.includes('fed') || lower.includes('cpi') || lower.includes('unemployment') || lower.includes('economy') || lower.includes('macro') || lower.includes('vix') || lower.includes('oil') || lower.includes('gold') || lower.includes('treasury')) {
-        tools.push('getMacroIndicator');
-      }
-      if (lower.includes('currency') || lower.includes('exchange rate') || lower.includes('fx') || lower.includes('convert') || lower.includes('aed') || lower.includes('dirham') || lower.includes('usd to') || lower.includes('eur to') || lower.includes('gbp to')) {
-        tools.push('getFxRate');
-      }
-      break;
-    case 'news_explain':
-      tools.push('getHoldingsRelevantNews');
-      if (message.match(/\b[A-Z]{2,5}\b/)) tools.push('getQuotes');
-      if (lower.includes('filing') || lower.includes('10-k') || lower.includes('10-q') || lower.includes('8-k') || lower.includes('sec') || lower.includes('annual report') || lower.includes('quarterly')) {
-        tools.push('getCompanyFilings');
-      }
-      break;
-    case 'scenario_analysis':
-      tools.push('getPortfolioSnapshot');
-      tools.push('show_simulator');
-      break;
-    case 'recommendation_request':
-      tools.push('calculatePortfolioHealth', 'getPortfolioSnapshot', 'getHoldings');
-      break;
-    case 'execution_request':
-      tools.push('route_to_advisor', 'getPortfolioSnapshot');
-      break;
-    default:
-      break;
-  }
-
-  if (lower.includes('simulat') || lower.includes('retire') || lower.includes('what if')) {
-    if (!tools.includes('show_simulator')) tools.push('show_simulator');
-  }
-
-  if (lower.includes('history') || lower.includes('historical') || lower.includes('chart') || lower.includes('trend') || lower.includes('past') || lower.includes('performance over')) {
-    if (!tools.includes('getHistoricalPrices')) tools.push('getHistoricalPrices');
-  }
-
-  if (lower.includes('company') || lower.includes('profile') || lower.includes('about') || lower.includes('what is') || lower.includes('who is') || lower.includes('tell me about')) {
-    if (message.match(/\b[A-Z]{2,5}\b/) && !tools.includes('getCompanyProfile')) {
-      tools.push('getCompanyProfile');
-    }
-  }
-
-  if (lower.includes('isin') || lower.includes('cusip') || lower.includes('figi') || lower.includes('identifier') || lower.includes('look up') || lower.includes('lookup')) {
-    if (!tools.includes('lookupInstrument')) tools.push('lookupInstrument');
-  }
-
-  return [...new Set(tools)];
+  return registryInferSuggestedTools(intent, message);
 }
 
 function mapIntentForRag(primaryIntent: IntentClassification['primary_intent']): intentClassifier.Intent {
@@ -371,11 +306,7 @@ export async function* orchestrateStream(
     yield* thinkingEvent(verbose, 'lane_upgrade', 'Entity-specific query detected, upgrading from Lane 0 to Lane 1');
   }
 
-  const getToolName = (t: OpenAI.ChatCompletionTool): string => t.type === 'function' ? t.function.name : '';
-  const allToolNames = [
-    ...FINANCIAL_TOOL_DEFINITIONS.map(getToolName),
-    ...UI_TOOL_DEFINITIONS.map(getToolName),
-  ];
+  const allToolNames = registryAllToolNames();
   const policyFilteredTools = allToolNames.filter(t => policyDecision.allowed_tools.includes(t));
   const allowedToolNames = route.tool_groups.length > 0
     ? filterToolNamesByGroups(policyFilteredTools, route.tool_groups)

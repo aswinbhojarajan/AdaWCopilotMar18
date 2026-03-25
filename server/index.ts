@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import apiRouter from './routes/api';
 import { initDatabase } from './db/init';
+import { validateRegistry } from './services/toolRegistry';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,6 +43,16 @@ app.use(
 );
 
 async function start() {
+  const registryCheck = validateRegistry();
+  if (!registryCheck.valid) {
+    console.error('[ToolRegistry] Validation FAILED:');
+    for (const err of registryCheck.errors) {
+      console.error(`  - ${err}`);
+    }
+    process.exit(1);
+  }
+  console.log('[ToolRegistry] All tool manifests validated successfully');
+
   await initDatabase();
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`API server running on port ${PORT}`);

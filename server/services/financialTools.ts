@@ -2,349 +2,47 @@ import type OpenAI from 'openai';
 import type { ProviderRegistry } from '../providers/types';
 import type { ToolResult } from '../../shared/schemas/agent';
 import type { ToolGroup } from './modelRouter';
-import * as wealthEngine from './wealthEngine';
-
-const TOOL_GROUP_MAP: Record<string, ToolGroup> = {
-  getPortfolioSnapshot: 'financial_data',
-  getHoldings: 'financial_data',
-  getQuotes: 'market_intel',
-  getHoldingsRelevantNews: 'market_intel',
-  getHistoricalPrices: 'market_intel',
-  getCompanyProfile: 'market_intel',
-  getMacroIndicator: 'market_intel',
-  getCompanyFilings: 'market_intel',
-  lookupInstrument: 'market_intel',
-  getFxRate: 'market_intel',
-  calculatePortfolioHealth: 'financial_data',
-  route_to_advisor: 'crm_actions',
-  show_simulator: 'ui_actions',
-  show_widget: 'ui_actions',
-  extract_user_fact: 'ui_actions',
-};
+import {
+  getToolGroupForName,
+  filterToolNamesByGroups as registryFilterGroups,
+  getToolDefinitions as registryGetDefs,
+  getAllToolDefinitions,
+  isFinancialTool as registryIsFinancial,
+  isUiTool as registryIsUi,
+  executeTool,
+} from './toolRegistry';
 
 export function getToolGroup(toolName: string): ToolGroup | undefined {
-  return TOOL_GROUP_MAP[toolName];
+  return getToolGroupForName(toolName);
 }
 
 export function filterToolNamesByGroups(
   toolNames: string[],
   allowedGroups: ToolGroup[],
 ): string[] {
-  if (allowedGroups.length === 0) return [];
-  const groupSet = new Set<ToolGroup>(allowedGroups);
-  return toolNames.filter(name => {
-    const group = TOOL_GROUP_MAP[name];
-    return group !== undefined && groupSet.has(group);
-  });
+  return registryFilterGroups(toolNames, allowedGroups);
 }
 
-export const FINANCIAL_TOOL_DEFINITIONS: OpenAI.ChatCompletionTool[] = [
-  {
-    type: 'function',
-    function: {
-      name: 'getPortfolioSnapshot',
-      description: 'Get the user\'s portfolio snapshot: total value, daily change, cash %, invested %, unrealized P&L, and top movers. Call this when the user asks about their portfolio value, balance, or overall performance.',
-      parameters: {
-        type: 'object',
-        properties: {},
-        required: [],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getHoldings',
-      description: 'Get the user\'s current holdings with instrument details: symbol, name, quantity, market value, weight %, sector, geography, asset class. Call this when the user asks about their holdings, positions, or allocation.',
-      parameters: {
-        type: 'object',
-        properties: {},
-        required: [],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getQuotes',
-      description: 'Get real-time market quotes for given symbols: last price, daily change %, volume, high/low. Call this when the user asks about stock prices or market data.',
-      parameters: {
-        type: 'object',
-        properties: {
-          symbols: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Array of ticker symbols to get quotes for (e.g., ["AAPL", "NVDA", "BTC"])',
-          },
-        },
-        required: ['symbols'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getHoldingsRelevantNews',
-      description: 'Get news articles relevant to the user\'s portfolio holdings. Call this when the user asks about market news or what\'s happening with their investments.',
-      parameters: {
-        type: 'object',
-        properties: {
-          limit: {
-            type: 'number',
-            description: 'Maximum number of articles to return (default 5)',
-          },
-        },
-        required: [],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getHistoricalPrices',
-      description: 'Get historical price data for a stock or ETF over a specified number of days. Call this when the user asks about price history, trends, or charts for a specific instrument.',
-      parameters: {
-        type: 'object',
-        properties: {
-          symbol: {
-            type: 'string',
-            description: 'The ticker symbol (e.g., "AAPL", "NVDA")',
-          },
-          days: {
-            type: 'number',
-            description: 'Number of days of history to retrieve (e.g., 7, 30, 90, 365). Default 30.',
-          },
-        },
-        required: ['symbol'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getCompanyProfile',
-      description: 'Get detailed company information: name, industry, sector, market cap, exchange, country, website. Call this when the user asks about a specific company or wants background on a stock.',
-      parameters: {
-        type: 'object',
-        properties: {
-          symbol: {
-            type: 'string',
-            description: 'The ticker symbol (e.g., "AAPL", "MSFT")',
-          },
-        },
-        required: ['symbol'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getMacroIndicator',
-      description: 'Get macroeconomic indicators from FRED: inflation (CPI), GDP, unemployment, treasury yields, Fed Funds Rate, VIX, oil/gold prices, consumer sentiment, and more. Call this when the user asks about the economy, interest rates, inflation, macro outlook, or market conditions.',
-      parameters: {
-        type: 'object',
-        properties: {
-          seriesIds: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'FRED series IDs to fetch. Common: FEDFUNDS (Fed rate), DGS10 (10Y yield), DGS2 (2Y yield), CPIAUCSL (CPI), UNRATE (unemployment), GDP, T10Y2Y (yield curve), VIXCLS (VIX), DCOILBRENTEU (oil), GOLDAMGBD228NLBM (gold), UMCSENT (consumer sentiment)',
-          },
-        },
-        required: ['seriesIds'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getCompanyFilings',
-      description: 'Search SEC EDGAR for company filings (10-K, 10-Q, 8-K, etc.) and XBRL financial facts (revenue, net income, assets). Call this when the user asks about SEC filings, annual reports, quarterly earnings filings, or fundamental financial data from regulatory filings.',
-      parameters: {
-        type: 'object',
-        properties: {
-          company: {
-            type: 'string',
-            description: 'Company ticker symbol (e.g., "AAPL") or name',
-          },
-          type: {
-            type: 'string',
-            description: 'Filing type filter: "10-K" (annual), "10-Q" (quarterly), "8-K" (current events), "DEF 14A" (proxy). Omit for all types.',
-          },
-          includeFacts: {
-            type: 'boolean',
-            description: 'If true, also fetch XBRL financial facts (revenue, net income, EPS, assets, liabilities). Default false.',
-          },
-          limit: {
-            type: 'number',
-            description: 'Max number of filings to return. Default 5.',
-          },
-        },
-        required: ['company'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'lookupInstrument',
-      description: 'Look up a financial instrument by ticker, ISIN, CUSIP, or FIGI to get standardized identifiers and exchange information. Call this when the user asks about an instrument identifier, wants to verify a security, or needs to map between different ID systems.',
-      parameters: {
-        type: 'object',
-        properties: {
-          queries: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Instrument identifiers to resolve (tickers like "AAPL", ISINs like "US0378331005", CUSIPs, or FIGIs)',
-          },
-        },
-        required: ['queries'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'getFxRate',
-      description: 'Get current or historical foreign exchange rates. Supports all major currencies including AED (UAE Dirham) via CBUAE and global rates via ECB. Call this when the user asks about currency conversion, exchange rates, or FX.',
-      parameters: {
-        type: 'object',
-        properties: {
-          base: {
-            type: 'string',
-            description: 'Base currency code (e.g., "USD", "AED", "EUR")',
-          },
-          target: {
-            type: 'string',
-            description: 'Target currency code (e.g., "AED", "USD", "GBP")',
-          },
-          date: {
-            type: 'string',
-            description: 'Optional date for historical rate in YYYY-MM-DD format. Omit for latest rate.',
-          },
-        },
-        required: ['base', 'target'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'calculatePortfolioHealth',
-      description: 'Calculate a comprehensive portfolio health score with analysis of diversification, concentration risk, cash buffer, risk alignment, and position count. Call this when the user asks about portfolio health, risk, or whether their portfolio is well-balanced.',
-      parameters: {
-        type: 'object',
-        properties: {},
-        required: [],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'route_to_advisor',
-      description: 'Route an action request to the user\'s advisor (Relationship Manager) for review and execution. Call this when the user confirms they want to proceed with a trade, rebalance, transfer, or any financial action. You CANNOT execute trades yourself — this tool sends the plan to the advisor.',
-      parameters: {
-        type: 'object',
-        properties: {
-          action_type: {
-            type: 'string',
-            enum: ['rebalance', 'buy', 'sell', 'transfer', 'allocation_change', 'other'],
-            description: 'The type of action the user wants to execute',
-          },
-          summary: {
-            type: 'string',
-            description: 'A brief summary of what the user wants to do (e.g., "Rebalance portfolio to 60% equities, 30% bonds, 10% cash")',
-          },
-          details: {
-            type: 'object',
-            description: 'Detailed action parameters (instruments, quantities, target allocations, etc.)',
-            additionalProperties: true,
-          },
-        },
-        required: ['action_type', 'summary'],
-      },
-    },
-  },
-];
+export const FINANCIAL_TOOL_DEFINITIONS: OpenAI.ChatCompletionTool[] = getAllToolDefinitions().filter(t => {
+  const name = t.type === 'function' ? t.function.name : '';
+  return registryIsFinancial(name);
+});
 
-export const UI_TOOL_DEFINITIONS: OpenAI.ChatCompletionTool[] = [
-  {
-    type: 'function',
-    function: {
-      name: 'show_simulator',
-      description: 'Show an interactive financial scenario simulator to the user. Use when the user wants to model retirement, investment growth, spending projections, or tax scenarios.',
-      parameters: {
-        type: 'object',
-        properties: {
-          type: {
-            type: 'string',
-            enum: ['retirement', 'investment', 'spending', 'tax'],
-            description: 'The type of scenario simulator to show',
-          },
-          initialValues: {
-            type: 'object',
-            description: 'Initial values for the simulator sliders',
-            additionalProperties: { type: 'number' },
-          },
-        },
-        required: ['type'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'show_widget',
-      description: 'Show an embedded data widget in the chat. Use to display portfolio allocation, holdings summary, or goal progress visually.',
-      parameters: {
-        type: 'object',
-        properties: {
-          type: {
-            type: 'string',
-            enum: ['allocation_chart', 'holdings_summary', 'goal_progress', 'portfolio_summary'],
-            description: 'The type of widget to display',
-          },
-        },
-        required: ['type'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'extract_user_fact',
-      description: 'Extract and remember a personal fact or preference the user shared. Use when the user reveals something about themselves like life events, preferences, risk tolerance changes, or financial goals.',
-      parameters: {
-        type: 'object',
-        properties: {
-          fact: { type: 'string', description: 'The fact to remember about the user' },
-          category: {
-            type: 'string',
-            enum: ['preference', 'life_event', 'financial_goal', 'risk_tolerance', 'general'],
-            description: 'Category of the fact',
-          },
-        },
-        required: ['fact', 'category'],
-      },
-    },
-  },
-];
-
-function getToolName(tool: OpenAI.ChatCompletionTool): string {
-  return tool.type === 'function' ? tool.function.name : '';
-}
+export const UI_TOOL_DEFINITIONS: OpenAI.ChatCompletionTool[] = getAllToolDefinitions().filter(t => {
+  const name = t.type === 'function' ? t.function.name : '';
+  return registryIsUi(name);
+});
 
 export function getToolDefinitions(allowedToolNames: string[]): OpenAI.ChatCompletionTool[] {
-  const allDefs = [...FINANCIAL_TOOL_DEFINITIONS, ...UI_TOOL_DEFINITIONS];
-  return allDefs.filter(t => allowedToolNames.includes(getToolName(t)));
+  return registryGetDefs(allowedToolNames);
 }
 
 export function isFinancialTool(name: string): boolean {
-  return FINANCIAL_TOOL_DEFINITIONS.some(t => getToolName(t) === name);
+  return registryIsFinancial(name);
 }
 
 export function isUiTool(name: string): boolean {
-  return UI_TOOL_DEFINITIONS.some(t => getToolName(t) === name);
+  return registryIsUi(name);
 }
 
 export async function executeFinancialTool(
@@ -354,143 +52,5 @@ export async function executeFinancialTool(
   registry: ProviderRegistry,
   riskLevel: string,
 ): Promise<ToolResult> {
-  switch (toolName) {
-    case 'getPortfolioSnapshot':
-      return registry.portfolio.getPortfolioSnapshot(userId);
-
-    case 'getHoldings':
-      return registry.portfolio.getHoldings(userId);
-
-    case 'getQuotes': {
-      const symbols = (args.symbols as string[]) ?? [];
-      if (symbols.length === 0) {
-        return { status: 'error', source_name: 'market', source_type: 'market_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'No symbols provided' };
-      }
-      return registry.market.getQuotes(symbols);
-    }
-
-    case 'getHoldingsRelevantNews': {
-      const holdingsResult = await registry.portfolio.getHoldings(userId);
-      const holdings = holdingsResult.status === 'ok' && holdingsResult.data
-        ? (holdingsResult.data as Array<{ symbol: string }>).map(h => h.symbol)
-        : [];
-      const limit = (args.limit as number) ?? 5;
-      return registry.news.getHoldingsRelevantNews(holdings, limit);
-    }
-
-    case 'getHistoricalPrices': {
-      const symbol = (args.symbol as string) ?? '';
-      const days = (args.days as number) ?? 30;
-      if (!symbol) {
-        return { status: 'error', source_name: 'market', source_type: 'market_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'No symbol provided' };
-      }
-      return registry.market.getHistoricalPrices(symbol, days);
-    }
-
-    case 'getCompanyProfile': {
-      const symbol = (args.symbol as string) ?? '';
-      if (!symbol) {
-        return { status: 'error', source_name: 'market', source_type: 'market_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'No symbol provided' };
-      }
-      return registry.market.getCompanyProfile(symbol);
-    }
-
-    case 'getMacroIndicator': {
-      const seriesIds = (args.seriesIds as string[]) ?? [];
-      if (seriesIds.length === 0) {
-        return { status: 'error', source_name: 'macro', source_type: 'macro_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'No series IDs provided' };
-      }
-      if (seriesIds.length === 1) {
-        return registry.macro.getIndicator(seriesIds[0]);
-      }
-      return registry.macro.getMultipleIndicators(seriesIds);
-    }
-
-    case 'getCompanyFilings': {
-      const company = (args.company as string) ?? '';
-      const filingType = args.type as string | undefined;
-      const includeFacts = (args.includeFacts as boolean) ?? false;
-      const filingLimit = (args.limit as number) ?? 5;
-      if (!company) {
-        return { status: 'error', source_name: 'research', source_type: 'research_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'No company provided' };
-      }
-      const filingsResult = await registry.research.getFilings(company, filingType, filingLimit);
-      if (includeFacts) {
-        const factsResult = await registry.research.getCompanyFacts(company);
-        if (factsResult.status === 'ok') {
-          return {
-            ...filingsResult,
-            data: { filings: filingsResult.data, facts: factsResult.data },
-          };
-        }
-      }
-      return filingsResult;
-    }
-
-    case 'lookupInstrument': {
-      const queries = (args.queries as string[]) ?? [];
-      if (queries.length === 0) {
-        return { status: 'error', source_name: 'identity', source_type: 'identity_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'No queries provided' };
-      }
-      if (queries.length === 1) {
-        return registry.identity.resolveInstrument(queries[0]);
-      }
-      return registry.identity.resolveMultiple(queries);
-    }
-
-    case 'getFxRate': {
-      const base = (args.base as string) ?? '';
-      const target = (args.target as string) ?? '';
-      const date = args.date as string | undefined;
-      if (!base || !target) {
-        return { status: 'error', source_name: 'fx', source_type: 'fx_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'Both base and target currencies are required' };
-      }
-      const isAed = base.toUpperCase() === 'AED' || target.toUpperCase() === 'AED';
-      if (isAed) {
-        const localResult = date
-          ? await registry.fxLocalized.getHistoricalRate(base, target, date)
-          : await registry.fxLocalized.getRate(base, target);
-        if (localResult.status === 'ok') return localResult;
-        const fallbackResult = date
-          ? await registry.fx.getHistoricalRate(base, target, date)
-          : await registry.fx.getRate(base, target);
-        return fallbackResult;
-      }
-      const fxProvider = registry.fx;
-      if (date) {
-        return fxProvider.getHistoricalRate(base, target, date);
-      }
-      return fxProvider.getRate(base, target);
-    }
-
-    case 'calculatePortfolioHealth': {
-      const [snapshot, holdings] = await Promise.all([
-        registry.portfolio.getPortfolioSnapshot(userId),
-        registry.portfolio.getHoldings(userId),
-      ]);
-      const healthResult = wealthEngine.calculateHealthScore(holdings, snapshot, riskLevel);
-      const concentration = wealthEngine.analyzeConcentration(holdings);
-      const allocation = wealthEngine.computeAllocationBreakdown(holdings, snapshot);
-      return {
-        status: 'ok',
-        source_name: 'wealth_engine',
-        source_type: 'wealth_engine',
-        as_of: new Date().toISOString(),
-        latency_ms: 0,
-        data: {
-          health: healthResult,
-          concentration,
-          allocation: {
-            by_asset_class: allocation.by_asset_class,
-            cash_pct: allocation.cash_pct,
-            invested_pct: allocation.invested_pct,
-            total_value: allocation.total_value,
-          },
-        },
-      };
-    }
-
-    default:
-      return { status: 'error', source_name: 'unknown', source_type: 'unknown', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: `Unknown tool: ${toolName}` };
-  }
+  return executeTool(toolName, args, userId, registry, riskLevel);
 }

@@ -1,5 +1,6 @@
 import type { TenantConfig, PolicyDecision, IntentClassification } from '../../shared/schemas/agent';
 import type { RiskProfile } from '../../shared/types';
+import { getAllToolNames, getProfileToolMap } from './toolRegistry';
 
 const UAE_DISCLOSURES = [
   'Past performance is not indicative of future results.',
@@ -11,36 +12,6 @@ const EDUCATION_ONLY_DISCLOSURES = [
   'This is general educational information only and does not constitute personalized advice.',
   'Investment values can go up or down. You may get back less than you invest.',
 ];
-
-const ALL_TOOLS = [
-  'getPortfolioSnapshot',
-  'getHoldings',
-  'getQuotes',
-  'getHoldingsRelevantNews',
-  'getHistoricalPrices',
-  'getCompanyProfile',
-  'getMacroIndicator',
-  'getCompanyFilings',
-  'lookupInstrument',
-  'getFxRate',
-  'calculatePortfolioHealth',
-  'route_to_advisor',
-  'show_simulator',
-  'show_widget',
-  'extract_user_fact',
-];
-
-const PROFILE_TOOL_MAP: Record<string, string[]> = {
-  portfolio_read: ['getPortfolioSnapshot', 'getHoldings'],
-  market_read: ['getQuotes', 'getHistoricalPrices', 'getCompanyProfile'],
-  news_read: ['getHoldingsRelevantNews'],
-  macro_read: ['getMacroIndicator'],
-  fx_read: ['getFxRate'],
-  research_read: ['getCompanyFilings', 'lookupInstrument'],
-  health_compute: ['calculatePortfolioHealth'],
-  execution_route: ['route_to_advisor'],
-  workflow_light: ['show_simulator', 'show_widget', 'extract_user_fact'],
-};
 
 export function evaluatePolicy(
   tenantConfig: TenantConfig,
@@ -67,11 +38,12 @@ export function evaluatePolicy(
 
 function resolveAllowedTools(config: TenantConfig): string[] {
   const profiles = config.allowed_tool_profiles;
-  if (!profiles || profiles.length === 0) return ALL_TOOLS;
+  if (!profiles || profiles.length === 0) return getAllToolNames();
 
+  const profileMap = getProfileToolMap();
   const tools = new Set<string>();
   for (const profile of profiles) {
-    const mapped = PROFILE_TOOL_MAP[profile];
+    const mapped = profileMap[profile];
     if (mapped) {
       for (const t of mapped) tools.add(t);
     }

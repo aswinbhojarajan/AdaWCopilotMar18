@@ -28,7 +28,8 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
     - `traceLogger.ts`: Agent trace and tool run persistence with lane metadata, scorecard, and route decision telemetry
     - `guardrails.ts`: Post-response sanitization (blocked phrases, execution claims, security naming, data freshness, disclosures)
     - `wealthEngine.ts`: Deterministic financial calculations (portfolio health, concentration, drift, rebalance)
-    - `financialTools.ts`: 15 OpenAI function-calling tools with multi-turn support, tool group mapping (financial_data/market_intel/ui_actions/crm_actions), lane-based filtering
+    - `toolRegistry.ts`: Declarative tool manifest registry — all 15 tools defined as self-contained manifests (name, group, profile, OpenAI definition, execute handler, suggestion rules). Auto-derives ALL_TOOLS, PROFILE_TOOL_MAP, TOOL_GROUP_MAP, OpenAI definitions, execution dispatch, and inferSuggestedTools from manifests. Startup validation in server/index.ts ensures manifest consistency.
+    - `financialTools.ts`: Thin delegation layer over toolRegistry — re-exports getToolDefinitions, executeFinancialTool, isFinancialTool, filterToolNamesByGroups for backward compatibility
     - `rmHandoffService.ts`: Execution request routing (rm_handoff/api_webhook/disabled)
     - `aiService.ts`: OpenAI client and streaming completions
     - `streamTypes.ts`: StreamEvent type definition for SSE events
@@ -82,7 +83,8 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
   - **Toggle edge cases**: Toggle controls visibility only, never clears steps. Steps cleared only at start of next `sendAndReceive`.
 - **Execution routing**: defaults to rm_handoff; configurable per tenant
 - **Provider config**: `*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK` env vars; tenant `provider_config` DB column must be `'{}'` to use env vars (non-empty JSON overrides env vars via `getChainKeys` in registry.ts)
-- **Policy engine tool profiles**: `allowed_tool_profiles` in tenant config maps to tools via `PROFILE_TOOL_MAP` in `policyEngine.ts`. Profiles: portfolio_read, market_read, news_read, macro_read, fx_read, research_read, health_compute, execution_route, workflow_light
+- **Policy engine tool profiles**: `allowed_tool_profiles` in tenant config maps to tools via `getProfileToolMap()` from `toolRegistry.ts` (auto-derived from manifests). Profiles: portfolio_read, market_read, news_read, macro_read, fx_read, research_read, health_compute, execution_route, workflow_light
+- **Adding a new tool**: Create a new ToolManifest entry in `server/services/toolRegistry.ts` with name, group, profile, OpenAI definition, execute handler, and optional suggestion rules. Everything else (policy engine, tool dispatch, inferSuggestedTools, startup validation) is derived automatically — no other files need manual updates.
 
 ## Documentation
 - **PRD.md**: Living product requirements document (sections 1-12)
