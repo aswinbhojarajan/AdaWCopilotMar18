@@ -2,6 +2,7 @@ import pool from '../../db/pool';
 
 interface MilestoneCheck {
   type: string;
+  threshold?: number;
   title: string;
   summary: string;
   whySeeingThis: string;
@@ -52,6 +53,7 @@ function detectValueMilestones(
         : `$${(threshold / 1000).toFixed(0)}K`;
       return {
         type: 'value_crossed',
+        threshold,
         title: `Your portfolio just crossed ${formatted}`,
         summary: `Congratulations! Your portfolio value has reached ${formatted}. This is a significant milestone in your wealth-building journey.`,
         whySeeingThis: `Your portfolio crossed the ${formatted} mark`,
@@ -90,6 +92,39 @@ function detectPerformanceMilestones(
   }
 
   return null;
+}
+
+function detectGoalCompletionMilestones(
+  userId: string,
+  goals: Array<{ id: string; title: string; current_amount: number; target_amount: number; health_status: string }>,
+  existingIds: Set<string>,
+): MilestoneCheck[] {
+  const milestones: MilestoneCheck[] = [];
+  for (const goal of goals) {
+    if (goal.current_amount >= goal.target_amount) {
+      const milestoneKey = `disc-mile-${userId}-goal-${goal.id}`;
+      if (!existingIds.has(milestoneKey)) {
+        const formatted = goal.target_amount >= 1000000
+          ? `$${(goal.target_amount / 1000000).toFixed(1)}M`
+          : goal.target_amount >= 1000
+            ? `$${(goal.target_amount / 1000).toFixed(0)}K`
+            : `$${goal.target_amount.toFixed(0)}`;
+        milestones.push({
+          type: 'goal_completed',
+          threshold: undefined,
+          title: `Goal achieved: "${goal.title}"`,
+          summary: `Congratulations! You've reached your ${formatted} goal for "${goal.title}". Time to celebrate and plan your next objective.`,
+          whySeeingThis: `You reached your "${goal.title}" savings goal`,
+          detailSections: [
+            { title: 'Goal reached', type: 'paragraph', content: [`Your "${goal.title}" goal of ${formatted} has been achieved.`] },
+            { title: 'What\'s next', type: 'bullets', content: ['Set a new stretch goal', 'Consider reallocating funds', 'Discuss next objectives with your advisor'] },
+          ],
+          topicLabel: 'Goal Milestone',
+        });
+      }
+    }
+  }
+  return milestones;
 }
 
 export async function runMilestoneDetection(): Promise<number> {
@@ -132,10 +167,27 @@ export async function runMilestoneDetection(): Promise<number> {
       const perfMilestone = detectPerformanceMilestones(userId, dailyChangePct, existingIds);
       if (perfMilestone) milestones.push(perfMilestone);
 
+      try {
+        const { rows: goals } = await pool.query(
+          `SELECT id, title, current_amount, target_amount, health_status FROM goals WHERE user_id = $1`,
+          [userId],
+        );
+        const goalMilestones = detectGoalCompletionMilestones(userId, goals, existingIds);
+        milestones.push(...goalMilestones);
+      } catch {
+      }
+
       for (const milestone of milestones) {
-        const cardId = milestone.type === 'value_crossed'
-          ? `disc-mile-${userId}-val-${VALUE_THRESHOLDS.find(t => currentValue >= t && previousValue < t)}`
-          : `disc-mile-${userId}-perf-${new Date().toISOString().split('T')[0]}`;
+        let cardId: string;
+        if (milestone.type === 'value_crossed' && milestone.threshold) {
+          cardId = `disc-mile-${userId}-val-${milestone.threshold}`;
+        } else if (milestone.type === 'goal_completed') {
+          const goalIdMatch = milestone.whySeeingThis.match(/"([^"]+)"/);
+          const goalSlug = (goalIdMatch?.[1] || 'goal').toLowerCase().replace(/\s+/g, '-').slice(0, 20);
+          cardId = `disc-mile-${userId}-goal-${goalSlug}`;
+        } else {
+          cardId = `disc-mile-${userId}-perf-${new Date().toISOString().split('T')[0]}`;
+        }
 
         const ctasJson = ctas.map(c => ({
           text: c.text,
@@ -147,7 +199,7 @@ export async function runMilestoneDetection(): Promise<number> {
           },
         }));
 
-        await pool.query(
+        const insertResult = await pool.query(
           `INSERT INTO discover_cards (id, card_type, tab, title, summary, detail_sections, supporting_articles,
             source_count, intent_badge, topic_label, relevance_tags, confidence, taxonomy_tags, ctas,
             why_you_are_seeing_this, is_active, is_editorial, priority_score, expires_at)
@@ -174,8 +226,10 @@ export async function runMilestoneDetection(): Promise<number> {
           ],
         );
 
-        created++;
-        console.log(`[MilestoneWorker] Created milestone card: ${cardId}`);
+        if (insertResult.rowCount && insertResult.rowCount > 0) {
+          created++;
+          console.log(`[MilestoneWorker] Created milestone card: ${cardId}`);
+        }
       }
     }
 
