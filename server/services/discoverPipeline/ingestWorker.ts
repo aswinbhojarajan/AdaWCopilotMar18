@@ -59,9 +59,24 @@ function inferRegions(text: string): string[] {
   return regions.length > 0 ? regions : ['Global'];
 }
 
+async function getLastFetchedAt(): Promise<Date | null> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT MAX(published_at) as last_fetched FROM raw_articles WHERE source_provider = 'finnhub'`,
+    );
+    return rows[0]?.last_fetched ? new Date(rows[0].last_fetched) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function runIngest(): Promise<number> {
   console.log('[IngestWorker] Starting Finnhub news ingest...');
   try {
+    const lastFetched = await getLastFetchedAt();
+    if (lastFetched) {
+      console.log(`[IngestWorker] Last fetched at: ${lastFetched.toISOString()}`);
+    }
     const result = await finnhubNewsProvider.getLatestNews(50);
     if (result.status === 'error' || !result.data) {
       console.warn('[IngestWorker] Finnhub fetch failed:', result.error);

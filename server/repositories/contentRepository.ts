@@ -87,10 +87,10 @@ async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: num
     `SELECT id, card_type, tab, title, summary, detail_sections, supporting_articles,
             image_url, source_count, intent_badge, topic_label, relevance_tags,
             confidence, taxonomy_tags, ctas, why_you_are_seeing_this,
-            is_editorial, created_at, updated_at
+            is_editorial, priority_score, feed_position, created_at, updated_at
      FROM discover_cards
      WHERE is_active = TRUE ${tabFilter} ${cursorFilter}
-     ORDER BY created_at DESC
+     ORDER BY priority_score DESC, feed_position ASC NULLS LAST, created_at DESC
      LIMIT $${params.length}`,
     params,
   );

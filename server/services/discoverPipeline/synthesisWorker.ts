@@ -191,7 +191,7 @@ export async function runSynthesis(): Promise<number> {
           [
             cardId,
             cardType,
-            'whatsNew',
+            cardType === 'portfolio_impact' || row.aggregate_importance > 0.6 ? 'both' : 'whatsNew',
             parsed.title,
             parsed.summary,
             JSON.stringify(parsed.detail_sections || []),

@@ -125,6 +125,25 @@ export async function runFeedMaterializer(): Promise<number> {
       ...guardrailedWhatsNew.map(c => c.id),
     ]);
 
+    await pool.query(`UPDATE discover_cards SET priority_score = 0, feed_position = NULL WHERE is_active = TRUE`);
+
+    for (let i = 0; i < guardrailedForYou.length; i++) {
+      const card = guardrailedForYou[i];
+      const score = computeCardScore(card);
+      await pool.query(
+        `UPDATE discover_cards SET priority_score = $1, feed_position = $2 WHERE id = $3`,
+        [score, i + 1, card.id],
+      );
+    }
+    for (let i = 0; i < guardrailedWhatsNew.length; i++) {
+      const card = guardrailedWhatsNew[i];
+      const score = computeCardScore(card);
+      await pool.query(
+        `UPDATE discover_cards SET priority_score = $1, feed_position = COALESCE(feed_position, $2) WHERE id = $3`,
+        [score, i + 1, card.id],
+      );
+    }
+
     const allActive = allCards as CardRow[];
     const toDeactivate = allActive
       .filter(c => !activeIds.has(c.id) && !c.is_editorial)

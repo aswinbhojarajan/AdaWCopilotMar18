@@ -523,6 +523,7 @@ CREATE TABLE IF NOT EXISTS article_clusters (
   primary_geography TEXT,
   primary_themes TEXT[] NOT NULL DEFAULT '{}',
   is_synthesized BOOLEAN NOT NULL DEFAULT FALSE,
+  last_article_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -530,6 +531,9 @@ CREATE TABLE IF NOT EXISTS article_clusters (
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='article_clusters' AND column_name='fingerprint') THEN
     ALTER TABLE article_clusters ADD COLUMN fingerprint TEXT UNIQUE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='article_clusters' AND column_name='last_article_at') THEN
+    ALTER TABLE article_clusters ADD COLUMN last_article_at TIMESTAMPTZ;
   END IF;
 END $$;
 
@@ -558,6 +562,8 @@ CREATE TABLE IF NOT EXISTS discover_cards (
   why_you_are_seeing_this TEXT,
   personalized_overlay TEXT,
   cluster_id INTEGER REFERENCES article_clusters(id),
+  priority_score INTEGER NOT NULL DEFAULT 0,
+  feed_position INTEGER,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   is_editorial BOOLEAN NOT NULL DEFAULT FALSE,
   expires_at TIMESTAMPTZ,
@@ -565,7 +571,17 @@ CREATE TABLE IF NOT EXISTS discover_cards (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='discover_cards' AND column_name='priority_score') THEN
+    ALTER TABLE discover_cards ADD COLUMN priority_score INTEGER NOT NULL DEFAULT 0;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='discover_cards' AND column_name='feed_position') THEN
+    ALTER TABLE discover_cards ADD COLUMN feed_position INTEGER;
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_discover_cards_active ON discover_cards(is_active, tab) WHERE is_active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_discover_cards_priority ON discover_cards(tab, priority_score DESC) WHERE is_active = TRUE;
 CREATE INDEX IF NOT EXISTS idx_discover_cards_type ON discover_cards(card_type);
 CREATE INDEX IF NOT EXISTS idx_discover_cards_created ON discover_cards(created_at DESC);
 

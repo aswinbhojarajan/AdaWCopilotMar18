@@ -149,11 +149,13 @@ export async function runClustering(): Promise<number> {
       const headlines = cluster.map(a => a.title);
       const narrativeHeadline = headlines[0];
 
+      const lastArticleAt = new Date(Math.max(...cluster.map(a => a.published_at.getTime())));
+
       const { rowCount } = await pool.query(
-        `INSERT INTO article_clusters (theme, fingerprint, article_ids, article_count, narrative_headline, aggregate_importance, primary_asset_class, primary_geography, primary_themes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `INSERT INTO article_clusters (theme, fingerprint, article_ids, article_count, narrative_headline, aggregate_importance, primary_asset_class, primary_geography, primary_themes, last_article_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          ON CONFLICT (fingerprint) DO NOTHING`,
-        [theme, fingerprint, articleIds, cluster.length, narrativeHeadline, aggregateImportance, primaryAssetClass, primaryGeography, primaryThemes],
+        [theme, fingerprint, articleIds, cluster.length, narrativeHeadline, aggregateImportance, primaryAssetClass, primaryGeography, primaryThemes, lastArticleAt],
       );
       if (rowCount && rowCount > 0) created++;
     }

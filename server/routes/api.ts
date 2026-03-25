@@ -306,10 +306,15 @@ router.get('/content/discover', asyncHandler(async (req, res) => {
   const cursor = req.query.cursor as string | undefined;
   const rawLimit = parseInt(req.query.limit as string, 10);
   const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(rawLimit, 20)) : undefined;
+  const usePagination = cursor !== undefined || limit !== undefined;
   const items = await contentRepo.getDiscoverContent(tab, cursor, limit);
-  const lastItem = items[items.length - 1];
-  const nextCursor = lastItem ? (lastItem as unknown as { createdAt?: string }).createdAt : undefined;
-  res.json({ items, nextCursor });
+  if (usePagination) {
+    const lastItem = items[items.length - 1];
+    const nextCursor = lastItem ? (lastItem as unknown as { createdAt?: string }).createdAt : undefined;
+    res.json({ items, nextCursor });
+  } else {
+    res.json(items);
+  }
 }));
 
 router.get('/polls', asyncHandler(async (req, res) => {

@@ -43,15 +43,27 @@ function computeSentiment(text: string): number {
   return Math.max(-1, Math.min(1, score));
 }
 
-function computeImportance(text: string, taxonomyTags: Record<string, string[]>, tickers: string[]): number {
+function computeImportance(text: string, taxonomyTags: Record<string, string[]>, tickers: string[], publishedAt?: Date): number {
   let score = 0.3;
   const tagCount = Object.keys(taxonomyTags).length;
   score += Math.min(tagCount * 0.1, 0.3);
-  score += Math.min(tickers.length * 0.05, 0.2);
+  score += Math.min(tickers.length * 0.05, 0.15);
+
   const lower = text.toLowerCase();
   if (lower.includes('breaking') || lower.includes('urgent')) score += 0.2;
   if (lower.includes('exclusive') || lower.includes('first')) score += 0.1;
-  return Math.min(1, score);
+
+  if (publishedAt) {
+    const ageHours = (Date.now() - publishedAt.getTime()) / 3600000;
+    if (ageHours < 1) score += 0.15;
+    else if (ageHours < 6) score += 0.1;
+    else if (ageHours < 24) score += 0.05;
+    else if (ageHours > 48) score -= 0.1;
+  }
+
+  if (taxonomyTags['gcc_markets']) score += 0.05;
+
+  return Math.max(0, Math.min(1, score));
 }
 
 function computeDedupHash(title: string, summary: string): string {
@@ -63,7 +75,7 @@ export async function runEnrichment(): Promise<number> {
   console.log('[EnrichmentWorker] Processing unprocessed articles...');
   try {
     const { rows } = await pool.query(
-      `SELECT id, title, summary, tickers FROM raw_articles WHERE is_processed = FALSE ORDER BY ingested_at ASC LIMIT 100`,
+      `SELECT id, title, summary, tickers, published_at FROM raw_articles WHERE is_processed = FALSE ORDER BY ingested_at ASC LIMIT 100`,
     );
 
     if (rows.length === 0) {
@@ -76,7 +88,8 @@ export async function runEnrichment(): Promise<number> {
       const text = `${row.title} ${row.summary || ''}`;
       const taxonomyTags = classifyTaxonomy(text);
       const sentimentScore = computeSentiment(text);
-      const importanceScore = computeImportance(text, taxonomyTags, row.tickers || []);
+      const publishedAt = row.published_at ? new Date(row.published_at) : undefined;
+      const importanceScore = computeImportance(text, taxonomyTags, row.tickers || [], publishedAt);
       const dedupHash = computeDedupHash(row.title, row.summary || '');
 
       const { rows: dupeCheck } = await pool.query(
