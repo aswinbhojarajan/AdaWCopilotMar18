@@ -280,6 +280,7 @@ export interface DiscoverCardContext {
   card_summary?: string;
   why_seen?: string;
   entities?: string[];
+  evidence_facts?: string[];
   cta_family?: string;
 }
 

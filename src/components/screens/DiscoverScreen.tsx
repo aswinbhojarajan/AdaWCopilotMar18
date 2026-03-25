@@ -5,7 +5,7 @@ import { ErrorBanner } from '../ada/ErrorBanner';
 import { useDiscoverContentPaginated } from '../../hooks/useContent';
 
 interface DiscoverScreenProps {
-  onChatSubmit?: (message: string, context?: { category: string; categoryType: string; title: string; sourceScreen?: string; discoverCard?: { card_id?: string; card_type?: string; card_summary?: string; why_seen?: string; entities?: string[]; cta_family?: string } }) => void;
+  onChatSubmit?: (message: string, context?: { category: string; categoryType: string; title: string; sourceScreen?: string; discoverCard?: { card_id?: string; card_type?: string; card_summary?: string; why_seen?: string; entities?: string[]; evidence_facts?: string[]; cta_family?: string } }) => void;
 }
 
 export function DiscoverScreen({
@@ -159,6 +159,7 @@ export function DiscoverScreen({
                 onFeedback={handleFeedback}
                 onInteract={handleInteract}
                 ctaEntities={(item as unknown as { ctaEntities?: string[] }).ctaEntities}
+                ctaEvidenceFacts={(item as unknown as { ctaEvidenceFacts?: string[] }).ctaEvidenceFacts}
               />
             ))}
             {isFetchingNextPage && (

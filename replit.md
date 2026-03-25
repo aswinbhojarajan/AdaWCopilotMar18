@@ -52,7 +52,8 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **Interaction Tracking**: `POST /api/discover/interact` (fire-and-forget), `POST /api/discover/visit` for last-visit timestamp. Dismissed cards filtered from feed.
 - **Card Dismiss + Feedback**: X button on cards opens feedback modal with 4 preset reasons. Both dismiss and feedback recorded.
 - **"New" Badge**: Cards created after user's last visit get a burgundy "NEW" badge.
-- **Enriched Chat Context**: CTA taps pass `DiscoverCardContext` (card_id, card_type, card_summary, why_seen, entities, cta_family) to chat. promptBuilder incorporates card context into system prompt.
+- **CTA Personalization**: Feed materializer fills CTA template variables ({USER_NAME}, {RISK_TOLERANCE}, {GEO_FOCUS}, {TOP_ASSETS}, {ALLOCATION_GAPS}, {INTERESTS}) with user profile values; persisted in `personalized_ctas` column.
+- **Enriched Chat Context**: CTA taps pass `DiscoverCardContext` (card_id, card_type, card_summary, why_seen, entities, evidence_facts, cta_family) to chat. promptBuilder incorporates card context including evidence facts into system prompt.
 - **New Tables**: `user_segments`, `user_discover_feed`, `user_content_interactions`, `user_discover_visits`.
 - **New Files**: `adaViewWorker.ts`, `eventCalendarWorker.ts`, `userProfileEnricher.ts`.
 

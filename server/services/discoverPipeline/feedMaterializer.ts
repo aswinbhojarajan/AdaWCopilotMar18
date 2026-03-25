@@ -316,6 +316,33 @@ async function generatePersonalizedOverlays(
   return overlays;
 }
 
+function personalizeCtaTemplates(
+  ctas: Array<{ text?: string; family?: string; context?: Record<string, unknown> }>,
+  profile: UserProfileForScoring,
+): Array<{ text?: string; family?: string; context?: Record<string, unknown> }> {
+  const gapSummary = Object.entries(profile.allocation_gaps || {})
+    .filter(([, v]) => Math.abs(v) > 3)
+    .map(([k, v]) => `${k}: ${v > 0 ? '+' : ''}${v}%`)
+    .join(', ') || 'balanced';
+
+  const topAssets = (profile.top_asset_classes || []).join(', ') || 'diversified portfolio';
+
+  const fillTemplate = (text: string): string =>
+    text
+      .replace(/\{USER_NAME\}/g, profile.user_id.replace('user-', '').replace(/^\w/, c => c.toUpperCase()))
+      .replace(/\{RISK_TOLERANCE\}/g, profile.risk_tolerance || 'moderate')
+      .replace(/\{GEO_FOCUS\}/g, profile.geo_focus || 'Global')
+      .replace(/\{TOP_ASSETS\}/g, topAssets)
+      .replace(/\{ALLOCATION_GAPS\}/g, gapSummary)
+      .replace(/\{INTERESTS\}/g, (profile.interests || []).join(', ') || 'general');
+
+  return ctas.map(cta => ({
+    text: cta.text ? fillTemplate(cta.text) : cta.text,
+    family: cta.family,
+    context: cta.context,
+  }));
+}
+
 async function materializeUserFeed(
   userId: string,
   profile: UserProfileForScoring,
@@ -338,6 +365,21 @@ async function materializeUserFeed(
 
   const overlays = await generatePersonalizedOverlays(rankedForYou, profile);
 
+  const cardCtaMap = new Map<string, unknown>();
+  const cardIds = [...rankedForYou, ...rankedWhatsNew].map(c => c.id);
+  if (cardIds.length > 0) {
+    const ctaResult = await pool.query(
+      `SELECT id, ctas FROM discover_cards WHERE id = ANY($1)`,
+      [cardIds],
+    );
+    for (const row of ctaResult.rows) {
+      const rawCtas = Array.isArray(row.ctas) ? row.ctas : [];
+      if (rawCtas.length > 0) {
+        cardCtaMap.set(row.id, personalizeCtaTemplates(rawCtas, profile));
+      }
+    }
+  }
+
   await pool.query(
     `DELETE FROM user_discover_feed WHERE user_id = $1`,
     [userId],
@@ -349,30 +391,38 @@ async function materializeUserFeed(
     const card = rankedForYou[i];
     const overlay = overlays.get(card.id);
     const score = computeCardScore(card, profile);
+    const personalizedCtas = cardCtaMap.get(card.id) || null;
     await pool.query(
-      `INSERT INTO user_discover_feed (user_id, card_id, personalized_overlay, personalized_why, score, position, tab, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6, 'forYou', $7)
+      `INSERT INTO user_discover_feed (user_id, card_id, personalized_overlay, personalized_why, personalized_ctas, score, position, tab, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'forYou', $8)
        ON CONFLICT (user_id, card_id, tab) DO UPDATE SET
          personalized_overlay = EXCLUDED.personalized_overlay,
          personalized_why = EXCLUDED.personalized_why,
+         personalized_ctas = EXCLUDED.personalized_ctas,
          score = EXCLUDED.score,
          position = EXCLUDED.position,
          expires_at = EXCLUDED.expires_at`,
-      [userId, card.id, overlay?.overlay || null, overlay?.why || null, score, i + 1, expiresAt],
+      [userId, card.id, overlay?.overlay || null, overlay?.why || null,
+       personalizedCtas ? JSON.stringify(personalizedCtas) : null,
+       score, i + 1, expiresAt],
     );
   }
 
   for (let i = 0; i < rankedWhatsNew.length; i++) {
     const card = rankedWhatsNew[i];
     const score = computeBasicScore(card);
+    const personalizedCtas = cardCtaMap.get(card.id) || null;
     await pool.query(
-      `INSERT INTO user_discover_feed (user_id, card_id, score, position, tab, expires_at)
-       VALUES ($1, $2, $3, $4, 'whatsNew', $5)
+      `INSERT INTO user_discover_feed (user_id, card_id, personalized_ctas, score, position, tab, expires_at)
+       VALUES ($1, $2, $3, $4, $5, 'whatsNew', $6)
        ON CONFLICT (user_id, card_id, tab) DO UPDATE SET
+         personalized_ctas = EXCLUDED.personalized_ctas,
          score = EXCLUDED.score,
          position = EXCLUDED.position,
          expires_at = EXCLUDED.expires_at`,
-      [userId, card.id, score, i + 1, expiresAt],
+      [userId, card.id,
+       personalizedCtas ? JSON.stringify(personalizedCtas) : null,
+       score, i + 1, expiresAt],
     );
   }
 }

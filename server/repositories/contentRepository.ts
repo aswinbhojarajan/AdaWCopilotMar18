@@ -288,6 +288,7 @@ async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: num
       isNew,
       personalizedOverlay,
       ctaEntities: (primaryCta?.context as Record<string, unknown>)?.entities as string[] || [],
+      ctaEvidenceFacts: (primaryCta?.context as Record<string, unknown>)?.evidence_facts as string[] || [],
     };
   });
 }

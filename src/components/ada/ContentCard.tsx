@@ -29,7 +29,7 @@ interface ContentCardProps {
   contextTitle?: string;
   onChatSubmit?: (
     message: string,
-    context?: { category: string; categoryType: string; title: string; sourceScreen?: string; discoverCard?: { card_id?: string; card_type?: string; card_summary?: string; why_seen?: string; entities?: string[]; cta_family?: string } },
+    context?: { category: string; categoryType: string; title: string; sourceScreen?: string; discoverCard?: { card_id?: string; card_type?: string; card_summary?: string; why_seen?: string; entities?: string[]; evidence_facts?: string[]; cta_family?: string } },
   ) => void;
   customTopic?: string;
   topicLabelColor?: string;
@@ -51,6 +51,7 @@ interface ContentCardProps {
   onFeedback?: (cardId: string, feedback: string) => void;
   onInteract?: (cardId: string, action: string, metadata?: Record<string, unknown>) => void;
   ctaEntities?: string[];
+  ctaEvidenceFacts?: string[];
 }
 
 function formatArticleTime(dateStr: string): string {
@@ -177,6 +178,7 @@ export function ContentCard({
   onFeedback,
   onInteract,
   ctaEntities,
+  ctaEvidenceFacts,
 }: ContentCardProps) {
   const [showSources, setShowSources] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -211,6 +213,7 @@ export function ContentCard({
           card_summary: typeof description === 'string' ? description : contextTitle,
           why_seen: whyYouAreSeeingThis || undefined,
           entities: ctaEntities,
+          evidence_facts: ctaEvidenceFacts,
           cta_family: 'primary',
         } : undefined,
       });
@@ -235,6 +238,7 @@ export function ContentCard({
           card_summary: typeof description === 'string' ? description : contextTitle,
           why_seen: whyYouAreSeeingThis || undefined,
           entities: ctaEntities,
+          evidence_facts: ctaEvidenceFacts,
           cta_family: 'secondary',
         } : undefined,
       });

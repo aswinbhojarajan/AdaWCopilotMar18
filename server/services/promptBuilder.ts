@@ -21,6 +21,7 @@ interface PromptContext {
       card_summary?: string;
       why_seen?: string;
       entities?: string[];
+      evidence_facts?: string[];
       cta_family?: string;
     };
   };
@@ -65,6 +66,7 @@ export function buildAgentPrompt(ctx: PromptContext): string {
       if (dc.card_summary) parts.push(`Summary: ${dc.card_summary}`);
       if (dc.why_seen) parts.push(`Why shown: ${dc.why_seen}`);
       if (dc.entities && dc.entities.length > 0) parts.push(`Related entities: ${dc.entities.join(', ')}`);
+      if (dc.evidence_facts && dc.evidence_facts.length > 0) parts.push(`Evidence facts: ${dc.evidence_facts.join('; ')}`);
       if (dc.cta_family) parts.push(`CTA intent: ${dc.cta_family}`);
       if (parts.length > 0) {
         navBlock += `\nDISCOVER CARD CONTEXT:\n${parts.map(p => `• ${p}`).join('\n')}`;

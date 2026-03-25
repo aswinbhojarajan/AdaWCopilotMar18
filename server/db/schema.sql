@@ -647,10 +647,21 @@ CREATE TABLE IF NOT EXISTS user_content_interactions (
   id SERIAL PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id),
   card_id TEXT NOT NULL REFERENCES discover_cards(id),
-  action TEXT NOT NULL CHECK (action IN ('impression', 'click', 'cta_tap', 'dismiss', 'feedback', 'share')),
+  action TEXT NOT NULL CHECK (action IN ('impression', 'view', 'click', 'cta_tap', 'expand', 'dismiss', 'feedback', 'share')),
   metadata JSONB NOT NULL DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.check_constraints
+    WHERE constraint_name = 'user_content_interactions_action_check'
+  ) THEN
+    ALTER TABLE user_content_interactions DROP CONSTRAINT user_content_interactions_action_check;
+    ALTER TABLE user_content_interactions ADD CONSTRAINT user_content_interactions_action_check
+      CHECK (action IN ('impression', 'view', 'click', 'cta_tap', 'expand', 'dismiss', 'feedback', 'share'));
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_user_content_interactions_user ON user_content_interactions(user_id, action);
 CREATE INDEX IF NOT EXISTS idx_user_content_interactions_card ON user_content_interactions(card_id, action);
