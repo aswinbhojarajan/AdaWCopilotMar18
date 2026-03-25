@@ -446,7 +446,17 @@ export async function executeFinancialTool(
         return { status: 'error', source_name: 'fx', source_type: 'fx_api', as_of: new Date().toISOString(), latency_ms: 0, data: null, error: 'Both base and target currencies are required' };
       }
       const isAed = base.toUpperCase() === 'AED' || target.toUpperCase() === 'AED';
-      const fxProvider = isAed ? registry.fxLocalized : registry.fx;
+      if (isAed) {
+        const localResult = date
+          ? await registry.fxLocalized.getHistoricalRate(base, target, date)
+          : await registry.fxLocalized.getRate(base, target);
+        if (localResult.status === 'ok') return localResult;
+        const fallbackResult = date
+          ? await registry.fx.getHistoricalRate(base, target, date)
+          : await registry.fx.getRate(base, target);
+        return fallbackResult;
+      }
+      const fxProvider = registry.fx;
       if (date) {
         return fxProvider.getHistoricalRate(base, target, date);
       }

@@ -81,7 +81,8 @@ Ada is built on a full-stack architecture with a React frontend, an Express/Type
   - **Server-side delivery**: 4x `setImmediate()` async ticks in orchestrator (after early buffer, after routing, before lane0 dispatch, before data_prefetch) + typed `flush()` in api.ts after thinking events ensure separate SSE chunk delivery.
   - **Toggle edge cases**: Toggle controls visibility only, never clears steps. Steps cleared only at start of next `sendAndReceive`.
 - **Execution routing**: defaults to rm_handoff; configurable per tenant
-- **Provider config**: `*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK` env vars; all default to 'mock'
+- **Provider config**: `*_PROVIDER_PRIMARY`, `*_PROVIDER_SECONDARY`, `*_PROVIDER_FALLBACK` env vars; tenant `provider_config` DB column must be `'{}'` to use env vars (non-empty JSON overrides env vars via `getChainKeys` in registry.ts)
+- **Policy engine tool profiles**: `allowed_tool_profiles` in tenant config maps to tools via `PROFILE_TOOL_MAP` in `policyEngine.ts`. Profiles: portfolio_read, market_read, news_read, macro_read, fx_read, research_read, health_compute, execution_route, workflow_light
 
 ## Documentation
 - **PRD.md**: Living product requirements document (sections 1-12)

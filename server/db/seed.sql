@@ -285,8 +285,8 @@ VALUES (
   'bank_demo_uae', 'UAE', 'personalized_insights_only',
   TRUE, FALSE, FALSE, TRUE, TRUE,
   'uae_affluent_v1',
-  '{portfolio_read,market_read,news_read,macro_read,fx_read,health_compute,workflow_light,execution_route}',
-  '{"market_primary":"mock","news_primary":"mock","macro_primary":"mock","fx_primary":"mock","filing_primary":"mock","identity_primary":"mock"}',
+  '{portfolio_read,market_read,news_read,macro_read,fx_read,research_read,health_compute,workflow_light,execution_route}',
+  '{}',
   '{"enable_agent_tracing":true,"enable_advisor_handoff":true,"enable_recommendations":false,"enable_wealth_engine":true,"verbose_mode":true}',
   'professional', 'en',
   'rm_handoff', TRUE

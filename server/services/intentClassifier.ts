@@ -75,7 +75,7 @@ INTENTS:
 - portfolio_explain: Questions about holdings, positions, performance, returns, gains/losses, what's in the portfolio, top/bottom performers
 - allocation_breakdown: Questions about asset allocation, sector/geography splits, how money is distributed, concentration, diversification, rebalancing
 - goal_progress: Questions about financial goals, savings targets, milestones, on/off track, deadlines, progress toward objectives
-- market_context: Questions about market conditions, interest rates, economic indicators, sector trends, inflation, GDP, macro outlook
+- market_context: Questions about market conditions, interest rates, economic indicators, sector trends, inflation, GDP, macro outlook, currency conversion, exchange rates, FX rates, historical prices, company profiles
 - news_explain: Questions about specific news, headlines, what happened, why did X move, earnings, company events
 - scenario_analysis: What-if analysis, projections, retirement planning, simulations, tax planning, spending models, compound growth
 - recommendation_request: Requests for investment advice, what to buy/sell, where to put money, which funds to choose, portfolio optimization suggestions
@@ -265,6 +265,8 @@ function classifyIntentFallback(message: string, recentHistory?: ConversationCon
         'economic', 'sector', 'industry', 'trend', 'outlook',
         'forecast', 'gcc', 'emerging', 'correction', 'macro',
         'oil price', 'crude', 'currency', 'dollar',
+        'exchange rate', 'fx rate', 'convert', 'aed', 'dirham',
+        'price history', 'historical price', 'company profile',
       ],
     },
     {
