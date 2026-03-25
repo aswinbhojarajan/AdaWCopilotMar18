@@ -151,13 +151,36 @@ export async function runClustering(): Promise<number> {
 
       const lastArticleAt = new Date(Math.max(...cluster.map(a => a.published_at.getTime())));
 
-      const { rowCount } = await pool.query(
-        `INSERT INTO article_clusters (theme, fingerprint, article_ids, article_count, narrative_headline, aggregate_importance, primary_asset_class, primary_geography, primary_themes, last_article_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         ON CONFLICT (fingerprint) DO NOTHING`,
-        [theme, fingerprint, articleIds, cluster.length, narrativeHeadline, aggregateImportance, primaryAssetClass, primaryGeography, primaryThemes, lastArticleAt],
+      const { rows: existing } = await pool.query(
+        `SELECT id, article_count, aggregate_importance, is_synthesized FROM article_clusters WHERE fingerprint = $1`,
+        [fingerprint],
       );
-      if (rowCount && rowCount > 0) created++;
+
+      if (existing.length > 0) {
+        const ex = existing[0];
+        const changed = cluster.length !== ex.article_count ||
+          Math.abs(aggregateImportance - Number(ex.aggregate_importance)) > 0.05;
+
+        if (changed) {
+          await pool.query(
+            `UPDATE article_clusters SET
+              article_ids = $1, article_count = $2, aggregate_importance = $3,
+              primary_asset_class = $4, primary_geography = $5, primary_themes = $6,
+              narrative_headline = $7, last_article_at = $8,
+              is_synthesized = FALSE, updated_at = NOW()
+             WHERE id = $9`,
+            [articleIds, cluster.length, aggregateImportance, primaryAssetClass, primaryGeography, primaryThemes, narrativeHeadline, lastArticleAt, ex.id],
+          );
+          created++;
+        }
+      } else {
+        const { rowCount } = await pool.query(
+          `INSERT INTO article_clusters (theme, fingerprint, article_ids, article_count, narrative_headline, aggregate_importance, primary_asset_class, primary_geography, primary_themes, last_article_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [theme, fingerprint, articleIds, cluster.length, narrativeHeadline, aggregateImportance, primaryAssetClass, primaryGeography, primaryThemes, lastArticleAt],
+        );
+        if (rowCount && rowCount > 0) created++;
+      }
     }
 
     console.log(`[ClusteringWorker] Created ${created} clusters from ${articles.length} articles`);

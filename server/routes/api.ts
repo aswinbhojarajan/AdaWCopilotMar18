@@ -306,8 +306,9 @@ router.get('/content/discover', asyncHandler(async (req, res) => {
   const cursor = req.query.cursor as string | undefined;
   const rawLimit = parseInt(req.query.limit as string, 10);
   const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(rawLimit, 20)) : undefined;
+  const userId = getUserId(req);
   const usePagination = cursor !== undefined || limit !== undefined;
-  const items = await contentRepo.getDiscoverContent(tab, cursor, limit);
+  const items = await contentRepo.getDiscoverContent(tab, cursor, limit, userId);
   if (usePagination) {
     const lastItem = items[items.length - 1];
     const nextCursor = lastItem ? (lastItem as unknown as { createdAt?: string }).createdAt : undefined;

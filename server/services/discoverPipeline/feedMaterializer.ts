@@ -12,6 +12,13 @@ interface CardRow {
   created_at: Date;
 }
 
+interface UserProfileForScoring {
+  allocation_gaps: Record<string, number>;
+  top_asset_classes: string[];
+  risk_tolerance: string;
+  interests: string[];
+}
+
 const MAX_PER_ASSET_CLASS = 2;
 const MAX_PER_THEME_IN_TOP5 = 1;
 const MIN_GCC_CARDS = 1;
@@ -19,7 +26,7 @@ const CARD_TYPE_DIVERSITY_MIN = 3;
 const FOR_YOU_COUNT = { min: 5, max: 7 };
 const WHATS_NEW_COUNT = { min: 6, max: 8 };
 
-function computeCardScore(card: CardRow): number {
+function computeCardScore(card: CardRow, userProfile?: UserProfileForScoring | null): number {
   let score = 0;
 
   if (card.confidence === 'high') score += 30;
@@ -39,7 +46,63 @@ function computeCardScore(card: CardRow): number {
   const tagCount = (card.relevance_tags || []).length;
   score += Math.min(tagCount * 3, 12);
 
+  if (userProfile) {
+    score += computeUserRelevanceBonus(card, userProfile);
+  }
+
   return score;
+}
+
+function computeUserRelevanceBonus(card: CardRow, profile: UserProfileForScoring): number {
+  let bonus = 0;
+  const tags = card.taxonomy_tags as {
+    asset_classes?: string[];
+    themes?: string[];
+    geographies?: string[];
+  } | null;
+
+  const cardAssetClasses = tags?.asset_classes || [];
+  const cardThemes = tags?.themes || [];
+
+  const assetClassMap: Record<string, string> = {
+    equities: 'Equities', fixed_income: 'Fixed Income',
+    alternatives: 'Alternatives', real_estate: 'Real Estate', cash: 'Cash',
+  };
+
+  if (profile.allocation_gaps) {
+    for (const [gapKey, gapValue] of Object.entries(profile.allocation_gaps)) {
+      const assetClassName = assetClassMap[gapKey] || gapKey;
+      if (cardAssetClasses.includes(gapKey) || cardAssetClasses.includes(assetClassName)) {
+        if (Math.abs(gapValue) > 10) bonus += 15;
+        else if (Math.abs(gapValue) > 5) bonus += 8;
+      }
+    }
+  }
+
+  if (profile.top_asset_classes) {
+    for (const topClass of profile.top_asset_classes) {
+      const lc = topClass.toLowerCase().replace(/\s+/g, '_');
+      if (cardAssetClasses.includes(lc) || cardAssetClasses.includes(topClass)) {
+        bonus += 10;
+      }
+    }
+  }
+
+  if (profile.interests) {
+    for (const interest of profile.interests) {
+      if (cardThemes.includes(interest.toLowerCase())) {
+        bonus += 5;
+      }
+    }
+  }
+
+  if (profile.risk_tolerance === 'conservative') {
+    if (card.card_type === 'portfolio_impact' || card.card_type === 'wealth_planning') bonus += 8;
+  } else if (profile.risk_tolerance === 'aggressive') {
+    if (card.card_type === 'trend_brief' || card.card_type === 'market_pulse') bonus += 8;
+  }
+
+  return bonus;
 }
 
 function hasGCCRelevance(card: CardRow): boolean {
@@ -58,8 +121,8 @@ function getPrimaryTheme(card: CardRow): string {
   return tags?.themes?.[0] || 'general';
 }
 
-function applyGuardrails(cards: CardRow[], countBand: { min: number; max: number }): CardRow[] {
-  const scored = cards.map(c => ({ card: c, score: computeCardScore(c) }));
+function applyGuardrails(cards: CardRow[], countBand: { min: number; max: number }, userProfile?: UserProfileForScoring | null): CardRow[] {
+  const scored = cards.map(c => ({ card: c, score: computeCardScore(c, userProfile) }));
   scored.sort((a, b) => b.score - a.score);
 
   const result: CardRow[] = [];
@@ -134,7 +197,22 @@ export async function runFeedMaterializer(): Promise<number> {
     const forYouCards = allCards.filter((c: CardRow) => c.tab === 'forYou' || c.tab === 'both');
     const whatsNewCards = allCards.filter((c: CardRow) => c.tab === 'whatsNew' || c.tab === 'both');
 
-    const guardrailedForYou = applyGuardrails(forYouCards as CardRow[], FOR_YOU_COUNT);
+    const { rows: userProfiles } = await pool.query(
+      `SELECT user_id, allocation_gaps, top_asset_classes, risk_tolerance, interests FROM user_profiles LIMIT 10`,
+    );
+
+    let representativeProfile: UserProfileForScoring | null = null;
+    if (userProfiles.length > 0) {
+      const p = userProfiles[0];
+      representativeProfile = {
+        allocation_gaps: typeof p.allocation_gaps === 'string' ? JSON.parse(p.allocation_gaps) : p.allocation_gaps || {},
+        top_asset_classes: typeof p.top_asset_classes === 'string' ? JSON.parse(p.top_asset_classes) : p.top_asset_classes || [],
+        risk_tolerance: p.risk_tolerance || 'moderate',
+        interests: typeof p.interests === 'string' ? JSON.parse(p.interests) : p.interests || [],
+      };
+    }
+
+    const guardrailedForYou = applyGuardrails(forYouCards as CardRow[], FOR_YOU_COUNT, representativeProfile);
     const guardrailedWhatsNew = applyGuardrails(whatsNewCards as CardRow[], WHATS_NEW_COUNT);
 
     const activeIds = new Set([
@@ -188,3 +266,24 @@ export async function runFeedMaterializer(): Promise<number> {
     return 0;
   }
 }
+
+export async function getUserProfileForScoring(userId: string): Promise<UserProfileForScoring | null> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT allocation_gaps, top_asset_classes, risk_tolerance, interests FROM user_profiles WHERE user_id = $1`,
+      [userId],
+    );
+    if (rows.length === 0) return null;
+    const p = rows[0];
+    return {
+      allocation_gaps: typeof p.allocation_gaps === 'string' ? JSON.parse(p.allocation_gaps) : p.allocation_gaps || {},
+      top_asset_classes: typeof p.top_asset_classes === 'string' ? JSON.parse(p.top_asset_classes) : p.top_asset_classes || [],
+      risk_tolerance: p.risk_tolerance || 'moderate',
+      interests: typeof p.interests === 'string' ? JSON.parse(p.interests) : p.interests || [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+export { computeCardScore, type UserProfileForScoring, type CardRow };

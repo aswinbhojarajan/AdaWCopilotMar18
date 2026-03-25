@@ -1,5 +1,7 @@
 import pool from '../db/pool';
 import type { ContentItem, Alert, ChatThread, ChatMessage, PeerComparison } from '../../shared/types';
+import { getUserProfileForScoring, computeCardScore } from '../services/discoverPipeline/feedMaterializer';
+import type { UserProfileForScoring, CardRow } from '../services/discoverPipeline/feedMaterializer';
 
 export interface DiscoverContentItem extends ContentItem {
   detailSections?: { title: string; type?: string; content: string | string[] }[];
@@ -26,10 +28,10 @@ export async function getHomeContent(_userId: string): Promise<ContentItem[]> {
   return rows.map(mapRowToContentItem);
 }
 
-export async function getDiscoverContent(tab?: string, cursor?: string, limit?: number): Promise<DiscoverContentItem[]> {
+export async function getDiscoverContent(tab?: string, cursor?: string, limit?: number, userId?: string): Promise<DiscoverContentItem[]> {
   const hasDiscoverCards = await checkDiscoverCardsExist();
   if (hasDiscoverCards) {
-    return getDiscoverCardsContent(tab, cursor, limit);
+    return getDiscoverCardsContent(tab, cursor, limit, userId);
   }
   const query = tab
     ? `SELECT id, category, category_type, title, context_title, description,
@@ -69,7 +71,7 @@ function computeFreshnessLabel(createdAt: Date): string {
   return `${Math.floor(diffDays / 7)}w ago`;
 }
 
-async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: number = 5): Promise<DiscoverContentItem[]> {
+async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: number = 5, userId?: string): Promise<DiscoverContentItem[]> {
   const tabFilter = tab === 'forYou'
     ? `AND (tab = 'forYou' OR tab = 'both')`
     : tab === 'whatsNew' || tab === 'whatsHappening'
@@ -83,6 +85,11 @@ async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: num
   }
   params.push(Math.min(limit, 20));
 
+  const isForYou = tab === 'forYou';
+  const fetchLimit = isForYou && userId ? Math.min(limit * 3, 20) : limit;
+  const fetchParams = [...params];
+  fetchParams[fetchParams.length - 1] = fetchLimit;
+
   const { rows } = await pool.query(
     `SELECT id, card_type, tab, title, summary, detail_sections, supporting_articles,
             image_url, source_count, intent_badge, topic_label, relevance_tags,
@@ -91,11 +98,34 @@ async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: num
      FROM discover_cards
      WHERE is_active = TRUE ${tabFilter} ${cursorFilter}
      ORDER BY priority_score DESC, feed_position ASC NULLS LAST, created_at DESC
-     LIMIT $${params.length}`,
-    params,
+     LIMIT $${fetchParams.length}`,
+    fetchParams,
   );
 
-  return rows.map((r: Record<string, unknown>) => {
+  let sortedRows = rows;
+  if (isForYou && userId) {
+    const profile = await getUserProfileForScoring(userId);
+    if (profile) {
+      const scored = rows.map((r: Record<string, unknown>) => {
+        const cardForScoring: CardRow = {
+          id: r.id as string,
+          card_type: r.card_type as string,
+          tab: r.tab as string,
+          confidence: r.confidence as string,
+          source_count: Number(r.source_count) || 0,
+          relevance_tags: r.relevance_tags as string[] || [],
+          taxonomy_tags: (typeof r.taxonomy_tags === 'string' ? JSON.parse(r.taxonomy_tags as string) : r.taxonomy_tags || {}) as Record<string, unknown>,
+          is_editorial: r.is_editorial as boolean,
+          created_at: new Date(r.created_at as string),
+        };
+        return { row: r, score: computeCardScore(cardForScoring, profile) };
+      });
+      scored.sort((a, b) => b.score - a.score);
+      sortedRows = scored.slice(0, limit).map(s => s.row);
+    }
+  }
+
+  return sortedRows.map((r: Record<string, unknown>) => {
     const ctas = parseJson(r.ctas) as Array<{ text: string; family: string; context?: Record<string, unknown> }> | null;
     const primaryCta = ctas?.[0];
     const secondaryCta = ctas?.[1];
