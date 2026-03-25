@@ -148,16 +148,16 @@ function applyGuardrails(cards: CardRow[], countBand: { min: number; max: number
     if (hasGCCRelevance(card)) gccCount++;
   }
 
-  if (gccCount < MIN_GCC_CARDS && result.length < countBand.max) {
+  if (gccCount < MIN_GCC_CARDS) {
     const gccCards = scored.filter(s => hasGCCRelevance(s.card) && !result.includes(s.card));
     for (const { card } of gccCards.slice(0, MIN_GCC_CARDS - gccCount)) {
-      if (result.length < 5) {
-        result.splice(4, 0, card);
+      const insertPos = Math.min(4, result.length);
+      if (result.length >= countBand.max) {
+        result.splice(insertPos, 1, card);
       } else {
-        result.push(card);
+        result.splice(insertPos, 0, card);
       }
       gccCount++;
-      if (result.length >= countBand.max) break;
     }
   }
 

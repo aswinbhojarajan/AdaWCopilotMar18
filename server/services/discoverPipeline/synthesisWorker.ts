@@ -170,6 +170,11 @@ export async function runSynthesis(): Promise<number> {
           published_at: a.published_at.toISOString(),
         }));
 
+        await pool.query(
+          `UPDATE discover_cards SET is_active = FALSE, updated_at = NOW() WHERE cluster_id = $1 AND is_active = TRUE AND is_editorial = FALSE`,
+          [row.id],
+        );
+
         const cardId = `disc-live-${row.id}-${Date.now().toString(36)}`;
 
         const ctasJson = ctas.map(c => ({
@@ -233,6 +238,49 @@ export async function runSynthesis(): Promise<number> {
   }
 }
 
+const STANDALONE_POLISH_PROMPT = `You are Ada, an AI wealth copilot for GCC HNW investors. Polish this news article into a concise insight card.
+
+Article:
+Title: {TITLE}
+Summary: {SUMMARY}
+Publisher: {PUBLISHER}
+
+Respond in JSON with these exact fields:
+{
+  "title": "A crisp, action-oriented headline (max 10 words, Crimson Pro serif style)",
+  "summary": "1-2 sentence synthesis explaining significance for a HNW investor (max 150 chars)",
+  "why_seeing_this": "Brief reason this matters to a wealth-focused investor"
+}
+
+Rules:
+- Write for sophisticated investors who want concise, actionable intelligence
+- Reframe the headline through a wealth preservation/growth lens
+- Never use clickbait or sensationalism
+- Be specific with numbers when available`;
+
+async function polishStandaloneArticle(title: string, summary: string, publisher: string): Promise<{ title: string; summary: string; why_seeing_this: string } | null> {
+  try {
+    const prompt = STANDALONE_POLISH_PROMPT
+      .replace('{TITLE}', title)
+      .replace('{SUMMARY}', summary || 'No summary available')
+      .replace('{PUBLISHER}', publisher || 'Unknown');
+
+    const completion = await resilientCompletion({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      max_tokens: 300,
+      response_format: { type: 'json_object' },
+    }, { timeoutMs: 10000 });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) return null;
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+
 async function synthesizeStandaloneArticles(): Promise<number> {
   try {
     const { rows } = await pool.query(
@@ -261,12 +309,17 @@ async function synthesizeStandaloneArticles(): Promise<number> {
       const topicLabel = formatTopicLabel(primaryTheme);
       const ctas = await fetchCTAs('market_pulse');
 
+      const polished = await polishStandaloneArticle(row.title, row.summary || '', row.publisher || '');
+      const finalTitle = polished?.title || row.title;
+      const finalSummary = polished?.summary || row.summary || '';
+      const whySeeingThis = polished?.why_seeing_this || 'Breaking market development';
+
       const cardId = `disc-solo-${row.id}-${Date.now().toString(36)}`;
       const ctasJson = ctas.map((c: { text: string; family: string }) => ({
         text: c.text,
         family: c.family,
         context: {
-          card_summary: row.summary || row.title,
+          card_summary: finalSummary,
           entities: row.tickers || [],
           evidence_facts: [],
         },
@@ -284,17 +337,18 @@ async function synthesizeStandaloneArticles(): Promise<number> {
           source_count, intent_badge, topic_label, relevance_tags, confidence, taxonomy_tags, ctas,
           why_you_are_seeing_this, is_active, is_editorial, expires_at)
          VALUES ($1, 'market_pulse', 'whatsNew', $2, $3, '[]', $4, 1, 'analysis', $5, $6, 'medium',
-           $7, $8, 'Breaking market development', TRUE, FALSE, $9)
+           $7, $8, $9, TRUE, FALSE, $10)
          ON CONFLICT (id) DO NOTHING`,
         [
           cardId,
-          row.title,
-          row.summary || '',
+          finalTitle,
+          finalSummary,
           JSON.stringify(supportingArticles),
           topicLabel,
           Object.keys(taxonomyTags).slice(0, 5),
           JSON.stringify({ asset_classes: [], sectors: [], geographies: row.regions || [], themes: Object.keys(taxonomyTags), wealth_topics: [] }),
           JSON.stringify(ctasJson),
+          whySeeingThis,
           new Date(Date.now() + 24 * 3600 * 1000),
         ],
       );
