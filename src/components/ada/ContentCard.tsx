@@ -46,6 +46,40 @@ interface ContentCardProps {
   cardType?: string;
 }
 
+function formatArticleTime(dateStr: string): string {
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    const now = Date.now();
+    const diffMin = Math.floor((now - date.getTime()) / 60000);
+    if (diffMin < 1) return 'just now';
+    if (diffMin < 60) return `${diffMin}m`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `${diffHours}h`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d`;
+  } catch {
+    return '';
+  }
+}
+
+const cardTypeConfig: Record<string, {
+  accentColor: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  topic: string;
+  intent?: string;
+}> = {
+  'portfolio_impact': { accentColor: '#d97706', icon: AlertTriangle, topic: 'Portfolio Impact', intent: 'Alert' },
+  'trend_brief': { accentColor: '#992929', icon: Lightbulb, topic: 'Trend Brief', intent: 'Analysis' },
+  'market_pulse': { accentColor: '#555555', icon: Newspaper, topic: 'Market Pulse', intent: 'Analysis' },
+  'explainer': { accentColor: '#555555', icon: Newspaper, topic: 'Explainer', intent: undefined },
+  'wealth_planning': { accentColor: '#059669', icon: Lightbulb, topic: 'Wealth Planning', intent: 'Action' },
+  'allocation_gap': { accentColor: '#059669', icon: Lightbulb, topic: 'Opportunity', intent: 'Opportunity' },
+  'event_calendar': { accentColor: '#555555', icon: Newspaper, topic: 'Event', intent: undefined },
+  'ada_view': { accentColor: '#992929', icon: Lightbulb, topic: 'Ada View', intent: 'Insight' },
+  'product_opportunity': { accentColor: '#059669', icon: Lightbulb, topic: 'Product', intent: 'Opportunity' },
+};
+
 // Category configuration
 const categoryConfig: Record<
   CategoryType,
@@ -129,7 +163,7 @@ export function ContentCard({
   forceSecondaryButtonStyle,
   whyYouAreSeeingThis,
   supportingArticles,
-  cardType: _cardType,
+  cardType,
 }: ContentCardProps) {
   const [showSources, setShowSources] = useState(false);
   // Determine category type from category string if not explicitly provided
@@ -142,7 +176,8 @@ export function ContentCard({
         : 'NEWS')) as CategoryType;
 
   // Get config with fallback to NEWS if category type is not found
-  const config = categoryConfig[determinedCategoryType] || categoryConfig['NEWS'];
+  const ctConfig = cardType ? cardTypeConfig[cardType] : undefined;
+  const config = ctConfig || categoryConfig[determinedCategoryType] || categoryConfig['NEWS'];
   const accentColor = config.accentColor;
   const _CategoryIcon = config.icon;
 
@@ -347,6 +382,11 @@ export function ContentCard({
                       <div key={i} className="font-['DM_Sans',sans-serif] text-[0.6875rem] text-[#777777] leading-[1.3]">
                         <span className="text-[#555555]">{article.title}</span>
                         <span className="text-[#999999]"> — {article.publisher}</span>
+                        {article.published_at && (
+                          <span className="text-[#bbbbbb] ml-[4px]">
+                            {formatArticleTime(article.published_at)}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>

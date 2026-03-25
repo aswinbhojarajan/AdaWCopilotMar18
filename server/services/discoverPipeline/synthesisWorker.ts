@@ -223,10 +223,87 @@ export async function runSynthesis(): Promise<number> {
       }
     }
 
-    console.log(`[SynthesisWorker] Synthesized ${synthesized} clusters`);
-    return synthesized;
+    const standaloneSynthesized = await synthesizeStandaloneArticles();
+    const total = synthesized + standaloneSynthesized;
+    console.log(`[SynthesisWorker] Synthesized ${synthesized} clusters + ${standaloneSynthesized} standalone articles`);
+    return total;
   } catch (err) {
     console.error('[SynthesisWorker] Fatal error:', (err as Error).message);
+    return 0;
+  }
+}
+
+async function synthesizeStandaloneArticles(): Promise<number> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT ra.id, ra.title, ra.summary, ra.publisher, ra.published_at, ra.tickers, ra.regions,
+              ae.taxonomy_tags, ae.importance_score, ae.sentiment_score
+       FROM raw_articles ra
+       JOIN article_enrichment ae ON ae.article_id = ra.id
+       WHERE ae.is_duplicate = FALSE
+         AND ae.importance_score >= 0.5
+         AND ra.id NOT IN (SELECT unnest(article_ids) FROM article_clusters)
+         AND NOT EXISTS (
+           SELECT 1 FROM discover_cards dc
+           WHERE dc.is_active = TRUE AND dc.is_editorial = FALSE
+             AND dc.id LIKE 'disc-solo-' || ra.id || '-%'
+         )
+         AND ra.published_at > NOW() - INTERVAL '24 hours'
+       ORDER BY ae.importance_score DESC LIMIT 5`,
+    );
+
+    if (rows.length === 0) return 0;
+
+    let created = 0;
+    for (const row of rows) {
+      const taxonomyTags = typeof row.taxonomy_tags === 'string' ? JSON.parse(row.taxonomy_tags) : row.taxonomy_tags || {};
+      const primaryTheme = Object.keys(taxonomyTags)[0] || 'general';
+      const topicLabel = formatTopicLabel(primaryTheme);
+      const ctas = await fetchCTAs('market_pulse');
+
+      const cardId = `disc-solo-${row.id}-${Date.now().toString(36)}`;
+      const ctasJson = ctas.map((c: { text: string; family: string }) => ({
+        text: c.text,
+        family: c.family,
+        context: {
+          card_summary: row.summary || row.title,
+          entities: row.tickers || [],
+          evidence_facts: [],
+        },
+      }));
+
+      const supportingArticles = [{
+        article_id: row.id,
+        title: row.title,
+        publisher: row.publisher || 'Unknown',
+        published_at: new Date(row.published_at).toISOString(),
+      }];
+
+      await pool.query(
+        `INSERT INTO discover_cards (id, card_type, tab, title, summary, detail_sections, supporting_articles,
+          source_count, intent_badge, topic_label, relevance_tags, confidence, taxonomy_tags, ctas,
+          why_you_are_seeing_this, is_active, is_editorial, expires_at)
+         VALUES ($1, 'market_pulse', 'whatsNew', $2, $3, '[]', $4, 1, 'analysis', $5, $6, 'medium',
+           $7, $8, 'Breaking market development', TRUE, FALSE, $9)
+         ON CONFLICT (id) DO NOTHING`,
+        [
+          cardId,
+          row.title,
+          row.summary || '',
+          JSON.stringify(supportingArticles),
+          topicLabel,
+          Object.keys(taxonomyTags).slice(0, 5),
+          JSON.stringify({ asset_classes: [], sectors: [], geographies: row.regions || [], themes: Object.keys(taxonomyTags), wealth_topics: [] }),
+          JSON.stringify(ctasJson),
+          new Date(Date.now() + 24 * 3600 * 1000),
+        ],
+      );
+      created++;
+    }
+
+    return created;
+  } catch (err) {
+    console.warn(`[SynthesisWorker] Standalone synthesis error: ${(err as Error).message}`);
     return 0;
   }
 }

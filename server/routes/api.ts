@@ -303,8 +303,13 @@ router.get('/content', asyncHandler(async (req, res) => {
 
 router.get('/content/discover', asyncHandler(async (req, res) => {
   const tab = req.query.tab as string | undefined;
-  const items = await contentRepo.getDiscoverContent(tab);
-  res.json(items);
+  const cursor = req.query.cursor as string | undefined;
+  const rawLimit = parseInt(req.query.limit as string, 10);
+  const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(rawLimit, 20)) : undefined;
+  const items = await contentRepo.getDiscoverContent(tab, cursor, limit);
+  const lastItem = items[items.length - 1];
+  const nextCursor = lastItem ? (lastItem as unknown as { createdAt?: string }).createdAt : undefined;
+  res.json({ items, nextCursor });
 }));
 
 router.get('/polls', asyncHandler(async (req, res) => {

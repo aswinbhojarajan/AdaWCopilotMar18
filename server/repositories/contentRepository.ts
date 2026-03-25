@@ -26,10 +26,10 @@ export async function getHomeContent(_userId: string): Promise<ContentItem[]> {
   return rows.map(mapRowToContentItem);
 }
 
-export async function getDiscoverContent(tab?: string): Promise<DiscoverContentItem[]> {
+export async function getDiscoverContent(tab?: string, cursor?: string, limit?: number): Promise<DiscoverContentItem[]> {
   const hasDiscoverCards = await checkDiscoverCardsExist();
   if (hasDiscoverCards) {
-    return getDiscoverCardsContent(tab);
+    return getDiscoverCardsContent(tab, cursor, limit);
   }
   const query = tab
     ? `SELECT id, category, category_type, title, context_title, description,
@@ -69,12 +69,19 @@ function computeFreshnessLabel(createdAt: Date): string {
   return `${Math.floor(diffDays / 7)}w ago`;
 }
 
-async function getDiscoverCardsContent(tab?: string): Promise<DiscoverContentItem[]> {
+async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: number = 5): Promise<DiscoverContentItem[]> {
   const tabFilter = tab === 'forYou'
     ? `AND (tab = 'forYou' OR tab = 'both')`
     : tab === 'whatsNew' || tab === 'whatsHappening'
     ? `AND (tab = 'whatsNew' OR tab = 'both')`
     : '';
+
+  const cursorFilter = cursor ? `AND created_at < $1` : '';
+  const params: (string | number)[] = [];
+  if (cursor) {
+    params.push(cursor);
+  }
+  params.push(Math.min(limit, 20));
 
   const { rows } = await pool.query(
     `SELECT id, card_type, tab, title, summary, detail_sections, supporting_articles,
@@ -82,9 +89,10 @@ async function getDiscoverCardsContent(tab?: string): Promise<DiscoverContentIte
             confidence, taxonomy_tags, ctas, why_you_are_seeing_this,
             is_editorial, created_at, updated_at
      FROM discover_cards
-     WHERE is_active = TRUE ${tabFilter}
+     WHERE is_active = TRUE ${tabFilter} ${cursorFilter}
      ORDER BY created_at DESC
-     LIMIT 20`,
+     LIMIT $${params.length}`,
+    params,
   );
 
   return rows.map((r: Record<string, unknown>) => {
@@ -121,6 +129,7 @@ async function getDiscoverCardsContent(tab?: string): Promise<DiscoverContentIte
       supportingArticles: parseJson(r.supporting_articles) as DiscoverContentItem['supportingArticles'],
       freshnessLabel: computeFreshnessLabel(createdAt),
       confidence: r.confidence as string,
+      createdAt: createdAt.toISOString(),
     };
   });
 }

@@ -258,6 +258,7 @@ export interface DiscoverContentItem extends ContentItem {
   supportingArticles?: Array<{ title: string; publisher: string; published_at: string }>;
   freshnessLabel?: string;
   confidence?: string;
+  createdAt?: string;
 }
 
 export interface PollOption {

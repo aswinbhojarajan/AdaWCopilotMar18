@@ -1,8 +1,10 @@
+import pool from '../../db/pool';
 import { runIngest } from './ingestWorker';
 import { runEnrichment } from './enrichmentWorker';
 import { runClustering } from './clusteringWorker';
 import { runSynthesis } from './synthesisWorker';
 import { runFeedMaterializer } from './feedMaterializer';
+import { computeUserProfileGaps } from './userProfileEnricher';
 
 const INGEST_INTERVAL_MS = 10 * 60 * 1000;
 const CLUSTER_INTERVAL_MS = 15 * 60 * 1000;
@@ -65,7 +67,21 @@ export async function initDiscoverPipeline(): Promise<void> {
 
   setTimeout(async () => {
     try {
-      await runFullPipeline();
+      await computeUserProfileGaps();
+    } catch (err) {
+      console.warn('[DiscoverPipeline] User profile enrichment error:', (err as Error).message);
+    }
+
+    try {
+      const { rows } = await pool.query(`SELECT COUNT(*) as cnt FROM discover_cards WHERE is_active = TRUE AND is_editorial = FALSE`);
+      const hasLiveCards = Number(rows[0]?.cnt) > 0;
+      if (!hasLiveCards) {
+        console.log('[DiscoverPipeline] No live cards found, running initial pipeline...');
+        await runFullPipeline();
+      } else {
+        console.log(`[DiscoverPipeline] ${rows[0]?.cnt} live cards already exist, skipping initial pipeline run`);
+        await runFeedMaterializer();
+      }
     } catch (err) {
       console.error('[DiscoverPipeline] Initial run failed:', (err as Error).message);
     }

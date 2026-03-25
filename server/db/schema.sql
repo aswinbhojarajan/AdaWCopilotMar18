@@ -549,7 +549,7 @@ CREATE TABLE IF NOT EXISTS discover_cards (
   supporting_articles JSONB NOT NULL DEFAULT '[]',
   image_url TEXT,
   source_count INTEGER NOT NULL DEFAULT 0,
-  intent_badge TEXT CHECK (intent_badge IN ('alert', 'opportunity', 'analysis', 'action', NULL)),
+  intent_badge TEXT CHECK (intent_badge IS NULL OR intent_badge IN ('alert', 'opportunity', 'analysis', 'action')),
   topic_label TEXT,
   relevance_tags TEXT[] NOT NULL DEFAULT '{}',
   confidence TEXT NOT NULL DEFAULT 'medium' CHECK (confidence IN ('high', 'medium', 'low')),
