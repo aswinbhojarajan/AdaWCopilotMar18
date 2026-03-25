@@ -20,10 +20,12 @@ const GCC_RELEVANT_SYMBOLS = new Set([
   'ADNOC', 'STC', 'QNB', 'FAB', 'EMAAR', 'SNB',
 ]);
 
-async function fetchAllHoldingSymbols(): Promise<Set<string>> {
+async function fetchAllPortfolioSymbols(): Promise<Set<string>> {
   try {
     const { rows } = await pool.query(
-      `SELECT DISTINCT symbol FROM holdings WHERE symbol IS NOT NULL`,
+      `SELECT DISTINCT p.symbol FROM positions p
+       JOIN accounts a ON p.account_id = a.id
+       WHERE p.symbol IS NOT NULL`,
     );
     return new Set(rows.map((r: { symbol: string }) => r.symbol.toUpperCase()));
   } catch {
@@ -76,8 +78,8 @@ export async function runEventCalendar(): Promise<number> {
       return 0;
     }
 
-    const knownHoldings = await fetchAllHoldingSymbols();
-    const relevantSymbols = new Set([...GCC_RELEVANT_SYMBOLS, ...knownHoldings]);
+    const portfolioSymbols = await fetchAllPortfolioSymbols();
+    const relevantSymbols = new Set([...GCC_RELEVANT_SYMBOLS, ...portfolioSymbols]);
 
     const relevantEvents = allEvents.filter(e => relevantSymbols.has(e.symbol));
     if (relevantEvents.length === 0) {
@@ -102,7 +104,7 @@ export async function runEventCalendar(): Promise<number> {
 
       if (existing.length > 0) continue;
 
-      const majorEvents = events.filter(e => GCC_RELEVANT_SYMBOLS.has(e.symbol) || knownHoldings.has(e.symbol));
+      const majorEvents = events.filter(e => GCC_RELEVANT_SYMBOLS.has(e.symbol) || portfolioSymbols.has(e.symbol));
       const topEvents = majorEvents.slice(0, 8);
 
       if (topEvents.length === 0) continue;

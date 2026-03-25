@@ -326,6 +326,11 @@ router.post('/content/discover/refresh', asyncHandler(async (_req, res) => {
   res.json({ ok: true, materialized });
 }));
 
+router.post('/discover/refresh', asyncHandler(async (_req, res) => {
+  const materialized = await runFeedMaterializer();
+  res.json({ ok: true, materialized });
+}));
+
 router.post('/discover/interact', asyncHandler(async (req, res) => {
   const userId = getUserId(req);
   const { cardId, action, metadata } = req.body as {
@@ -337,7 +342,7 @@ router.post('/discover/interact', asyncHandler(async (req, res) => {
     res.status(400).json({ error: 'cardId and action are required' });
     return;
   }
-  const validActions = ['impression', 'click', 'cta_tap', 'dismiss', 'feedback', 'share'];
+  const validActions = ['impression', 'view', 'click', 'cta_tap', 'expand', 'dismiss', 'feedback', 'share'];
   if (!validActions.includes(action)) {
     res.status(400).json({ error: `action must be one of: ${validActions.join(', ')}` });
     return;

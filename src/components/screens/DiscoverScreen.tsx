@@ -57,6 +57,14 @@ export function DiscoverScreen({
     }).catch(() => {});
   }, []);
 
+  const handleInteract = useCallback((cardId: string, action: string, metadata?: Record<string, unknown>) => {
+    fetch('/api/discover/interact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cardId, action, metadata }),
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     const sentinel = scrollSentinelRef.current;
     if (!sentinel) return undefined;
@@ -149,6 +157,8 @@ export function DiscoverScreen({
                 personalizedOverlay={item.personalizedOverlay}
                 onDismiss={handleDismiss}
                 onFeedback={handleFeedback}
+                onInteract={handleInteract}
+                ctaEntities={(item as unknown as { ctaEntities?: string[] }).ctaEntities}
               />
             ))}
             {isFetchingNextPage && (

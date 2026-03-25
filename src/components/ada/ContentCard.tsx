@@ -49,6 +49,8 @@ interface ContentCardProps {
   personalizedOverlay?: string | null;
   onDismiss?: (cardId: string) => void;
   onFeedback?: (cardId: string, feedback: string) => void;
+  onInteract?: (cardId: string, action: string, metadata?: Record<string, unknown>) => void;
+  ctaEntities?: string[];
 }
 
 function formatArticleTime(dateStr: string): string {
@@ -173,6 +175,8 @@ export function ContentCard({
   personalizedOverlay,
   onDismiss,
   onFeedback,
+  onInteract,
+  ctaEntities,
 }: ContentCardProps) {
   const [showSources, setShowSources] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -192,6 +196,9 @@ export function ContentCard({
   const _CategoryIcon = config.icon;
 
   const handleButtonClick = () => {
+    if (id && onInteract) {
+      onInteract(id, 'cta_tap', { cta_family: 'primary', cta_text: buttonText });
+    }
     if (onChatSubmit && buttonText && contextTitle) {
       onChatSubmit(buttonText, {
         category,
@@ -203,6 +210,7 @@ export function ContentCard({
           card_type: cardType,
           card_summary: typeof description === 'string' ? description : contextTitle,
           why_seen: whyYouAreSeeingThis || undefined,
+          entities: ctaEntities,
           cta_family: 'primary',
         } : undefined,
       });
@@ -212,6 +220,9 @@ export function ContentCard({
   };
 
   const handleSecondaryButtonClick = () => {
+    if (id && onInteract) {
+      onInteract(id, 'cta_tap', { cta_family: 'secondary', cta_text: secondaryButtonText });
+    }
     if (onChatSubmit && secondaryButtonText && contextTitle) {
       onChatSubmit(secondaryButtonText, {
         category,
@@ -223,6 +234,7 @@ export function ContentCard({
           card_type: cardType,
           card_summary: typeof description === 'string' ? description : contextTitle,
           why_seen: whyYouAreSeeingThis || undefined,
+          entities: ctaEntities,
           cta_family: 'secondary',
         } : undefined,
       });

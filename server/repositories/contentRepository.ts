@@ -287,6 +287,7 @@ async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: num
       createdAt: createdAt.toISOString(),
       isNew,
       personalizedOverlay,
+      ctaEntities: (primaryCta?.context as Record<string, unknown>)?.entities as string[] || [],
     };
   });
 }

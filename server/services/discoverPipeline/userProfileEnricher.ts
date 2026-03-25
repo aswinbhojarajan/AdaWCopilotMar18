@@ -114,8 +114,58 @@ export async function computeUserProfileGaps(): Promise<void> {
       }
     }
 
+    await assignUserSegments();
+
     console.log('[UserProfileEnricher] Completed allocation gap computation');
   } catch (err) {
     console.error('[UserProfileEnricher] Fatal error:', (err as Error).message);
+  }
+}
+
+async function assignUserSegments(): Promise<void> {
+  try {
+    const { rows: profiles } = await pool.query(
+      `SELECT user_id, risk_tolerance, geo_focus, top_asset_classes
+       FROM user_profiles WHERE segment_id IS NULL`,
+    );
+
+    if (profiles.length === 0) return;
+
+    const { rows: segments } = await pool.query(
+      `SELECT id, name FROM user_segments`,
+    );
+
+    if (segments.length === 0) return;
+
+    const segmentMap: Record<string, string> = {};
+    for (const s of segments) {
+      segmentMap[s.name.toLowerCase()] = s.id;
+    }
+
+    for (const p of profiles) {
+      const risk = (p.risk_tolerance || 'moderate').toLowerCase();
+      const geo = (p.geo_focus || '').toLowerCase();
+      const isGCC = geo.includes('gcc') || geo.includes('uae') || geo.includes('saudi') ||
+        geo.includes('bahrain') || geo.includes('kuwait') || geo.includes('oman') || geo.includes('qatar');
+
+      let segmentId: string | null = null;
+
+      if (risk === 'conservative' && isGCC) {
+        segmentId = segmentMap['conservative gcc'] || null;
+      } else if (risk === 'aggressive' || !isGCC) {
+        segmentId = segmentMap['aggressive global'] || null;
+      } else {
+        segmentId = segmentMap['balanced gcc'] || null;
+      }
+
+      if (segmentId) {
+        await pool.query(
+          `UPDATE user_profiles SET segment_id = $1, updated_at = NOW() WHERE user_id = $2`,
+          [segmentId, p.user_id],
+        );
+      }
+    }
+  } catch (err) {
+    console.warn(`[UserProfileEnricher] Segment assignment error: ${(err as Error).message}`);
   }
 }
