@@ -28,11 +28,32 @@ export async function getHomeContent(_userId: string): Promise<ContentItem[]> {
   return rows.map(mapRowToContentItem);
 }
 
+const MIN_CARDS_FOR_YOU = 5;
+const MIN_CARDS_WHATS_NEW = 6;
+
 export async function getDiscoverContent(tab?: string, cursor?: string, limit?: number, userId?: string): Promise<DiscoverContentItem[]> {
   const hasDiscoverCards = await checkDiscoverCardsExist();
   if (hasDiscoverCards) {
-    return getDiscoverCardsContent(tab, cursor, limit, userId);
+    const discoverItems = await getDiscoverCardsContent(tab, cursor, limit, userId);
+    const isFirstPage = !cursor || cursor === '0';
+    if (isFirstPage) {
+      const minRequired = tab === 'forYou' ? MIN_CARDS_FOR_YOU
+        : (tab === 'whatsNew' || tab === 'whatsHappening') ? MIN_CARDS_WHATS_NEW
+        : MIN_CARDS_FOR_YOU;
+      if (discoverItems.length < minRequired) {
+        const legacyItems = await getLegacyDiscoverItems(tab);
+        const existingIds = new Set(discoverItems.map(i => i.id));
+        const backfill = legacyItems.filter(i => !existingIds.has(i.id));
+        const combined = [...discoverItems, ...backfill];
+        return combined.slice(0, Math.max(minRequired, limit || minRequired));
+      }
+    }
+    return discoverItems;
   }
+  return getLegacyDiscoverItems(tab);
+}
+
+async function getLegacyDiscoverItems(tab?: string): Promise<DiscoverContentItem[]> {
   const query = tab
     ? `SELECT id, category, category_type, title, context_title, description,
               timestamp, button_text, secondary_button_text, image, sources_count,
@@ -71,7 +92,7 @@ function computeFreshnessLabel(createdAt: Date): string {
   return `${Math.floor(diffDays / 7)}w ago`;
 }
 
-async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: number = 5, userId?: string): Promise<DiscoverContentItem[]> {
+async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: number = 20, userId?: string): Promise<DiscoverContentItem[]> {
   const tabFilter = tab === 'forYou'
     ? `AND (tab = 'forYou' OR tab = 'both')`
     : tab === 'whatsNew' || tab === 'whatsHappening'
