@@ -58,7 +58,13 @@ export function checkRateLimit(provider: string, max: number, windowMs: number =
   return true;
 }
 
-const healthCounters = new Map<string, { failureTimestamps: number[]; attemptTimestamps: number[] }>();
+interface HealthEntry {
+  failureTimestamps: number[];
+  attemptTimestamps: number[];
+  successTimestamps: number[];
+}
+
+const healthCounters = new Map<string, HealthEntry>();
 const HEALTH_WINDOW_MS = 300_000;
 const FAILURE_RATE_THRESHOLD = 0.5;
 const MIN_ATTEMPTS_FOR_DEGRADE = 5;
@@ -68,12 +74,14 @@ export function recordProviderSuccess(provider: string): void {
   const cutoff = now - HEALTH_WINDOW_MS;
   let entry = healthCounters.get(provider);
   if (!entry) {
-    entry = { failureTimestamps: [], attemptTimestamps: [] };
+    entry = { failureTimestamps: [], attemptTimestamps: [], successTimestamps: [] };
     healthCounters.set(provider, entry);
   }
   entry.attemptTimestamps = entry.attemptTimestamps.filter((t) => t > cutoff);
   entry.failureTimestamps = entry.failureTimestamps.filter((t) => t > cutoff);
+  entry.successTimestamps = entry.successTimestamps.filter((t) => t > cutoff);
   entry.attemptTimestamps.push(now);
+  entry.successTimestamps.push(now);
 }
 
 export function recordProviderFailure(provider: string): void {
@@ -81,11 +89,12 @@ export function recordProviderFailure(provider: string): void {
   const cutoff = now - HEALTH_WINDOW_MS;
   let entry = healthCounters.get(provider);
   if (!entry) {
-    entry = { failureTimestamps: [], attemptTimestamps: [] };
+    entry = { failureTimestamps: [], attemptTimestamps: [], successTimestamps: [] };
     healthCounters.set(provider, entry);
   }
   entry.attemptTimestamps = entry.attemptTimestamps.filter((t) => t > cutoff);
   entry.failureTimestamps = entry.failureTimestamps.filter((t) => t > cutoff);
+  entry.successTimestamps = entry.successTimestamps.filter((t) => t > cutoff);
   entry.attemptTimestamps.push(now);
   entry.failureTimestamps.push(now);
 }
@@ -100,18 +109,20 @@ export function isProviderHealthy(provider: string): boolean {
   return (recentFailures / recentAttempts) < FAILURE_RATE_THRESHOLD;
 }
 
-export function getProviderHealthStatus(provider: string): { healthy: boolean; attempts: number; failures: number; lastAttempt: number | null; lastFailure: number | null } {
+export function getProviderHealthStatus(provider: string): { healthy: boolean; attempts: number; failures: number; lastAttempt: number | null; lastFailure: number | null; lastSuccess: number | null } {
   const entry = healthCounters.get(provider);
-  if (!entry) return { healthy: true, attempts: 0, failures: 0, lastAttempt: null, lastFailure: null };
+  if (!entry) return { healthy: true, attempts: 0, failures: 0, lastAttempt: null, lastFailure: null, lastSuccess: null };
   const cutoff = Date.now() - HEALTH_WINDOW_MS;
   const recentAttempts = entry.attemptTimestamps.filter((t) => t > cutoff);
   const recentFailures = entry.failureTimestamps.filter((t) => t > cutoff);
+  const recentSuccesses = entry.successTimestamps.filter((t) => t > cutoff);
   return {
     healthy: isProviderHealthy(provider),
     attempts: recentAttempts.length,
     failures: recentFailures.length,
     lastAttempt: recentAttempts.length > 0 ? Math.max(...recentAttempts) : null,
     lastFailure: recentFailures.length > 0 ? Math.max(...recentFailures) : null,
+    lastSuccess: recentSuccesses.length > 0 ? Math.max(...recentSuccesses) : null,
   };
 }
 

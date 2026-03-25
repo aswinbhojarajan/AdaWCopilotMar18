@@ -3,15 +3,27 @@ import type { ToolResult, MarketQuote } from '../../shared/schemas/agent';
 import { toolOk, toolError, toolPartial, checkRateLimit, recordProviderSuccess, recordProviderFailure } from './helpers';
 import { cacheGet, cacheSet, cacheKey } from './cache';
 
+import type { Quote } from 'yahoo-finance2/modules/quote';
+import type { ChartResultArray, ChartResultArrayQuote } from 'yahoo-finance2/modules/chart';
+import type { SearchResult, SearchNews } from 'yahoo-finance2/modules/search';
+import type { QuoteSummaryResult } from 'yahoo-finance2/modules/quoteSummary';
+
 const RATE_LIMIT = 100;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _yf: any = null;
+interface YfClient {
+  quote(symbol: string): Promise<Quote>;
+  chart(symbol: string, opts: { period1: Date; interval: string }): Promise<ChartResultArray>;
+  quoteSummary(symbol: string, opts: { modules: string[] }): Promise<QuoteSummaryResult>;
+  search(query: string, opts: { newsCount: number }): Promise<SearchResult>;
+}
 
-async function getYf() {
+let _yf: YfClient | null = null;
+
+async function getYf(): Promise<YfClient> {
   if (_yf) return _yf;
   const mod = await import('yahoo-finance2');
-  _yf = mod.default;
+  const YahooFinance = mod.default;
+  _yf = new YahooFinance() as unknown as YfClient;
   return _yf;
 }
 
@@ -35,21 +47,21 @@ export const yahooFinanceMarketProvider: MarketProvider = {
           const cached = cacheGet<MarketQuote>(ck);
           if (cached) return cached.data;
 
-          const data = await yf.quote(upper) as Record<string, unknown>;
+          const data: Quote = await yf.quote(upper);
           if (!data || !data.regularMarketPrice) {
             throw new Error(`No quote data for ${upper}`);
           }
 
           const quote: MarketQuote = {
             symbol: upper,
-            price: data.regularMarketPrice as number,
-            change: (data.regularMarketChange as number) ?? 0,
-            change_percent: (data.regularMarketChangePercent as number) ?? 0,
-            high: data.regularMarketDayHigh as number | undefined,
-            low: data.regularMarketDayLow as number | undefined,
-            open: data.regularMarketOpen as number | undefined,
-            previous_close: data.regularMarketPreviousClose as number | undefined,
-            currency: (data.currency as string) ?? 'USD',
+            price: data.regularMarketPrice,
+            change: data.regularMarketChange ?? 0,
+            change_percent: data.regularMarketChangePercent ?? 0,
+            high: data.regularMarketDayHigh,
+            low: data.regularMarketDayLow,
+            open: data.regularMarketOpen,
+            previous_close: data.regularMarketPreviousClose,
+            currency: data.currency ?? 'USD',
             source_provider: 'yahoo_finance',
             as_of: new Date().toISOString(),
           };
@@ -98,12 +110,12 @@ export const yahooFinanceMarketProvider: MarketProvider = {
       const period1 = new Date(Date.now() - days * 86400000);
       const interval = days <= 7 ? '1h' : '1d';
 
-      const data = await yf.chart(upper, { period1, interval }) as { quotes?: Array<{ date: Date; close?: number | null }> };
+      const data: ChartResultArray = await yf.chart(upper, { period1, interval });
 
-      const chartQuotes = data.quotes ?? [];
+      const chartQuotes: ChartResultArrayQuote[] = data.quotes ?? [];
       const prices = chartQuotes
-        .filter((q) => q.close != null)
-        .map((q) => ({
+        .filter((q: ChartResultArrayQuote) => q.close != null)
+        .map((q: ChartResultArrayQuote) => ({
           date: q.date.toISOString().split('T')[0],
           close: q.close,
         }));
@@ -130,9 +142,9 @@ export const yahooFinanceMarketProvider: MarketProvider = {
       const cached = cacheGet<unknown>(ck);
       if (cached) return toolOk('yahoo_finance', 'market_api', cached.data, start, ['cache_hit:memory']);
 
-      const data = await yf.quoteSummary(upper, { modules: ['assetProfile', 'summaryDetail', 'price'] }) as Record<string, Record<string, unknown>>;
-      const ap = data.assetProfile as Record<string, unknown> | undefined;
-      const pr = data.price as Record<string, unknown> | undefined;
+      const data: QuoteSummaryResult = await yf.quoteSummary(upper, { modules: ['assetProfile', 'summaryDetail', 'price'] });
+      const ap = data.assetProfile;
+      const pr = data.price;
 
       const profile = {
         symbol: upper,
@@ -173,17 +185,17 @@ export const yahooFinanceMarketProvider: MarketProvider = {
       const cached = cacheGet<unknown>(ck);
       if (cached) return toolOk('yahoo_finance', 'market_api', cached.data, start, ['cache_hit:memory']);
 
-      const data = await yf.quoteSummary(upper, { modules: ['earningsHistory', 'earningsTrend'] }) as Record<string, Record<string, unknown>>;
-      const eh = data.earningsHistory as { history?: Array<Record<string, unknown>> } | undefined;
+      const data: QuoteSummaryResult = await yf.quoteSummary(upper, { modules: ['earningsHistory', 'earningsTrend'] });
+      const eh = data.earningsHistory;
       const history = eh?.history ?? [];
 
       const calendar = history.map((item) => ({
         symbol: upper,
         period: item.period,
-        quarter: (item.quarter as Record<string, unknown>)?.fmt,
-        eps_actual: (item.epsActual as Record<string, unknown>)?.raw,
-        eps_estimate: (item.epsEstimate as Record<string, unknown>)?.raw,
-        eps_difference: (item.epsDifference as Record<string, unknown>)?.raw,
+        quarter: item.quarter ? item.quarter.toISOString().split('T')[0] : null,
+        eps_actual: item.epsActual,
+        eps_estimate: item.epsEstimate,
+        eps_difference: item.epsDifference,
         source_provider: 'yahoo_finance',
       }));
 
@@ -207,23 +219,33 @@ export const yahooFinanceNewsProvider: NewsProvider = {
     }
     try {
       const yf = await getYf();
-      const allNews: unknown[] = [];
+
+      interface MappedNewsItem {
+        headline: string;
+        source: string;
+        url: string;
+        datetime: string;
+        symbol: string;
+        source_provider: string;
+      }
+
+      const allNews: MappedNewsItem[] = [];
       const warnings: string[] = [];
 
       const fetchResults = await Promise.allSettled(
         symbols.slice(0, 5).map(async (sym) => {
           const upper = sym.toUpperCase();
           const ck = cacheKey('yahoo_finance', 'news', upper);
-          const cached = cacheGet<unknown[]>(ck);
+          const cached = cacheGet<MappedNewsItem[]>(ck);
           if (cached) return cached.data;
 
           try {
-            const searchResult = await yf.search(upper, { newsCount: limit }) as { news?: Array<Record<string, unknown>> };
-            const news = (searchResult.news ?? []).slice(0, limit).map((item) => ({
+            const searchResult: SearchResult = await yf.search(upper, { newsCount: limit });
+            const news: MappedNewsItem[] = (searchResult.news ?? []).slice(0, limit).map((item: SearchNews) => ({
               headline: item.title,
               source: item.publisher,
               url: item.link,
-              datetime: item.providerPublishTime ? new Date(item.providerPublishTime as number).toISOString() : undefined,
+              datetime: item.providerPublishTime ? new Date(item.providerPublishTime).toISOString() : new Date().toISOString(),
               symbol: upper,
               source_provider: 'yahoo_finance',
             }));
@@ -238,7 +260,7 @@ export const yahooFinanceNewsProvider: NewsProvider = {
       for (let i = 0; i < fetchResults.length; i++) {
         const r = fetchResults[i];
         if (r.status === 'fulfilled') {
-          allNews.push(...(r.value as unknown[]));
+          allNews.push(...r.value);
         } else {
           warnings.push(`${symbols[i]}: ${r.reason?.message ?? 'fetch failed'}`);
         }
@@ -266,12 +288,12 @@ export const yahooFinanceNewsProvider: NewsProvider = {
       const cached = cacheGet<unknown>(ck);
       if (cached) return toolOk('yahoo_finance', 'news_api', cached.data, start, ['cache_hit']);
 
-      const searchResult = await yf.search('market', { newsCount: limit }) as { news?: Array<Record<string, unknown>> };
-      const mapped = (searchResult.news ?? []).slice(0, limit).map((item) => ({
+      const searchResult: SearchResult = await yf.search('market', { newsCount: limit });
+      const mapped = (searchResult.news ?? []).slice(0, limit).map((item: SearchNews) => ({
         headline: item.title,
         source: item.publisher,
         url: item.link,
-        datetime: item.providerPublishTime ? new Date(item.providerPublishTime as number).toISOString() : undefined,
+        datetime: item.providerPublishTime ? new Date(item.providerPublishTime).toISOString() : new Date().toISOString(),
         source_provider: 'yahoo_finance',
       }));
 
@@ -295,12 +317,12 @@ export const yahooFinanceNewsProvider: NewsProvider = {
     }
     try {
       const yf = await getYf();
-      const searchResult = await yf.search(query, { newsCount: limit }) as { news?: Array<Record<string, unknown>> };
-      const mapped = (searchResult.news ?? []).slice(0, limit).map((item) => ({
+      const searchResult: SearchResult = await yf.search(query, { newsCount: limit });
+      const mapped = (searchResult.news ?? []).slice(0, limit).map((item: SearchNews) => ({
         headline: item.title,
         source: item.publisher,
         url: item.link,
-        datetime: item.providerPublishTime ? new Date(item.providerPublishTime as number).toISOString() : undefined,
+        datetime: item.providerPublishTime ? new Date(item.providerPublishTime).toISOString() : new Date().toISOString(),
         query,
         source_provider: 'yahoo_finance',
       }));
