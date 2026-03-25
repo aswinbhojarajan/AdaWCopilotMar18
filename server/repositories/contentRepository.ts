@@ -114,7 +114,7 @@ async function getDiscoverCardsFromUserFeed(
 ): Promise<{ rows: Record<string, unknown>[]; fromCache: boolean }> {
   try {
     const { rows: feedRows } = await pool.query(
-      `SELECT udf.card_id, udf.personalized_overlay, udf.personalized_why, udf.score, udf.position
+      `SELECT udf.card_id, udf.personalized_overlay, udf.personalized_why, udf.personalized_ctas, udf.score, udf.position
        FROM user_discover_feed udf
        WHERE udf.user_id = $1 AND udf.tab = $2 AND udf.is_dismissed = FALSE
          AND udf.expires_at > NOW()
@@ -149,6 +149,7 @@ async function getDiscoverCardsFromUserFeed(
           ...card,
           _personalized_overlay: feedRow.personalized_overlay,
           _personalized_why: feedRow.personalized_why,
+          _personalized_ctas: feedRow.personalized_ctas,
           _feed_score: feedRow.score,
         });
       }
@@ -247,7 +248,9 @@ async function getDiscoverCardsContent(tab?: string, cursor?: string, limit: num
   }
 
   return sortedRows.map((r: Record<string, unknown>) => {
-    const ctas = parseJson(r.ctas) as Array<{ text: string; family: string; context?: Record<string, unknown> }> | null;
+    const baseCtas = parseJson(r.ctas) as Array<{ text: string; family: string; context?: Record<string, unknown> }> | null;
+    const personalizedCtasRaw = r._personalized_ctas as Array<{ text: string; family: string; context?: Record<string, unknown> }> | null;
+    const ctas = (personalizedCtasRaw && personalizedCtasRaw.length > 0) ? personalizedCtasRaw : baseCtas;
     const primaryCta = ctas?.[0];
     const secondaryCta = ctas?.[1];
     const cardType = r.card_type as string;

@@ -117,7 +117,6 @@ function computeWeightedScore(card: CardRow, profile: UserProfileForScoring, wei
         if (gapValue < -10) allocationGap += 50;
         else if (gapValue < -5) allocationGap += 30;
         else if (gapValue < 0) allocationGap += 15;
-        else allocationGap += 5;
       }
     }
   }
