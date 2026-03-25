@@ -175,6 +175,22 @@ export async function classifyIntentAsync(
       ? (parsed.followup_mode as ClassifierOutput['followup_mode'])
       : 'suggest';
 
+    if (intent === 'general' && recentHistory && recentHistory.length > 0 && isLikelyContinuation(message)) {
+      const priorIntent = extractPriorUserIntent(recentHistory);
+      if (priorIntent && priorIntent !== 'general') {
+        console.log('[IntentClassifier] LLM returned general for continuation, inheriting prior intent:', priorIntent);
+        return {
+          intent: priorIntent,
+          confidence: Math.max(confidence, 0.6),
+          reasoning_effort,
+          needs_live_data,
+          needs_tooling: true,
+          mentioned_entities,
+          followup_mode,
+        };
+      }
+    }
+
     return { intent, confidence, reasoning_effort, needs_live_data, needs_tooling, mentioned_entities, followup_mode };
   } catch (err) {
     console.error('[IntentClassifier] LLM classification failed, using fallback:', (err as Error).message);
