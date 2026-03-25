@@ -30,6 +30,7 @@ export interface ToolManifest {
   definition: OpenAI.ChatCompletionTool;
   execute: ToolExecutor;
   suggestions?: ToolSuggestionRule;
+  prefetch?: boolean;
 }
 
 const MANIFESTS: ToolManifest[] = [
@@ -46,6 +47,7 @@ const MANIFESTS: ToolManifest[] = [
       },
     },
     execute: async (_args, userId, registry) => registry.portfolio.getPortfolioSnapshot(userId),
+    prefetch: true,
     suggestions: {
       forIntents: [
         'balance_query', 'portfolio_explain', 'allocation_breakdown',
@@ -67,6 +69,7 @@ const MANIFESTS: ToolManifest[] = [
       },
     },
     execute: async (_args, userId, registry) => registry.portfolio.getHoldings(userId),
+    prefetch: true,
     suggestions: {
       forIntents: ['portfolio_explain', 'allocation_breakdown', 'recommendation_request'],
     },
@@ -760,6 +763,10 @@ export function inferSuggestedTools(
   }
 
   return tools;
+}
+
+export function getPrefetchableToolNames(): string[] {
+  return MANIFESTS.filter(m => m.prefetch === true).map(m => m.name);
 }
 
 export function getManifest(name: string): ToolManifest | undefined {
