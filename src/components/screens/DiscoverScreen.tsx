@@ -1,8 +1,8 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Tag, ContentCard, PullToRefresh, ErrorBoundary } from '../ada';
 import { SkeletonList } from '../ada/Skeleton';
 import { ErrorBanner } from '../ada/ErrorBanner';
-import { useDiscoverContent } from '../../hooks/useContent';
+import { useDiscoverContentPaginated } from '../../hooks/useContent';
 
 interface DiscoverScreenProps {
   onChatSubmit?: (message: string, context?: { category: string; categoryType: string; title: string; sourceScreen?: string }) => void;
@@ -13,11 +13,14 @@ export function DiscoverScreen({
 }: DiscoverScreenProps) {
   const [activeFilter, setActiveFilter] = useState<'forYou' | 'whatsNew'>('forYou');
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const scrollSentinelRef = useRef<HTMLDivElement>(null);
 
-  const { data, isLoading, isError, refetch } = useDiscoverContent(activeFilter);
+  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useDiscoverContentPaginated(activeFilter);
 
-  const displayedContent = data ?? [];
+  const displayedContent = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap(page => page.items);
+  }, [data]);
 
   const handleTabChange = useCallback((tab: 'forYou' | 'whatsNew') => {
     if (tab === activeFilter) return;
@@ -27,6 +30,23 @@ export function DiscoverScreen({
       setSlideDirection(null);
     }, 200);
   }, [activeFilter]);
+
+  useEffect(() => {
+    const sentinel = scrollSentinelRef.current;
+    if (!sentinel) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+
+    observer.observe(sentinel);
+    return () => { observer.disconnect(); };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const slideStyle: React.CSSProperties = slideDirection
     ? {
@@ -70,7 +90,7 @@ export function DiscoverScreen({
             </div>
           </div>
 
-          <div ref={contentRef} style={slideStyle} className="w-full flex flex-col gap-[5px]">
+          <div style={slideStyle} className="w-full flex flex-col gap-[5px]">
             {displayedContent.map((item, index) => (
               <ContentCard
                 key={`${activeFilter}-${item.id ?? index}`}
@@ -97,6 +117,12 @@ export function DiscoverScreen({
                 cardType={item.cardType}
               />
             ))}
+            {isFetchingNextPage && (
+              <div className="px-[6px] py-[8px]">
+                <SkeletonList count={2} />
+              </div>
+            )}
+            <div ref={scrollSentinelRef} className="h-[1px]" />
           </div>
         </div>
       )}

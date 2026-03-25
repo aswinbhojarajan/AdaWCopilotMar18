@@ -12,10 +12,12 @@ interface CardRow {
   created_at: Date;
 }
 
-const MAX_PER_ASSET_CLASS = 3;
-const MAX_PER_THEME = 2;
+const MAX_PER_ASSET_CLASS = 2;
+const MAX_PER_THEME_IN_TOP5 = 1;
 const MIN_GCC_CARDS = 1;
 const CARD_TYPE_DIVERSITY_MIN = 3;
+const FOR_YOU_COUNT = { min: 5, max: 7 };
+const WHATS_NEW_COUNT = { min: 6, max: 8 };
 
 function computeCardScore(card: CardRow): number {
   let score = 0;
@@ -56,7 +58,7 @@ function getPrimaryTheme(card: CardRow): string {
   return tags?.themes?.[0] || 'general';
 }
 
-function applyGuardrails(cards: CardRow[]): CardRow[] {
+function applyGuardrails(cards: CardRow[], countBand: { min: number; max: number }): CardRow[] {
   const scored = cards.map(c => ({ card: c, score: computeCardScore(c) }));
   scored.sort((a, b) => b.score - a.score);
 
@@ -67,11 +69,14 @@ function applyGuardrails(cards: CardRow[]): CardRow[] {
   let gccCount = 0;
 
   for (const { card } of scored) {
+    if (result.length >= countBand.max) break;
+
     const assetClass = getPrimaryAssetClass(card);
     const theme = getPrimaryTheme(card);
 
     if ((assetClassCounts[assetClass] || 0) >= MAX_PER_ASSET_CLASS) continue;
-    if ((themeCounts[theme] || 0) >= MAX_PER_THEME && result.length > CARD_TYPE_DIVERSITY_MIN) continue;
+
+    if (result.length < 5 && (themeCounts[theme] || 0) >= MAX_PER_THEME_IN_TOP5) continue;
 
     result.push(card);
     assetClassCounts[assetClass] = (assetClassCounts[assetClass] || 0) + 1;
@@ -80,14 +85,26 @@ function applyGuardrails(cards: CardRow[]): CardRow[] {
     if (hasGCCRelevance(card)) gccCount++;
   }
 
-  if (gccCount < MIN_GCC_CARDS) {
+  if (gccCount < MIN_GCC_CARDS && result.length < countBand.max) {
     const gccCards = scored.filter(s => hasGCCRelevance(s.card) && !result.includes(s.card));
     for (const { card } of gccCards.slice(0, MIN_GCC_CARDS - gccCount)) {
-      result.push(card);
+      if (result.length < 5) {
+        result.splice(4, 0, card);
+      } else {
+        result.push(card);
+      }
+      gccCount++;
+      if (result.length >= countBand.max) break;
     }
   }
 
-  return result;
+  while (result.length < countBand.min && scored.length > result.length) {
+    const next = scored.find(s => !result.includes(s.card));
+    if (!next) break;
+    result.push(next.card);
+  }
+
+  return result.slice(0, countBand.max);
 }
 
 export async function runFeedMaterializer(): Promise<number> {
@@ -117,8 +134,8 @@ export async function runFeedMaterializer(): Promise<number> {
     const forYouCards = allCards.filter((c: CardRow) => c.tab === 'forYou' || c.tab === 'both');
     const whatsNewCards = allCards.filter((c: CardRow) => c.tab === 'whatsNew' || c.tab === 'both');
 
-    const guardrailedForYou = applyGuardrails(forYouCards as CardRow[]);
-    const guardrailedWhatsNew = applyGuardrails(whatsNewCards as CardRow[]);
+    const guardrailedForYou = applyGuardrails(forYouCards as CardRow[], FOR_YOU_COUNT);
+    const guardrailedWhatsNew = applyGuardrails(whatsNewCards as CardRow[], WHATS_NEW_COUNT);
 
     const activeIds = new Set([
       ...guardrailedForYou.map(c => c.id),

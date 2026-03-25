@@ -85,8 +85,16 @@ export async function runIngest(): Promise<number> {
 
     const articles = result.data as RawArticle[];
     let inserted = 0;
+    let skippedOld = 0;
 
     for (const article of articles) {
+      if (lastFetched && article.datetime) {
+        const articleDate = new Date(article.datetime);
+        if (!isNaN(articleDate.getTime()) && articleDate <= lastFetched) {
+          skippedOld++;
+          continue;
+        }
+      }
       const externalId = generateExternalId(article);
       const tickers = extractTickers(`${article.headline} ${article.summary || ''}`);
       const regions = inferRegions(`${article.headline} ${article.summary || ''}`);
@@ -116,6 +124,9 @@ export async function runIngest(): Promise<number> {
       }
     }
 
+    if (skippedOld > 0) {
+      console.log(`[IngestWorker] Skipped ${skippedOld} articles older than watermark`);
+    }
     console.log(`[IngestWorker] Ingested ${inserted} new articles (${articles.length} fetched)`);
     return inserted;
   } catch (err) {
