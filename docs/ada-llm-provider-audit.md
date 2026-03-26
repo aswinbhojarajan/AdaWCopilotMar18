@@ -5,6 +5,7 @@
 > **Scope:** Every LLM call, AI model reference, provider integration, prompt contract, resilience path, and observability hook in the Ada codebase
 > **Methodology:** Static analysis of all `server/services/`, `server/replit_integrations/`, `server/repositories/`, `shared/`, and configuration files. Every claim references exact file paths, function names, and line numbers.
 > **Notation:** Items labeled **Inference** are educated deductions from code patterns. Items labeled **Not found in repo** are explicitly absent.
+> **Line numbers:** All line references are snapshot-based as of the audit date and may shift with subsequent code changes. Use file paths and function names as the stable reference.
 
 ---
 
