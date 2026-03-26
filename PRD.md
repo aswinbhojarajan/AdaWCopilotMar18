@@ -218,7 +218,7 @@ Every tab screen follows the same layout:
 | Filter Tags | `Tag` (×2) | "For You" (default) and "What's New" toggle. Switching re-fetches content from API. |
 | Content Cards | `ContentCard` (×N) | Each card includes: category label, title, context title, description, real relative timestamp, primary + secondary CTA buttons, optional image, sources count from cluster data, expandable detail sections, "Why you're seeing this" tag, "NEW" badge for unseen cards, dismiss/feedback flow. Type-specific intent badge and topic label. |
 
-**Card Types** (10 active):
+**Card Types** (11 active):
 
 | Card Type | Source | Description |
 |---|---|---|
@@ -1003,7 +1003,7 @@ main.tsx (QueryClient + prefetch)
 | **Morning Briefing** | Built | Daily LLM-synthesized brief from overnight cards + Morning Sentinel portfolio data. Pinned at #1 in For You. 16-hour expiry. Auto-deactivates previous briefings. |
 | **Milestone Cards** | Built | Detects portfolio value thresholds ($25K–$1M), daily performance >2%, goal completions. User-scoped card IDs prevent cross-user exposure. |
 | **Event-Driven Refresh** | Built | Portfolio-mutating endpoints trigger immediate per-user feed re-materialization. |
-| **Discover Tab** | Built | AI-curated feed with "For You" (personalized) and "What's New" (chronological) tabs, 10 card types, enriched chat context handoff |
+| **Discover Tab** | Built | AI-curated feed with "For You" (personalized) and "What's New" (chronological) tabs, 11 card types, enriched chat context handoff |
 | **Collective Tab** | Built | Polls (vote + results), peer comparison chart, API-backed |
 | **AI Chat (LLM)** | Built | GPT-5-mini with intent routing, RAG, 3-tier memory, tool-calling, SSE streaming |
 | **Chat Widgets** | Built | Inline allocation charts, holdings summaries, goal progress, portfolio summaries via tool-calling |
@@ -1102,5 +1102,5 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-25 | Docs Update | Updated PRD, CHANGELOG, ISSUES, BACKLOG, and replit.md to reflect Project Tasks #16–17. |
 | 2026-03-25 | Project Task #3: Discover Phase 1 | Automated content pipeline: Ingest (Finnhub 10min), Enrich (12-category taxonomy), Cluster (Jaccard similarity), Synthesize (LLM card generation), Feed Materializer (deterministic scoring). 6 new tables (raw_articles, article_enrichment, article_clusters, discover_cards, cta_templates, user_profiles). 5 card types (portfolio_impact, trend_brief, market_pulse, explainer, wealth_planning). Pipeline health endpoint. Real relative timestamps. Tab renamed "What's Happening" → "What's New". |
 | 2026-03-25 | Project Task #4: Discover Phase 2 | Personalization engine: per-user weighted scoring (7 factors), 3 user segments, LLM personalized overlays, CTA personalization. Ada View weekly editorial worker. Event Calendar worker. Pre-computed user_discover_feed cache. Interaction tracking (POST /api/discover/interact). Card dismiss + feedback UI. "NEW" badge. Enriched chat context handoff. 4 new tables (user_segments, user_discover_feed, user_content_interactions, user_discover_visits). 7 card types active. |
-| 2026-03-26 | Project Task #5: Discover Phase 3 | Product opportunity cards (sukuk, PE co-invest). Engagement re-ranking with taxonomy-tag-based boosts/penalties + segment collaborative filtering. Morning briefing worker (daily LLM brief from overnight cards + Morning Sentinel, pinned at #1). Milestone worker (value thresholds, performance >2%, goal completions, user-scoped IDs). Event-driven per-user refresh. Expiry enforcement with per-card-type TTLs. Pipeline health extended with pipelineLag + feedFreshness. Schema constraint migration. 10 card types active. |
+| 2026-03-26 | Project Task #5: Discover Phase 3 | Product opportunity cards (sukuk, PE co-invest). Engagement re-ranking with taxonomy-tag-based boosts/penalties + segment collaborative filtering. Morning briefing worker (daily LLM brief from overnight cards + Morning Sentinel, pinned at #1). Milestone worker (value thresholds, performance >2%, goal completions, user-scoped IDs). Event-driven per-user refresh. Expiry enforcement with per-card-type TTLs. Pipeline health extended with pipelineLag + feedFreshness. Schema constraint migration. 11 card types active. |
 | 2026-03-26 | Docs Update | Updated PRD section 4.3 (full Discover rewrite), sections 11/12, CHANGELOG (Phase 1/2/3 entries), ISSUES (ISS-023/024), BACKLOG (Phase 1/2/3 completed + BL-026/027/028), replit.md (counts, Phase 2/3 tables). |
