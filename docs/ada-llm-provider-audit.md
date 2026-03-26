@@ -138,13 +138,26 @@ Both providers are managed through **Replit AI Integrations** (not raw API keys)
 
 ### 4.1 Standard Chat (Lane 1)
 
-```
-User message → PII scan (regex) → Working memory fetch → Intent classification (ada-classifier/gpt-4.1-nano)
-→ Session hydration (tenant config, user profile) → Policy evaluation (rule-based)
-→ Scorecard + Route (ada-fast/gpt-4.1-mini, Lane 1) → Tool selection + prefetch
-→ RAG context build (SQL) → Prompt assembly (promptBuilder) → LLM stream (resilientStreamCompletion)
-→ Multi-turn tool execution (if tool_calls) → Guardrails (regex) → Response build (Zod)
-→ SSE emission → Trace log → Memory persist → Episodic summarization (ada-classifier, async)
+```mermaid
+graph TD
+    UM[User Message] --> PII[PII Scan<br/>regex]
+    PII --> WM[Working Memory<br/>fetch last 20 turns]
+    WM --> IC[Intent Classification<br/>ada-classifier / gpt-4.1-nano]
+    IC --> SH[Session Hydration<br/>tenant config + user profile]
+    SH --> PE[Policy Evaluation<br/>rule-based]
+    PE --> SC[Scorecard + Route<br/>Lane 1 / ada-fast]
+    SC --> TS[Tool Selection<br/>+ RAG Prefetch SQL]
+    TS --> PA[Prompt Assembly<br/>promptBuilder]
+    PA --> LLM[LLM Stream<br/>resilientStreamCompletion<br/>gpt-4.1-mini]
+    LLM --> TC{Tool Calls?}
+    TC -->|Yes| TE[Tool Execution<br/>+ Re-prompt LLM]
+    TE --> GR[Guardrails<br/>regex post-check]
+    TC -->|No| GR
+    GR --> RB[Response Build<br/>Zod validation]
+    RB --> SSE[SSE Emission<br/>text/widget/done]
+    SSE --> TL[Trace Log<br/>agent_traces]
+    TL --> MP[Memory Persist<br/>working + audit]
+    MP --> ES[Episodic Summary<br/>async fire-and-forget<br/>gpt-4.1-nano]
 ```
 
 **File:** `agentOrchestrator.ts:189–784` (`orchestrateStream()`)
