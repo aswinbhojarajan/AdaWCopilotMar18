@@ -1,0 +1,282 @@
+I need a comprehensive audit of every LLM, AI model, and provider integration currently used in the Ada codebase.
+
+Your task is to inspect the full repo and generate a SINGLE detailed markdown document that gives me an implementation-grade view of Ada’s AI/LLM stack, how it actually works today, and what should change.
+
+Output requirements
+- Create one file only:
+  /docs/ada-llm-provider-audit.md
+- The document must be detailed, structured, and evidence-based.
+- Do not give generic advice. Use the actual codebase.
+- For every claim, include the exact file path(s), function/class name(s), and relevant config key(s).
+- Where useful, include small code snippets or pseudocode summaries.
+- If something is inferred rather than explicit, label it as “Inference”.
+- If something cannot be found, explicitly say “Not found in repo”.
+
+Scope
+Audit ALL model/provider usage across:
+- chat flows
+- agent orchestration
+- classification/routing
+- memory extraction/summarization
+- discover/news/content pipelines
+- embeddings/vector search
+- reranking
+- speech/audio
+- image generation/vision
+- document processing
+- moderation/safety
+- eval/testing harnesses
+- fallback/resilience layers
+- admin/internal tooling
+- scaffolds/generated integrations
+- any dormant, deprecated, or partially wired model code
+
+What I want in the report
+
+1. Executive Summary
+- 1-page summary of Ada’s current LLM/provider architecture
+- what is working well
+- biggest risks / debt
+- top 10 recommended changes in priority order
+
+2. Complete Model Inventory
+For every model/provider found, capture in a table:
+- provider (OpenAI, Anthropic, etc.)
+- model name
+- alias/internal abstraction name
+- purpose/use case
+- exact files using it
+- entrypoint functions
+- whether active, inactive, scaffold-only, legacy, or uncertain
+- whether hardcoded or registry-based
+- whether it is production-safe
+- recommended replacement / keep-as-is decision
+
+3. Provider & SDK Inventory
+Identify:
+- all provider SDKs/packages installed
+- package versions
+- wrappers/helpers/clients used
+- environment variables and secrets referenced
+- config files and capability registries
+- any duplicated provider setup
+- any direct SDK calls bypassing central abstractions
+
+4. End-to-End Call Flows
+Map the actual LLM call paths for major journeys:
+- standard chat
+- complex reasoning chat
+- classification
+- memory write / memory summarize
+- discover feed generation
+- morning briefing / sentinel
+- article synthesis / editorial generation
+- advisor-facing or RM-related flows if any
+- any scheduled/background AI jobs
+For each flow, show:
+- triggering entrypoint
+- orchestration path
+- routing logic
+- selected model
+- prompt source
+- output schema
+- fallback behavior
+- storage/logging side effects
+
+5. Prompt & Output Contract Audit
+For every meaningful LLM usage:
+- where the system prompt/user prompt is defined
+- whether prompts are inline, templated, or registry-driven
+- whether JSON schema / Zod / structured outputs are enforced
+- whether validation/retry exists
+- failure handling when malformed output occurs
+- any prompt duplication or drift
+- any weak prompts likely to be brittle in demos or production
+
+6. Routing / Lane / Capability Logic
+Explain clearly:
+- how model selection actually happens
+- where classifier thresholds / lane routing are implemented
+- whether reasoning escalation works correctly
+- where aliases are mapped to concrete models
+- whether any components bypass this logic
+- whether routing is deterministic, heuristic, or implicit
+- risks of hidden divergence across different app areas
+
+7. Resilience / Fallback / Reliability Audit
+Inspect all LLM call sites for:
+- retries
+- timeout handling
+- exponential backoff
+- circuit breaking
+- fallback to alternate model/provider
+- graceful degradation
+- partial failure handling
+- dead-letter / error queue patterns if any
+- idempotency for scheduled jobs
+Produce a table:
+- component
+- resilient or not
+- how retries work
+- what happens on provider outage
+- recommendation
+
+8. Performance / Cost / Token Audit
+Estimate and document:
+- token-heavy flows
+- likely most expensive paths
+- duplicated prompt/context payloads
+- unnecessary use of large models
+- opportunities for caching, summarization, batching, distillation, or smaller models
+- context window usage patterns
+- whether long prompts are re-sent unnecessarily
+For each major flow, provide:
+- model used
+- expected latency class
+- expected cost class
+- likely bottlenecks
+- recommended optimization
+
+9. Discover Pipeline Deep Audit
+Do a dedicated section for Discover and content generation:
+- all workers involved
+- model used by each
+- whether direct SDK calls are used
+- whether registry is bypassed
+- whether fallback is bypassed
+- prompt quality / schema quality
+- editorial consistency risks
+- personalization overlay logic
+- recommendations to unify with the main orchestration stack
+
+10. Memory & Personalization Model Usage
+Audit:
+- memory extraction
+- summarization
+- profile updates
+- personalization overlays
+- any relevance scoring / ranking
+- any privacy-sensitive AI processing
+State:
+- models used
+- whether they are appropriate
+- hallucination / overwrite risk
+- where guardrails are weak
+
+11. Hidden / Non-Obvious AI Usage
+Search for any AI/model usage outside obvious folders, including:
+- utility services
+- cron jobs
+- experimental folders
+- test helpers
+- migrations
+- scaffolds
+- admin pages
+- edge functions
+- serverless routes
+- notebooks/scripts
+Include anything that may quietly incur cost or create drift.
+
+12. Embeddings / Search / Retrieval Audit
+Identify whether Ada uses:
+- embeddings
+- vector DB
+- keyword search
+- hybrid retrieval
+- reranking
+- chunking
+- document ingestion
+If present, capture:
+- model names
+- where indexed/query calls occur
+- freshness/update logic
+- whether retrieval is actually used in answers
+- quality gaps and recommendations
+
+13. Safety / Compliance / Guardrails Audit
+Inspect for:
+- moderation model usage
+- policy prompts
+- finance-specific disclaimers or constraints
+- hallucination containment
+- citation enforcement if any
+- tool permission boundaries
+- logging of sensitive prompts/responses
+- PII exposure risk
+Call out gaps that matter for a regulated wealth demo.
+
+14. Observability / Analytics Audit
+Document whether Ada currently tracks:
+- request counts by model
+- token usage by model
+- latency by model
+- error rate by provider
+- fallback frequency
+- prompt versioning
+- trace IDs across orchestration
+- per-feature AI success/failure metrics
+If missing, propose what should be instrumented first.
+
+15. Technical Debt / Architecture Gaps
+Identify:
+- hardcoded models
+- duplicated prompt logic
+- duplicated provider clients
+- inconsistent abstractions
+- dead code
+- outdated models
+- legacy scaffolds
+- inconsistent schema enforcement
+- places where generated boilerplate may confuse future developers
+
+16. Recommended Target State
+Propose a cleaner target-state architecture for Ada’s LLM stack, including:
+- preferred provider strategy
+- preferred model tiers by use case
+- central model registry structure
+- central resilient inference helper
+- prompt registry/versioning approach
+- output validation pattern
+- observability pattern
+- rollout/migration sequence
+
+17. Concrete Refactor Plan
+Give a prioritized implementation plan:
+- Quick wins (same day)
+- 1–3 day improvements
+- 1-week improvements
+- larger architectural changes
+For each item include:
+- why it matters
+- files to change
+- level of effort
+- dependency/risk
+- expected impact on quality, cost, latency, and resilience
+
+18. Appendix
+Include:
+- repo-wide grep/find results that helped identify model usage
+- list of model strings found in code
+- list of provider-related env vars
+- list of AI-related packages
+- list of suspicious/dead/legacy files needing review
+
+Important instructions
+- Search the entire repo, not just the obvious AI folders.
+- Follow imports and call chains to determine what is actually active.
+- Distinguish clearly between:
+  1) actively used production paths
+  2) dormant but wired code
+  3) generated scaffolds
+  4) dead/legacy code
+- Be explicit where the codebase is clean vs inconsistent.
+- Do not stop at model names; explain how the system behaves operationally.
+- Where possible, provide diagrams in markdown using Mermaid for:
+  - model routing architecture
+  - chat flow
+  - discover pipeline flow
+  - fallback/provider resilience flow
+
+At the very end, include a section called:
+“Bottom Line: What I would change first”
+This should be a blunt, practical recommendation list for improving Ada’s demo stability, cost control, and future maintainability.
