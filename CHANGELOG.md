@@ -4,6 +4,100 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Project Task #5 — Discover Tab Phase 3: Scale, Engagement & Premium Features
+**Date:** March 26, 2026
+
+### Added
+- **Product Opportunity Cards** — 2 editorial seed cards for investment products: sukuk fixed-income (5.8% yield) and private equity co-investment (pre-IPO tech). Both use Screen/Advisor CTA families with suitability metadata and Sharia-compliance tags. card_type: `product_opportunity`. Seed data in `seed.sql`, card type mapping in `synthesisWorker.ts`.
+- **Morning Briefing Worker** (`server/services/discoverPipeline/morningBriefingWorker.ts`) — LLM-synthesized daily morning brief combining overnight discover cards with Morning Sentinel portfolio context (via `generateBriefing()` from `morningSentinelService.ts`). Generates `morning_briefing` card type, positioned at #1 in For You feed with priority 95. 16-hour expiry. Auto-deactivates previous briefings before creating new one. Runs every 6 hours with 14-hour recency guard.
+- **Milestone Worker** (`server/services/discoverPipeline/milestoneWorker.ts`) — Detects three types of portfolio milestones: (1) value threshold crossings ($25K, $50K, $75K, $100K, $150K, $200K, $250K, $500K, $1M — selects highest crossed threshold via reversed array), (2) strong daily performance (>2% gain), (3) goal completion (current_amount ≥ target_amount). Generates celebratory `milestone` cards with Review/Advisor CTAs. Strict user-scoped ID convention (`disc-mile-{userId}-val-{threshold}`, `disc-mile-{userId}-perf-{date}`, `disc-mile-{userId}-goal-{slug}`) prevents duplicates. Insert count only incremented on actual DB insert (ON CONFLICT DO NOTHING).
+- **Expiry Worker** (`server/services/discoverPipeline/expiryWorker.ts`) — Per-card-type maximum age rules: market_pulse 24h, trend_brief 48h, portfolio_impact 72h, allocation_gap 7d, event_calendar 14d, ada_view 7d, morning_briefing 16h, milestone 3d, product_opportunity 30d, explainer/wealth_planning 30d. Also archives raw_articles >14 days, synthesized clusters >14 days, and compacts impression/view interaction logs >30 days. Runs every 4 hours.
+- **CTA Templates** — Added `cta_templates` rows for `morning_briefing` ("Walk me through today's outlook" / explain, "How does this affect my portfolio?" / impact) and `milestone` ("Review my journey so far" / explain, "Schedule a review with my advisor" / advisor) card types in `seed.sql`.
+- **Per-User Feed Materialization** (`runFeedMaterializerForUser()` in `feedMaterializer.ts`) — New function that materializes feed for a single user, used by event-driven refresh to avoid re-materializing all users.
+- **Schema Constraint Migration** (`migrateCardTypeConstraint()` in `index.ts`) — Idempotent ALTER TABLE migration that drops and recreates the `discover_cards.card_type` CHECK constraint to include `morning_briefing` and `milestone` types. Runs on pipeline init before first cycle.
+
+### Changed
+- **Engagement Re-ranking** (`feedMaterializer.ts`) — After deterministic scoring, engagement signals from taxonomy_tags (asset_classes, themes, geographies, wealth_topics) adjust card scores via `applyEngagementRerank()`: +10% boost per shared theme with tapped/clicked cards (last 14 days, capped at 3), -20% penalty per shared theme with dismissed cards (capped at 2). Added segment-based collaborative filtering: peers in the same `user_segments` segment contribute a +5% boost for themes tapped by ≥2 segment peers (capped at 3). Signals fetched via `fetchEngagementSignals()` with optional `segmentId` parameter. Peer users found via `fetchSegmentPeers()` join on `user_profiles.segment_id`.
+- **Morning Briefing Pinning** (`materializeUserFeed()` in `feedMaterializer.ts`) — Morning briefing card extracted before engagement reranking, then prepended at position 1 in For You feed. Remaining cards sliced to `FOR_YOU_COUNT.max - 1` to maintain feed size.
+- **Milestone User Scoping** (`materializeUserFeed()` in `feedMaterializer.ts`) — Milestone cards filtered with strict `startsWith('disc-mile-{userId}-')` pattern matching to prevent cross-user exposure via substring collision.
+- **Event-Driven Per-User Refresh** (`triggerEventDrivenRefresh()` in `index.ts`) — Now accepts optional `userId` parameter. When provided, calls `runFeedMaterializerForUser(userId)` instead of full `runFeedMaterializer()`. API routes (`POST /wealth/goals`, `POST /wealth/accounts`) pass the requesting user's ID.
+- **Pipeline Health Endpoint** (`getDiscoverPipelineHealth()` in `index.ts`) — Extended with two new sections: (1) `pipelineLag` — minutes since each pipeline stage last ran (ingest, enrichment, clustering, synthesis, materialization, ada_view, event_calendar, morning_briefing, milestone, expiry); (2) `feedFreshness` — total user feeds count, median feed age in hours (via `PERCENTILE_CONT`), oldest feed age in hours. Also fixed inverted oldest/newest card freshness (MIN/MAX aliases were swapped).
+- **Health Stats SQL** — Corrected `newest_h` to use `MAX(created_at)` and `oldest_h` to use `MIN(created_at)` (were previously swapped).
+- **Pipeline Timers** (`index.ts`) — Morning briefing and milestone workers wired with 6-hour interval timers alongside existing workers. Expiry worker runs on 4-hour interval.
+- **`schema.sql`** — `discover_cards.card_type` CHECK constraint updated to include `morning_briefing` and `milestone`.
+
+### Validated
+- TypeScript compiles clean (`npm run typecheck` passes)
+- Health endpoint returns 36 active cards including `morning_briefing` (1), `milestone` (3), `product_opportunity` (2) types
+- Morning briefing card pinned at position 1 in For You feed
+- Milestone cards correctly user-scoped (only owner's milestones visible in their feed)
+- Pipeline health endpoint returns `pipelineLag` and `feedFreshness` metrics
+- Event-driven per-user refresh triggers on goal/account creation
+
+---
+
+## Project Task #4 — Discover Tab Uplift Phase 2: Personalization, Interactions & Ada View
+**Date:** March 25, 2026
+
+### Added
+- **User Segments** (`user_segments` table) — 3 segments (Conservative GCC, Balanced GCC, Aggressive Global) with custom scoring weights for portfolio relevance, gap relevance, suitability, geography, freshness, and novelty. Assigned to `user_profiles.segment_id` on startup.
+- **Portfolio-Aware Scoring Engine** (`feedMaterializer.ts`) — Full deterministic weighted scoring: 30% portfolio relevance (ticker/sector/asset class overlap), 20% allocation gap relevance (delta between target and actual), 15% suitability, 10% geographic relevance, 10% market importance, 10% freshness (exponential decay), 5% novelty bonus. Guardrails enforce diversity (max 2 per asset class, max 1 per theme in top 5, min 1 GCC card).
+- **LLM Personalized Overlays** — Top 3 For You cards receive GPT-generated personalized insight connecting card to user's portfolio. `personalized_overlay` and `why_you_are_seeing_this` generated per card per user.
+- **CTA Personalization** — CTA template variables ({USER_NAME}, {RISK_TOLERANCE}, {GEO_FOCUS}, {TOP_ASSETS}, {ALLOCATION_GAPS}, {INTERESTS}) filled with user profile values; persisted in `personalized_ctas` column of `user_discover_feed`.
+- **Pre-Computed User Feeds** (`user_discover_feed` table) — Per-user per-tab cached scored/ranked cards. API reads from cache first, falls back to live query. Refreshed every materialization cycle.
+- **Interaction Tracking** — `user_content_interactions` table and `POST /api/discover/interact` endpoint (fire-and-forget 202 response). Tracks impressions, views, clicks, CTA taps, expands, dismisses, feedback, shares.
+- **Card Dismiss + Feedback UI** — X button on ContentCard opens feedback modal with 4 preset reasons ("Not relevant", "Already know this", "Too complex", "Too basic"). Dismissed cards filtered from future feeds.
+- **Ada View Worker** (`adaViewWorker.ts`) — Weekly editorial synthesis from top discover cards. LLM generates "Ada's View" card tying the week's themes together. Runs every 6 hours, deduplicates via 5-day window. card_type: `ada_view`.
+- **Event Calendar Worker** (`eventCalendarWorker.ts`) — Fetches Finnhub earnings calendar, filters for user holdings + major GCC-relevant symbols, groups by week, creates `event_calendar` cards. Highlights portfolio holdings with ★ marker.
+- **User Discover Visits** (`user_discover_visits` table, `POST /api/discover/visit`) — Tracks last Discover tab visit timestamp per user.
+- **"New" Badge** — Cards created after user's last visit get a burgundy "NEW" badge.
+- **Enriched Chat Context Handoff** — CTA taps pass `DiscoverCardContext` (card_id, card_type, card_summary, why_seen, entities, evidence_facts, cta_family) to chat. `promptBuilder` incorporates card context including evidence facts into system prompt.
+- **New Tables**: `user_segments`, `user_discover_feed`, `user_content_interactions`, `user_discover_visits`.
+
+### Changed
+- **ContentCard UI** — Added `whyYouAreSeeingThis`, expandable `supportingArticles`, `intentBadge`, `cardType`, `freshnessLabel`, `isNew` badge, `personalizedOverlay`, dismiss/feedback flow.
+- **Discover API** — Now reads from `user_discover_feed` cache first, falls back to live scoring query.
+- **7 card types active** — Added `ada_view` and `event_calendar` to Phase 1's 5 types.
+
+### Validated
+- TypeScript compiles clean
+- Per-user personalized feeds with distinct scores and overlays for each persona
+- Ada View and Event Calendar cards appearing in both tabs
+- Dismiss flow properly removes cards from future feeds
+
+---
+
+## Project Task #3 — Discover Tab Uplift Phase 1: Foundation & Live Content Pipeline
+**Date:** March 25, 2026
+
+### Added
+- **Automated 7-Stage Content Pipeline** (`server/services/discoverPipeline/`) — Ingest → Enrich → Cluster → Synthesize → Ada View → Event Calendar → Materialize, running on `setInterval` timers with concurrency guards. Orchestrated by `index.ts`.
+- **Ingest Worker** (`ingestWorker.ts`) — Fetches Finnhub market news every 10 minutes, extracts tickers and regions, normalizes into `raw_articles` with dedup on `external_id`.
+- **Enrichment Worker** (`enrichmentWorker.ts`) — Classifies articles against 12-category keyword taxonomy (equities, fixed_income, crypto, gcc_markets, etc.), computes sentiment and importance scores, deduplicates via MD5 hash. GCC-specific keyword detection (Tadawul, DFM, Sukuk, etc.).
+- **Clustering Worker** (`clusteringWorker.ts`) — Groups related enriched articles (last 48h) using Jaccard similarity (0.25 threshold) on feature sets (tickers, taxonomy, keywords). Deterministic fingerprinting prevents duplicate clusters.
+- **Synthesis Worker** (`synthesisWorker.ts`) — Uses LLM (gpt-4o-mini via `resilientCompletion`) to generate discover cards from article clusters. Maps to card types (`portfolio_impact`, `trend_brief`, `market_pulse`) with CTAs from templates. Standalone high-importance articles polished into `market_pulse` cards.
+- **Feed Materializer** (`feedMaterializer.ts`) — Scores active `discover_cards` using deterministic weighted model. Applies composition guardrails (max 1 per theme in top 5, max 2 per asset class, GCC card in top 5). Produces ordered card lists for For You and What's New tabs.
+- **Editorial Seed Cards** — Migrated existing Discover seed content into `discover_cards` as `wealth_planning` and `allocation_gap` card types. Added `explainer` cards (private credit, estate planning, GCC real estate).
+- **User Profiles** (`user_profiles` table) — Enriched user metadata: `geo_focus`, `investment_horizon`, `income_preference`, `aum_tier`, target allocation percentages per asset class, `top_asset_classes`, `allocation_gaps`. Seeded for all 3 personas.
+- **CTA Templates** (`cta_templates` table) — 8 CTA families × card type combinations from strategy doc.
+- **Pipeline Health Endpoint** — `GET /api/discover/health` returns pipeline status, last run times, card stats (by type, tab, confidence), article and cluster stats.
+- **New Tables**: `raw_articles`, `article_enrichment`, `article_clusters`, `discover_cards`, `cta_templates`, `user_profiles`.
+
+### Changed
+- **Discover Tab Renamed** — "What's Happening" → "What's New".
+- **Discover API Refactored** — `GET /api/content/discover?tab={forYou|whatsNew}` reads from `discover_cards` instead of static `content_items`. Backward-compatible response shape.
+- **ContentCard UI Upgraded** — Type-specific intent badge + topic label, "Why you're seeing this" chip (static in Phase 1), expandable accordion for Trend Brief sub-articles, real relative timestamps ("3 min ago"), source count badge from genuine cluster data.
+- **5 card types active** — `portfolio_impact`, `trend_brief`, `market_pulse`, `explainer`, `wealth_planning`.
+- **Pipeline Timers** — Ingest: 10min, Cluster+Synth: 15min, Materialize: 60min.
+
+### Validated
+- TypeScript compiles clean
+- Live Finnhub content flowing through pipeline into Discover feed
+- Card types rendering with differentiated UI treatments
+- Real timestamps replacing static "2 days ago" strings
+
+---
+
 ## Project Task #17 — Context-Aware Chat Follow-Up Handling
 **Date:** March 25, 2026
 

@@ -1,7 +1,7 @@
 # Backlog — Ada AI Wealth Copilot
 
 > **Living document** — update as new features are proposed, prioritized, or completed.
-> Last updated: 2026-03-25
+> Last updated: 2026-03-26
 
 ---
 
@@ -303,6 +303,36 @@ Enterprise integration layer:
 - Usage metering and billing
 - SDK generation (TypeScript, Python)
 
+### BL-026: Benchmark-Beat Milestones
+**Status:** Proposed
+**Priority:** Nice to Have
+
+Extend milestone worker to detect when user's portfolio outperforms market benchmarks:
+- Compare portfolio daily return vs S&P 500, MSCI World, regional GCC indices
+- Generate milestone card when portfolio beats benchmark over 30/90/180 day windows
+- Include benchmark comparison data in card detail sections
+- Requires market benchmark data integration (currently not available)
+
+### BL-027: Trade & Deposit Event Triggers
+**Status:** Proposed
+**Priority:** Should Have
+
+Wire event-driven feed refresh to additional portfolio-mutating events:
+- Simulate trade execution endpoints (buy/sell)
+- Simulate deposit/withdrawal endpoints
+- Each mutation triggers `triggerEventDrivenRefresh(userId)` for immediate feed update
+- Currently only goal creation and account creation trigger refresh
+
+### BL-028: Timezone-Aware Morning Briefing Scheduling
+**Status:** Proposed
+**Priority:** Should Have
+
+Replace `setInterval` timer with timezone-aware cron scheduling for morning briefings:
+- Use `node-cron` or similar to schedule briefings at 8 AM local time per user timezone
+- GCC users (UTC+3/+4) should receive briefings at their local 8 AM
+- Currently runs on 6-hour interval with 14-hour recency guard, not aligned to user timezone
+- Relates to ISS-023
+
 ---
 
 ## Completed Items
@@ -339,3 +369,6 @@ Enterprise integration layer:
 | — | Remove Fake Mobile Status Bar / TopBar (Task #4) | 2026-03-24 |
 | — | Intermittent UI Bug Fixes: Morning Sentinel JSON flash, Wealth tab blank, Discover tab crash (Project Task #16) | 2026-03-25 |
 | — | Context-Aware Chat Follow-Up Handling (Project Task #17) | 2026-03-25 |
+| — | Discover Tab Uplift Phase 1: Foundation & Live Content Pipeline (Project Task #3) | 2026-03-25 |
+| — | Discover Tab Uplift Phase 2: Personalization, Interactions & Ada View (Project Task #4) | 2026-03-25 |
+| — | Discover Tab Phase 3: Scale, Engagement & Premium Features (Project Task #5) | 2026-03-26 |

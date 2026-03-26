@@ -1,7 +1,7 @@
 # Issues — Ada AI Wealth Copilot
 
 > **Living document** — update continuously as issues are discovered, resolved, or reprioritized.
-> Last updated: 2026-03-25
+> Last updated: 2026-03-26
 
 ---
 
@@ -67,6 +67,8 @@
 |----|-------|-------------|-----------|-------------|
 | ISS-020 | Legacy data modules in src/data/ | Client-side data modules (`src/data/portfolio.ts`, `src/data/chat.ts`, etc.) are retained as reference but no longer used at runtime. | `src/data/` | 2026-03-21 |
 | ISS-021 | Console.log statements in providers | Some provider implementations have debug `console.log` calls that should be replaced with structured logging. | `server/providers/` | 2026-03-21 |
+| ISS-023 | Morning briefing uses interval scheduling not 8 AM cron | `morningBriefingWorker` runs on a 6-hour `setInterval` timer with a 14-hour recency guard, not at a timezone-aware 8 AM local time. Users in GCC (UTC+3/+4) may receive briefings at suboptimal times. Proper cron scheduling (e.g., `node-cron`) needed for production. | `server/services/discoverPipeline/index.ts`, `morningBriefingWorker.ts` | 2026-03-26 |
+| ISS-024 | No trade/deposit simulation endpoints for event-driven refresh | `triggerEventDrivenRefresh(userId)` is wired to goal creation and account creation endpoints, but there are no simulation endpoints for trades or deposits. In a real system, these portfolio-mutating events would also trigger feed refresh. | `server/services/discoverPipeline/index.ts`, `server/routes/api.ts` | 2026-03-26 |
 
 ---
 

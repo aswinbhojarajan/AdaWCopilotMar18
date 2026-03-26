@@ -1,7 +1,7 @@
 # Ada — AI Wealth Copilot: Product Requirements Document
 
 > **Living document** — update this PRD before and after every build cycle.
-> Last updated: 2026-03-24
+> Last updated: 2026-03-26
 >
 > **Source of truth precedence**: When a mismatch exists between this document and the runtime code/schema, the code is authoritative. Update this PRD to reflect the code, not the other way around.
 >
@@ -203,33 +203,54 @@ Every tab screen follows the same layout:
 
 ### 4.3 Discover Tab
 
-**Purpose**: Curated content feed with personalized and market-wide articles.
+**Purpose**: AI-curated, personalized content feed with live market content and editorial insights for GCC HNW investors.
 
-**Data Source**: `GET /api/content/discover?tab={forYou|whatsHappening}` → `DiscoverContentItem[]`
+**Data Source**: `GET /api/content/discover?tab={forYou|whatsNew}` → `DiscoverContentItem[]`
+
+**Architecture**: 3-phase automated content pipeline (Ingest → Enrich → Cluster → Synthesize → Ada View → Event Calendar → Morning Briefing → Milestone → Expiry → Materialize). All processing is Node.js in-process `setInterval` workers with concurrency guards. No Redis/BullMQ/Kafka. Pipeline health exposed via `GET /api/discover/health`.
+
+**Tabs**: "For You" (personalized, scored per user) and "What's New" (chronological).
 
 **Components**:
 
 | Section | Component | Behavior |
 |---|---|---|
-| Filter Tags | `Tag` (×2) | "For You" (default) and "What's Happening" toggle. Switching re-fetches content from API. |
-| Content Cards | `ContentCard` (×N) | Each card includes: category label, title, context title, description, timestamp, primary + secondary CTA buttons, optional image, optional sources count, optional detail sections (expandable). Buttons use `forceSecondaryButtonStyle`. |
+| Filter Tags | `Tag` (×2) | "For You" (default) and "What's New" toggle. Switching re-fetches content from API. |
+| Content Cards | `ContentCard` (×N) | Each card includes: category label, title, context title, description, real relative timestamp, primary + secondary CTA buttons, optional image, sources count from cluster data, expandable detail sections, "Why you're seeing this" tag, "NEW" badge for unseen cards, dismiss/feedback flow. Type-specific intent badge and topic label. |
 
-**"For You" Content** (4 items):
+**Card Types** (10 active):
 
-1. Alternative investments — low correlation insight
-2. Tech allocation outperformance — rebalancing prompt
-3. Emerging market bonds — yield opportunity
-4. Wealth transfer — estate tax planning
+| Card Type | Source | Description |
+|---|---|---|
+| `portfolio_impact` | Pipeline (clusters) | Market events impacting user holdings |
+| `trend_brief` | Pipeline (clusters) | Multi-article trend synthesis |
+| `market_pulse` | Pipeline (standalone) | Single high-importance article, polished |
+| `explainer` | Editorial (seed) | Educational deep-dives (private credit, estate planning, etc.) |
+| `wealth_planning` | Editorial (seed) | Actionable wealth strategies |
+| `allocation_gap` | Editorial (seed) | Cards targeting user's allocation underweights |
+| `ada_view` | Ada View Worker | Weekly editorial synthesis of top themes |
+| `event_calendar` | Event Calendar Worker | Upcoming earnings/events with portfolio impact markers |
+| `morning_briefing` | Morning Briefing Worker | Daily LLM-synthesized brief from overnight cards + Morning Sentinel portfolio context. Pinned at #1 in For You. 16-hour expiry. |
+| `milestone` | Milestone Worker | Portfolio value threshold crossings ($25K–$1M), daily performance >2%, goal completions. User-scoped. |
+| `product_opportunity` | Editorial (seed) | Investment product cards (sukuk, PE co-invest) with Screen/Advisor CTAs and suitability metadata. |
 
-**"What's Happening" Content** (7 items):
+**Personalization Engine** (4 layers):
+1. **Card Selection**: Eligible cards filtered by suitability, expiry, and user dismissals
+2. **Card Ranking**: Deterministic weighted scoring — 30% portfolio relevance, 20% allocation gap, 15% suitability, 10% geo, 10% importance, 10% freshness, 5% novelty
+3. **Engagement Re-ranking**: +10% boost per shared taxonomy tag with tapped cards (cap 3), -20% penalty per shared tag with dismissed cards (cap 2), +5% segment collaborative filtering boost (≥2 peers tapped, cap 3)
+4. **LLM Overlay**: Top 3 For You cards receive GPT-generated personalized insight overlay
 
-1. GCC sovereign wealth funds — alternative assets pivot
-2. Federal Reserve — rate cut pause
-3. GCC equity markets — outperformance
-4. Sustainable investing — ESG returns
-5. Fine wine and rare spirits — alternative returns
-6. Institutional crypto adoption — inflection point
-7. Dubai luxury real estate — price surge
+**User Segments**: 3 segments (Conservative GCC, Balanced GCC, Aggressive Global) with per-segment scoring weights.
+
+**Interaction Tracking**: `POST /api/discover/interact` (fire-and-forget) tracks impressions, views, clicks, CTA taps, expands, dismisses, feedback, shares. `POST /api/discover/visit` for last-visit timestamp. Dismissed cards filtered from feed.
+
+**Event-Driven Refresh**: Portfolio-mutating endpoints (create goal, create account) trigger immediate per-user feed re-materialization via `triggerEventDrivenRefresh(userId)`.
+
+**Expiry Rules**: Per-card-type TTLs — market_pulse 24h, trend_brief 48h, portfolio_impact 72h, morning_briefing 16h, milestone 3d, event_calendar 14d, ada_view 7d, product_opportunity 30d, explainer/wealth_planning 30d. Runs every 4 hours.
+
+**Pipeline Timers**: Ingest 10min, Cluster+Synth 15min, Materialize 60min, Editorial (Ada View + Event Calendar) 6hr, Morning Briefing + Milestone 6hr, Expiry 4hr.
+
+**Enriched Chat Context**: CTA taps pass `DiscoverCardContext` (card_id, card_type, card_summary, why_seen, entities, evidence_facts, cta_family) to chat. `promptBuilder` incorporates card context into system prompt.
 
 ### 4.4 Collective Tab
 
@@ -976,7 +997,13 @@ main.tsx (QueryClient + prefetch)
 | **Morning Sentinel** | Built | AI-generated daily briefing with prefetch + SSE streaming fallback, server-side dedup |
 | **Wealth Tab** | Built | 5 parallel API calls, all sections functional |
 | **Goals & Life Planning** | Built | Goal health scores, AI life-gap analysis, life-event goal suggestions |
-| **Discover Tab** | Built | API-backed, two filter tabs, expandable detail sections |
+| **Discover Content Pipeline** | Built | 3-phase automated pipeline: Ingest (Finnhub 10min) → Enrich (12-category taxonomy) → Cluster (Jaccard similarity) → Synthesize (LLM) → Materialize (per-user scored feeds). 10 card types. Pipeline health endpoint. |
+| **Discover Personalization** | Built | Per-user weighted scoring (7 factors), 3 user segments, LLM personalized overlays for top 3 cards, CTA template personalization, engagement re-ranking with collaborative filtering, pre-computed `user_discover_feed` cache. |
+| **Discover Interactions** | Built | Fire-and-forget interaction tracking (impressions, views, clicks, dismisses, feedback). Card dismiss + feedback UI with 4 preset reasons. "NEW" badge for unseen cards. Last-visit tracking. |
+| **Morning Briefing** | Built | Daily LLM-synthesized brief from overnight cards + Morning Sentinel portfolio data. Pinned at #1 in For You. 16-hour expiry. Auto-deactivates previous briefings. |
+| **Milestone Cards** | Built | Detects portfolio value thresholds ($25K–$1M), daily performance >2%, goal completions. User-scoped card IDs prevent cross-user exposure. |
+| **Event-Driven Refresh** | Built | Portfolio-mutating endpoints trigger immediate per-user feed re-materialization. |
+| **Discover Tab** | Built | AI-curated feed with "For You" (personalized) and "What's New" (chronological) tabs, 10 card types, enriched chat context handoff |
 | **Collective Tab** | Built | Polls (vote + results), peer comparison chart, API-backed |
 | **AI Chat (LLM)** | Built | GPT-5-mini with intent routing, RAG, 3-tier memory, tool-calling, SSE streaming |
 | **Chat Widgets** | Built | Inline allocation charts, holdings summaries, goal progress, portfolio summaries via tool-calling |
@@ -994,8 +1021,8 @@ main.tsx (QueryClient + prefetch)
 | **Wealth Engine** | Built | Deterministic calculations for portfolio health, concentration risk, allocation drift, rebalance preview |
 | **Structured Responses** | Built | Zod-validated AdaAnswer schema with headline, summary, citations, recommendations, actions, render hints |
 | **Agent Tracing** | Built | Full trace logging to agent_traces + tool_runs tables for observability |
-| **PostgreSQL Database** | Built | 33 tables, 3 personas, full seed data |
-| **REST API** | Built | 34 endpoints, asyncHandler, global error handler, 2 SSE streams |
+| **PostgreSQL Database** | Built | 44 tables, 3 personas, full seed data |
+| **REST API** | Built | 39 endpoints, asyncHandler, global error handler, 2 SSE streams |
 | **Loading Skeletons** | Built | All data-fetching screens |
 | **Error States** | Built | All data-fetching screens |
 | **Animations** | Built | Tab transitions (horizontal slide), overlay transitions (slide-up), animated tab indicator |
@@ -1073,3 +1100,7 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-25 | Project Task #16: UI Bug Fixes | Fixed 3 intermittent UI bugs: (1) Morning Sentinel JSON flash — streaming now shows friendly message instead of raw JSON chunks; (2) Wealth tab blank — loading gates only on overview query, added ErrorBoundary; (3) Discover "something went wrong" — safe JSONB parsing + `keepPreviousData` + ErrorBoundary. New `ErrorBoundary.tsx` component. |
 | 2026-03-25 | Project Task #17: Context-Aware Follow-Ups | Intent classifier receives last 4 conversation turns from working memory. LLM prompt includes follow-up resolution rules. `isLikelyContinuation()` heuristic + post-classification override for continuation phrases. "Do across all" after news query → `news_explain` (was: `balance_query`). |
 | 2026-03-25 | Docs Update | Updated PRD, CHANGELOG, ISSUES, BACKLOG, and replit.md to reflect Project Tasks #16–17. |
+| 2026-03-25 | Project Task #3: Discover Phase 1 | Automated content pipeline: Ingest (Finnhub 10min), Enrich (12-category taxonomy), Cluster (Jaccard similarity), Synthesize (LLM card generation), Feed Materializer (deterministic scoring). 6 new tables (raw_articles, article_enrichment, article_clusters, discover_cards, cta_templates, user_profiles). 5 card types (portfolio_impact, trend_brief, market_pulse, explainer, wealth_planning). Pipeline health endpoint. Real relative timestamps. Tab renamed "What's Happening" → "What's New". |
+| 2026-03-25 | Project Task #4: Discover Phase 2 | Personalization engine: per-user weighted scoring (7 factors), 3 user segments, LLM personalized overlays, CTA personalization. Ada View weekly editorial worker. Event Calendar worker. Pre-computed user_discover_feed cache. Interaction tracking (POST /api/discover/interact). Card dismiss + feedback UI. "NEW" badge. Enriched chat context handoff. 4 new tables (user_segments, user_discover_feed, user_content_interactions, user_discover_visits). 7 card types active. |
+| 2026-03-26 | Project Task #5: Discover Phase 3 | Product opportunity cards (sukuk, PE co-invest). Engagement re-ranking with taxonomy-tag-based boosts/penalties + segment collaborative filtering. Morning briefing worker (daily LLM brief from overnight cards + Morning Sentinel, pinned at #1). Milestone worker (value thresholds, performance >2%, goal completions, user-scoped IDs). Event-driven per-user refresh. Expiry enforcement with per-card-type TTLs. Pipeline health extended with pipelineLag + feedFreshness. Schema constraint migration. 10 card types active. |
+| 2026-03-26 | Docs Update | Updated PRD section 4.3 (full Discover rewrite), sections 11/12, CHANGELOG (Phase 1/2/3 entries), ISSUES (ISS-023/024), BACKLOG (Phase 1/2/3 completed + BL-026/027/028), replit.md (counts, Phase 2/3 tables). |

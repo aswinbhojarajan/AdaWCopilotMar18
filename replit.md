@@ -17,7 +17,7 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **Animations**: Uses AnimatePresence for transitions and Framer Motion for indicators.
 
 **Backend (Express + TypeScript):**
-- **API**: Provides 34 RESTful endpoints, including 2 SSE streams.
+- **API**: Provides 39 RESTful endpoints, including 2 SSE streams.
 - **Agent Orchestrator**: The core service managing the AI chat pipeline, handling PII detection, session hydration, intent classification, policy evaluation, model routing, RAG, prompt assembly, memory, LLM interaction, multi-turn tool execution, wealth engine, guardrails, response building, SSE streaming, trace logging, and memory persistence.
 - **Key Services**: Includes services for policy evaluation (`policyEngine`), multi-model routing (`modelRouter`), prompt assembly (`promptBuilder`), Zod-validated response construction (`responseBuilder`), agent tracing (`traceLogger`), post-response sanitization (`guardrails`), deterministic financial calculations (`wealthEngine`), declarative tool management (`toolRegistry`), execution request routing (`rmHandoffService`), OpenAI client integration (`aiService`), LLM-based intent classification (`intentClassifier`) with context-aware follow-ups, portfolio context building (`ragService`), three-tier memory management (`memoryService`), PII detection (`piiDetector`), goal health scoring (`goalService`), and AI daily briefings (`morningSentinelService`).
 - **ErrorBoundary**: React class component for user-friendly error handling.
@@ -40,7 +40,7 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **Card Types**: portfolio_impact, trend_brief, market_pulse, explainer, wealth_planning, allocation_gap, event_calendar, ada_view, product_opportunity, morning_briefing, milestone.
 - **Pipeline Files**: `server/services/discoverPipeline/` — ingestWorker.ts, enrichmentWorker.ts, clusteringWorker.ts, synthesisWorker.ts, adaViewWorker.ts, eventCalendarWorker.ts, morningBriefingWorker.ts, milestoneWorker.ts, expiryWorker.ts, feedMaterializer.ts, userProfileEnricher.ts, index.ts.
 - **Pipeline Timers**: Ingest: 10min, Cluster+Synth: 15min, Materialize: 60min, Editorial (Ada View + Event Calendar): 6hr, Expiry: 4hr, Morning/Milestone: 6hr.
-- **Health Endpoint**: `GET /api/discover/health` — returns pipeline status, last run times, card stats (by type, tab, confidence), article and cluster stats.
+- **Health Endpoint**: `GET /api/discover/health` — returns pipeline status, last run times, card stats (by type, tab, confidence), article and cluster stats, `pipelineLag` (minutes since each stage ran), `feedFreshness` (total feeds, median age, oldest age hours).
 - **Discover Tab**: Two sub-tabs: "For You" (personalized, scored) and "What's New" (chronological). Reads from `user_discover_feed` cache first, falls back to live query.
 - **UI Enhancements**: ContentCard supports `whyYouAreSeeingThis`, expandable `supportingArticles`, `intentBadge`, `cardType`, `freshnessLabel`, `isNew` badge, `personalizedOverlay`, dismiss/feedback flow, enriched chat context handoff.
 
@@ -67,10 +67,11 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **Expiry Enforcement**: Per-card-type maximum age rules (market_pulse: 24h, trend_brief: 48h, explainer: 30d, etc.). Archives old articles >14 days and synthesized clusters >14 days. Compacts impression/view interaction logs >30 days. Runs every 4 hours. File: `expiryWorker.ts`.
 
 **Database (PostgreSQL):**
-- Contains 39 tables for core app data, agent architecture components, discover pipeline, and execution routing.
+- Contains 44 tables for core app data, agent architecture components, discover pipeline, and execution routing.
 - Includes 3 seeded personas with full financial data parity plus user_profiles for personalization metadata.
-- Stores 40 instruments, market quotes, news items, 6 editorial discover cards, CTA templates, and 1 tenant configuration.
+- Stores 40 instruments, market quotes, news items, editorial discover cards (6 seed + pipeline-generated), CTA templates, and 1 tenant configuration.
 - **New tables (Phase 1)**: `raw_articles`, `article_enrichment`, `article_clusters`, `discover_cards`, `cta_templates`, `user_profiles`.
+- **New tables (Phase 2)**: `user_segments`, `user_discover_feed`, `user_content_interactions`, `user_discover_visits`.
 
 **Key Configuration:**
 - **MODEL**: 4-tier model stack using provider aliases: `ada-classifier` (gpt-4.1-nano), `ada-fast` (gpt-4.1-mini), `ada-reason` (gpt-4.1), with `ada-fallback` (claude-sonnet-4-6) for resilience.
