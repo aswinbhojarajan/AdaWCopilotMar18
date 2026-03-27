@@ -211,18 +211,6 @@ export async function* orchestrateStream(
     inputPreview: piiResult.hasPii ? piiResult.sanitized.slice(0, 100) : req.message.slice(0, 100),
   });
 
-  const recentHistory = await memoryService.getWorkingMemory(threadId);
-  const classifierHistory = recentHistory.slice(-4).map(t => ({
-    role: t.role as 'user' | 'assistant',
-    content: t.content,
-  }));
-  const intentStart = Date.now();
-  const intent = await buildIntentClassification(sanitizedMessage, classifierHistory.length > 0 ? classifierHistory : undefined);
-  timings.intent_classification_ms = Date.now() - intentStart;
-  console.log('[Orchestrator] intent=%s confidence=%s lane=%s ms=%d', intent.primary_intent, intent.confidence, intent.suggested_tools.length > 0 ? 'lane1+' : 'tbd', timings.intent_classification_ms);
-
-  earlyThinkingBuffer.push({ step: 'intent_classification', detail: `Intent: ${intent.primary_intent} (confidence: ${(intent.confidence * 100).toFixed(0)}%, effort: ${intent.reasoning_effort})` });
-
   const sessionStart = Date.now();
   const [tenantIdResult, userProfileResult] = await Promise.all([
     agentRepo.getUserTenantId(userId),
@@ -268,6 +256,18 @@ export async function* orchestrateStream(
       return;
     }
   }
+
+  const recentHistory = await memoryService.getWorkingMemory(threadId);
+  const classifierHistory = recentHistory.slice(-4).map(t => ({
+    role: t.role as 'user' | 'assistant',
+    content: t.content,
+  }));
+  const intentStart = Date.now();
+  const intent = await buildIntentClassification(sanitizedMessage, classifierHistory.length > 0 ? classifierHistory : undefined);
+  timings.intent_classification_ms = Date.now() - intentStart;
+  console.log('[Orchestrator] intent=%s confidence=%s lane=%s ms=%d', intent.primary_intent, intent.confidence, intent.suggested_tools.length > 0 ? 'lane1+' : 'tbd', timings.intent_classification_ms);
+
+  earlyThinkingBuffer.push({ step: 'intent_classification', detail: `Intent: ${intent.primary_intent} (confidence: ${(intent.confidence * 100).toFixed(0)}%, effort: ${intent.reasoning_effort})` });
 
   for (const buffered of earlyThinkingBuffer) {
     yield* thinkingEvent(verbose, buffered.step, buffered.detail);
@@ -705,6 +705,8 @@ export async function* orchestrateStream(
 
     const postStart = Date.now();
 
+    let outputModerationFlagged = false;
+
     if (moderationBufferEnabled) {
       const outputModResult = await moderateOutput(fullResponse);
       yield* thinkingEvent(verbose, 'output_moderation', outputModResult.flagged ? `Flagged (${Object.entries(outputModResult.categories).filter(([, v]) => v).map(([k]) => k).join(', ')})` : `Clean (${outputModResult.latencyMs}ms)`);
@@ -725,11 +727,7 @@ export async function* orchestrateStream(
       if (outputModResult.flagged) {
         fullResponse = "I'm unable to provide this response as it may not align with our platform guidelines. Please try rephrasing your question.";
         guardrailInterventions.push('Output moderation flagged — response replaced with fallback');
-        yield { type: 'text', content: fullResponse };
-      } else {
-        for (const chunk of pendingTextChunks) {
-          yield { type: 'text', content: chunk };
-        }
+        outputModerationFlagged = true;
       }
     }
 
@@ -739,6 +737,14 @@ export async function* orchestrateStream(
       guardrailInterventions.push(...guardrailResult.interventions);
       if (guardrailResult.sanitizedText !== fullResponse) {
         fullResponse = guardrailResult.sanitizedText;
+      }
+    }
+
+    if (moderationBufferEnabled) {
+      if (outputModerationFlagged) {
+        yield { type: 'text', content: fullResponse };
+      } else {
+        yield { type: 'text', content: guardrailResult.sanitizedText };
       }
     }
 

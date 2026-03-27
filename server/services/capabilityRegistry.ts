@@ -94,9 +94,17 @@ const NAMED_CONFIGS: Record<ModelConfigName, Record<string, ModelConfigEntry>> =
   },
 };
 
+let configExplicitlySet = false;
+
 function resolveConfigName(): ModelConfigName {
   const envVal = process.env.MODEL_CONFIG?.toLowerCase();
-  if (envVal === 'rollback') return 'rollback';
+  if (envVal === 'rollback') {
+    configExplicitlySet = true;
+    return 'rollback';
+  }
+  if (envVal === 'production') {
+    configExplicitlySet = true;
+  }
   return 'production';
 }
 
@@ -116,7 +124,7 @@ function buildRegistry(configName: ModelConfigName): Record<string, ModelCapabil
     const envVar = ALIAS_ENV_MAP[alias];
     const envOverride = envVar ? process.env[envVar] : undefined;
     const resolvedModel = envOverride || entry.model;
-    const source: 'env-override' | 'config' = envOverride ? 'env-override' : 'config';
+    const source: 'env-override' | 'config' | 'default' = envOverride ? 'env-override' : (configExplicitlySet ? 'config' : 'default');
 
     registry[alias] = {
       alias,
@@ -141,7 +149,7 @@ const REGISTRY: Record<string, ModelCapabilities> = buildRegistry(ACTIVE_CONFIG)
 console.log(`[CapabilityRegistry] Active config: ${ACTIVE_CONFIG}`);
 for (const [alias, caps] of Object.entries(REGISTRY)) {
   const rec = caps as ModelCapabilities & { _source?: string; _envVar?: string };
-  const source = rec._source === 'env-override' ? `env-override (${rec._envVar})` : 'config';
+  const source = rec._source === 'env-override' ? `env-override (${rec._envVar})` : rec._source || 'default';
   console.log(`  ${alias} → ${caps.model} (cost: ${caps.costTier}, source: ${source})`);
 }
 
