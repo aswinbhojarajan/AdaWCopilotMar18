@@ -350,7 +350,7 @@ User Message → PII Detection → Session Hydration → Intent Classification
    Route selection uses a request scorecard (token estimate, tool count, context window, complexity signals). Provider aliases (`ada-fast`, `ada-reason`, `ada-fallback`) map to underlying models. Per-lane token and temperature budgets are configurable. Lane metadata is logged in agent traces. Fallback chain: ada-fast → ada-fallback, ada-reason → ada-fallback.
 
 5. **Capability Registry** (`capabilityRegistry.ts`): Configurable named-config model registry:
-   - **Named configurations**: Three named configs (`production`, `canary`, `rollback`) define the full model stack. `MODEL_CONFIG` env var selects active config (default: `production`). `canary` config targets GPT-5.4 family for migration validation. Startup logs effective model map.
+   - **Named configurations**: Two named configs (`production`, `rollback`) define the full model stack. `MODEL_CONFIG` env var selects active config (default: `production`). `rollback` retains GPT-4.1 family for instant recovery after model upgrades. Startup logs effective model map.
    - **5 provider aliases**: `ada-classifier` (classification), `ada-fast` (chat lane 1), `ada-content` (Discover pipeline), `ada-reason` (chat lane 2), `ada-fallback` (Anthropic resilience)
    - **Model capabilities**: Provider aliases → model IDs, capability sets (streaming, tool_calling, json_mode, reasoning), context windows, cost tiers
    - **Lane configurations**: Lane number → label, description, default provider, available tools

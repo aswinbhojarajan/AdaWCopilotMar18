@@ -369,9 +369,11 @@ export async function* orchestrateStream(
   });
 
   const conversationHistory = await memoryService.getWorkingMemory(threadId);
+  const escapeXmlTags = (text: string): string =>
+    text.replace(/</g, '＜').replace(/>/g, '＞');
   const boundedHistory = conversationHistory.map((msg) => {
     if (msg.role === 'user' && typeof msg.content === 'string') {
-      return { ...msg, content: `<user_message>${msg.content}</user_message>` };
+      return { ...msg, content: `<user_message>${escapeXmlTags(msg.content)}</user_message>` };
     }
     return msg;
   });

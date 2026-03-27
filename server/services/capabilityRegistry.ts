@@ -18,7 +18,7 @@ export interface ModelCapabilities {
   costTier: 'low' | 'medium' | 'high';
 }
 
-type ModelConfigName = 'production' | 'rollback' | 'canary';
+type ModelConfigName = 'production' | 'rollback';
 
 interface ModelConfigEntry {
   model: string;
@@ -49,38 +49,6 @@ const NAMED_CONFIGS: Record<ModelConfigName, Record<string, ModelConfigEntry>> =
     },
     'ada-reason': {
       model: 'gpt-4.1',
-      capabilities: ['streaming', 'tool_calling', 'json_mode', 'reasoning', 'long_context'],
-      maxContextTokens: 1048576,
-      costTier: 'medium',
-    },
-    'ada-fallback': {
-      model: 'claude-sonnet-4-6',
-      capabilities: ['streaming', 'tool_calling', 'reasoning', 'long_context'],
-      maxContextTokens: 200000,
-      costTier: 'medium',
-    },
-  },
-  canary: {
-    'ada-classifier': {
-      model: 'gpt-5.4-nano',
-      capabilities: ['json_mode', 'fast_response'],
-      maxContextTokens: 1048576,
-      costTier: 'low',
-    },
-    'ada-fast': {
-      model: 'gpt-5.4-mini',
-      capabilities: ['streaming', 'tool_calling', 'json_mode', 'fast_response'],
-      maxContextTokens: 1048576,
-      costTier: 'low',
-    },
-    'ada-content': {
-      model: 'gpt-5.4-mini',
-      capabilities: ['json_mode', 'fast_response'],
-      maxContextTokens: 1048576,
-      costTier: 'low',
-    },
-    'ada-reason': {
-      model: 'gpt-5.4',
       capabilities: ['streaming', 'tool_calling', 'json_mode', 'reasoning', 'long_context'],
       maxContextTokens: 1048576,
       costTier: 'medium',
