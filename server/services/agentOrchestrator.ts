@@ -211,6 +211,32 @@ export async function* orchestrateStream(
     inputPreview: piiResult.hasPii ? piiResult.sanitized.slice(0, 100) : req.message.slice(0, 100),
   });
 
+  const inputModResult = await moderateInput(sanitizedMessage);
+  earlyThinkingBuffer.push({ step: 'input_moderation', detail: inputModResult.flagged ? `Flagged (${Object.entries(inputModResult.categories).filter(([, v]) => v).map(([k]) => k).join(', ')})` : `Clean (${inputModResult.latencyMs}ms)` });
+
+  agentRepo.saveModerationEvent({
+    user_id: userId,
+    thread_id: threadId,
+    message_id: messageId,
+    direction: 'input',
+    flagged: inputModResult.flagged,
+    categories: inputModResult.categories,
+    scores: inputModResult.scores,
+    action_taken: inputModResult.flagged ? 'blocked' : 'passed',
+    model_used: inputModResult.model,
+    latency_ms: inputModResult.latencyMs,
+  }).catch(() => {});
+
+  if (inputModResult.flagged) {
+    for (const buffered of earlyThinkingBuffer) {
+      yield* thinkingEvent(true, buffered.step, buffered.detail);
+    }
+    const refusalText = "I'm unable to process this request. Please rephrase your message in a way that aligns with our platform guidelines.";
+    yield { type: 'text', content: refusalText };
+    yield { type: 'done' };
+    return;
+  }
+
   const recentHistory = await memoryService.getWorkingMemory(threadId);
   const classifierHistory = recentHistory.slice(-4).map(t => ({
     role: t.role as 'user' | 'assistant',
@@ -246,31 +272,6 @@ export async function* orchestrateStream(
   }
   if (verbose) {
     await new Promise(r => setImmediate(r));
-  }
-
-  if (tenantConfig.moderation_enabled !== false) {
-    const inputModResult = await moderateInput(sanitizedMessage);
-    yield* thinkingEvent(verbose, 'input_moderation', inputModResult.flagged ? `Flagged (${Object.entries(inputModResult.categories).filter(([, v]) => v).map(([k]) => k).join(', ')})` : `Clean (${inputModResult.latencyMs}ms)`);
-
-    agentRepo.saveModerationEvent({
-      user_id: userId,
-      thread_id: threadId,
-      message_id: messageId,
-      direction: 'input',
-      flagged: inputModResult.flagged,
-      categories: inputModResult.categories,
-      scores: inputModResult.scores,
-      action_taken: inputModResult.flagged ? 'blocked' : 'pass',
-      model_used: inputModResult.model,
-      latency_ms: inputModResult.latencyMs,
-    }).catch(() => {});
-
-    if (inputModResult.flagged) {
-      const refusalText = "I'm unable to process this request. Please rephrase your message in a way that aligns with our platform guidelines.";
-      yield { type: 'text', content: refusalText };
-      yield { type: 'done' };
-      return;
-    }
   }
 
   const policyStart = Date.now();
@@ -687,18 +688,6 @@ export async function* orchestrateStream(
     timings.llm_generation_ms = Date.now() - llmStart;
 
     const postStart = Date.now();
-    yield* thinkingEvent(verbose, 'guardrails', 'Running post-generation guardrail checks...');
-    const guardrailResult = runPostChecks(fullResponse, tenantConfig, policyDecision, toolResults);
-    if (!guardrailResult.passed) {
-      guardrailInterventions.push(...guardrailResult.interventions);
-      if (guardrailResult.sanitizedText !== fullResponse) {
-        fullResponse = guardrailResult.sanitizedText;
-      }
-    }
-
-    for (const uiEvent of pendingUiEvents) {
-      yield uiEvent;
-    }
 
     if (tenantConfig.moderation_enabled !== false) {
       const outputModResult = await moderateOutput(fullResponse);
@@ -712,7 +701,7 @@ export async function* orchestrateStream(
         flagged: outputModResult.flagged,
         categories: outputModResult.categories,
         scores: outputModResult.scores,
-        action_taken: outputModResult.flagged ? 'replaced' : 'pass',
+        action_taken: outputModResult.flagged ? 'replaced' : 'passed',
         model_used: outputModResult.model,
         latency_ms: outputModResult.latencyMs,
       }).catch(() => {});
@@ -722,6 +711,19 @@ export async function* orchestrateStream(
         guardrailInterventions.push('Output moderation flagged — response replaced with fallback');
         yield { type: 'text', content: '\n\n⚠️ ' + fullResponse };
       }
+    }
+
+    yield* thinkingEvent(verbose, 'guardrails', 'Running post-generation guardrail checks...');
+    const guardrailResult = runPostChecks(fullResponse, tenantConfig, policyDecision, toolResults);
+    if (!guardrailResult.passed) {
+      guardrailInterventions.push(...guardrailResult.interventions);
+      if (guardrailResult.sanitizedText !== fullResponse) {
+        fullResponse = guardrailResult.sanitizedText;
+      }
+    }
+
+    for (const uiEvent of pendingUiEvents) {
+      yield uiEvent;
     }
 
     if (guardrailResult.appendedDisclosures.length > 0) {
