@@ -18,36 +18,116 @@ export interface ModelCapabilities {
   costTier: 'low' | 'medium' | 'high';
 }
 
-const REGISTRY: Record<string, ModelCapabilities> = {
-  'ada-classifier': {
-    alias: 'ada-classifier',
-    model: 'gpt-4.1-nano',
-    capabilities: new Set(['json_mode', 'fast_response']),
-    maxContextTokens: 1048576,
-    costTier: 'low',
+type ModelConfigName = 'production' | 'rollback';
+
+interface ModelConfigEntry {
+  model: string;
+  capabilities: Capability[];
+  maxContextTokens: number;
+  costTier: 'low' | 'medium' | 'high';
+}
+
+const NAMED_CONFIGS: Record<ModelConfigName, Record<string, ModelConfigEntry>> = {
+  production: {
+    'ada-classifier': {
+      model: 'gpt-4.1-nano',
+      capabilities: ['json_mode', 'fast_response'],
+      maxContextTokens: 1048576,
+      costTier: 'low',
+    },
+    'ada-fast': {
+      model: 'gpt-4.1-mini',
+      capabilities: ['streaming', 'tool_calling', 'json_mode', 'fast_response'],
+      maxContextTokens: 1048576,
+      costTier: 'low',
+    },
+    'ada-content': {
+      model: 'gpt-4.1-mini',
+      capabilities: ['json_mode', 'fast_response'],
+      maxContextTokens: 1048576,
+      costTier: 'low',
+    },
+    'ada-reason': {
+      model: 'gpt-4.1',
+      capabilities: ['streaming', 'tool_calling', 'json_mode', 'reasoning', 'long_context'],
+      maxContextTokens: 1048576,
+      costTier: 'medium',
+    },
+    'ada-fallback': {
+      model: 'claude-sonnet-4-6',
+      capabilities: ['streaming', 'tool_calling', 'reasoning', 'long_context'],
+      maxContextTokens: 200000,
+      costTier: 'medium',
+    },
   },
-  'ada-fast': {
-    alias: 'ada-fast',
-    model: 'gpt-4.1-mini',
-    capabilities: new Set(['streaming', 'tool_calling', 'json_mode', 'fast_response']),
-    maxContextTokens: 1048576,
-    costTier: 'low',
-  },
-  'ada-reason': {
-    alias: 'ada-reason',
-    model: 'gpt-4.1',
-    capabilities: new Set(['streaming', 'tool_calling', 'json_mode', 'reasoning', 'long_context']),
-    maxContextTokens: 1048576,
-    costTier: 'medium',
-  },
-  'ada-fallback': {
-    alias: 'ada-fallback',
-    model: 'claude-sonnet-4-6',
-    capabilities: new Set(['streaming', 'tool_calling', 'reasoning', 'long_context']),
-    maxContextTokens: 200000,
-    costTier: 'medium',
+  rollback: {
+    'ada-classifier': {
+      model: 'gpt-4.1-nano',
+      capabilities: ['json_mode', 'fast_response'],
+      maxContextTokens: 1048576,
+      costTier: 'low',
+    },
+    'ada-fast': {
+      model: 'gpt-4.1-mini',
+      capabilities: ['streaming', 'tool_calling', 'json_mode', 'fast_response'],
+      maxContextTokens: 1048576,
+      costTier: 'low',
+    },
+    'ada-content': {
+      model: 'gpt-4.1-mini',
+      capabilities: ['json_mode', 'fast_response'],
+      maxContextTokens: 1048576,
+      costTier: 'low',
+    },
+    'ada-reason': {
+      model: 'gpt-4.1',
+      capabilities: ['streaming', 'tool_calling', 'json_mode', 'reasoning', 'long_context'],
+      maxContextTokens: 1048576,
+      costTier: 'medium',
+    },
+    'ada-fallback': {
+      model: 'claude-sonnet-4-6',
+      capabilities: ['streaming', 'tool_calling', 'reasoning', 'long_context'],
+      maxContextTokens: 200000,
+      costTier: 'medium',
+    },
   },
 };
+
+function resolveConfigName(): ModelConfigName {
+  const envVal = process.env.MODEL_CONFIG?.toLowerCase();
+  if (envVal === 'rollback') return 'rollback';
+  return 'production';
+}
+
+function buildRegistry(configName: ModelConfigName): Record<string, ModelCapabilities> {
+  const config = NAMED_CONFIGS[configName];
+  const registry: Record<string, ModelCapabilities> = {};
+
+  for (const [alias, entry] of Object.entries(config)) {
+    registry[alias] = {
+      alias,
+      model: entry.model,
+      capabilities: new Set(entry.capabilities),
+      maxContextTokens: entry.maxContextTokens,
+      costTier: entry.costTier,
+    };
+  }
+
+  return registry;
+}
+
+const ACTIVE_CONFIG = resolveConfigName();
+const REGISTRY: Record<string, ModelCapabilities> = buildRegistry(ACTIVE_CONFIG);
+
+console.log(`[CapabilityRegistry] Active config: ${ACTIVE_CONFIG}`);
+for (const [alias, caps] of Object.entries(REGISTRY)) {
+  console.log(`  ${alias} → ${caps.model} (cost: ${caps.costTier})`);
+}
+
+export function getActiveConfigName(): ModelConfigName {
+  return ACTIVE_CONFIG;
+}
 
 export interface LaneConfig {
   lane: number;

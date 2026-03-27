@@ -1,5 +1,6 @@
 import pool from '../../db/pool';
 import { resilientCompletion } from '../openaiClient';
+import { resolveModel } from '../modelRouter';
 
 interface ClusterRow {
   id: number;
@@ -136,12 +137,12 @@ export async function runSynthesis(): Promise<number> {
           .replace('{GEOGRAPHY}', row.primary_geography);
 
         const completion = await resilientCompletion({
-          model: 'gpt-4o-mini',
+          model: resolveModel('ada-content'),
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.4,
-          max_tokens: 800,
+          max_completion_tokens: 800,
           response_format: { type: 'json_object' },
-        }, { timeoutMs: 20000 });
+        }, { timeoutMs: 20000, providerAlias: 'ada-content' });
 
         const content = completion.choices[0]?.message?.content;
         if (!content) continue;
@@ -266,12 +267,12 @@ async function polishStandaloneArticle(title: string, summary: string, publisher
       .replace('{PUBLISHER}', publisher || 'Unknown');
 
     const completion = await resilientCompletion({
-      model: 'gpt-4o-mini',
+      model: resolveModel('ada-content'),
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.3,
-      max_tokens: 300,
+      max_completion_tokens: 300,
       response_format: { type: 'json_object' },
-    }, { timeoutMs: 10000 });
+    }, { timeoutMs: 10000, providerAlias: 'ada-content' });
 
     const content = completion.choices[0]?.message?.content;
     if (!content) return null;

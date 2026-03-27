@@ -1,7 +1,7 @@
 # Backlog — Ada AI Wealth Copilot
 
 > **Living document** — update as new features are proposed, prioritized, or completed.
-> Last updated: 2026-03-26
+> Last updated: 2026-03-27
 
 ---
 
@@ -333,6 +333,56 @@ Replace `setInterval` timer with timezone-aware cron scheduling for morning brie
 - Currently runs on 6-hour interval with 14-hour recency guard, not aligned to user timezone
 - Relates to ISS-023
 
+### BL-029: Canary Validation & Moderation API
+**Status:** Scoped (Project Task #9)
+**Priority:** Should Have
+
+Per-alias model overrides and content moderation:
+- Per-alias env var overrides (`ADA_MODEL_<ALIAS>`) for canary testing individual aliases
+- `moderationService.ts` wrapping OpenAI `omni-moderation-latest` model
+- Orchestrator integration: pre-LLM input moderation + post-LLM output moderation
+- `moderation_events` table for flagged content persistence
+- Moderation bypass for deterministic Lane 0 requests
+
+### BL-030: LLM Cost Dashboard
+**Status:** Proposed
+**Priority:** Nice to Have
+
+Build an internal dashboard for monitoring LLM cost and usage:
+- Aggregate `agent_traces` by `provider_alias`, model, date for token/cost summaries
+- Visualize `provider_fallback_events` frequency, timing, and failure reasons
+- Per-user and per-intent cost breakdowns
+- Alert thresholds for daily/weekly spend anomalies
+
+### BL-031: Structured Logging (Pino)
+**Status:** Proposed
+**Priority:** Should Have
+
+Replace `console.log` across all server code with structured JSON logging via Pino:
+- Log levels (debug, info, warn, error) with request context
+- Correlation IDs for tracing requests across services
+- Redact sensitive fields (PII, auth tokens)
+- Relates to ISS-021
+
+### BL-032: OpenAI Batch API for Pipeline
+**Status:** Proposed
+**Priority:** Nice to Have
+
+Use OpenAI Batch API for non-time-sensitive Discover pipeline LLM calls:
+- Batch synthesis and enrichment LLM calls (not user-facing, can tolerate 24h latency)
+- 50% cost reduction on batch-eligible calls
+- Requires queue management and result polling
+
+### BL-033: OpenAI Responses API Migration
+**Status:** Proposed
+**Priority:** Future
+
+Migrate from Chat Completions API to OpenAI Responses API:
+- Built-in tool orchestration (multi-turn without client-side loop)
+- Web search and file search as native tools
+- Structured output via response_format
+- Requires adapter layer for Anthropic fallback compatibility
+
 ---
 
 ## Completed Items
@@ -372,3 +422,4 @@ Replace `setInterval` timer with timezone-aware cron scheduling for morning brie
 | — | Discover Tab Uplift Phase 1: Foundation & Live Content Pipeline (Project Task #3) | 2026-03-25 |
 | — | Discover Tab Uplift Phase 2: Personalization, Interactions & Ada View (Project Task #4) | 2026-03-25 |
 | — | Discover Tab Phase 3: Scale, Engagement & Premium Features (Project Task #5) | 2026-03-26 |
+| — | Configurable Model Registry & GPT-5.4 Migration (Project Task #8) | 2026-03-27 |

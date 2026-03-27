@@ -672,3 +672,28 @@ CREATE TABLE IF NOT EXISTS user_discover_visits (
   last_visited_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   visit_count INTEGER NOT NULL DEFAULT 1
 );
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'agent_traces' AND column_name = 'prompt_tokens') THEN
+    ALTER TABLE agent_traces ADD COLUMN prompt_tokens INTEGER;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'agent_traces' AND column_name = 'completion_tokens') THEN
+    ALTER TABLE agent_traces ADD COLUMN completion_tokens INTEGER;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'agent_traces' AND column_name = 'provider_alias') THEN
+    ALTER TABLE agent_traces ADD COLUMN provider_alias TEXT;
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS provider_fallback_events (
+  id SERIAL PRIMARY KEY,
+  original_alias TEXT,
+  fallback_alias TEXT,
+  failure_reason TEXT,
+  switch_cost_ms INTEGER,
+  lane TEXT,
+  model_requested TEXT,
+  model_served TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);

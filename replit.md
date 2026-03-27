@@ -23,7 +23,7 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **ErrorBoundary**: React class component for user-friendly error handling.
 - **Repositories**: Organized into 6 repositories: user, portfolio, content, chat, poll, agent.
 - **Provider Pattern**: Employs 7 external data providers (Stock/Market, News, Macro/Economic, Company Filings, Instrument Lookup, FX Rates, Regional FX) with a priority chain (primary, secondary, mock fallback), in-memory cache, rate limiting, health tracking, and automatic failover. Tools are mapped to specific providers.
-- **Capability Registry**: Maps 4 provider aliases (ada-classifier, ada-fast, ada-reason, ada-fallback) to LLM capabilities, cost tiers, context limits, temperature settings, and tool round limits, enabling intelligent model selection and routing.
+- **Capability Registry**: Configurable named-config model registry with 5 provider aliases (ada-classifier, ada-fast, ada-content, ada-reason, ada-fallback). `MODEL_CONFIG` env var selects `production` or `rollback` config. Token tracking in `agent_traces` (prompt_tokens, completion_tokens, provider_alias). Fallback event persistence in `provider_fallback_events` table.
 - **LLM Resilience & Fallback**: Implements streaming timeout/retry with `AbortController`, automatic model downgrades (Lane 2 to Lane 1), and fallback to Anthropic Claude via Replit AI Integrations when OpenAI fails, including adapter for message format conversion.
 - **Execution Guardrails & RM Handoff**: Ada cannot execute trades; this is enforced at multiple layers (system prompt, guardrail regex, orchestrator fallback). Execution requests are routed to RM via `advisor_action_queue`, webhook, or rejected based on tenant configuration.
 - **Shared Schemas**: Zod schemas for core agent types are defined for validation.
@@ -33,7 +33,7 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **Ingest**: Fetches news from Finnhub every 10 minutes, extracts tickers and regions, stores in `raw_articles`.
 - **Enrich**: Classifies articles against 12-category taxonomy (equities, fixed_income, crypto, etc.), computes sentiment and importance scores, deduplicates via MD5 hash.
 - **Cluster**: Groups related articles using Jaccard similarity on feature sets (tickers, taxonomy, regions, keywords). Uses deterministic fingerprinting to prevent duplicate clusters.
-- **Synthesize**: Uses LLM (gpt-4o-mini via `resilientCompletion`) to generate discover cards from article clusters. Maps to card types (portfolio_impact, trend_brief, market_pulse) with CTAs from templates.
+- **Synthesize**: Uses LLM (`ada-content` alias via `resilientCompletion`) to generate discover cards from article clusters. Maps to card types (portfolio_impact, trend_brief, market_pulse) with CTAs from templates.
 - **Ada View** (Phase 2): Weekly editorial synthesis from top discover cards. LLM generates "Ada's View" card tying week's themes together. Runs every 6 hours, deduplicates via 5-day window. File: `adaViewWorker.ts`.
 - **Event Calendar** (Phase 2): Fetches Finnhub earnings calendar, filters for user holdings + major GCC-relevant symbols, groups by week, creates event_calendar cards. Highlights portfolio holdings with ★ marker. File: `eventCalendarWorker.ts`.
 - **Materialize**: Deactivates expired and low-confidence cards, maintains feed health. Phase 2 adds per-user feed materialization with weighted scoring (30% portfolio relevance, 20% allocation gap, 15% suitability, 10% geo, 10% importance, 10% freshness, 5% novelty) and LLM personalized overlays for top-3 For You cards.
@@ -74,7 +74,7 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **New tables (Phase 2)**: `user_segments`, `user_discover_feed`, `user_content_interactions`, `user_discover_visits`.
 
 **Key Configuration:**
-- **MODEL**: 4-tier model stack using provider aliases: `ada-classifier` (gpt-4.1-nano), `ada-fast` (gpt-4.1-mini), `ada-reason` (gpt-4.1), with `ada-fallback` (claude-sonnet-4-6) for resilience.
+- **MODEL**: 5-tier model stack using provider aliases: `ada-classifier` (gpt-4.1-nano), `ada-fast` (gpt-4.1-mini), `ada-content` (gpt-4.1-mini), `ada-reason` (gpt-4.1), with `ada-fallback` (claude-sonnet-4-6) for resilience. `MODEL_CONFIG` env var selects named config (default: `production`).
 - **User switching**: Supported via `X-User-ID` header and `PersonaPicker`, ensuring data isolation.
 - **Default tenant**: `bank_demo_uae`.
 - **SSE event types**: `text`, `widget`, `simulator`, `suggested_questions`, `thinking`, `done`, `error`.

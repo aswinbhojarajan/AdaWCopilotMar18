@@ -1,5 +1,6 @@
 import pool from '../../db/pool';
 import { resilientCompletion } from '../openaiClient';
+import { resolveModel } from '../modelRouter';
 
 interface CardRow {
   id: string;
@@ -464,12 +465,12 @@ async function generatePersonalizedOverlays(
         .replace('{GAPS}', gapSummary);
 
       const completion = await resilientCompletion({
-        model: 'gpt-4o-mini',
+        model: resolveModel('ada-content'),
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
-        max_tokens: 200,
+        max_completion_tokens: 200,
         response_format: { type: 'json_object' },
-      }, { timeoutMs: 10000 });
+      }, { timeoutMs: 10000, providerAlias: 'ada-content' });
 
       const content = completion.choices[0]?.message?.content;
       if (content) {

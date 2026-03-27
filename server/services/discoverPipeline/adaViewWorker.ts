@@ -1,5 +1,6 @@
 import pool from '../../db/pool';
 import { resilientCompletion } from '../openaiClient';
+import { resolveModel } from '../modelRouter';
 
 const ADA_VIEW_PROMPT = `You are Ada, an AI wealth copilot for GCC HNW investors. Create a weekly editorial "Ada's View" card that synthesizes the most important themes from this week's market intelligence.
 
@@ -73,12 +74,12 @@ export async function runAdaView(): Promise<number> {
     const prompt = ADA_VIEW_PROMPT.replace('{CARDS}', cardsText);
 
     const completion = await resilientCompletion({
-      model: 'gpt-4o-mini',
+      model: resolveModel('ada-content'),
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.5,
-      max_tokens: 800,
+      max_completion_tokens: 800,
       response_format: { type: 'json_object' },
-    }, { timeoutMs: 20000 });
+    }, { timeoutMs: 20000, providerAlias: 'ada-content' });
 
     const content = completion.choices[0]?.message?.content;
     if (!content) {

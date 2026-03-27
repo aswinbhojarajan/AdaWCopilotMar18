@@ -1,4 +1,4 @@
-import { saveAgentTrace, saveToolRun } from '../repositories/agentRepository';
+import { saveAgentTrace, saveToolRun, saveProviderFallbackEvent } from '../repositories/agentRepository';
 import type { IntentClassification, PolicyDecision, AdaAnswer, ToolResult } from '../../shared/schemas/agent';
 import type { RouteDecision, RequestScorecard } from './modelRouter';
 
@@ -59,6 +59,8 @@ export function logProviderFallback(params: {
   failureReason: string;
   switchCostMs: number;
   lane?: string;
+  modelRequested?: string;
+  modelServed?: string;
 }): void {
   console.log(
     `[ProviderFallback] %s → %s | reason=%s | cost=%dms | lane=%s`,
@@ -68,6 +70,18 @@ export function logProviderFallback(params: {
     params.switchCostMs,
     params.lane ?? 'unknown',
   );
+
+  saveProviderFallbackEvent({
+    original_alias: params.failedProvider,
+    fallback_alias: params.replacementProvider,
+    failure_reason: params.failureReason,
+    switch_cost_ms: params.switchCostMs,
+    lane: params.lane,
+    model_requested: params.modelRequested,
+    model_served: params.modelServed,
+  }).catch((err) => {
+    console.error('[ProviderFallback] Failed to persist fallback event:', (err as Error).message);
+  });
 }
 
 export async function logAgentTrace(params: {
@@ -84,6 +98,9 @@ export async function logAgentTrace(params: {
   escalationDecisions: string[];
   routeDecision?: RouteDecision;
   scorecard?: RequestScorecard;
+  promptTokens?: number;
+  completionTokens?: number;
+  providerAlias?: string;
 }): Promise<number> {
   const timingsRecord: Record<string, number> = {};
   for (const [k, v] of Object.entries(params.stepTimings)) {
@@ -126,6 +143,9 @@ export async function logAgentTrace(params: {
     step_timings: timingsRecord,
     guardrail_interventions: params.guardrailInterventions,
     escalation_decisions: escalations,
+    prompt_tokens: params.promptTokens,
+    completion_tokens: params.completionTokens,
+    provider_alias: params.providerAlias ?? params.routeDecision?.provider_alias,
   });
 }
 

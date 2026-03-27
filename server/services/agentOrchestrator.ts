@@ -378,6 +378,8 @@ export async function* orchestrateStream(
   const guardrailInterventions: string[] = [];
   const escalationDecisions: string[] = [];
   let totalTokens = 0;
+  let totalPromptTokens = 0;
+  let totalCompletionTokens = 0;
   const pendingUiEvents: StreamEvent[] = [];
   let streamFollowUps: string[] = [];
 
@@ -406,6 +408,7 @@ export async function* orchestrateStream(
           messages: currentMessages,
           tools: useTools ? tools : undefined,
           stream: true,
+          stream_options: { include_usage: true },
           max_completion_tokens: modelSelection.max_tokens,
         }, { timeoutMs, providerAlias: modelSelection.provider_alias });
       };
@@ -428,6 +431,7 @@ export async function* orchestrateStream(
                 messages: currentMessages,
                 tools: useTools ? tools : undefined,
                 stream: true,
+                stream_options: { include_usage: true },
                 max_completion_tokens: 4096,
               }, { timeoutMs: 20000, providerAlias: 'ada-fast' });
             } catch (fallbackErr) {
@@ -486,7 +490,11 @@ export async function* orchestrateStream(
           }
         }
 
-        if (chunk.usage) totalTokens += chunk.usage.total_tokens;
+        if (chunk.usage) {
+          totalTokens += chunk.usage.total_tokens;
+          if (chunk.usage.prompt_tokens) totalPromptTokens += chunk.usage.prompt_tokens;
+          if (chunk.usage.completion_tokens) totalCompletionTokens += chunk.usage.completion_tokens;
+        }
       }
 
       if (toolCalls.length === 0) {
@@ -750,6 +758,9 @@ export async function* orchestrateStream(
       escalationDecisions,
       routeDecision: route,
       scorecard,
+      promptTokens: totalPromptTokens || undefined,
+      completionTokens: totalCompletionTokens || undefined,
+      providerAlias: modelSelection.provider_alias,
     }).catch(() => {});
 
     memoryService.logAudit({

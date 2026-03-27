@@ -1,7 +1,7 @@
 # Ada — AI Wealth Copilot: Product Requirements Document
 
 > **Living document** — update this PRD before and after every build cycle.
-> Last updated: 2026-03-26
+> Last updated: 2026-03-27
 >
 > **Source of truth precedence**: When a mismatch exists between this document and the runtime code/schema, the code is authoritative. Update this PRD to reflect the code, not the other way around.
 >
@@ -349,16 +349,23 @@ User Message → PII Detection → Session Hydration → Intent Classification
    
    Route selection uses a request scorecard (token estimate, tool count, context window, complexity signals). Provider aliases (`ada-fast`, `ada-reason`, `ada-fallback`) map to underlying models. Per-lane token and temperature budgets are configurable. Lane metadata is logged in agent traces. Fallback chain: ada-fast → ada-fallback, ada-reason → ada-fallback.
 
-5. **Capability Registry** (`capabilityRegistry.ts`): Unified registry mapping:
+5. **Capability Registry** (`capabilityRegistry.ts`): Configurable named-config model registry:
+   - **Named configurations**: Two named configs (`production`, `rollback`) define the full model stack. `MODEL_CONFIG` env var selects active config (default: `production`). Startup logs effective model map.
+   - **5 provider aliases**: `ada-classifier` (classification), `ada-fast` (chat lane 1), `ada-content` (Discover pipeline), `ada-reason` (chat lane 2), `ada-fallback` (Anthropic resilience)
    - **Model capabilities**: Provider aliases → model IDs, capability sets (streaming, tool_calling, json_mode, reasoning), context windows, cost tiers
    - **Lane configurations**: Lane number → label, description, default provider, available tools
    - **Intent→route mappings**: Intent type → default lane, supported lanes, required/optional tools, description
    - **Classifier context**: `getClassifierContext()` generates condensed routing metadata injected into the intent classifier prompt so classification is informed by the routing topology
-   - **Fallback provider**: `ada-fallback` → claude-sonnet-4-6 (Anthropic via Replit AI Integrations). When OpenAI primary fails all retries, `resilientCompletion()` and `resilientStreamCompletion()` automatically fall back to Anthropic with format conversion (OpenAI → Anthropic messages API → OpenAI response format)
+   - **Fallback chains**: `ada-fast` → `ada-fallback`, `ada-content` → `ada-fallback`, `ada-reason` → `ada-fast` → `ada-fallback`. When OpenAI primary fails all retries, `resilientCompletion()` and `resilientStreamCompletion()` automatically fall back via the chain with format conversion
+   - **Token instrumentation**: `agent_traces` records `prompt_tokens`, `completion_tokens`, and `provider_alias` for cost tracking
+   - **Fallback persistence**: `provider_fallback_events` table records all provider switches with timing and failure reason
 
 6. **RAG Pipeline** (`ragService.ts`): Builds rich portfolio context from PostgreSQL based on the classified intent. Queries holdings, allocations, goals, accounts, and recent transactions to inject into the LLM system prompt.
 
-7. **Prompt Builder** (`promptBuilder.ts`): Assembles modular system prompts from components:
+7. **Prompt Builder** (`promptBuilder.ts`): Assembles modular system prompts with XML injection defense:
+   - System instructions wrapped in `<system_instructions>` / `</system_instructions>` boundary markers
+   - User context wrapped in `<user_context>` / `</user_context>` boundary markers
+   - Instruction hierarchy note: system instructions take absolute precedence over user messages
    - Persona block (Ada identity, tone, GCC HNW context)
    - Execution boundary block (hard prohibition on trade execution)
    - Advisory mode instructions (education-only vs full advisory)
@@ -871,7 +878,7 @@ Standalone tables:
 | Frontend | React 18 + TypeScript, Vite 6, Tailwind CSS v4, TanStack Query v5 |
 | Backend | Express + TypeScript (via `tsx`), port 3001 |
 | Database | PostgreSQL (Replit-managed), 33 tables |
-| AI | OpenAI gpt-5-mini (Replit AI Integrations), streaming SSE |
+| AI | OpenAI GPT-4.1 family (Replit AI Integrations), 5 provider aliases, named configs, streaming SSE |
 | Animations | Framer Motion v11 (`motion/react`), AnimatePresence transitions |
 | Fonts | Crimson Pro, DM Sans (Google Fonts) |
 | Icons | Lucide React |
@@ -1036,8 +1043,9 @@ main.tsx (QueryClient + prefetch)
 | **User Switching** | Built | PersonaPicker bottom sheet, X-User-ID header, per-user query isolation, localStorage persistence |
 | **Multi-Model Routing** | Built | Lane-based control plane (Lane 0 deterministic, Lane 1 fast, Lane 2 reasoning) with request scorecards and provider aliases |
 | **LLM Intent Classification** | Built | LLM-first `classifyIntentAsync()` with 3s timeout and keyword fallback. `mapIntentForRag()` prevents double-classification. Lane 2 → Lane 1 fallback on streaming timeout. |
-| **Capability Registry** | Built | Unified model/lane/intent routing registry (`capabilityRegistry.ts`). Provider aliases, fallback chains, classifier context injection. |
+| **Capability Registry** | Built | Configurable named-config model registry (`capabilityRegistry.ts`). 5 provider aliases (ada-classifier, ada-fast, ada-content, ada-reason, ada-fallback). `MODEL_CONFIG` env var selects production/rollback config. Token instrumentation (prompt_tokens, completion_tokens, provider_alias in agent_traces). Fallback event persistence (provider_fallback_events table). |
 | **Anthropic Fallback** | Built | Automatic fallback to Claude (claude-sonnet-4-6) when OpenAI primary fails. Resilient completion helpers with timeout+retry+fallback for all LLM call sites. |
+| **XML Prompt Injection Defense** | Built | System prompt wrapped in XML boundary markers (`<system_instructions>`, `<user_context>`). Instruction hierarchy prevents user override of system instructions. |
 | **Verbose/Thinking Mode** | Built | Live `LiveThinkingBar` during streaming with progressive step reveal (120ms stagger). Post-stream `ThinkingPanel` summary (collapsible). "Think" toggle in chat header with localStorage persistence. Tenant-level `verbose_mode` feature flag. Server-side `setImmediate()` ticks + `flush()` for reliable thinking event delivery. |
 | **Full Persona Data Parity** | Built | 3 personas with positions, 365-day performance history, goals, alerts, chat threads; server-side computed wealth insights. Cost basis values match weighted transaction averages. Performance history uses bounded normalized formula. |
 | **ErrorBoundary** | Built | React class component error boundary wrapping WealthScreen and DiscoverScreen. Catches rendering crashes and displays user-friendly error message with retry button. |
@@ -1104,3 +1112,4 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-25 | Project Task #4: Discover Phase 2 | Personalization engine: per-user weighted scoring (7 factors), 3 user segments, LLM personalized overlays, CTA personalization. Ada View weekly editorial worker. Event Calendar worker. Pre-computed user_discover_feed cache. Interaction tracking (POST /api/discover/interact). Card dismiss + feedback UI. "NEW" badge. Enriched chat context handoff. 4 new tables (user_segments, user_discover_feed, user_content_interactions, user_discover_visits). 7 card types active. |
 | 2026-03-26 | Project Task #5: Discover Phase 3 | Product opportunity cards (sukuk, PE co-invest). Engagement re-ranking with taxonomy-tag-based boosts/penalties + segment collaborative filtering. Morning briefing worker (daily LLM brief from overnight cards + Morning Sentinel, pinned at #1). Milestone worker (value thresholds, performance >2%, goal completions, user-scoped IDs). Event-driven per-user refresh. Expiry enforcement with per-card-type TTLs. Pipeline health extended with pipelineLag + feedFreshness. Schema constraint migration. 11 card types active. |
 | 2026-03-26 | Docs Update | Updated PRD section 4.3 (full Discover rewrite), sections 11/12, CHANGELOG (Phase 1/2/3 entries), ISSUES (ISS-023/024), BACKLOG (Phase 1/2/3 completed + BL-026/027/028), replit.md (counts, Phase 2/3 tables). |
+| 2026-03-27 | Project Task #8: Configurable Model Registry | Named-config model registry (production/rollback) with `MODEL_CONFIG` env var. 5 provider aliases (ada-classifier, ada-fast, ada-content, ada-reason, ada-fallback). Replaced all 5 hardcoded `gpt-4o-mini` strings with `resolveModel('ada-content')`. Token instrumentation (prompt_tokens, completion_tokens, provider_alias in agent_traces). Fallback event persistence (provider_fallback_events table). XML prompt injection defense (`<system_instructions>` / `<user_context>` boundaries). Deleted `server/replit_integrations/` scaffold. |

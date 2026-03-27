@@ -311,7 +311,7 @@ export async function resilientCompletion(
     console.log(`[resilientCompletion] No providerAlias, falling back directly to Anthropic...`);
     try {
       const result = await anthropicCompletion(params, timeoutMs);
-      logProviderFallback({ failedProvider: params.model, replacementProvider: 'anthropic', failureReason: primaryFailReason, switchCostMs: Date.now() - switchStart });
+      logProviderFallback({ failedProvider: params.model, replacementProvider: 'anthropic', failureReason: primaryFailReason, switchCostMs: Date.now() - switchStart, modelRequested: params.model, modelServed: 'claude-sonnet-4-6' });
       return result;
     } catch (fallbackErr) {
       console.error(`[resilientCompletion] Anthropic fallback failed:`, (fallbackErr as Error).message);
@@ -330,7 +330,7 @@ export async function resilientCompletion(
       console.log(`[resilientCompletion] Trying Anthropic fallback (${fallbackAlias})...`);
       try {
         const result = await anthropicCompletion(params, timeoutMs);
-        logProviderFallback({ failedProvider: currentAlias, replacementProvider: fallbackAlias, failureReason: primaryFailReason, switchCostMs: Date.now() - switchStart });
+        logProviderFallback({ failedProvider: currentAlias, replacementProvider: fallbackAlias, failureReason: primaryFailReason, switchCostMs: Date.now() - switchStart, modelRequested: params.model, modelServed: 'claude-sonnet-4-6' });
         return result;
       } catch (fallbackErr) {
         console.error(`[resilientCompletion] Fallback (${fallbackAlias}) failed:`, (fallbackErr as Error).message);
@@ -348,7 +348,7 @@ export async function resilientCompletion(
         1,
       );
       if (fallbackResult.result) {
-        logProviderFallback({ failedProvider: currentAlias, replacementProvider: fallbackAlias, failureReason: primaryFailReason, switchCostMs: Date.now() - switchStart });
+        logProviderFallback({ failedProvider: currentAlias, replacementProvider: fallbackAlias, failureReason: primaryFailReason, switchCostMs: Date.now() - switchStart, modelRequested: params.model, modelServed: fallbackModel });
         return fallbackResult.result;
       }
       console.error(`[resilientCompletion] Fallback (${fallbackAlias}) failed, continuing chain...`);
@@ -384,7 +384,7 @@ export async function resilientStreamCompletion(
       console.log(`[resilientStreamCompletion] No providerAlias, falling back directly to Anthropic...`);
       try {
         const fallbackStream = anthropicStreamCompletion(params, timeoutMs);
-        logProviderFallback({ failedProvider: params.model, replacementProvider: 'anthropic', failureReason: failReason, switchCostMs: Date.now() - switchStart });
+        logProviderFallback({ failedProvider: params.model, replacementProvider: 'anthropic', failureReason: failReason, switchCostMs: Date.now() - switchStart, modelRequested: params.model, modelServed: 'claude-sonnet-4-6' });
         return fallbackStream;
       } catch (fallbackErr) {
         console.error(`[resilientStreamCompletion] Anthropic fallback failed:`, (fallbackErr as Error).message);
@@ -403,7 +403,7 @@ export async function resilientStreamCompletion(
         console.log(`[resilientStreamCompletion] Trying Anthropic fallback (${fallbackAlias})...`);
         try {
           const fallbackStream = anthropicStreamCompletion(params, timeoutMs);
-          logProviderFallback({ failedProvider: currentAlias, replacementProvider: fallbackAlias, failureReason: failReason, switchCostMs: Date.now() - switchStart });
+          logProviderFallback({ failedProvider: currentAlias, replacementProvider: fallbackAlias, failureReason: failReason, switchCostMs: Date.now() - switchStart, modelRequested: params.model, modelServed: 'claude-sonnet-4-6' });
           return fallbackStream;
         } catch (fallbackErr) {
           console.error(`[resilientStreamCompletion] Fallback (${fallbackAlias}) failed:`, (fallbackErr as Error).message);
@@ -423,7 +423,7 @@ export async function resilientStreamCompletion(
             { signal: fallbackController.signal },
           );
           clearTimeout(fallbackTimer);
-          logProviderFallback({ failedProvider: currentAlias, replacementProvider: fallbackAlias, failureReason: failReason, switchCostMs: Date.now() - switchStart });
+          logProviderFallback({ failedProvider: currentAlias, replacementProvider: fallbackAlias, failureReason: failReason, switchCostMs: Date.now() - switchStart, modelRequested: params.model, modelServed: fallbackModel });
           return stream;
         } catch (fallbackErr) {
           clearTimeout(fallbackTimer);

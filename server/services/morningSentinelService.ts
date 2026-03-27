@@ -205,6 +205,7 @@ export async function* generateBriefingStream(userId: string, forceRefresh = fal
       ],
       max_completion_tokens: 2048,
       stream: true,
+      stream_options: { include_usage: true },
     }, { timeoutMs: 15000, providerAlias: 'ada-fast' });
 
     let fullContent = '';

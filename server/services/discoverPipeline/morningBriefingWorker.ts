@@ -1,5 +1,6 @@
 import pool from '../../db/pool';
 import { resilientCompletion } from '../openaiClient';
+import { resolveModel } from '../modelRouter';
 import { generateBriefing } from '../morningSentinelService';
 
 const BRIEFING_PROMPT = `You are Ada, an AI wealth copilot for GCC HNW investors. Create a concise morning briefing card combining the user's portfolio sentinel insights with overnight market developments.
@@ -100,12 +101,12 @@ export async function runMorningBriefing(): Promise<number> {
     const prompt = BRIEFING_PROMPT.replace('{CARDS}', cardsText).replace('{SENTINEL_CONTEXT}', sentinelContext);
 
     const completion = await resilientCompletion({
-      model: 'gpt-4o-mini',
+      model: resolveModel('ada-content'),
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.4,
-      max_tokens: 600,
+      max_completion_tokens: 600,
       response_format: { type: 'json_object' },
-    }, { timeoutMs: 15000 });
+    }, { timeoutMs: 15000, providerAlias: 'ada-content' });
 
     const content = completion.choices[0]?.message?.content;
     if (!content) {

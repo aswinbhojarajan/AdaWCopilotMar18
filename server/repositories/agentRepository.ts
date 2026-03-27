@@ -95,12 +95,13 @@ export async function saveToolRun(run: {
   return Number(rows[0].id);
 }
 
-export async function saveAgentTrace(trace: Partial<AgentTrace> & { user_id?: string }): Promise<number> {
+export async function saveAgentTrace(trace: Partial<AgentTrace> & { user_id?: string; prompt_tokens?: number; completion_tokens?: number; provider_alias?: string }): Promise<number> {
   const { rows } = await pool.query(
     `INSERT INTO agent_traces (conversation_id, message_id, tenant_id, user_id, intent_classification,
      policy_decision, model_name, reasoning_effort, tool_set_exposed, tool_calls_made,
-     final_answer, response_time_ms, step_timings, guardrail_interventions, escalation_decisions)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+     final_answer, response_time_ms, step_timings, guardrail_interventions, escalation_decisions,
+     prompt_tokens, completion_tokens, provider_alias)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
      RETURNING id`,
     [
       trace.conversation_id ?? null, trace.message_id ?? null,
@@ -114,6 +115,35 @@ export async function saveAgentTrace(trace: Partial<AgentTrace> & { user_id?: st
       trace.step_timings ? JSON.stringify(trace.step_timings) : null,
       JSON.stringify(trace.guardrail_interventions ?? []),
       JSON.stringify(trace.escalation_decisions ?? []),
+      trace.prompt_tokens ?? null,
+      trace.completion_tokens ?? null,
+      trace.provider_alias ?? null,
+    ],
+  );
+  return Number(rows[0].id);
+}
+
+export async function saveProviderFallbackEvent(event: {
+  original_alias?: string;
+  fallback_alias?: string;
+  failure_reason?: string;
+  switch_cost_ms?: number;
+  lane?: string;
+  model_requested?: string;
+  model_served?: string;
+}): Promise<number> {
+  const { rows } = await pool.query(
+    `INSERT INTO provider_fallback_events (original_alias, fallback_alias, failure_reason, switch_cost_ms, lane, model_requested, model_served)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING id`,
+    [
+      event.original_alias ?? null,
+      event.fallback_alias ?? null,
+      event.failure_reason ?? null,
+      event.switch_cost_ms ?? null,
+      event.lane ?? null,
+      event.model_requested ?? null,
+      event.model_served ?? null,
     ],
   );
   return Number(rows[0].id);

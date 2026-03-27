@@ -2,12 +2,13 @@ import type { IntentClassification, PolicyDecision } from '../../shared/schemas/
 import { getModelCapabilities, hasCapability, getLaneConfig } from './capabilityRegistry';
 
 export type Lane = 'lane0' | 'lane1' | 'lane2';
-export type ProviderAlias = 'ada-classifier' | 'ada-fast' | 'ada-reason' | 'ada-fallback';
+export type ProviderAlias = 'ada-classifier' | 'ada-fast' | 'ada-content' | 'ada-reason' | 'ada-fallback';
 export type ToolGroup = 'financial_data' | 'market_intel' | 'ui_actions' | 'crm_actions';
 
 const PROVIDER_MODEL_MAP: Record<ProviderAlias, string> = {
   'ada-classifier': 'gpt-4.1-nano',
   'ada-fast': 'gpt-4.1-mini',
+  'ada-content': 'gpt-4.1-mini',
   'ada-reason': 'gpt-4.1',
   'ada-fallback': 'claude-sonnet-4-6',
 };
@@ -15,6 +16,7 @@ const PROVIDER_MODEL_MAP: Record<ProviderAlias, string> = {
 const FALLBACK_CHAIN: Record<ProviderAlias, ProviderAlias | null> = {
   'ada-classifier': null,
   'ada-fast': 'ada-fallback',
+  'ada-content': 'ada-fallback',
   'ada-reason': 'ada-fast',
   'ada-fallback': null,
 };
