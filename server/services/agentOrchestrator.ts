@@ -432,7 +432,6 @@ export async function* orchestrateStream(
     let turnCount = 0;
     let isLastTurn = false;
     const moderationBufferEnabled = tenantConfig.moderation_enabled !== false;
-    const pendingTextChunks: string[] = [];
 
     while (turnCount < maxToolRounds + 1) {
       turnCount++;
@@ -502,12 +501,8 @@ export async function* orchestrateStream(
           }
           turnBuffer += delta.content;
           const safeText = streamFilter.push(delta.content);
-          if (safeText) {
-            if (moderationBufferEnabled) {
-              pendingTextChunks.push(safeText);
-            } else {
-              yield { type: 'text', content: safeText };
-            }
+          if (safeText && !moderationBufferEnabled) {
+            yield { type: 'text', content: safeText };
           }
         }
 
@@ -542,12 +537,8 @@ export async function* orchestrateStream(
 
       if (toolCalls.length === 0) {
         const flushed = streamFilter.flush();
-        if (flushed.remainingText) {
-          if (moderationBufferEnabled) {
-            pendingTextChunks.push(flushed.remainingText);
-          } else {
-            yield { type: 'text', content: flushed.remainingText };
-          }
+        if (flushed.remainingText && !moderationBufferEnabled) {
+          yield { type: 'text', content: flushed.remainingText };
         }
         const delimIdx = turnBuffer.indexOf('---FOLLOW_UP_QUESTIONS---');
         fullResponse += delimIdx !== -1
@@ -561,12 +552,8 @@ export async function* orchestrateStream(
       }
 
       const flushedMidTurn = streamFilter.flush();
-      if (flushedMidTurn.remainingText) {
-        if (moderationBufferEnabled) {
-          pendingTextChunks.push(flushedMidTurn.remainingText);
-        } else {
-          yield { type: 'text', content: flushedMidTurn.remainingText };
-        }
+      if (flushedMidTurn.remainingText && !moderationBufferEnabled) {
+        yield { type: 'text', content: flushedMidTurn.remainingText };
       }
       fullResponse += turnBuffer;
 
