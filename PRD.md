@@ -350,7 +350,7 @@ User Message → PII Detection → Session Hydration → Intent Classification
    Route selection uses a request scorecard (token estimate, tool count, context window, complexity signals). Provider aliases (`ada-fast`, `ada-reason`, `ada-fallback`) map to underlying models. Per-lane token and temperature budgets are configurable. Lane metadata is logged in agent traces. Fallback chain: ada-fast → ada-fallback, ada-reason → ada-fallback.
 
 5. **Capability Registry** (`capabilityRegistry.ts`): Configurable named-config model registry:
-   - **Named configurations**: Two named configs (`production`, `rollback`) define the full model stack. `MODEL_CONFIG` env var selects active config (default: `production`). Startup logs effective model map.
+   - **Named configurations**: Three named configs (`production`, `canary`, `rollback`) define the full model stack. `MODEL_CONFIG` env var selects active config (default: `production`). `canary` config targets GPT-5.4 family for migration validation. Startup logs effective model map.
    - **5 provider aliases**: `ada-classifier` (classification), `ada-fast` (chat lane 1), `ada-content` (Discover pipeline), `ada-reason` (chat lane 2), `ada-fallback` (Anthropic resilience)
    - **Model capabilities**: Provider aliases → model IDs, capability sets (streaming, tool_calling, json_mode, reasoning), context windows, cost tiers
    - **Lane configurations**: Lane number → label, description, default provider, available tools
@@ -365,6 +365,7 @@ User Message → PII Detection → Session Hydration → Intent Classification
 7. **Prompt Builder** (`promptBuilder.ts`): Assembles modular system prompts with XML injection defense:
    - System instructions wrapped in `<system_instructions>` / `</system_instructions>` boundary markers
    - User context wrapped in `<user_context>` / `</user_context>` boundary markers
+   - User messages wrapped in `<user_message>` / `</user_message>` boundary markers (applied in orchestrator)
    - Instruction hierarchy note: system instructions take absolute precedence over user messages
    - Persona block (Ada identity, tone, GCC HNW context)
    - Execution boundary block (hard prohibition on trade execution)
@@ -1045,7 +1046,7 @@ main.tsx (QueryClient + prefetch)
 | **LLM Intent Classification** | Built | LLM-first `classifyIntentAsync()` with 3s timeout and keyword fallback. `mapIntentForRag()` prevents double-classification. Lane 2 → Lane 1 fallback on streaming timeout. |
 | **Capability Registry** | Built | Configurable named-config model registry (`capabilityRegistry.ts`). 5 provider aliases (ada-classifier, ada-fast, ada-content, ada-reason, ada-fallback). `MODEL_CONFIG` env var selects production/rollback config. Token instrumentation (prompt_tokens, completion_tokens, provider_alias in agent_traces). Fallback event persistence (provider_fallback_events table). |
 | **Anthropic Fallback** | Built | Automatic fallback to Claude (claude-sonnet-4-6) when OpenAI primary fails. Resilient completion helpers with timeout+retry+fallback for all LLM call sites. |
-| **XML Prompt Injection Defense** | Built | System prompt wrapped in XML boundary markers (`<system_instructions>`, `<user_context>`). Instruction hierarchy prevents user override of system instructions. |
+| **XML Prompt Injection Defense** | Built | System prompt wrapped in XML boundary markers (`<system_instructions>`, `<user_context>`, `<user_message>`). Instruction hierarchy prevents user override of system instructions. |
 | **Verbose/Thinking Mode** | Built | Live `LiveThinkingBar` during streaming with progressive step reveal (120ms stagger). Post-stream `ThinkingPanel` summary (collapsible). "Think" toggle in chat header with localStorage persistence. Tenant-level `verbose_mode` feature flag. Server-side `setImmediate()` ticks + `flush()` for reliable thinking event delivery. |
 | **Full Persona Data Parity** | Built | 3 personas with positions, 365-day performance history, goals, alerts, chat threads; server-side computed wealth insights. Cost basis values match weighted transaction averages. Performance history uses bounded normalized formula. |
 | **ErrorBoundary** | Built | React class component error boundary wrapping WealthScreen and DiscoverScreen. Catches rendering crashes and displays user-friendly error message with retry button. |

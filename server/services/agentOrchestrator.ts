@@ -369,9 +369,15 @@ export async function* orchestrateStream(
   });
 
   const conversationHistory = await memoryService.getWorkingMemory(threadId);
+  const boundedHistory = conversationHistory.map((msg) => {
+    if (msg.role === 'user' && typeof msg.content === 'string') {
+      return { ...msg, content: `<user_message>${msg.content}</user_message>` };
+    }
+    return msg;
+  });
   const messages: OpenAI.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
-    ...conversationHistory,
+    ...boundedHistory,
   ];
   let fullResponse = '';
   const widgets: { type: string }[] = [];
