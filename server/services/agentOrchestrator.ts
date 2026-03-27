@@ -211,32 +211,6 @@ export async function* orchestrateStream(
     inputPreview: piiResult.hasPii ? piiResult.sanitized.slice(0, 100) : req.message.slice(0, 100),
   });
 
-  const inputModResult = await moderateInput(sanitizedMessage);
-  earlyThinkingBuffer.push({ step: 'input_moderation', detail: inputModResult.flagged ? `Flagged (${Object.entries(inputModResult.categories).filter(([, v]) => v).map(([k]) => k).join(', ')})` : `Clean (${inputModResult.latencyMs}ms)` });
-
-  agentRepo.saveModerationEvent({
-    user_id: userId,
-    thread_id: threadId,
-    message_id: messageId,
-    direction: 'input',
-    flagged: inputModResult.flagged,
-    categories: inputModResult.categories,
-    scores: inputModResult.scores,
-    action_taken: inputModResult.flagged ? 'blocked' : 'passed',
-    model_used: inputModResult.model,
-    latency_ms: inputModResult.latencyMs,
-  }).catch(() => {});
-
-  if (inputModResult.flagged) {
-    for (const buffered of earlyThinkingBuffer) {
-      yield* thinkingEvent(true, buffered.step, buffered.detail);
-    }
-    const refusalText = "I'm unable to process this request. Please rephrase your message in a way that aligns with our platform guidelines.";
-    yield { type: 'text', content: refusalText };
-    yield { type: 'done' };
-    return;
-  }
-
   const recentHistory = await memoryService.getWorkingMemory(threadId);
   const classifierHistory = recentHistory.slice(-4).map(t => ({
     role: t.role as 'user' | 'assistant',
@@ -265,6 +239,34 @@ export async function* orchestrateStream(
 
   if (verbose && tenantConfig.feature_flags.verbose_mode !== true) {
     verbose = false;
+  }
+
+  if (tenantConfig.moderation_enabled !== false) {
+    const inputModResult = await moderateInput(sanitizedMessage);
+    earlyThinkingBuffer.push({ step: 'input_moderation', detail: inputModResult.flagged ? `Flagged (${Object.entries(inputModResult.categories).filter(([, v]) => v).map(([k]) => k).join(', ')})` : `Clean (${inputModResult.latencyMs}ms)` });
+
+    agentRepo.saveModerationEvent({
+      user_id: userId,
+      thread_id: threadId,
+      message_id: messageId,
+      direction: 'input',
+      flagged: inputModResult.flagged,
+      categories: inputModResult.categories,
+      scores: inputModResult.scores,
+      action_taken: inputModResult.flagged ? 'blocked' : 'passed',
+      model_used: inputModResult.model,
+      latency_ms: inputModResult.latencyMs,
+    }).catch(() => {});
+
+    if (inputModResult.flagged) {
+      for (const buffered of earlyThinkingBuffer) {
+        yield* thinkingEvent(verbose, buffered.step, buffered.detail);
+      }
+      const refusalText = "I'm unable to process this request. Please rephrase your message in a way that aligns with our platform guidelines.";
+      yield { type: 'text', content: refusalText };
+      yield { type: 'done' };
+      return;
+    }
   }
 
   for (const buffered of earlyThinkingBuffer) {
@@ -429,6 +431,8 @@ export async function* orchestrateStream(
     let currentMessages = [...messages];
     let turnCount = 0;
     let isLastTurn = false;
+    const moderationBufferEnabled = tenantConfig.moderation_enabled !== false;
+    const pendingTextChunks: string[] = [];
 
     while (turnCount < maxToolRounds + 1) {
       turnCount++;
@@ -499,7 +503,11 @@ export async function* orchestrateStream(
           turnBuffer += delta.content;
           const safeText = streamFilter.push(delta.content);
           if (safeText) {
-            yield { type: 'text', content: safeText };
+            if (moderationBufferEnabled) {
+              pendingTextChunks.push(safeText);
+            } else {
+              yield { type: 'text', content: safeText };
+            }
           }
         }
 
@@ -535,7 +543,11 @@ export async function* orchestrateStream(
       if (toolCalls.length === 0) {
         const flushed = streamFilter.flush();
         if (flushed.remainingText) {
-          yield { type: 'text', content: flushed.remainingText };
+          if (moderationBufferEnabled) {
+            pendingTextChunks.push(flushed.remainingText);
+          } else {
+            yield { type: 'text', content: flushed.remainingText };
+          }
         }
         const delimIdx = turnBuffer.indexOf('---FOLLOW_UP_QUESTIONS---');
         fullResponse += delimIdx !== -1
@@ -550,7 +562,11 @@ export async function* orchestrateStream(
 
       const flushedMidTurn = streamFilter.flush();
       if (flushedMidTurn.remainingText) {
-        yield { type: 'text', content: flushedMidTurn.remainingText };
+        if (moderationBufferEnabled) {
+          pendingTextChunks.push(flushedMidTurn.remainingText);
+        } else {
+          yield { type: 'text', content: flushedMidTurn.remainingText };
+        }
       }
       fullResponse += turnBuffer;
 
@@ -689,7 +705,7 @@ export async function* orchestrateStream(
 
     const postStart = Date.now();
 
-    if (tenantConfig.moderation_enabled !== false) {
+    if (moderationBufferEnabled) {
       const outputModResult = await moderateOutput(fullResponse);
       yield* thinkingEvent(verbose, 'output_moderation', outputModResult.flagged ? `Flagged (${Object.entries(outputModResult.categories).filter(([, v]) => v).map(([k]) => k).join(', ')})` : `Clean (${outputModResult.latencyMs}ms)`);
 
@@ -709,7 +725,11 @@ export async function* orchestrateStream(
       if (outputModResult.flagged) {
         fullResponse = "I'm unable to provide this response as it may not align with our platform guidelines. Please try rephrasing your question.";
         guardrailInterventions.push('Output moderation flagged — response replaced with fallback');
-        yield { type: 'text', content: '\n\n⚠️ ' + fullResponse };
+        yield { type: 'text', content: fullResponse };
+      } else {
+        for (const chunk of pendingTextChunks) {
+          yield { type: 'text', content: chunk };
+        }
       }
     }
 
