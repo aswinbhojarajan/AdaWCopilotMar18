@@ -8,7 +8,8 @@ export async function getTenantConfig(tenantId: string): Promise<TenantConfig | 
             requires_advisor_handoff_for_specific_advice, disclosure_profile,
             allowed_tool_profiles, provider_config, feature_flags,
             tone, language, blocked_phrases, data_freshness_threshold_seconds,
-            execution_routing_mode, execution_webhook_url, can_prepare_trade_plans
+            execution_routing_mode, execution_webhook_url, can_prepare_trade_plans,
+            moderation_enabled
      FROM tenant_configs WHERE tenant_id = $1`,
     [tenantId],
   );
@@ -34,6 +35,7 @@ export async function getTenantConfig(tenantId: string): Promise<TenantConfig | 
     execution_routing_mode: (r.execution_routing_mode as TenantConfig['execution_routing_mode']) ?? 'rm_handoff',
     execution_webhook_url: r.execution_webhook_url ? String(r.execution_webhook_url) : null,
     can_prepare_trade_plans: r.can_prepare_trade_plans != null ? Boolean(r.can_prepare_trade_plans) : true,
+    moderation_enabled: r.moderation_enabled != null ? Boolean(r.moderation_enabled) : true,
   };
 }
 
@@ -52,6 +54,7 @@ export async function getDefaultTenantConfig(): Promise<TenantConfig> {
       disclosure_profile: 'uae_affluent_v1',
       allowed_tool_profiles: ['portfolio_read', 'market_read', 'news_read', 'macro_read', 'fx_read', 'health_compute', 'workflow_light', 'execution_route'],
       provider_config: {},
+      moderation_enabled: true,
       feature_flags: { enable_agent_tracing: true, enable_advisor_handoff: true, enable_recommendations: false, enable_wealth_engine: true, verbose_mode: true },
       tone: 'professional',
       language: 'en',
@@ -276,6 +279,38 @@ export async function getPolicyDecisionsByRequestType(requestType: string, tenan
     decision: r.decision as PolicyDecision,
     created_at: new Date(r.created_at as string).toISOString(),
   }));
+}
+
+export async function saveModerationEvent(event: {
+  user_id?: string;
+  thread_id?: string;
+  message_id?: string;
+  direction: 'input' | 'output';
+  flagged: boolean;
+  categories: Record<string, boolean>;
+  scores: Record<string, number>;
+  action_taken?: string;
+  model_used?: string;
+  latency_ms?: number;
+}): Promise<number> {
+  const { rows } = await pool.query(
+    `INSERT INTO moderation_events (user_id, thread_id, message_id, direction, flagged, categories, scores, action_taken, model_used, latency_ms)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+     RETURNING id`,
+    [
+      event.user_id ?? null,
+      event.thread_id ?? null,
+      event.message_id ?? null,
+      event.direction,
+      event.flagged,
+      JSON.stringify(event.categories),
+      JSON.stringify(event.scores),
+      event.action_taken ?? null,
+      event.model_used ?? null,
+      event.latency_ms ?? null,
+    ],
+  );
+  return Number(rows[0].id);
 }
 
 export async function getToolRunsByConversation(conversationId: string): Promise<ToolResult[]> {

@@ -274,6 +274,7 @@ CREATE TABLE IF NOT EXISTS tenant_configs (
     CHECK (execution_routing_mode IN ('rm_handoff', 'api_webhook', 'disabled')),
   execution_webhook_url TEXT,
   can_prepare_trade_plans BOOLEAN NOT NULL DEFAULT TRUE,
+  moderation_enabled BOOLEAN NOT NULL DEFAULT TRUE,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -684,6 +685,9 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'agent_traces' AND column_name = 'provider_alias') THEN
     ALTER TABLE agent_traces ADD COLUMN provider_alias TEXT;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tenant_configs' AND column_name = 'moderation_enabled') THEN
+    ALTER TABLE tenant_configs ADD COLUMN moderation_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+  END IF;
 END $$;
 
 CREATE TABLE IF NOT EXISTS provider_fallback_events (
@@ -695,5 +699,20 @@ CREATE TABLE IF NOT EXISTS provider_fallback_events (
   lane TEXT,
   model_requested TEXT,
   model_served TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS moderation_events (
+  id SERIAL PRIMARY KEY,
+  user_id TEXT REFERENCES users(id),
+  thread_id TEXT,
+  message_id TEXT,
+  direction TEXT NOT NULL CHECK (direction IN ('input', 'output')),
+  flagged BOOLEAN NOT NULL DEFAULT FALSE,
+  categories JSONB NOT NULL DEFAULT '{}',
+  scores JSONB NOT NULL DEFAULT '{}',
+  action_taken TEXT,
+  model_used TEXT,
+  latency_ms INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

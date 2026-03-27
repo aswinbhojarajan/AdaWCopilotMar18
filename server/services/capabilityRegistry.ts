@@ -100,18 +100,36 @@ function resolveConfigName(): ModelConfigName {
   return 'production';
 }
 
+const ALIAS_ENV_MAP: Record<string, string> = {
+  'ada-classifier': 'ADA_MODEL_CLASSIFIER',
+  'ada-fast': 'ADA_MODEL_FAST',
+  'ada-reason': 'ADA_MODEL_REASON',
+  'ada-content': 'ADA_MODEL_CONTENT',
+  'ada-fallback': 'ADA_MODEL_FALLBACK',
+};
+
 function buildRegistry(configName: ModelConfigName): Record<string, ModelCapabilities> {
   const config = NAMED_CONFIGS[configName];
   const registry: Record<string, ModelCapabilities> = {};
 
   for (const [alias, entry] of Object.entries(config)) {
+    const envVar = ALIAS_ENV_MAP[alias];
+    const envOverride = envVar ? process.env[envVar] : undefined;
+    const resolvedModel = envOverride || entry.model;
+    const source: 'env-override' | 'config' = envOverride ? 'env-override' : 'config';
+
     registry[alias] = {
       alias,
-      model: entry.model,
+      model: resolvedModel,
       capabilities: new Set(entry.capabilities),
       maxContextTokens: entry.maxContextTokens,
       costTier: entry.costTier,
     };
+
+    (registry[alias] as ModelCapabilities & { _source: string })._source = source;
+    if (envOverride) {
+      (registry[alias] as ModelCapabilities & { _envVar: string })._envVar = envVar!;
+    }
   }
 
   return registry;
@@ -122,7 +140,9 @@ const REGISTRY: Record<string, ModelCapabilities> = buildRegistry(ACTIVE_CONFIG)
 
 console.log(`[CapabilityRegistry] Active config: ${ACTIVE_CONFIG}`);
 for (const [alias, caps] of Object.entries(REGISTRY)) {
-  console.log(`  ${alias} → ${caps.model} (cost: ${caps.costTier})`);
+  const rec = caps as ModelCapabilities & { _source?: string; _envVar?: string };
+  const source = rec._source === 'env-override' ? `env-override (${rec._envVar})` : 'config';
+  console.log(`  ${alias} → ${caps.model} (cost: ${caps.costTier}, source: ${source})`);
 }
 
 export function getActiveConfigName(): ModelConfigName {

@@ -4,6 +4,25 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Project Task #9 — Canary Validation & Moderation API
+**Date:** March 27, 2026
+
+### Added
+- **Per-Alias Model Env Var Overrides** — `capabilityRegistry.ts` supports per-alias environment variable overrides: `ADA_MODEL_CLASSIFIER`, `ADA_MODEL_FAST`, `ADA_MODEL_REASON`, `ADA_MODEL_CONTENT`, `ADA_MODEL_FALLBACK`. Resolution order: env var → named config → hardcoded default. Startup log shows source (`env-override` or `config`) for each alias.
+- **OpenAI Moderation API Integration** — New `server/services/moderationService.ts` wrapping `omni-moderation-latest` model. Exposes `moderateInput(text)` and `moderateOutput(text)` returning `{ flagged, categories, scores, latencyMs, model }`. API errors are non-blocking (pass-through with `flagged: false`).
+- **Pre-LLM Input Moderation** — After PII scan and tenant config hydration, orchestrator calls `moderateInput()` on sanitized message. Flagged inputs yield a refusal message and early return. Emits thinking event with moderation result.
+- **Post-LLM Output Moderation** — After guardrail post-checks, orchestrator calls `moderateOutput()` on assembled response. Flagged outputs are replaced with a safe fallback message. Emits thinking event with moderation result.
+- **`moderation_events` Table** — New PostgreSQL table (idempotent `CREATE TABLE IF NOT EXISTS`) with columns: id, user_id, thread_id, message_id, direction (input/output), flagged, categories JSONB, scores JSONB, action_taken, model_used, latency_ms, created_at.
+- **`saveModerationEvent()` Repository Function** — Persists moderation events to `moderation_events` table (fire-and-forget, non-blocking).
+- **`moderation_enabled` Tenant Config Flag** — Added to `TenantConfigSchema` in `shared/schemas/agent.ts` (default `true`). Included in `getDefaultTenantConfig()` and `getTenantConfig()` in `agentRepository.ts`. Both input and output moderation checks respect this flag.
+
+### Validated
+- TypeScript compiles clean (`npm run typecheck` passes)
+- Application starts and all pipelines initialize successfully
+- Capability registry logs effective model map with source at startup
+
+---
+
 ## Project Task #8 — Configurable Model Registry & GPT-5.4 Migration
 **Date:** March 27, 2026
 

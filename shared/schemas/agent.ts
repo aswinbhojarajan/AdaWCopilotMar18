@@ -156,6 +156,7 @@ export const TenantConfigSchema = z.object({
   disclosure_profile: z.string(),
   allowed_tool_profiles: z.array(z.string()),
   provider_config: z.record(z.string(), z.string()),
+  moderation_enabled: z.boolean().default(true),
   feature_flags: z.record(z.string(), z.boolean()),
   tone: z.string().default('professional'),
   language: z.string().default('en'),

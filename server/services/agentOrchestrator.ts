@@ -8,6 +8,7 @@ import * as intentClassifier from './intentClassifier';
 import * as ragService from './ragService';
 import * as memoryService from './memoryService';
 import * as piiDetector from './piiDetector';
+import { moderateInput, moderateOutput } from './moderationService';
 import { getCapabilitySummary, getLaneConfig } from './capabilityRegistry';
 import * as contentRepo from '../repositories/contentRepository';
 import * as userRepo from '../repositories/userRepository';
@@ -245,6 +246,31 @@ export async function* orchestrateStream(
   }
   if (verbose) {
     await new Promise(r => setImmediate(r));
+  }
+
+  if (tenantConfig.moderation_enabled !== false) {
+    const inputModResult = await moderateInput(sanitizedMessage);
+    yield* thinkingEvent(verbose, 'input_moderation', inputModResult.flagged ? `Flagged (${Object.entries(inputModResult.categories).filter(([, v]) => v).map(([k]) => k).join(', ')})` : `Clean (${inputModResult.latencyMs}ms)`);
+
+    agentRepo.saveModerationEvent({
+      user_id: userId,
+      thread_id: threadId,
+      message_id: messageId,
+      direction: 'input',
+      flagged: inputModResult.flagged,
+      categories: inputModResult.categories,
+      scores: inputModResult.scores,
+      action_taken: inputModResult.flagged ? 'blocked' : 'pass',
+      model_used: inputModResult.model,
+      latency_ms: inputModResult.latencyMs,
+    }).catch(() => {});
+
+    if (inputModResult.flagged) {
+      const refusalText = "I'm unable to process this request. Please rephrase your message in a way that aligns with our platform guidelines.";
+      yield { type: 'text', content: refusalText };
+      yield { type: 'done' };
+      return;
+    }
   }
 
   const policyStart = Date.now();
@@ -672,6 +698,30 @@ export async function* orchestrateStream(
 
     for (const uiEvent of pendingUiEvents) {
       yield uiEvent;
+    }
+
+    if (tenantConfig.moderation_enabled !== false) {
+      const outputModResult = await moderateOutput(fullResponse);
+      yield* thinkingEvent(verbose, 'output_moderation', outputModResult.flagged ? `Flagged (${Object.entries(outputModResult.categories).filter(([, v]) => v).map(([k]) => k).join(', ')})` : `Clean (${outputModResult.latencyMs}ms)`);
+
+      agentRepo.saveModerationEvent({
+        user_id: userId,
+        thread_id: threadId,
+        message_id: messageId,
+        direction: 'output',
+        flagged: outputModResult.flagged,
+        categories: outputModResult.categories,
+        scores: outputModResult.scores,
+        action_taken: outputModResult.flagged ? 'replaced' : 'pass',
+        model_used: outputModResult.model,
+        latency_ms: outputModResult.latencyMs,
+      }).catch(() => {});
+
+      if (outputModResult.flagged) {
+        fullResponse = "I'm unable to provide this response as it may not align with our platform guidelines. Please try rephrasing your question.";
+        guardrailInterventions.push('Output moderation flagged — response replaced with fallback');
+        yield { type: 'text', content: '\n\n⚠️ ' + fullResponse };
+      }
     }
 
     if (guardrailResult.appendedDisclosures.length > 0) {
