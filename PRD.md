@@ -1,7 +1,7 @@
 # Ada — AI Wealth Copilot: Product Requirements Document
 
 > **Living document** — update this PRD before and after every build cycle.
-> Last updated: 2026-03-27
+> Last updated: 2026-03-29
 >
 > **Source of truth precedence**: When a mismatch exists between this document and the runtime code/schema, the code is authoritative. Update this PRD to reflect the code, not the other way around.
 >
@@ -304,15 +304,16 @@ Every tab screen follows the same layout:
 
 ### AI Response System
 
-**LLM-powered** — uses OpenAI gpt-5-mini via Replit AI Integrations with a full agent architecture.
+**LLM-powered** — uses OpenAI GPT-5.4 family via Replit AI Integrations with a full agent architecture. Models are resolved through the capability registry's 7 provider aliases (see Section 9).
 
 The chat system follows a production-grade agent pipeline orchestrated by `agentOrchestrator.ts`:
 
 ```
-User Message → PII Detection → Session Hydration → Intent Classification
-    → Policy Evaluation → Model Routing → RAG Context Building
-    → Prompt Assembly → Memory Retrieval → LLM Call (with tools)
-    → Multi-Turn Tool Execution → Wealth Engine Calculations
+User Message → PII Detection → Tenant Config Hydration → Input Moderation
+    → Intent Classification → Policy Evaluation → Model Routing
+    → RAG Context Building → Prompt Assembly → Memory Retrieval
+    → LLM Call (with tools) → Multi-Turn Tool Execution
+    → Wealth Engine Calculations → Output Moderation
     → Guardrails (pre-stream) → Response Building → SSE Streaming
     → Trace Logging → Memory Persistence → Audit Logging
 ```
@@ -321,7 +322,7 @@ User Message → PII Detection → Session Hydration → Intent Classification
 
 1. **PII Detection** (`piiDetector.ts`): Scans user input for sensitive data patterns (email, phone, SSN, credit card, passport, IBAN). Detected PII is flagged in the audit log; messages are still processed but flagged.
 
-2. **Intent Classification** (`intentClassifier.ts`): LLM-first classification with keyword fallback. `classifyIntentAsync()` sends the user message to gpt-5-mini (via ada-fast alias) with a 3-second AbortController timeout. The LLM returns a JSON object with `intent` and `confidence` fields. On timeout, error, or empty response, falls back to keyword-based classification. LLM classifications return 0.95–0.98 confidence; keyword fallback returns 0.4–0.5 confidence.
+2. **Intent Classification** (`intentClassifier.ts`): LLM-first classification with keyword fallback. `classifyIntentAsync()` sends the user message to the `ada-classifier` alias (→ gpt-5.4-nano) with a 3-second AbortController timeout. The LLM returns a JSON object with `intent` and `confidence` fields. On timeout, error, or empty response, falls back to keyword-based classification. LLM classifications return 0.95–0.98 confidence; keyword fallback returns 0.4–0.5 confidence.
 
    | Intent | Triggers (keyword fallback) | Context Fetched |
    |---|---|---|
@@ -344,14 +345,14 @@ User Message → PII Detection → Session Hydration → Intent Classification
 
 4. **Model Router** (`modelRouter.ts`): Lane-based multi-model routing with three lanes:
    - **Lane 0 (Deterministic)**: Portfolio lookups, balance checks — handled by the wealth engine without LLM calls
-   - **Lane 1 (Fast)**: Simple queries using `ada-fast` (→ gpt-5-mini) with lower token budgets
-   - **Lane 2 (Reasoning)**: Complex analysis using `ada-reason` (→ gpt-5-mini) with higher token budgets
+   - **Lane 1 (Fast)**: Simple queries using `ada-fast` (→ gpt-5.4-mini) with lower token budgets
+   - **Lane 2 (Reasoning)**: Complex analysis using `ada-reason` (→ gpt-5.4) with higher token budgets
    
    Route selection uses a request scorecard (token estimate, tool count, context window, complexity signals). Provider aliases (`ada-fast`, `ada-reason`, `ada-fallback`) map to underlying models. Per-lane token and temperature budgets are configurable. Lane metadata is logged in agent traces. Fallback chain: ada-fast → ada-fallback, ada-reason → ada-fallback.
 
 5. **Capability Registry** (`capabilityRegistry.ts`): Configurable named-config model registry:
-   - **Named configurations**: Two named configs (`production`, `rollback`) define the full model stack. `MODEL_CONFIG` env var selects active config (default: `production`). `rollback` retains GPT-4.1 family for instant recovery after model upgrades. Startup logs effective model map.
-   - **5 provider aliases**: `ada-classifier` (classification), `ada-fast` (chat lane 1), `ada-content` (Discover pipeline), `ada-reason` (chat lane 2), `ada-fallback` (Anthropic resilience)
+   - **Named configurations**: Two named configs (`beta`, `rollback`) define the full model stack. `MODEL_CONFIG` env var selects active config (default: `beta`). `beta` uses GPT-5.4 family; `rollback` retains GPT-4.1 family for instant recovery. Startup logs effective model map with source for each alias.
+   - **7 provider aliases**: `ada-classifier` (classification → gpt-5.4-nano), `ada-fast` (chat lane 1 → gpt-5.4-mini), `ada-content` (Discover pipeline → gpt-5.4-mini), `ada-reason` (chat lane 2 → gpt-5.4), `ada-embeddings` (semantic search → text-embedding-3-small), `ada-moderation` (content safety → omni-moderation-latest), `ada-fallback` (Anthropic resilience → claude-sonnet-4-6)
    - **Model capabilities**: Provider aliases → model IDs, capability sets (streaming, tool_calling, json_mode, reasoning), context windows, cost tiers
    - **Lane configurations**: Lane number → label, description, default provider, available tools
    - **Intent→route mappings**: Intent type → default lane, supported lanes, required/optional tools, description
@@ -381,7 +382,7 @@ User Message → PII Detection → Session Hydration → Intent Classification
    - **Episodic memory**: Summarized conversation episodes stored in `episodic_memories` table. Retrieved by relevance to current conversation.
    - **Semantic memory**: Extracted user facts and preferences stored in `semantic_facts` table (e.g., "User plans to retire in 10 years", "User prefers conservative investments"). Persisted via the `extract_user_fact` tool call.
 
-8. **LLM Call** (`aiService.ts`): OpenAI gpt-5-mini with:
+8. **LLM Call** (`aiService.ts`): OpenAI via alias-resolved models with:
    - System prompt containing persona instructions, portfolio context, memories, and available tools.
    - `max_completion_tokens` (not `max_tokens`) for token budget control.
    - Streaming enabled via SSE for progressive text rendering.
@@ -879,7 +880,7 @@ Standalone tables:
 | Frontend | React 18 + TypeScript, Vite 6, Tailwind CSS v4, TanStack Query v5 |
 | Backend | Express + TypeScript (via `tsx`), port 3001 |
 | Database | PostgreSQL (Replit-managed), 33 tables |
-| AI | OpenAI GPT-4.1 family (Replit AI Integrations), 5 provider aliases, named configs, streaming SSE |
+| AI | OpenAI GPT-5.4 family (Replit AI Integrations), 7 provider aliases (beta/rollback configs), streaming SSE |
 | Animations | Framer Motion v11 (`motion/react`), AnimatePresence transitions |
 | Fonts | Crimson Pro, DM Sans (Google Fonts) |
 | Icons | Lucide React |
@@ -940,7 +941,7 @@ main.tsx (QueryClient + prefetch)
 
 1. **"Lounge" renamed to "Collective"** throughout the entire codebase.
 2. **Asset allocation is computed** from positions + account balances, not stored directly.
-3. **Chat uses LLM (gpt-5-mini)** with full RAG pipeline, intent routing, three-tier memory, tool-calling, and SSE streaming.
+3. **Chat uses LLM (GPT-5.4 family via provider aliases)** with full RAG pipeline, intent routing, three-tier memory, tool-calling, and SSE streaming.
 4. **Morning Sentinel uses LLM** with portfolio anomaly detection, prefetch-on-init, and SSE streaming fallback.
 5. **Default user is hardcoded** to `user-aisha` in `api.ts`.
 6. **Poll voting uses database transactions** for atomicity (increment vote_count + insert vote record).
@@ -1044,7 +1045,7 @@ main.tsx (QueryClient + prefetch)
 | **User Switching** | Built | PersonaPicker bottom sheet, X-User-ID header, per-user query isolation, localStorage persistence |
 | **Multi-Model Routing** | Built | Lane-based control plane (Lane 0 deterministic, Lane 1 fast, Lane 2 reasoning) with request scorecards and provider aliases |
 | **LLM Intent Classification** | Built | LLM-first `classifyIntentAsync()` with 3s timeout and keyword fallback. `mapIntentForRag()` prevents double-classification. Lane 2 → Lane 1 fallback on streaming timeout. |
-| **Capability Registry** | Built | Configurable named-config model registry (`capabilityRegistry.ts`). 5 provider aliases (ada-classifier, ada-fast, ada-content, ada-reason, ada-fallback). `MODEL_CONFIG` env var selects production/rollback config. Token instrumentation (prompt_tokens, completion_tokens, provider_alias in agent_traces). Fallback event persistence (provider_fallback_events table). |
+| **Capability Registry** | Built | Configurable named-config model registry (`capabilityRegistry.ts`). 7 provider aliases (ada-classifier, ada-fast, ada-content, ada-reason, ada-embeddings, ada-moderation, ada-fallback). `MODEL_CONFIG` env var selects beta/rollback config (default: beta → GPT-5.4 family). Per-alias env var overrides (`ADA_MODEL_CLASSIFIER`, `ADA_MODEL_FAST`, `ADA_MODEL_REASON`, `ADA_MODEL_CONTENT`, `ADA_MODEL_EMBEDDINGS`, `ADA_MODEL_MODERATION`, `ADA_MODEL_FALLBACK`). Token instrumentation (prompt_tokens, completion_tokens, provider_alias in agent_traces). Fallback event persistence (provider_fallback_events table). |
 | **Anthropic Fallback** | Built | Automatic fallback to Claude (claude-sonnet-4-6) when OpenAI primary fails. Resilient completion helpers with timeout+retry+fallback for all LLM call sites. |
 | **XML Prompt Injection Defense** | Built | System prompt wrapped in XML boundary markers (`<system_instructions>`, `<user_context>`, `<user_message>`). Instruction hierarchy prevents user override of system instructions. |
 | **Verbose/Thinking Mode** | Built | Live `LiveThinkingBar` during streaming with progressive step reveal (120ms stagger). Post-stream `ThinkingPanel` summary (collapsible). "Think" toggle in chat header with localStorage persistence. Tenant-level `verbose_mode` feature flag. Server-side `setImmediate()` ticks + `flush()` for reliable thinking event delivery. |
@@ -1073,7 +1074,7 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-17 | T004: Frontend API Integration | TanStack Query hooks. HomeScreen fetches `/api/home/summary`. WealthScreen fetches 5 endpoints in parallel. Loading skeletons and error states. |
 | 2026-03-18 | T005: Chat Context & Interactions | ChatScreen calls `/api/chat/message`. CTAs pass structured context. Poll voting endpoint. Peer comparison endpoint. Discover content endpoint. Performance history (366 daily data points). Chat thread message persistence. |
 | 2026-03-18 | T006: PRD Creation | Created this living Product Requirements Document. |
-| 2026-03-18 | T007: AI Chat + LLM Integration | Full LLM-powered chat replacing keyword matching. OpenAI gpt-5-mini via Replit AI Integrations. Intent classification, RAG pipeline (holdings, allocations, goals, accounts, transactions), three-tier memory system (working/episodic/semantic), PII detection, tool-calling (show_simulator, show_widget, extract_user_fact), SSE streaming, embedded widgets (AllocationChartWidget, HoldingsSummaryWidget, GoalProgressWidget, PortfolioSummaryWidget), scenario simulators via LLM, suggested questions from LLM, audit logging. Added 3 new tables: episodic_memories, semantic_facts, chat_audit_log. |
+| 2026-03-18 | T007: AI Chat + LLM Integration | Full LLM-powered chat replacing keyword matching. OpenAI via Replit AI Integrations. Intent classification, RAG pipeline (holdings, allocations, goals, accounts, transactions), three-tier memory system (working/episodic/semantic), PII detection, tool-calling (show_simulator, show_widget, extract_user_fact), SSE streaming, embedded widgets (AllocationChartWidget, HoldingsSummaryWidget, GoalProgressWidget, PortfolioSummaryWidget), scenario simulators via LLM, suggested questions from LLM, audit logging. Added 3 new tables: episodic_memories, semantic_facts, chat_audit_log. |
 | 2026-03-18 | T008: Goals & Life Planning | Goal health score computation (goalService.ts). AI-powered life-gap analysis. Life-event goal suggestions. New endpoints: /wealth/goals/health-score, /wealth/goals/life-gaps, /wealth/goals/life-gaps/dismiss, /wealth/goals/life-event. UI components: LifeGapPrompts, LifeEventModal. |
 | 2026-03-18 | T009: Morning Sentinel | AI-generated daily briefing (morningSentinelService.ts). Portfolio anomaly detection (concentration, large moves, low diversification). Streaming SSE endpoint. MorningSentinelCard UI component. |
 | 2026-03-18 | T010: Animations & Transitions | Framer Motion AnimatePresence for tab switches (horizontal slide), overlays (slide-up), client environment (fade). Animated tab indicator with layoutId. Pull-to-refresh on all tab screens. |
@@ -1086,7 +1087,7 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-20 | Agent Task #5: Verify & Fix Agent Architecture | Fixed intent sub-routing (portfolio_health, portfolio_explain, market_news). Fixed guardrails-before-streaming ordering. Fixed advisor handoff widget deduplication. Verified all 8 tools dispatch correctly. End-to-end pipeline verified. |
 | 2026-03-21 | Agent Task #6: Execution Guardrails & RM Handoff | execution_request intent classification (20+ keywords). 3-layer execution boundary (system prompt, guardrails, orchestrator fallback). rmHandoffService with rm_handoff/api_webhook/disabled routing. route_to_advisor tool. advisor_action_queue table. Enhanced AdvisorHandoffWidget with RM name, action context, queue reference. Tenant config extended with execution_routing_mode, execution_webhook_url, can_prepare_trade_plans. |
 | 2026-03-21 | PRD Update | Updated PRD to reflect agent architecture: 33 tables, 34 endpoints, 17 services, 6 providers, 8 AI tools, execution guardrails, RM handoff, multi-tenant config. |
-| 2026-03-21 | Task #7: Multi-Model Routing | Lane-based control plane with 3 lanes (deterministic/fast/reasoning). Request scorecards for route selection. Provider aliases (ada-fast, ada-reason → gpt-5-mini). Per-lane token/temperature budgets. Lane metadata in agent traces. |
+| 2026-03-21 | Task #7: Multi-Model Routing | Lane-based control plane with 3 lanes (deterministic/fast/reasoning). Request scorecards for route selection. Provider aliases (ada-fast, ada-reason). Per-lane token/temperature budgets. Lane metadata in agent traces. |
 | 2026-03-21 | Task #8: User Switching | PersonaPicker bottom sheet for switching between 8 personas. X-User-ID header on all API calls. UserContext provider with localStorage persistence. Per-user React Query isolation (userId in all queryKeys + removeQueries on switch). Fixed Wealth tab crash for non-default users. |
 | 2026-03-21 | Task #9: Full Persona Data Parity | All 8 personas seeded with: accounts, positions, portfolio snapshots, 365-day volatile performance history (risk-profile-appropriate curves with drawdowns for aggressive personas), goals, alerts, chat threads. Server-side `computeWealthInsights()` for diversification score, risk level, top allocation. Allocation totals reconcile with snapshots. 70-test suite in `tests/persona-parity.test.ts`. |
 | 2026-03-21 | Bug Fix: Collective Duplicates | Fixed `peer_segments` table producing 400 duplicate rows on restart. Added UNIQUE constraint on `asset_class`. Seed uses DELETE + ON CONFLICT(asset_class) DO NOTHING. |
@@ -1114,3 +1115,4 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-26 | Project Task #5: Discover Phase 3 | Product opportunity cards (sukuk, PE co-invest). Engagement re-ranking with taxonomy-tag-based boosts/penalties + segment collaborative filtering. Morning briefing worker (daily LLM brief from overnight cards + Morning Sentinel, pinned at #1). Milestone worker (value thresholds, performance >2%, goal completions, user-scoped IDs). Event-driven per-user refresh. Expiry enforcement with per-card-type TTLs. Pipeline health extended with pipelineLag + feedFreshness. Schema constraint migration. 11 card types active. |
 | 2026-03-26 | Docs Update | Updated PRD section 4.3 (full Discover rewrite), sections 11/12, CHANGELOG (Phase 1/2/3 entries), ISSUES (ISS-023/024), BACKLOG (Phase 1/2/3 completed + BL-026/027/028), replit.md (counts, Phase 2/3 tables). |
 | 2026-03-27 | Project Task #8: Configurable Model Registry | Named-config model registry (production/rollback) with `MODEL_CONFIG` env var. 5 provider aliases (ada-classifier, ada-fast, ada-content, ada-reason, ada-fallback). Replaced all 5 hardcoded `gpt-4o-mini` strings with `resolveModel('ada-content')`. Token instrumentation (prompt_tokens, completion_tokens, provider_alias in agent_traces). Fallback event persistence (provider_fallback_events table). XML prompt injection defense (`<system_instructions>` / `<user_context>` boundaries). Deleted `server/replit_integrations/` scaffold. |
+| 2026-03-29 | Project Task #10: GPT-5.4 Beta Config & Registry Upgrade | Named configs renamed `production`→`beta`, default config now `beta` with GPT-5.4 family (gpt-5.4-nano, gpt-5.4-mini, gpt-5.4). `rollback` retains GPT-4.1 family. Added `ada-embeddings` (text-embedding-3-small) and `ada-moderation` (omni-moderation-latest) aliases to both configs. 7 total provider aliases. Per-alias env var overrides extended with `ADA_MODEL_EMBEDDINGS` and `ADA_MODEL_MODERATION`. `moderationService.ts` updated to resolve model from registry via `resolveModel('ada-moderation')` instead of hardcoded constant. |

@@ -18,7 +18,7 @@ export interface ModelCapabilities {
   costTier: 'low' | 'medium' | 'high';
 }
 
-type ModelConfigName = 'production' | 'rollback';
+type ModelConfigName = 'beta' | 'rollback';
 
 interface ModelConfigEntry {
   model: string;
@@ -28,30 +28,42 @@ interface ModelConfigEntry {
 }
 
 const NAMED_CONFIGS: Record<ModelConfigName, Record<string, ModelConfigEntry>> = {
-  production: {
+  beta: {
     'ada-classifier': {
-      model: 'gpt-4.1-nano',
+      model: 'gpt-5.4-nano',
       capabilities: ['json_mode', 'fast_response'],
       maxContextTokens: 1048576,
       costTier: 'low',
     },
     'ada-fast': {
-      model: 'gpt-4.1-mini',
+      model: 'gpt-5.4-mini',
       capabilities: ['streaming', 'tool_calling', 'json_mode', 'fast_response'],
       maxContextTokens: 1048576,
       costTier: 'low',
     },
     'ada-content': {
-      model: 'gpt-4.1-mini',
+      model: 'gpt-5.4-mini',
       capabilities: ['json_mode', 'fast_response'],
       maxContextTokens: 1048576,
       costTier: 'low',
     },
     'ada-reason': {
-      model: 'gpt-4.1',
+      model: 'gpt-5.4',
       capabilities: ['streaming', 'tool_calling', 'json_mode', 'reasoning', 'long_context'],
       maxContextTokens: 1048576,
       costTier: 'medium',
+    },
+    'ada-embeddings': {
+      model: 'text-embedding-3-small',
+      capabilities: [],
+      maxContextTokens: 8191,
+      costTier: 'low',
+    },
+    'ada-moderation': {
+      model: 'omni-moderation-latest',
+      capabilities: [],
+      maxContextTokens: 32768,
+      costTier: 'low',
     },
     'ada-fallback': {
       model: 'claude-sonnet-4-6',
@@ -85,6 +97,18 @@ const NAMED_CONFIGS: Record<ModelConfigName, Record<string, ModelConfigEntry>> =
       maxContextTokens: 1048576,
       costTier: 'medium',
     },
+    'ada-embeddings': {
+      model: 'text-embedding-3-small',
+      capabilities: [],
+      maxContextTokens: 8191,
+      costTier: 'low',
+    },
+    'ada-moderation': {
+      model: 'omni-moderation-latest',
+      capabilities: [],
+      maxContextTokens: 32768,
+      costTier: 'low',
+    },
     'ada-fallback': {
       model: 'claude-sonnet-4-6',
       capabilities: ['streaming', 'tool_calling', 'reasoning', 'long_context'],
@@ -102,10 +126,10 @@ function resolveConfigName(): ModelConfigName {
     configExplicitlySet = true;
     return 'rollback';
   }
-  if (envVal === 'production') {
+  if (envVal === 'beta') {
     configExplicitlySet = true;
   }
-  return 'production';
+  return 'beta';
 }
 
 const ALIAS_ENV_MAP: Record<string, string> = {
@@ -113,6 +137,8 @@ const ALIAS_ENV_MAP: Record<string, string> = {
   'ada-fast': 'ADA_MODEL_FAST',
   'ada-reason': 'ADA_MODEL_REASON',
   'ada-content': 'ADA_MODEL_CONTENT',
+  'ada-embeddings': 'ADA_MODEL_EMBEDDINGS',
+  'ada-moderation': 'ADA_MODEL_MODERATION',
   'ada-fallback': 'ADA_MODEL_FALLBACK',
 };
 

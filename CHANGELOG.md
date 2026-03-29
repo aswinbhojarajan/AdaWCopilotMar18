@@ -4,6 +4,27 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Project Task #10 — GPT-5.4 Beta Config & Registry Upgrade
+**Date:** March 29, 2026
+
+### Changed
+- **Named Config Rename** — `ModelConfigName` changed from `'production' | 'rollback'` to `'beta' | 'rollback'`. Default config resolution now returns `'beta'` instead of `'production'`. `MODEL_CONFIG` env var accepts `beta` or `rollback`.
+- **Beta Config: GPT-5.4 Family** — `beta` config uses GPT-5.4 models: `ada-classifier` → gpt-5.4-nano, `ada-fast` → gpt-5.4-mini, `ada-content` → gpt-5.4-mini, `ada-reason` → gpt-5.4. `ada-fallback` remains claude-sonnet-4-6.
+- **Rollback Config Retained** — `rollback` config retains GPT-4.1 family (gpt-4.1-nano, gpt-4.1-mini, gpt-4.1) for instant recovery via `MODEL_CONFIG=rollback`.
+- **`moderationService.ts` Registry Integration** — Replaced hardcoded `const MODERATION_MODEL = 'omni-moderation-latest'` with `resolveModel('ada-moderation')` from `modelRouter.ts`. Model is now resolved dynamically from the capability registry, respecting named config and env var overrides.
+- **`modelRouter.ts` ProviderAlias Expanded** — `ProviderAlias` type extended from 5 to 7 members. `PROVIDER_MODEL_MAP` and `FALLBACK_CHAIN` updated with `ada-embeddings` and `ada-moderation` entries (both with `null` fallback chain).
+
+### Added
+- **`ada-embeddings` Alias** — Registry alias for `text-embedding-3-small` in both `beta` and `rollback` configs. Env var override: `ADA_MODEL_EMBEDDINGS`. No consumer implementation yet (semantic search out of scope).
+- **`ada-moderation` Alias** — Registry alias for `omni-moderation-latest` in both `beta` and `rollback` configs. Env var override: `ADA_MODEL_MODERATION`. Consumed by `moderationService.ts`.
+
+### Validated
+- TypeScript compiles clean (`npm run typecheck` passes)
+- Application starts with `[CapabilityRegistry] Active config: beta` and logs all 7 aliases with `source: default`
+- Startup model map: ada-classifier→gpt-5.4-nano, ada-fast→gpt-5.4-mini, ada-content→gpt-5.4-mini, ada-reason→gpt-5.4, ada-embeddings→text-embedding-3-small, ada-moderation→omni-moderation-latest, ada-fallback→claude-sonnet-4-6
+
+---
+
 ## Project Task #9 — Canary Validation & Moderation API
 **Date:** March 27, 2026
 

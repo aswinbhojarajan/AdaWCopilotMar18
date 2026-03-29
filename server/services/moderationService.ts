@@ -1,6 +1,5 @@
 import { openai } from './openaiClient';
-
-const MODERATION_MODEL = 'omni-moderation-latest';
+import { resolveModel } from './modelRouter';
 
 export interface ModerationResult {
   flagged: boolean;
@@ -20,10 +19,11 @@ export async function moderateOutput(text: string): Promise<ModerationResult> {
 }
 
 async function runModeration(text: string): Promise<ModerationResult> {
+  const moderationModel = resolveModel('ada-moderation');
   const start = Date.now();
   try {
     const response = await openai.moderations.create({
-      model: MODERATION_MODEL,
+      model: moderationModel,
       input: text,
     });
 
@@ -43,7 +43,7 @@ async function runModeration(text: string): Promise<ModerationResult> {
       categories,
       scores,
       latencyMs: Date.now() - start,
-      model: MODERATION_MODEL,
+      model: moderationModel,
     };
   } catch (err) {
     console.error('[ModerationService] API error, passing through:', (err as Error).message);
@@ -52,7 +52,7 @@ async function runModeration(text: string): Promise<ModerationResult> {
       categories: {},
       scores: {},
       latencyMs: Date.now() - start,
-      model: MODERATION_MODEL,
+      model: moderationModel,
       error: (err as Error).message,
     };
   }
