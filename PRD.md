@@ -304,7 +304,7 @@ Every tab screen follows the same layout:
 
 ### AI Response System
 
-**LLM-powered** — uses OpenAI GPT-5.4 family via Replit AI Integrations with a full agent architecture. Models are resolved through the capability registry's 7 provider aliases (see Section 9).
+**LLM-powered** — uses OpenAI GPT-4.1 family (rollback config) via Replit AI Integrations with a full agent architecture. Models are resolved through the capability registry's 7 provider aliases (see Section 9).
 
 The chat system follows a production-grade agent pipeline orchestrated by `agentOrchestrator.ts`:
 
@@ -322,7 +322,7 @@ User Message → PII Detection → Tenant Config Hydration → Input Moderation
 
 1. **PII Detection** (`piiDetector.ts`): Scans user input for sensitive data patterns (email, phone, SSN, credit card, passport, IBAN). Detected PII is flagged in the audit log; messages are still processed but flagged.
 
-2. **Intent Classification** (`intentClassifier.ts`): LLM-first classification with keyword fallback. `classifyIntentAsync()` sends the user message to the `ada-classifier` alias (→ gpt-5.4-nano) with a 3-second AbortController timeout. The LLM returns a JSON object with `intent` and `confidence` fields. On timeout, error, or empty response, falls back to keyword-based classification. LLM classifications return 0.95–0.98 confidence; keyword fallback returns 0.4–0.5 confidence.
+2. **Intent Classification** (`intentClassifier.ts`): LLM-first classification with keyword fallback. `classifyIntentAsync()` sends the user message to the `ada-classifier` alias (→ gpt-4.1-nano) with a 3-second AbortController timeout. The LLM returns a JSON object with `intent` and `confidence` fields. On timeout, error, or empty response, falls back to keyword-based classification. LLM classifications return 0.95–0.98 confidence; keyword fallback returns 0.4–0.5 confidence.
 
    | Intent | Triggers (keyword fallback) | Context Fetched |
    |---|---|---|
@@ -345,14 +345,14 @@ User Message → PII Detection → Tenant Config Hydration → Input Moderation
 
 4. **Model Router** (`modelRouter.ts`): Lane-based multi-model routing with three lanes:
    - **Lane 0 (Deterministic)**: Portfolio lookups, balance checks — handled by the wealth engine without LLM calls
-   - **Lane 1 (Fast)**: Simple queries using `ada-fast` (→ gpt-5.4-mini) with lower token budgets
-   - **Lane 2 (Reasoning)**: Complex analysis using `ada-reason` (→ gpt-5.4) with higher token budgets
+   - **Lane 1 (Fast)**: Simple queries using `ada-fast` (→ gpt-4.1-mini) with lower token budgets
+   - **Lane 2 (Reasoning)**: Complex analysis using `ada-reason` (→ gpt-4.1) with higher token budgets
    
    Route selection uses a request scorecard (token estimate, tool count, context window, complexity signals). Provider aliases (`ada-fast`, `ada-reason`, `ada-fallback`) map to underlying models. Per-lane token and temperature budgets are configurable. Lane metadata is logged in agent traces. Fallback chain: ada-fast → ada-fallback, ada-reason → ada-fallback.
 
 5. **Capability Registry** (`capabilityRegistry.ts`): Configurable named-config model registry:
-   - **Named configurations**: Two named configs (`beta`, `rollback`) define the full model stack. `MODEL_CONFIG` env var selects active config (default: `beta`). `beta` uses GPT-5.4 family; `rollback` retains GPT-4.1 family for instant recovery. Startup logs effective model map with source for each alias.
-   - **7 provider aliases**: `ada-classifier` (classification → gpt-5.4-nano), `ada-fast` (chat lane 1 → gpt-5.4-mini), `ada-content` (Discover pipeline → gpt-5.4-mini), `ada-reason` (chat lane 2 → gpt-5.4), `ada-embeddings` (semantic search → text-embedding-3-small), `ada-moderation` (content safety → omni-moderation-latest), `ada-fallback` (Anthropic resilience → claude-sonnet-4-6)
+   - **Named configurations**: Two named configs (`rollback`, `beta`) define the full model stack. `MODEL_CONFIG` env var selects active config (default: `rollback`). `rollback` uses GPT-4.1 family; `beta` reserves GPT-5.4 family for future use (not yet available on OpenAI API). Startup logs effective model map with source for each alias.
+   - **7 provider aliases**: `ada-classifier` (classification → gpt-4.1-nano), `ada-fast` (chat lane 1 → gpt-4.1-mini), `ada-content` (Discover pipeline → gpt-4.1-mini), `ada-reason` (chat lane 2 → gpt-4.1), `ada-embeddings` (semantic search → text-embedding-3-small), `ada-moderation` (content safety → omni-moderation-latest), `ada-fallback` (Anthropic resilience → claude-sonnet-4-6)
    - **Model capabilities**: Provider aliases → model IDs, capability sets (streaming, tool_calling, json_mode, reasoning), context windows, cost tiers
    - **Lane configurations**: Lane number → label, description, default provider, available tools
    - **Intent→route mappings**: Intent type → default lane, supported lanes, required/optional tools, description

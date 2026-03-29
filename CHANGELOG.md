@@ -4,6 +4,22 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Project Task #12 — Switch Default Model Config to Rollback (GPT-4.1 Family)
+**Date:** March 29, 2026
+
+### Fixed
+- **Default model config switched from `beta` to `rollback`** — `resolveConfigName()` in `capabilityRegistry.ts` now returns `'rollback'` as the default config. GPT-5.4 family models (gpt-5.4-nano, gpt-5.4-mini, gpt-5.4) do not exist on OpenAI's API, causing every LLM call (chat, morning sentinel, pipeline overlays) to fail with `400 Unknown model`. The rollback config uses GPT-4.1 family (gpt-4.1-nano, gpt-4.1-mini, gpt-4.1) which are available and functional.
+
+### Changed
+- **Active model stack**: ada-classifier → gpt-4.1-nano, ada-fast → gpt-4.1-mini, ada-content → gpt-4.1-mini, ada-reason → gpt-4.1, ada-embeddings → text-embedding-3-small, ada-moderation → omni-moderation-latest, ada-fallback → claude-sonnet-4-6.
+- **`MODEL_CONFIG=beta` still available** — Setting `MODEL_CONFIG=beta` env var still opts into GPT-5.4 config for future use when those models become available on OpenAI's API.
+
+### Validated
+- TypeScript compiles clean (`npm run typecheck` passes)
+- Application starts with `[CapabilityRegistry] Active config: rollback` and logs all 7 aliases with GPT-4.1 family models
+
+---
+
 ## Project Task #11 — Pipeline Scheduler Hardening & Configurability
 **Date:** March 29, 2026
 

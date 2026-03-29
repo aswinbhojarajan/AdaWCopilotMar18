@@ -129,7 +129,7 @@ function resolveConfigName(): ModelConfigName {
   if (envVal === 'beta') {
     configExplicitlySet = true;
   }
-  return 'beta';
+  return 'rollback';
 }
 
 const ALIAS_ENV_MAP: Record<string, string> = {
