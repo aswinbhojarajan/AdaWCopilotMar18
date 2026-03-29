@@ -32,9 +32,9 @@ const INTERVAL_ENV_KEYS: Record<string, string> = {
 function resolveIntervalMin(job: string): number {
   const envKey = INTERVAL_ENV_KEYS[job];
   const envVal = envKey ? process.env[envKey] : undefined;
-  if (envVal) {
-    const parsed = parseInt(envVal, 10);
-    if (!isNaN(parsed) && parsed > 0) return parsed;
+  if (envVal && /^\d+$/.test(envVal.trim())) {
+    const parsed = parseInt(envVal.trim(), 10);
+    if (parsed > 0) return parsed;
   }
   return INTERVAL_DEFAULTS[job] ?? 60;
 }
@@ -136,6 +136,7 @@ export async function initDiscoverPipeline(): Promise<void> {
 
   console.log('[DiscoverPipeline] Initializing...');
   isRunning = true;
+  resolvedIntervals = resolveAllIntervals();
 
   setTimeout(async () => {
     await migrateCardTypeConstraint();
