@@ -11,12 +11,55 @@ import { runExpiryEnforcement } from './expiryWorker';
 import { runFeedMaterializer, runFeedMaterializerForUser } from './feedMaterializer';
 import { computeUserProfileGaps } from './userProfileEnricher';
 
-const INGEST_INTERVAL_MS = 10 * 60 * 1000;
-const CLUSTER_INTERVAL_MS = 15 * 60 * 1000;
-const MATERIALIZE_INTERVAL_MS = 60 * 60 * 1000;
-const EDITORIAL_INTERVAL_MS = 6 * 60 * 60 * 1000;
-const EXPIRY_INTERVAL_MS = 4 * 60 * 60 * 1000;
-const MORNING_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const INTERVAL_DEFAULTS: Record<string, number> = {
+  ingest: 10,
+  cluster: 15,
+  materialize: 60,
+  editorial: 360,
+  expiry: 240,
+  morning: 360,
+};
+
+const INTERVAL_ENV_KEYS: Record<string, string> = {
+  ingest: 'PIPELINE_INGEST_INTERVAL_MIN',
+  cluster: 'PIPELINE_CLUSTER_INTERVAL_MIN',
+  materialize: 'PIPELINE_MATERIALIZE_INTERVAL_MIN',
+  editorial: 'PIPELINE_EDITORIAL_INTERVAL_MIN',
+  expiry: 'PIPELINE_EXPIRY_INTERVAL_MIN',
+  morning: 'PIPELINE_MORNING_INTERVAL_MIN',
+};
+
+function resolveIntervalMin(job: string): number {
+  const envKey = INTERVAL_ENV_KEYS[job];
+  const envVal = envKey ? process.env[envKey] : undefined;
+  if (envVal) {
+    const parsed = parseInt(envVal, 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  return INTERVAL_DEFAULTS[job] ?? 60;
+}
+
+interface ResolvedIntervals {
+  ingest: number;
+  cluster: number;
+  materialize: number;
+  editorial: number;
+  expiry: number;
+  morning: number;
+}
+
+function resolveAllIntervals(): ResolvedIntervals {
+  return {
+    ingest: resolveIntervalMin('ingest'),
+    cluster: resolveIntervalMin('cluster'),
+    materialize: resolveIntervalMin('materialize'),
+    editorial: resolveIntervalMin('editorial'),
+    expiry: resolveIntervalMin('expiry'),
+    morning: resolveIntervalMin('morning'),
+  };
+}
+
+let resolvedIntervals: ResolvedIntervals = resolveAllIntervals();
 
 let ingestTimer: ReturnType<typeof setInterval> | null = null;
 let clusterTimer: ReturnType<typeof setInterval> | null = null;
@@ -111,11 +154,11 @@ export async function initDiscoverPipeline(): Promise<void> {
         await runFullPipeline();
       } else {
         console.log(`[DiscoverPipeline] ${rows[0]?.cnt} live cards already exist, skipping initial pipeline run`);
-        await runAdaView().catch(e => console.warn('[DiscoverPipeline] Ada View error:', (e as Error).message));
-        await runEventCalendar().catch(e => console.warn('[DiscoverPipeline] Event Calendar error:', (e as Error).message));
-        await runMorningBriefing().catch(e => console.warn('[DiscoverPipeline] Morning Briefing error:', (e as Error).message));
-        await runMilestoneDetection().catch(e => console.warn('[DiscoverPipeline] Milestone error:', (e as Error).message));
-        await runFeedMaterializer();
+        try { await runAdaView(); lastRunTimes.ada_view = new Date(); } catch (e) { console.warn('[DiscoverPipeline] Ada View error:', (e as Error).message); }
+        try { await runEventCalendar(); lastRunTimes.event_calendar = new Date(); } catch (e) { console.warn('[DiscoverPipeline] Event Calendar error:', (e as Error).message); }
+        try { await runMorningBriefing(); lastRunTimes.morning_briefing = new Date(); } catch (e) { console.warn('[DiscoverPipeline] Morning Briefing error:', (e as Error).message); }
+        try { await runMilestoneDetection(); lastRunTimes.milestone = new Date(); } catch (e) { console.warn('[DiscoverPipeline] Milestone error:', (e as Error).message); }
+        try { await runFeedMaterializer(); lastRunTimes.materialization = new Date(); } catch (e) { console.warn('[DiscoverPipeline] Materialize error:', (e as Error).message); }
       }
     } catch (err) {
       console.error('[DiscoverPipeline] Initial run failed:', (err as Error).message);
@@ -135,7 +178,7 @@ export async function initDiscoverPipeline(): Promise<void> {
     } finally {
       ingestLock = false;
     }
-  }, INGEST_INTERVAL_MS);
+  }, resolvedIntervals.ingest * 60 * 1000);
 
   clusterTimer = setInterval(async () => {
     if (clusterLock) return;
@@ -150,7 +193,7 @@ export async function initDiscoverPipeline(): Promise<void> {
     } finally {
       clusterLock = false;
     }
-  }, CLUSTER_INTERVAL_MS);
+  }, resolvedIntervals.cluster * 60 * 1000);
 
   materializeTimer = setInterval(async () => {
     try {
@@ -159,7 +202,7 @@ export async function initDiscoverPipeline(): Promise<void> {
     } catch (err) {
       console.error('[DiscoverPipeline] Materialize cycle error:', (err as Error).message);
     }
-  }, MATERIALIZE_INTERVAL_MS);
+  }, resolvedIntervals.materialize * 60 * 1000);
 
   editorialTimer = setInterval(async () => {
     if (editorialLock) return;
@@ -174,7 +217,7 @@ export async function initDiscoverPipeline(): Promise<void> {
     } finally {
       editorialLock = false;
     }
-  }, EDITORIAL_INTERVAL_MS);
+  }, resolvedIntervals.editorial * 60 * 1000);
 
   expiryTimer = setInterval(async () => {
     try {
@@ -183,7 +226,7 @@ export async function initDiscoverPipeline(): Promise<void> {
     } catch (err) {
       console.error('[DiscoverPipeline] Expiry cycle error:', (err as Error).message);
     }
-  }, EXPIRY_INTERVAL_MS);
+  }, resolvedIntervals.expiry * 60 * 1000);
 
   morningTimer = setInterval(async () => {
     try {
@@ -194,9 +237,14 @@ export async function initDiscoverPipeline(): Promise<void> {
     } catch (err) {
       console.error('[DiscoverPipeline] Morning/Milestone cycle error:', (err as Error).message);
     }
-  }, MORNING_INTERVAL_MS);
+  }, resolvedIntervals.morning * 60 * 1000);
 
-  console.log('[DiscoverPipeline] Scheduled — Ingest: 10min, Cluster+Synth: 15min, Materialize: 60min, Editorial: 6hr, Expiry: 4hr, Morning: 6hr');
+  const fmtInterval = (job: string, min: number) => {
+    const def = INTERVAL_DEFAULTS[job];
+    const label = min >= 60 ? `${min / 60}hr` : `${min}min`;
+    return def !== min ? `${label} (override)` : label;
+  };
+  console.log(`[DiscoverPipeline] Scheduled — Ingest: ${fmtInterval('ingest', resolvedIntervals.ingest)}, Cluster+Synth: ${fmtInterval('cluster', resolvedIntervals.cluster)}, Materialize: ${fmtInterval('materialize', resolvedIntervals.materialize)}, Editorial: ${fmtInterval('editorial', resolvedIntervals.editorial)}, Expiry: ${fmtInterval('expiry', resolvedIntervals.expiry)}, Morning: ${fmtInterval('morning', resolvedIntervals.morning)}`);
 }
 
 async function migrateCardTypeConstraint(): Promise<void> {
@@ -218,6 +266,14 @@ async function migrateCardTypeConstraint(): Promise<void> {
 
 export async function getDiscoverPipelineHealth(): Promise<{
   isRunning: boolean;
+  configuredIntervals: {
+    ingest: number;
+    cluster: number;
+    materialize: number;
+    editorial: number;
+    expiry: number;
+    morning: number;
+  };
   lastRunTimes: Record<string, string | null>;
   pipelineLag: Record<string, number | null>;
   cardStats: {
@@ -327,6 +383,7 @@ export async function getDiscoverPipelineHealth(): Promise<{
 
   return {
     isRunning,
+    configuredIntervals: { ...resolvedIntervals },
     lastRunTimes: Object.fromEntries(
       Object.entries(lastRunTimes).map(([k, v]) => [k, v?.toISOString() ?? null]),
     ),

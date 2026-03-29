@@ -4,6 +4,31 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Project Task #11 — Pipeline Scheduler Hardening & Configurability
+**Date:** March 29, 2026
+
+### Fixed
+- **Startup timestamp recording** — The partial-run startup path (when live cards already exist) now records `lastRunTimes` for `ada_view`, `event_calendar`, `morning_briefing`, `milestone`, and `materialization` immediately after each stage completes. Previously these remained `null` until the first recurring interval fired, causing the health endpoint to show `null` for `lastRunTimes` and `pipelineLag` values after startup.
+
+### Changed
+- **Env-configurable pipeline intervals** — All 6 `setInterval` job intervals replaced from hardcoded `*_INTERVAL_MS` constants with environment-variable-configurable system. Each job reads from a `PIPELINE_*_INTERVAL_MIN` env var (in minutes) with sensible defaults matching previous hardcoded values:
+  - `PIPELINE_INGEST_INTERVAL_MIN` (default 10)
+  - `PIPELINE_CLUSTER_INTERVAL_MIN` (default 15)
+  - `PIPELINE_MATERIALIZE_INTERVAL_MIN` (default 60)
+  - `PIPELINE_EDITORIAL_INTERVAL_MIN` (default 360)
+  - `PIPELINE_EXPIRY_INTERVAL_MIN` (default 240)
+  - `PIPELINE_MORNING_INTERVAL_MIN` (default 360)
+- **Health endpoint `configuredIntervals`** — `GET /api/discover/health` response now includes a `configuredIntervals` object showing the resolved interval (in minutes) for each job (`ingest`, `cluster`, `materialize`, `editorial`, `expiry`, `morning`).
+- **Dynamic startup log** — The pipeline scheduled log now prints resolved interval values dynamically and flags any that were overridden from defaults with `(override)`.
+
+### Validated
+- TypeScript compiles clean (`npm run typecheck` passes)
+- All 6 `setInterval` calls use resolved intervals
+- Health endpoint includes `configuredIntervals` in response
+- Startup log dynamically reflects configured intervals
+
+---
+
 ## Project Task #10 — GPT-5.4 Beta Config & Registry Upgrade
 **Date:** March 29, 2026
 

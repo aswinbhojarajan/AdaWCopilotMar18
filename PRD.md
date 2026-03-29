@@ -248,7 +248,7 @@ Every tab screen follows the same layout:
 
 **Expiry Rules**: Per-card-type TTLs — market_pulse 24h, trend_brief 48h, portfolio_impact 72h, morning_briefing 16h, milestone 3d, event_calendar 14d, ada_view 7d, product_opportunity 30d, explainer/wealth_planning 30d. Runs every 4 hours.
 
-**Pipeline Timers**: Ingest 10min, Cluster+Synth 15min, Materialize 60min, Editorial (Ada View + Event Calendar) 6hr, Morning Briefing + Milestone 6hr, Expiry 4hr.
+**Pipeline Timers** (defaults, configurable via env vars): Ingest 10min (`PIPELINE_INGEST_INTERVAL_MIN`), Cluster+Synth 15min (`PIPELINE_CLUSTER_INTERVAL_MIN`), Materialize 60min (`PIPELINE_MATERIALIZE_INTERVAL_MIN`), Editorial (Ada View + Event Calendar) 360min (`PIPELINE_EDITORIAL_INTERVAL_MIN`), Morning Briefing + Milestone 360min (`PIPELINE_MORNING_INTERVAL_MIN`), Expiry 240min (`PIPELINE_EXPIRY_INTERVAL_MIN`). All values in minutes. Startup log flags overridden intervals. Health endpoint includes `configuredIntervals` showing resolved values.
 
 **Enriched Chat Context**: CTA taps pass `DiscoverCardContext` (card_id, card_type, card_summary, why_seen, entities, evidence_facts, cta_family) to chat. `promptBuilder` incorporates card context into system prompt.
 
