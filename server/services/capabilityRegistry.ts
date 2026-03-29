@@ -128,6 +128,7 @@ function resolveConfigName(): ModelConfigName {
   }
   if (envVal === 'beta') {
     configExplicitlySet = true;
+    return 'beta';
   }
   return 'rollback';
 }
