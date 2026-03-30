@@ -91,7 +91,7 @@ Ada uses two parallel analytics platforms: **PostHog** (session replay, product 
 
 **Instrumented Events (P0)**: login_viewed, login_submitted, login_succeeded, login_failed, tab_view, tab_switch, app_foreground, app_background, chat_opened, chat_message_sent, chat_stream_started, chat_stream_completed, chat_stream_interrupted, chat_error, portfolio_view, discover_card_tap, discover_card_dismiss, morning_sentinel_expanded
 
-**GA4 Enhanced Measurement**: scroll, outbound clicks, and engagement time are controlled via the GA4 admin console (Admin > Data Streams > Enhanced Measurement). Client-side code handles SPA-specific concerns: explicit `screen_view` on tab navigation and `send_page_view: false` to prevent duplicate page views.
+**GA4 Enhanced Measurement**: Client-side SPA-aware implementation in `gtag.ts` via `initEnhancedMeasurement()`: scroll depth tracking (25/50/75/90% thresholds on scrollable containers), outbound click detection (PII-stripped URLs via `stripUrlPii`), and engagement time accumulation (visibility-aware, fires on beforeunload). Also sends explicit `screen_view` on tab navigation and uses `send_page_view: false` to prevent duplicate page views.
 
 ## External Dependencies
 - **OpenAI**: AI capabilities via Replit AI Integrations.

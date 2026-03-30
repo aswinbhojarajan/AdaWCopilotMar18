@@ -41,6 +41,8 @@ export function initGA4(): void {
   });
 
   initialized = true;
+
+  initEnhancedMeasurement();
 }
 
 export function isGA4Initialized(): boolean {
@@ -70,5 +72,92 @@ export function gtagSetUserId(userId: string | null): void {
   window.gtag('config', measurementId, {
     user_id: userId,
     send_page_view: false,
+  });
+}
+
+function stripUrlPii(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+function initEnhancedMeasurement(): void {
+  trackScrollDepth();
+  trackOutboundClicks();
+  trackEngagementTime();
+}
+
+function trackScrollDepth(): void {
+  const thresholds = [25, 50, 75, 90];
+  const fired = new Set<number>();
+
+  const handleScroll = (e: Event) => {
+    const target = e.target as HTMLElement;
+    if (!target || typeof target.scrollTop !== 'number') return;
+    const scrollable = target.scrollHeight - target.clientHeight;
+    if (scrollable <= 0) return;
+    const pct = Math.round((target.scrollTop / scrollable) * 100);
+    for (const t of thresholds) {
+      if (pct >= t && !fired.has(t)) {
+        fired.add(t);
+        gtagEvent('scroll', { percent_scrolled: t });
+      }
+    }
+  };
+
+  document.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+}
+
+function trackOutboundClicks(): void {
+  document.addEventListener('click', (e) => {
+    const anchor = (e.target as HTMLElement).closest?.('a[href]') as HTMLAnchorElement | null;
+    if (!anchor) return;
+    try {
+      const url = new URL(anchor.href, window.location.origin);
+      if (url.hostname !== window.location.hostname) {
+        gtagEvent('outbound_click', {
+          link_url: stripUrlPii(url.href),
+          link_domain: url.hostname,
+          outbound: true,
+        });
+      }
+    } catch {
+      // malformed URL — skip
+    }
+  }, { capture: true });
+}
+
+function trackEngagementTime(): void {
+  let engagedMs = 0;
+  let lastTick = Date.now();
+  let visible = !document.hidden;
+
+  const tick = () => {
+    if (visible) {
+      engagedMs += Date.now() - lastTick;
+    }
+    lastTick = Date.now();
+  };
+
+  setInterval(tick, 1000);
+
+  document.addEventListener('visibilitychange', () => {
+    tick();
+    visible = !document.hidden;
+    lastTick = Date.now();
+  });
+
+  window.addEventListener('beforeunload', () => {
+    tick();
+    if (engagedMs > 0) {
+      gtagEvent('engagement_time', {
+        engagement_time_msec: engagedMs,
+      });
+    }
   });
 }
