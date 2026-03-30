@@ -92,9 +92,14 @@ function initEnhancedMeasurement(): void {
   trackEngagementTime();
 }
 
+let scrollFired = new Set<number>();
+
+export function resetScrollDepth(): void {
+  scrollFired = new Set<number>();
+}
+
 function trackScrollDepth(): void {
   const thresholds = [25, 50, 75, 90];
-  const fired = new Set<number>();
 
   const handleScroll = (e: Event) => {
     const target = e.target as HTMLElement;
@@ -103,8 +108,8 @@ function trackScrollDepth(): void {
     if (scrollable <= 0) return;
     const pct = Math.round((target.scrollTop / scrollable) * 100);
     for (const t of thresholds) {
-      if (pct >= t && !fired.has(t)) {
-        fired.add(t);
+      if (pct >= t && !scrollFired.has(t)) {
+        scrollFired.add(t);
         gtagEvent('scroll', { percent_scrolled: t });
       }
     }

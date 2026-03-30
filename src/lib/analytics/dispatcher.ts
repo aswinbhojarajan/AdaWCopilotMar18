@@ -1,5 +1,5 @@
 import { isPostHogInitialized } from './posthog';
-import { isGA4Initialized, gtagEvent, gtagSetUserId, gtagScreenView } from './gtag';
+import { isGA4Initialized, gtagEvent, gtagSetUserId, gtagScreenView, resetScrollDepth } from './gtag';
 import { sanitizeProperties } from './privacy';
 import type { PostHog } from 'posthog-js';
 
@@ -47,6 +47,7 @@ export function dispatchReset(posthog: PostHog | undefined): void {
 
 export function dispatchScreenView(screenName: string): void {
   if (isGA4Initialized()) {
+    resetScrollDepth();
     gtagScreenView(screenName);
   }
 }
