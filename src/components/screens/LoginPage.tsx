@@ -6,7 +6,9 @@ interface LoginPageProps {
   onLogin: () => void;
 }
 
-interface PersonaCard {
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+
+interface DemoPersona {
   email: string;
   password: string;
   firstName: string;
@@ -16,7 +18,7 @@ interface PersonaCard {
   description: string;
 }
 
-const DEMO_PERSONAS: PersonaCard[] = [
+const DEMO_PERSONAS: DemoPersona[] = [
   {
     email: 'aisha@demo.ada',
     password: 'Ada2026!',
@@ -62,31 +64,31 @@ const AVATAR_COLORS = ['bg-[#441316]', 'bg-[#6d3f42]', 'bg-[#a87174]'];
 
 export function LoginPage({ onLogin }: LoginPageProps) {
   const loginMutation = useLogin();
-  const [adminExpanded, setAdminExpanded] = useState(false);
-  const [adminEmail, setAdminEmail] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [loadingPersona, setLoadingPersona] = useState<string | null>(null);
 
-  const handlePersonaLogin = async (persona: PersonaCard) => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
-    setLoadingPersona(persona.email);
+    setIsLoading(true);
     try {
-      await loginMutation.mutateAsync({ email: persona.email, password: persona.password });
+      await loginMutation.mutateAsync({ email, password });
       onLogin();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
-      setLoadingPersona(null);
+      setIsLoading(false);
     }
   };
 
-  const handleAdminLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePersonaLogin = async (persona: DemoPersona) => {
     setError(null);
-    setLoadingPersona('admin');
+    setLoadingPersona(persona.email);
     try {
-      await loginMutation.mutateAsync({ email: adminEmail, password: adminPassword });
+      await loginMutation.mutateAsync({ email: persona.email, password: persona.password });
       onLogin();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -117,120 +119,96 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           </div>
         )}
 
-        <div className="w-full mb-[16px]">
-          <p className="font-['DM_Sans',sans-serif] font-semibold text-[0.625rem] tracking-[0.8px] uppercase text-[#999] px-[4px] mb-[10px]">
-            Choose a customer to explore
-          </p>
-          <div className="flex flex-col gap-[8px]">
-            {DEMO_PERSONAS.map((persona, idx) => {
-              const isLoading = loadingPersona === persona.email;
-              return (
-                <button
-                  key={persona.email}
-                  onClick={() => handlePersonaLogin(persona)}
-                  disabled={!!loadingPersona}
-                  className="w-full flex items-center gap-[12px] px-[16px] py-[14px] rounded-[20px] bg-white border-[0.75px] border-[#d8d8d8] hover:border-[#441316] hover:bg-[#f7f6f2] transition-all cursor-pointer text-left group disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  <div className={`w-[40px] h-[40px] rounded-full ${AVATAR_COLORS[idx]} flex items-center justify-center shrink-0`}>
-                    <span className="text-white text-[0.8125rem] font-['DM_Sans',sans-serif] font-medium">
-                      {persona.firstName.charAt(0)}{persona.lastName.charAt(0)}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-[2px] flex-1 min-w-0">
-                    <p className="font-['Crimson_Pro',sans-serif] text-[1rem] tracking-[-0.32px] text-[#555555] group-hover:text-[#441316] transition-colors">
-                      {persona.firstName} {persona.lastName}
-                    </p>
-                    <div className="flex items-center gap-[8px]">
-                      <span
-                        className="font-['DM_Sans',sans-serif] text-[0.625rem] tracking-[0.2px] uppercase px-[6px] py-[1px] rounded-[50px]"
-                        style={{
-                          color: getRiskColor(persona.riskLevel),
-                          backgroundColor: getRiskBg(persona.riskLevel),
-                        }}
-                      >
-                        {persona.riskLevel}
-                      </span>
-                      <span className="font-['DM_Sans',sans-serif] text-[0.6875rem] text-[#888]">
-                        {persona.tier}
-                      </span>
-                      <span className="font-['DM_Sans',sans-serif] text-[0.6875rem] text-[#aaa]">
-                        {persona.description}
+        <form onSubmit={handleLogin} className="w-full flex flex-col gap-[12px] mb-[24px]">
+          <input
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email address"
+            className="w-full h-[48px] px-[20px] rounded-[50px] border-[0.75px] border-[#d8d8d8] bg-white font-['DM_Sans',sans-serif] text-[0.9375rem] text-[#555555] outline-none focus:border-[#441316] transition-colors placeholder:text-[#999]"
+          />
+          <input
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className="w-full h-[48px] px-[20px] rounded-[50px] border-[0.75px] border-[#d8d8d8] bg-white font-['DM_Sans',sans-serif] text-[0.9375rem] text-[#555555] outline-none focus:border-[#441316] transition-colors placeholder:text-[#999]"
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !!loadingPersona || !email || !password}
+            className="w-full h-[48px] rounded-[50px] bg-[#441316] text-white font-['DM_Sans',sans-serif] text-[0.875rem] font-medium tracking-[-0.28px] hover:bg-[#5a1a1e] active:bg-[#330e11] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-[8px]"
+          >
+            {isLoading ? (
+              <div className="w-[16px] h-[16px] border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              'Sign In'
+            )}
+          </button>
+        </form>
+
+        {DEMO_MODE && (
+          <>
+            <div className="w-full flex items-center gap-[12px] mb-[14px]">
+              <div className="flex-1 h-[1px] bg-[#d8d8d8]" />
+              <span className="font-['DM_Sans',sans-serif] text-[0.625rem] tracking-[0.8px] uppercase text-[#999]">
+                Demo shortcuts
+              </span>
+              <div className="flex-1 h-[1px] bg-[#d8d8d8]" />
+            </div>
+            <div className="w-full flex flex-col gap-[8px]">
+              {DEMO_PERSONAS.map((persona, idx) => {
+                const personaLoading = loadingPersona === persona.email;
+                return (
+                  <button
+                    key={persona.email}
+                    onClick={() => handlePersonaLogin(persona)}
+                    disabled={!!loadingPersona || isLoading}
+                    className="w-full flex items-center gap-[12px] px-[16px] py-[12px] rounded-[20px] bg-white border-[0.75px] border-[#d8d8d8] hover:border-[#441316] hover:bg-[#f7f6f2] transition-all cursor-pointer text-left group disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <div className={`w-[36px] h-[36px] rounded-full ${AVATAR_COLORS[idx]} flex items-center justify-center shrink-0`}>
+                      <span className="text-white text-[0.75rem] font-['DM_Sans',sans-serif] font-medium">
+                        {persona.firstName.charAt(0)}{persona.lastName.charAt(0)}
                       </span>
                     </div>
-                  </div>
-                  {isLoading ? (
-                    <div className="w-[16px] h-[16px] border-2 border-[#441316] border-t-transparent rounded-full animate-spin shrink-0" />
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <path d="M6 4L10 8L6 12" stroke="#441316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="w-full">
-          <button
-            onClick={() => setAdminExpanded(!adminExpanded)}
-            className="w-full flex items-center gap-[8px] px-[16px] py-[12px] rounded-[20px] bg-white/50 border-[1.5px] border-dashed border-[#d8d8d8] hover:border-[#441316]/30 transition-all cursor-pointer"
-          >
-            <div className="w-[32px] h-[32px] rounded-full bg-[#2E3A59] flex items-center justify-center shrink-0">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path d="M7 1V7M7 7V13M7 7H13M7 7H1" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
+                    <div className="flex flex-col gap-[1px] flex-1 min-w-0">
+                      <p className="font-['Crimson_Pro',sans-serif] text-[0.9375rem] tracking-[-0.32px] text-[#555555] group-hover:text-[#441316] transition-colors">
+                        {persona.firstName} {persona.lastName}
+                      </p>
+                      <div className="flex items-center gap-[6px]">
+                        <span
+                          className="font-['DM_Sans',sans-serif] text-[0.5625rem] tracking-[0.2px] uppercase px-[5px] py-[1px] rounded-[50px]"
+                          style={{
+                            color: getRiskColor(persona.riskLevel),
+                            backgroundColor: getRiskBg(persona.riskLevel),
+                          }}
+                        >
+                          {persona.riskLevel}
+                        </span>
+                        <span className="font-['DM_Sans',sans-serif] text-[0.625rem] text-[#888]">
+                          {persona.tier}
+                        </span>
+                      </div>
+                    </div>
+                    {personaLoading ? (
+                      <div className="w-[14px] h-[14px] border-2 border-[#441316] border-t-transparent rounded-full animate-spin shrink-0" />
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <path d="M6 4L10 8L6 12" stroke="#441316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-            <span className="font-['DM_Sans',sans-serif] text-[0.875rem] text-[#555] flex-1 text-left">
-              Admin Login
-            </span>
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 12 12"
-              fill="none"
-              className={`transition-transform duration-200 ${adminExpanded ? 'rotate-180' : ''}`}
-            >
-              <path d="M3 4.5L6 7.5L9 4.5" stroke="#999" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-
-          {adminExpanded && (
-            <form onSubmit={handleAdminLogin} className="mt-[12px] bg-white rounded-[20px] px-[20px] py-[20px] flex flex-col gap-[12px]">
-              <input
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                value={adminEmail}
-                onChange={(e) => setAdminEmail(e.target.value)}
-                placeholder="admin@ada.app"
-                className="w-full h-[44px] px-[16px] rounded-[50px] border-[0.75px] border-[#d8d8d8] bg-white font-['DM_Sans',sans-serif] text-[0.9375rem] text-[#555555] outline-none focus:border-[#441316] transition-colors placeholder:text-[#999]"
-              />
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="Password"
-                className="w-full h-[44px] px-[16px] rounded-[50px] border-[0.75px] border-[#d8d8d8] bg-white font-['DM_Sans',sans-serif] text-[0.9375rem] text-[#555555] outline-none focus:border-[#441316] transition-colors placeholder:text-[#999]"
-              />
-              <button
-                type="submit"
-                disabled={!!loadingPersona || !adminEmail || !adminPassword}
-                className="w-full h-[44px] rounded-[50px] bg-[#2E3A59] text-white font-['DM_Sans',sans-serif] text-[0.8125rem] tracking-[-0.28px] hover:bg-[#3b4a6e] active:bg-[#232f48] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-[8px]"
-              >
-                {loadingPersona === 'admin' ? (
-                  <div className="w-[14px] h-[14px] border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  'Sign In as Admin'
-                )}
-              </button>
-            </form>
-          )}
-        </div>
+          </>
+        )}
 
         <p className="font-['DM_Sans',sans-serif] text-[0.6875rem] text-[#aaa] text-center mt-[24px]">
-          Preview build &middot; All data is mocked
+          {DEMO_MODE ? 'Preview build \u00b7 All data is mocked' : '\u00a9 Ada Wealth Intelligence'}
         </p>
       </div>
     </div>

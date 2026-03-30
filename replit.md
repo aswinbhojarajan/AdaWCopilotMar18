@@ -12,7 +12,7 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 **Frontend (React 18 + TypeScript):**
 - **UI/UX**: Mobile-first design (max 430px) using Tailwind CSS v4, custom fonts, and responsive units. Centralized design tokens.
 - **State Management & Data Fetching**: TanStack Query v5.
-- **Authentication**: Cookie-session auth with LoginPage (3 demo persona cards + admin email/password form), auth gate in App.tsx, Header profile avatar with logout dropdown.
+- **Authentication**: Cookie-session auth with clean email/password LoginPage, auth gate in App.tsx, Header profile avatar with logout dropdown. Demo persona cards hidden behind `VITE_DEMO_MODE` env var.
 - **Navigation**: Auth-gated app shell leading to Home, Wealth, Discover, and Collective tabs.
 - **Chat Features**: SSE streaming for real-time text, embedded data widgets, interactive scenario simulators, dynamic suggested questions, and context passing.
 - **Animations**: AnimatePresence for transitions and Framer Motion for indicators.
