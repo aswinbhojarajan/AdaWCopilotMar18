@@ -30,7 +30,8 @@ export function dispatchIdentify(
   if (isGA4Initialized()) {
     gtagSetUserId(distinctId);
     if (Object.keys(traits).length > 0) {
-      gtagEvent('user_properties_set', sanitizeProperties(traits));
+      const sanitizedTraits = sanitizeProperties(traits);
+      window.gtag('set', 'user_properties', sanitizedTraits);
     }
   }
 }
