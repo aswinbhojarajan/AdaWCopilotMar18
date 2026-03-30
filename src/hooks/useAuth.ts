@@ -37,9 +37,8 @@ export function useLogin() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        const err = new Error(body.error || 'Login failed');
-        (err as any).status = res.status;
-        throw err;
+        const { ApiError } = await import('../lib/ApiError');
+        throw new ApiError(body.error || 'Login failed', res.status);
       }
       return res.json() as Promise<AuthUser>;
     },

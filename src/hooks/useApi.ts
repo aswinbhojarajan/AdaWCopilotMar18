@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { getStreamHeaders } from './api';
 
 interface UseApiResult<T> {
@@ -9,6 +10,7 @@ interface UseApiResult<T> {
 }
 
 export function useApi<T>(url: string | null): UseApiResult<T> {
+  const queryClient = useQueryClient();
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +32,11 @@ export function useApi<T>(url: string | null): UseApiResult<T> {
 
     fetch(url, { headers: getStreamHeaders(), credentials: 'include' })
       .then((res) => {
+        if (res.status === 401 && !cancelled) {
+          queryClient.setQueryData(['auth', 'session'], null);
+          queryClient.clear();
+          throw new Error('Session expired');
+        }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
@@ -49,7 +56,7 @@ export function useApi<T>(url: string | null): UseApiResult<T> {
     return () => {
       cancelled = true;
     };
-  }, [url, fetchKey]);
+  }, [url, fetchKey, queryClient]);
 
   return { data, loading, error, refetch };
 }

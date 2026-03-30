@@ -24,12 +24,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const userId = session?.persona || '';
   const authUser = session ?? null;
 
+  const mockConfig = session?.mockConfig ?? {};
   const activePersona: DemoPersona | null = session ? {
     id: session.persona || session.id,
     firstName: session.displayName.split(' ')[0] || 'User',
     lastName: session.displayName.split(' ').slice(1).join(' ') || '',
-    riskLevel: (session.mockConfig as any)?.risk_level || 'moderate',
-    portfolioValue: (session.mockConfig as any)?.portfolio_value || 0,
+    riskLevel: String(mockConfig['risk_level'] ?? 'moderate'),
+    portfolioValue: Number(mockConfig['portfolio_value'] ?? 0),
   } : null;
 
   return (

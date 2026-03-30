@@ -21,7 +21,13 @@ async function consumeSentinelStream(
   abortSignal?: AbortSignal,
 ) {
   const res = await fetch(url, { signal: abortSignal, headers: getStreamHeaders(), credentials: 'include' });
-  if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok || !res.body) {
+    if (res.status === 401) {
+      const { handleFetchResponse } = await import('../lib/ApiError');
+      handleFetchResponse(res);
+    }
+    throw new Error(`HTTP ${res.status}`);
+  }
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();

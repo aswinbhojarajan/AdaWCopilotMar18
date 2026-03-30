@@ -38,7 +38,11 @@ app.use(session({
     createTableIfMissing: false,
   }),
   name: 'ada.sid',
-  secret: process.env.SESSION_SECRET || 'dev-fallback-secret-change-me',
+  secret: (() => {
+    const secret = process.env.SESSION_SECRET;
+    if (!secret) throw new Error('SESSION_SECRET environment variable is required');
+    return secret;
+  })(),
   resave: false,
   saveUninitialized: false,
   rolling: true,

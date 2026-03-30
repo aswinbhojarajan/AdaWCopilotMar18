@@ -62,6 +62,10 @@ function useStreamingChat() {
       });
 
       if (!res.ok) {
+        if (res.status === 401) {
+          const { handleFetchResponse } = await import('../../lib/ApiError');
+          handleFetchResponse(res);
+        }
         onError("I'm having trouble connecting. Please try again.");
         onDone();
         return;
