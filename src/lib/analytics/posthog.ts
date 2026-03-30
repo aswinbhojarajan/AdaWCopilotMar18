@@ -18,6 +18,7 @@ export function initPostHog(): void {
   posthog.init(key, {
     api_host: host,
     person_profiles: 'identified_only',
+    defaults: '2026-01-30',
 
     capture_pageview: false,
     capture_pageleave: true,
@@ -68,6 +69,10 @@ export function initPostHog(): void {
   initialized = true;
 }
 
-export function getPostHog() {
-  return initialized ? posthog : null;
+export function isPostHogInitialized(): boolean {
+  return initialized;
+}
+
+export function getPostHogClient() {
+  return posthog;
 }

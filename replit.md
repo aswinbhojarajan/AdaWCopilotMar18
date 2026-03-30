@@ -63,12 +63,14 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 ## Analytics (PostHog)
 Ada uses PostHog as its third-party analytics platform for session replay, product funnels, retention analysis, and LLM analytics.
 
+**SDK**: `posthog-js` + `@posthog/react` (official React bindings). Uses `PostHogProvider` context wrapper in `main.tsx` and `usePostHog()` hook in `useAnalytics.ts` per official React guide. Config includes `defaults: '2026-01-30'` for recommended SDK defaults.
+
 **Module**: `src/lib/analytics/` (6 files)
-- `posthog.ts`: SDK initialization with banking-grade privacy config, `before_send` PII safety net
+- `posthog.ts`: SDK initialization with banking-grade privacy config, `before_send` PII safety net, exports `getPostHogClient()` for provider
 - `privacy.ts`: PII denylist (PII_KEYS), regex patterns (UUID, IBAN, account numbers), sanitizeProperties(), DEMO_PERSONAS identity map
 - `events.ts`: Event name constants (typed enum)
 - `types.ts`: TypeScript interfaces for events and UseAnalytics hook
-- `useAnalytics.ts`: React hook — track(), identify(), reset(), setScreen(), getSessionId(). Enriches events with ada_session_id, ada_screen, ada_client_timestamp, ada_environment
+- `useAnalytics.ts`: React hook using `usePostHog()` — track(), identify(), reset(), setScreen(), getSessionId(). Enriches events with ada_session_id, ada_screen, ada_client_timestamp, ada_environment
 - `index.ts`: Barrel re-exports
 
 **Environment Variables** (Replit secrets):
