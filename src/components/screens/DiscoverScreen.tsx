@@ -22,7 +22,7 @@ export function DiscoverScreen({
   useEffect(() => {
     if (!visitRecordedRef.current) {
       visitRecordedRef.current = true;
-      fetch('/api/discover/visit', { method: 'POST' }).catch(() => {});
+      fetch('/api/discover/visit', { method: 'POST', credentials: 'include' }).catch(() => {});
     }
   }, []);
 
@@ -45,6 +45,7 @@ export function DiscoverScreen({
     fetch('/api/discover/interact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ cardId, action: 'dismiss' }),
     }).catch(() => {});
   }, []);
@@ -53,6 +54,7 @@ export function DiscoverScreen({
     fetch('/api/discover/interact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ cardId, action: 'feedback', metadata: { reason: feedback } }),
     }).catch(() => {});
   }, []);
@@ -61,6 +63,7 @@ export function DiscoverScreen({
     fetch('/api/discover/interact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ cardId, action, metadata }),
     }).catch(() => {});
   }, []);
@@ -98,7 +101,7 @@ export function DiscoverScreen({
     <ErrorBoundary fallbackMessage="Unable to load content. Please try again.">
     <PullToRefresh
       onRefresh={async () => {
-        try { await fetch('/api/content/discover/refresh', { method: 'POST' }); } catch {}
+        try { await fetch('/api/content/discover/refresh', { method: 'POST', credentials: 'include' }); } catch {}
         await refetch();
       }}
       className="h-full"

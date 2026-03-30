@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import pool from './pool';
@@ -9,15 +8,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const DEMO_PASSWORD = 'Ada2026!';
-
-function generateStrongPassword(): string {
-  return crypto.randomBytes(24).toString('base64url');
-}
+const ADMIN_FALLBACK_PASSWORD = 'AdaAdmin!Secure2026';
 
 async function seedAuthUsers(client: import('pg').PoolClient): Promise<void> {
-  const adminPassword = process.env.ADMIN_DEFAULT_PASSWORD || generateStrongPassword();
+  const adminPassword = process.env.ADMIN_DEFAULT_PASSWORD || ADMIN_FALLBACK_PASSWORD;
   if (!process.env.ADMIN_DEFAULT_PASSWORD) {
-    console.log(`[auth-seed] No ADMIN_DEFAULT_PASSWORD set. Generated admin password: ${adminPassword}`);
+    console.log('[auth-seed] No ADMIN_DEFAULT_PASSWORD set; using built-in fallback.');
   }
   const demoHash = await bcrypt.hash(DEMO_PASSWORD, 12);
   const adminHash = await bcrypt.hash(adminPassword, 12);
