@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   ContentCard,
   PullToRefresh,
@@ -8,6 +8,7 @@ import { SkeletonList } from '../ada/Skeleton';
 import { ErrorBanner } from '../ada/ErrorBanner';
 import { useHomeSummary } from '../../hooks/usePortfolio';
 import { useMorningSentinel } from '../../hooks/useMorningSentinel';
+import { useAnalytics, AnalyticsEvents } from '../../lib/analytics';
 
 interface HomeScreenProps {
   onChatSubmit?: (message: string, context?: { category: string; categoryType: string; title: string; sourceScreen?: string }) => void;
@@ -18,6 +19,19 @@ export function HomeScreen({
 }: HomeScreenProps) {
   const { data, isLoading, isError, refetch } = useHomeSummary();
   const sentinel = useMorningSentinel();
+  const { track } = useAnalytics();
+  const sentinelTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (sentinel.data && !sentinelTrackedRef.current) {
+      sentinelTrackedRef.current = true;
+      track(AnalyticsEvents.MORNING_SENTINEL_EXPANDED, {
+        has_actions: sentinel.data.actions.length > 0,
+        has_risks: sentinel.data.risks.length > 0,
+        key_movers_count: sentinel.data.keyMovers.length,
+      });
+    }
+  }, [sentinel.data, track]);
 
   const handleRefresh = useCallback(async () => {
     await Promise.all([refetch(), sentinel.forceRefresh()]);

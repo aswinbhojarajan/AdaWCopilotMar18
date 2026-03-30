@@ -80,7 +80,7 @@ Ada uses PostHog as its third-party analytics platform for session replay, produ
 
 **Identity**: Synthetic demo IDs mapped to personas (demo_aisha_01, demo_khalid_01, demo_raj_01, demo_admin_01). identify() called after login, reset() on logout.
 
-**Instrumented Events (P0)**: login_viewed, login_submitted, login_succeeded, login_failed, tab_view, tab_switch, app_foreground, app_background, chat_opened, chat_message_sent, chat_stream_started, chat_stream_completed, chat_stream_interrupted, chat_error, portfolio_view, discover_card_tap, discover_card_dismiss
+**Instrumented Events (P0)**: login_viewed, login_submitted, login_succeeded, login_failed, tab_view, tab_switch, app_foreground, app_background, chat_opened, chat_message_sent, chat_stream_started, chat_stream_completed, chat_stream_interrupted, chat_error, portfolio_view, discover_card_tap, discover_card_dismiss, morning_sentinel_expanded
 
 ## External Dependencies
 - **OpenAI**: AI capabilities via Replit AI Integrations.

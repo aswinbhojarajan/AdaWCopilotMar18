@@ -25,6 +25,7 @@ export function initPostHog(): void {
     autocapture: {
       dom_event_allowlist: ['click'],
       element_allowlist: ['button', 'a'],
+      css_selector_allowlist: ['[data-ph-capture]'],
     },
 
     session_recording: {
