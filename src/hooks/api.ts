@@ -1,4 +1,4 @@
-import { ApiError } from '../lib/ApiError';
+import { ApiError, handleFetchResponse } from '../lib/ApiError';
 
 export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -6,6 +6,7 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
     credentials: 'include',
   });
   if (!res.ok) {
+    handleFetchResponse(res);
     throw new ApiError(`HTTP ${res.status}`, res.status);
   }
   return res.json() as Promise<T>;
@@ -19,6 +20,7 @@ export async function apiPost<T>(url: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
+    handleFetchResponse(res);
     throw new ApiError(`HTTP ${res.status}`, res.status);
   }
   return res.json() as Promise<T>;

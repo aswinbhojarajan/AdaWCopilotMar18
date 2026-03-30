@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
 import pool from './pool';
@@ -9,10 +10,17 @@ const __dirname = path.dirname(__filename);
 
 const DEMO_PASSWORD = 'Ada2026!';
 
+function generateStrongPassword(): string {
+  return crypto.randomBytes(24).toString('base64url');
+}
+
 async function seedAuthUsers(client: import('pg').PoolClient): Promise<void> {
-  const adminPassword = process.env.ADMIN_DEFAULT_PASSWORD || DEMO_PASSWORD;
+  const adminPassword = process.env.ADMIN_DEFAULT_PASSWORD || generateStrongPassword();
+  if (!process.env.ADMIN_DEFAULT_PASSWORD) {
+    console.log(`[auth-seed] No ADMIN_DEFAULT_PASSWORD set. Generated admin password: ${adminPassword}`);
+  }
   const demoHash = await bcrypt.hash(DEMO_PASSWORD, 12);
-  const adminHash = adminPassword === DEMO_PASSWORD ? demoHash : await bcrypt.hash(adminPassword, 12);
+  const adminHash = await bcrypt.hash(adminPassword, 12);
 
   const upsertSql = `
     INSERT INTO auth.users (email, password_hash, display_name, role, status, persona, mock_tier, mock_config)
