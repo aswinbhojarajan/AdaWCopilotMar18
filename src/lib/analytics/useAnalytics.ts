@@ -51,16 +51,19 @@ export function useAnalytics(): UseAnalytics {
       currentView: string,
       extraProps?: Record<string, unknown>,
     ) => {
-      const isOverlay = currentView !== activeTab
-        && currentView !== 'home-empty';
+      const OVERLAY_VIEWS = new Set([
+        'chat', 'chat-history', 'notifications', 'client-environment',
+      ]);
+
+      const isOverlay = OVERLAY_VIEWS.has(currentView);
 
       const virtualPath = isOverlay
         ? `/${activeTab}/${currentView}`
-        : `/${currentView === 'home-empty' ? 'home' : currentView}`;
+        : `/${activeTab}`;
 
       const screenName = isOverlay
         ? `${activeTab}/${currentView}`
-        : (currentView === 'home-empty' ? 'home' : currentView);
+        : activeTab;
 
       currentScreen = screenName;
 
