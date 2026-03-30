@@ -36,7 +36,9 @@ export function initPostHog(): void {
     },
     enable_recording_console_log: false,
 
-    secure_cookie: true,
+    persistence: 'localStorage+cookie',
+    cross_subdomain_cookie: false,
+    secure_cookie: location.protocol === 'https:',
     property_denylist: ['$current_url', '$referrer', '$referring_domain'],
 
     before_send: (event) => {
