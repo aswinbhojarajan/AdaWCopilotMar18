@@ -42,18 +42,6 @@ export function Header({ onNotificationsClick }: HeaderProps = {}) {
               <div className="flex items-center justify-center h-[28px] relative shrink-0 w-[66px]">
                 <AdaLogo className="w-[65px] h-[26px]" />
               </div>
-              {session && (
-                <div className="flex items-center gap-[6px] bg-[#efede6] rounded-full px-[10px] py-[3px]">
-                  <div className="w-[18px] h-[18px] rounded-full bg-[#441316] flex items-center justify-center">
-                    <span className="text-white text-[0.5625rem] font-['DM_Sans',sans-serif] font-medium">
-                      {initials}
-                    </span>
-                  </div>
-                  <span className="font-['DM_Sans',sans-serif] font-medium text-[0.75rem] text-[#555] tracking-[-0.2px]">
-                    {displayName.split(' ')[0]}
-                  </span>
-                </div>
-              )}
             </div>
 
             <div className="flex items-center shrink-0 -mr-[14px]">
