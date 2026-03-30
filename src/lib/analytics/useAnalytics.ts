@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { usePostHog } from '@posthog/react';
+import { isPostHogInitialized } from './posthog';
 import { sanitizeProperties } from './privacy';
 import type { EventName, UseAnalytics } from './types';
 
@@ -8,10 +9,11 @@ let sessionId = crypto.randomUUID();
 
 export function useAnalytics(): UseAnalytics {
   const posthog = usePostHog();
+  const active = isPostHogInitialized();
 
   const track = useCallback(
     (event: EventName, properties?: Record<string, unknown>) => {
-      if (!posthog) return;
+      if (!active || !posthog) return;
       const enriched = {
         ...sanitizeProperties(properties ?? {}),
         ada_session_id: sessionId,
@@ -25,21 +27,21 @@ export function useAnalytics(): UseAnalytics {
 
       if (import.meta.env.DEV) console.debug(`[Ada] ${event}`, enriched);
     },
-    [posthog],
+    [active, posthog],
   );
 
   const identify = useCallback(
     (distinctId: string, traits?: Record<string, unknown>) => {
-      if (!posthog) return;
+      if (!active || !posthog) return;
       posthog.identify(distinctId, sanitizeProperties(traits ?? {}));
     },
-    [posthog],
+    [active, posthog],
   );
 
   const reset = useCallback(() => {
-    posthog?.reset();
+    if (active) posthog?.reset();
     sessionId = crypto.randomUUID();
-  }, [posthog]);
+  }, [active, posthog]);
 
   const setScreen = useCallback((name: string) => {
     currentScreen = name;
