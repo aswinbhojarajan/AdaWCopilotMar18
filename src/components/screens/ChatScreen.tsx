@@ -45,6 +45,7 @@ function useStreamingChat() {
       const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: getStreamHeaders(),
+        credentials: 'include',
         body: JSON.stringify({
           message,
           threadId,
@@ -162,7 +163,7 @@ export function ChatScreen({
   const { userId: activeUserId } = useUser();
 
   useEffect(() => {
-    fetch('/api/me', { headers: { 'x-user-id': activeUserId } })
+    fetch('/api/me', { credentials: 'include' })
       .then(r => r.json())
       .then(data => setVerboseModeAvailable(data?.capabilities?.verbose_mode === true))
       .catch(() => setVerboseModeAvailable(false));
@@ -258,7 +259,7 @@ export function ChatScreen({
   useEffect(() => {
     if (existingThreadId && messages.length === 0) {
       setIsLoadingThread(true);
-      fetch(`/api/chat/${existingThreadId}/messages`, { headers: getStreamHeaders() })
+      fetch(`/api/chat/${existingThreadId}/messages`, { headers: getStreamHeaders(), credentials: 'include' })
         .then(res => res.json())
         .then((data: Array<{ id: string; sender: string; message: string; widgets?: ChatWidget[] }>) => {
           const loaded: Message[] = data.map(m => ({

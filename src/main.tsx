@@ -8,8 +8,18 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
-      retry: 1,
+      retry: (failureCount, error) => {
+        if ((error as any)?.status === 401) return false;
+        return failureCount < 1;
+      },
       refetchOnWindowFocus: false,
+    },
+    mutations: {
+      onError: (error) => {
+        if ((error as any)?.status === 401) {
+          queryClient.setQueryData(['auth', 'session'], null);
+        }
+      },
     },
   },
 });

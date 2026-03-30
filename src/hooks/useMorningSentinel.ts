@@ -20,7 +20,7 @@ async function consumeSentinelStream(
   onComplete: (data: MorningSentinelResponse) => void,
   abortSignal?: AbortSignal,
 ) {
-  const res = await fetch(url, { signal: abortSignal, headers: getStreamHeaders() });
+  const res = await fetch(url, { signal: abortSignal, headers: getStreamHeaders(), credentials: 'include' });
   if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
 
   const reader = res.body.getReader();

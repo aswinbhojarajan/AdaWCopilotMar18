@@ -4,7 +4,7 @@ import { HomeScreen } from './components/screens/HomeScreen';
 import { Header, Navigation, BottomBar } from './components/ada';
 import type { TabType, ViewType, ChatContext, Message } from './types';
 import { useUser } from './contexts/UserContext';
-import { PersonaPicker } from './components/ada/PersonaPicker';
+import { useSession } from './hooks/useAuth';
 import { getStreamHeaders } from './hooks/api';
 
 const HomeEmptyScreen = lazy(() => import('./components/screens/HomeEmptyScreen').then(m => ({ default: m.HomeEmptyScreen })));
@@ -31,9 +31,10 @@ const fadeVariants = {
 
 
 export default function App() {
-  const { userId, isPickerOpen, openPicker, closePicker } = useUser();
+  const { data: session, isLoading: authLoading } = useSession();
+  const { userId } = useUser();
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [currentView, setCurrentView] = useState<ViewType>('login');
+  const [currentView, setCurrentView] = useState<ViewType>('home');
   const [chatMessage, setChatMessage] = useState<string>('');
   const [chatContext, setChatContext] = useState<ChatContext | undefined>(undefined);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -112,10 +113,40 @@ export default function App() {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="relative w-full min-h-dvh bg-[#999999] flex items-center justify-center overflow-hidden">
+        <div className="relative w-full max-w-[430px] h-dvh bg-[#efede6] shadow-2xl overflow-hidden flex items-center justify-center">
+          <div className="flex flex-col items-center gap-[16px]">
+            <div className="flex gap-[4px]">
+              <div className="w-[6px] h-[6px] bg-[#441316] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-[6px] h-[6px] bg-[#441316] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-[6px] h-[6px] bg-[#441316] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="relative w-full min-h-dvh bg-[#999999] flex items-center justify-center overflow-hidden">
+        <div
+          className="relative w-full max-w-[430px] h-dvh bg-[#efede6] shadow-2xl overflow-hidden"
+          style={{ isolation: 'isolate' } as React.CSSProperties}
+        >
+          <Suspense fallback={<div className="flex items-center justify-center h-full bg-[#efede6]" />}>
+            <LoginPage onLogin={() => navigateTo('home', 'home')} />
+          </Suspense>
+        </div>
+      </div>
+    );
+  }
+
   const isOverlay = ['chat', 'chat-history', 'notifications'].includes(currentView);
   const isClientEnv = currentView === 'client-environment';
-  const isLogin = currentView === 'login';
-  const isTabView = !isOverlay && !isClientEnv && !isLogin && currentView !== 'home-empty';
+  const isTabView = !isOverlay && !isClientEnv && currentView !== 'home-empty';
 
   const renderTabContent = () => {
     if (activeTab === 'home')
@@ -167,7 +198,7 @@ export default function App() {
           onChatHistoryClick={() => navigateTo('chat-history')}
           onBack={() => {
             if (activeThreadId) {
-              fetch(`/api/chat/${activeThreadId}/close`, { method: 'POST', headers: getStreamHeaders() }).catch(() => {});
+              fetch(`/api/chat/${activeThreadId}/close`, { method: 'POST', headers: getStreamHeaders(), credentials: 'include' }).catch(() => {});
             }
             setChatMessage('');
             setChatContext(undefined);
@@ -203,21 +234,13 @@ export default function App() {
       return (
         <ClientEnvironment
           onNavigateToAda={() => navigateTo('home', 'home')}
-          onProfileClick={openPicker}
-        />
-      );
-    }
-    if (currentView === 'login') {
-      return (
-        <LoginPage
-          onLogin={() => navigateTo('home', 'home')}
         />
       );
     }
     return null;
   };
 
-  const fullScreenKey = isOverlay ? currentView : isClientEnv ? 'client-environment' : isLogin ? 'login' : currentView === 'home-empty' ? 'home-empty' : null;
+  const fullScreenKey = isOverlay ? currentView : isClientEnv ? 'client-environment' : currentView === 'home-empty' ? 'home-empty' : null;
 
   const getFullScreenVariants = () => {
     if (isOverlay) return overlayVariants;
@@ -241,7 +264,6 @@ export default function App() {
               <div className="absolute bg-[#f7f6f2] content-stretch flex flex-col gap-[8px] items-center justify-center left-0 top-0 pb-0 px-0 w-full z-10 pt-safe">
                 <Header
                   onNotificationsClick={() => navigateTo('notifications')}
-                  onClose={() => navigateTo('login')}
                 />
                 <Navigation activeTab={activeTab} onTabChange={handleTabChange} />
               </div>
@@ -288,8 +310,6 @@ export default function App() {
             )}
           </AnimatePresence>
         </Suspense>
-
-        <PersonaPicker isOpen={isPickerOpen} onClose={closePicker} />
       </div>
     </div>
   );

@@ -2,10 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
+import pool from './db/pool';
 import apiRouter from './routes/api';
+import authRouter from './routes/auth';
+import adminRouter from './routes/admin';
 import { initDatabase } from './db/init';
 import { validateRegistry } from './services/toolRegistry';
 import { initDiscoverPipeline, getDiscoverPipelineHealth } from './services/discoverPipeline/index';
+import { resolveSession } from './middleware/auth';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,8 +20,37 @@ const app = express();
 const isProd = process.env.NODE_ENV === 'production';
 const PORT = isProd ? 5000 : 3001;
 
-app.use(cors());
+app.set('trust proxy', 1);
+
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
 app.use(express.json());
+
+const PgSession = connectPgSimple(session);
+
+app.use(session({
+  store: new PgSession({
+    pool: pool,
+    schemaName: 'auth',
+    tableName: 'sessions',
+    createTableIfMissing: false,
+  }),
+  name: 'ada.sid',
+  secret: process.env.SESSION_SECRET || 'dev-fallback-secret-change-me',
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    secure: isProd || !!process.env.REPLIT_DOMAINS,
+    sameSite: 'lax',
+    maxAge: 12 * 60 * 60 * 1000,
+  },
+}));
+
+app.use(resolveSession);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -25,6 +60,8 @@ app.get('/api/pipeline/health', (_req, res) => {
   res.json(getDiscoverPipelineHealth());
 });
 
+app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
 app.use('/api', apiRouter);
 
 if (isProd) {

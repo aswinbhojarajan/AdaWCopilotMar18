@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { apiFetch } from '../hooks/api';
+import React, { createContext, useContext } from 'react';
+import { useSession, type AuthUser } from '../hooks/useAuth';
 
 export interface DemoPersona {
   id: string;
@@ -12,73 +11,29 @@ export interface DemoPersona {
 
 interface UserContextValue {
   userId: string;
-  personas: DemoPersona[];
+  authUser: AuthUser | null;
   activePersona: DemoPersona | null;
-  isPickerOpen: boolean;
-  openPicker: () => void;
-  closePicker: () => void;
-  switchUser: (id: string) => void;
   isLoading: boolean;
 }
-
-const STORAGE_KEY = 'ada-active-user-id';
-const DEFAULT_USER_ID = 'user-aisha';
 
 const UserContext = createContext<UserContextValue | null>(null);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
-  const queryClient = useQueryClient();
-  const [userId, setUserId] = useState<string>(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY) || DEFAULT_USER_ID;
-    } catch {
-      return DEFAULT_USER_ID;
-    }
-  });
-  const [personas, setPersonas] = useState<DemoPersona[]>([]);
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: session, isLoading } = useSession();
 
-  useEffect(() => {
-    apiFetch<DemoPersona[]>('/api/users')
-      .then((data) => {
-        setPersonas(data);
-        setIsLoading(false);
-        const valid = data.some(p => p.id === userId);
-        if (!valid && data.length > 0) {
-          const fallbackId = data[0].id;
-          setUserId(fallbackId);
-          try { localStorage.setItem(STORAGE_KEY, fallbackId); } catch {}
-        }
-      })
-      .catch(() => setIsLoading(false));
-  }, []);
+  const userId = session?.persona || '';
+  const authUser = session ?? null;
 
-  const activePersona = personas.find(p => p.id === userId) ?? null;
-
-  const switchUser = useCallback((newId: string) => {
-    setUserId(newId);
-    try {
-      localStorage.setItem(STORAGE_KEY, newId);
-    } catch {}
-    setIsPickerOpen(false);
-    queryClient.removeQueries();
-  }, [queryClient]);
-
-  const openPicker = useCallback(() => setIsPickerOpen(true), []);
-  const closePicker = useCallback(() => setIsPickerOpen(false), []);
+  const activePersona: DemoPersona | null = session ? {
+    id: session.persona || session.id,
+    firstName: session.displayName.split(' ')[0] || 'User',
+    lastName: session.displayName.split(' ').slice(1).join(' ') || '',
+    riskLevel: (session.mockConfig as any)?.risk_level || 'moderate',
+    portfolioValue: (session.mockConfig as any)?.portfolio_value || 0,
+  } : null;
 
   return (
-    <UserContext.Provider value={{
-      userId,
-      personas,
-      activePersona,
-      isPickerOpen,
-      openPicker,
-      closePicker,
-      switchUser,
-      isLoading,
-    }}>
+    <UserContext.Provider value={{ userId, authUser, activePersona, isLoading }}>
       {children}
     </UserContext.Provider>
   );

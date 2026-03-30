@@ -17,16 +17,19 @@ import { getProviderRegistry } from '../providers/registry';
 import { getProviderHealthStatus } from '../providers/helpers';
 import { getCacheStats } from '../providers/cache';
 import type { ChatMessageRequest, PollVoteRequest, LifeEventType } from '../../shared/types';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
-const DEFAULT_USER_ID = 'user-aisha';
-
 function getUserId(req: Request): string {
-  const header = req.headers['x-user-id'];
-  if (typeof header === 'string' && header.trim()) return header.trim();
-  return DEFAULT_USER_ID;
+  const persona = req.user?.persona;
+  if (!persona) {
+    throw new Error('No persona assigned to this account');
+  }
+  return persona;
 }
+
+router.use(requireAuth);
 
 function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
   return (req: Request, res: Response, next: NextFunction) => {

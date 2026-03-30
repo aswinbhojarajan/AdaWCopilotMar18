@@ -28,7 +28,7 @@ export function useApi<T>(url: string | null): UseApiResult<T> {
     setLoading(true);
     setError(null);
 
-    fetch(url, { headers: getStreamHeaders() })
+    fetch(url, { headers: getStreamHeaders(), credentials: 'include' })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
