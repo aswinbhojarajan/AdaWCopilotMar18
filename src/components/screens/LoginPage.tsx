@@ -107,6 +107,7 @@ function ExclamationIcon() {
 }
 
 interface FloatingInputProps {
+  id: string;
   label: string;
   type: string;
   value: string;
@@ -117,7 +118,7 @@ interface FloatingInputProps {
   inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
-function FloatingInput({ label, type, value, onChange, autoComplete, inputMode, trailing, inputRef }: FloatingInputProps) {
+function FloatingInput({ id, label, type, value, onChange, autoComplete, inputMode, trailing, inputRef }: FloatingInputProps) {
   const [focused, setFocused] = useState(false);
   const fallbackRef = useRef<HTMLInputElement>(null);
   const ref = inputRef || fallbackRef;
@@ -129,14 +130,16 @@ function FloatingInput({ label, type, value, onChange, autoComplete, inputMode, 
       onClick={() => ref.current?.focus()}
     >
       <div className="flex flex-col justify-center relative flex-1 min-w-0 h-full">
-        <span
+        <label
+          htmlFor={id}
           className={`font-['DM_Sans',sans-serif] text-black/50 pointer-events-none transition-all duration-200 leading-none absolute left-0 ${
             isActive ? 'text-[12px] top-[10px]' : 'text-[16px] top-1/2 -translate-y-1/2'
           }`}
         >
           {label}
-        </span>
+        </label>
         <input
+          id={id}
           ref={ref}
           type={type}
           value={value}
@@ -234,6 +237,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         <form onSubmit={handleLogin} className="w-full flex flex-col gap-[12px] mb-[24px]">
           <FloatingInput
+            id="login-email"
             label="Email"
             type="email"
             value={email}
@@ -255,6 +259,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             }
           />
           <FloatingInput
+            id="login-password"
             label="Password"
             type={showPassword ? 'text' : 'password'}
             value={password}
