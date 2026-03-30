@@ -1,0 +1,193 @@
+You are working on the Ada RC web app.
+
+We have already integrated PostHog and can see events in **Activity**, but **Product Analytics** and **Web Analytics** are empty.
+
+Observed behavior:
+- Events visible in PostHog Activity include custom events like `app_background` and `app_foreground`
+- In Activity, the `URL / Screen` field is blank for these events
+- PostHog Web Analytics shows 0 visitors, 0 page views, 0 sessions
+- Product Analytics saved insights such as DAU are empty
+
+Current app context:
+- Frontend: React 18 + TypeScript + Vite
+- Routing is **custom state-based**, not React Router
+- `activeTab` controls major sections like home / wealth / discover / collective
+- `currentView` controls overlays like chat / notifications / login / etc.
+- The app may not be changing browser history on internal navigation
+
+Your task:
+Diagnose and implement the missing PostHog instrumentation so that:
+1. Web Analytics populates correctly
+2. Product Analytics insights like DAU can work
+3. We retain our custom business events
+4. The implementation is clean, typed, and suitable for demo use
+
+## What I want you to do
+
+### 1) Audit the current PostHog integration
+Inspect:
+- where `posthog-js` or `@posthog/react` is initialized
+- whether `defaults` is configured
+- whether `capture_pageview` is enabled
+- whether pageview capture relies only on browser history
+- whether `identify()` is being called correctly after login / mock-user switch
+- whether custom events are being fired without page/screen context
+- whether the app is wrapped in `PostHogProvider`
+- whether environment variables for PostHog host/key are correct
+
+### 2) Explain the root cause
+I want a short diagnosis covering:
+- why Activity has events but Web Analytics is empty
+- why Product Analytics insights are empty
+- whether custom app lifecycle events alone are insufficient
+- whether our custom routing is preventing PostHog from seeing navigation changes
+
+### 3) Implement the fix
+Make the necessary code changes so that:
+
+#### A. PostHog is initialized correctly
+Use robust web defaults appropriate for a React/Vite SPA.
+
+Ensure:
+- `api_host` is read from env
+- project key is read from env
+- pageviews are captured for SPA navigation
+- pageleave is captured
+- autocapture is left enabled unless there is a strong reason not to
+
+#### B. Add manual virtual pageview tracking
+Because routing is state-based, add a reusable tracker component or hook that sends a `$pageview` whenever:
+- `activeTab` changes
+- `currentView` changes
+
+For each virtual pageview include useful props such as:
+- `$current_url` using a virtual URL pattern
+- `ada_tab`
+- `ada_view`
+- `screen_name`
+- `is_overlay`
+- `user_type` if available
+- `demo_user_id` or equivalent stable mock user identifier if available
+
+Use a virtual path convention like:
+- `/home`
+- `/wealth`
+- `/discover`
+- `/collective`
+- `/home/chat`
+- `/wealth/login`
+etc.
+
+#### C. Preserve and improve custom event tracking
+Ensure custom events like:
+- app foreground/background
+- tab switch
+- CTA click
+- chat open
+- article click
+- portfolio interaction
+still fire, but include consistent context props:
+- tab
+- view
+- screen
+- user id / distinct id if available
+- timestamp if needed
+- session context if available
+
+#### D. Identify users properly
+If we have mock/demo login, make sure PostHog identify is called after login with a stable ID such as:
+- `demo_aisha_01`
+
+Also set person properties if available:
+- display name
+- persona / segment
+- demo flag
+- environment
+
+Avoid identifying anonymous users too early unless already needed.
+
+### 4) Make Product Analytics usable
+Create or document the event strategy needed for:
+- DAU
+- WAU
+- retention
+- core engagement funnel
+
+Recommend the minimum viable event set for the demo, for example:
+- `$pageview`
+- `session_started` or rely on PostHog sessioning
+- `tab_viewed`
+- `chat_opened`
+- `insight_clicked`
+- `article_opened`
+- `portfolio_viewed`
+- `goal_viewed`
+- `advisor_contact_clicked`
+
+If any existing saved insights are pointed at the wrong event, note that explicitly.
+
+### 5) Add a lightweight analytics helper
+Create a small typed helper or hook such as:
+- `useAnalytics()`
+or
+- `analytics.ts`
+
+It should expose:
+- `track(eventName, props?)`
+- `page(activeTab, currentView, extraProps?)`
+- `identify(user)`
+- `reset()`
+
+The goal is to standardize event/property naming and avoid scattered raw `posthog.capture()` calls.
+
+### 6) Validate the implementation
+After making changes, tell me exactly how to verify in PostHog:
+
+#### In Activity:
+What events I should now see:
+- `$pageview`
+- `$pageleave`
+- custom business events
+
+#### In Web Analytics:
+What should start populating:
+- visitors
+- page views
+- sessions
+
+#### In Product Analytics:
+Which event/insight setup should now work:
+- DAU based on `$pageview` or another recommended event
+- trend charts
+- funnel
+
+### 7) Deliverables
+Provide:
+1. A concise root cause summary
+2. The exact files changed
+3. The code changes
+4. Any env vars required
+5. Any follow-up manual steps inside PostHog UI
+6. A short “recommended next backlog” section for later improvements
+
+## Important implementation constraints
+- Keep changes minimal and production-sensible
+- Do not break the current demo flow
+- Do not introduce React Router unless absolutely necessary
+- Prefer working with the current `activeTab` / `currentView` architecture
+- Keep TypeScript clean
+- Avoid overengineering
+
+## Nice to have
+If useful, also:
+- add a `tab_viewed` event whenever major tabs change
+- add `screen_viewed` for overlays/modals
+- add a naming convention doc for event names and properties
+- note whether a reverse proxy/custom domain for PostHog should be backlog
+
+At the end, give me:
+- **Root cause**
+- **Implementation summary**
+- **Files changed**
+- **How to test**
+- **Backlog**
