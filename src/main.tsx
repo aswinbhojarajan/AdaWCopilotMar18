@@ -5,9 +5,10 @@ import App from './App';
 import './index.css';
 import { UserProvider } from './contexts/UserContext';
 import { isApiError, setSessionExpiredHandler } from './lib/ApiError';
-import { initPostHog, isPostHogInitialized, getPostHogClient } from './lib/analytics';
+import { initPostHog, isPostHogInitialized, getPostHogClient, initGA4 } from './lib/analytics';
 
 initPostHog();
+initGA4();
 
 const queryClient = new QueryClient({
   defaultOptions: {
