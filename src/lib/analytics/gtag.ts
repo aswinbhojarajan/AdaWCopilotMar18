@@ -146,18 +146,24 @@ function trackEngagementTime(): void {
 
   setInterval(tick, 1000);
 
-  document.addEventListener('visibilitychange', () => {
-    tick();
-    visible = !document.hidden;
-    lastTick = Date.now();
-  });
-
-  window.addEventListener('beforeunload', () => {
+  const flush = () => {
     tick();
     if (engagedMs > 0) {
       gtagEvent('engagement_time', {
         engagement_time_msec: engagedMs,
       });
+      engagedMs = 0;
     }
+  };
+
+  document.addEventListener('visibilitychange', () => {
+    tick();
+    if (document.hidden) {
+      flush();
+    }
+    visible = !document.hidden;
+    lastTick = Date.now();
   });
+
+  window.addEventListener('beforeunload', flush);
 }
