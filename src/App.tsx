@@ -34,7 +34,7 @@ const fadeVariants = {
 export default function App() {
   const { data: session, isLoading: authLoading } = useSession();
   const { userId } = useUser();
-  const { track, setScreen, identify } = useAnalytics();
+  const { track, setScreen, identify, pageview } = useAnalytics();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [currentView, setCurrentView] = useState<ViewType>('home');
   const [chatMessage, setChatMessage] = useState<string>('');
@@ -76,6 +76,10 @@ export default function App() {
     });
     return undefined;
   }, [activeTab, session, track, setScreen]);
+
+  useEffect(() => {
+    pageview(activeTab, currentView);
+  }, [activeTab, currentView, pageview]);
 
   useEffect(() => {
     if (!session) return undefined;

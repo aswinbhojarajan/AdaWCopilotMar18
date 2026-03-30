@@ -72,11 +72,11 @@ Ada uses two parallel analytics platforms: **PostHog** (session replay, product 
 **Module**: `src/lib/analytics/` (8 files)
 - `posthog.ts`: PostHog SDK init with banking-grade privacy config, `before_send` PII safety net
 - `gtag.ts`: GA4 initialization, gtag config, custom event helper, user_id set/clear, screen_view tracking
-- `dispatcher.ts`: Unified dispatch layer routing events to both PostHog and GA4. Handles identify (PostHog identify + GA4 user_id), reset (PostHog reset + GA4 user_id clear), screen_view (GA4), and event capture (both platforms)
+- `dispatcher.ts`: Unified dispatch layer routing events to both PostHog and GA4. Handles identify (PostHog identify + GA4 user_id), reset (PostHog reset + GA4 user_id clear), screen_view (GA4), pageview ($pageview to PostHog + screen_view to GA4), and event capture (both platforms)
 - `privacy.ts`: PII denylist (PII_KEYS), regex patterns (UUID, IBAN, account numbers), sanitizeProperties(), DEMO_PERSONAS identity map
 - `events.ts`: Event name constants (typed enum)
 - `types.ts`: TypeScript interfaces for events and UseAnalytics hook
-- `useAnalytics.ts`: React hook — track(), identify(), reset(), setScreen(), getSessionId(). Enriches events with ada_session_id, ada_screen, ada_client_timestamp, ada_environment. Routes through dispatcher to both platforms.
+- `useAnalytics.ts`: React hook — track(), identify(), reset(), setScreen(), pageview(), getSessionId(). pageview() constructs virtual URLs from activeTab/currentView for SPA navigation tracking. Enriches events with ada_session_id, ada_screen, ada_client_timestamp, ada_environment. Routes through dispatcher to both platforms.
 - `index.ts`: Barrel re-exports
 
 **Environment Variables** (Replit env vars/secrets):
@@ -85,11 +85,13 @@ Ada uses two parallel analytics platforms: **PostHog** (session replay, product 
 - `VITE_GA4_MEASUREMENT_ID`: GA4 measurement ID (e.g. `G-V823WN3NG9`)
 - Each platform runs independently as no-op when its keys are missing
 
-**PII Safety**: Two layers — hook sanitizeProperties() for manual events + PostHog before_send for autocaptured events. GA4 receives same sanitized properties. All session replay text/inputs masked globally.
+**PII Safety**: Two layers — hook sanitizeProperties() for manual events + PostHog before_send for autocaptured events (scrubs $current_url, $pathname, $referrer, $referring_domain for UUIDs/account numbers). GA4 receives same sanitized properties. All session replay text/inputs masked globally.
 
 **Identity**: Synthetic demo IDs mapped to personas (demo_aisha_01, demo_khalid_01, demo_raj_01, demo_admin_01). PostHog identify() + GA4 user_id set after login; PostHog reset() + GA4 user_id clear on logout.
 
-**Instrumented Events (P0)**: login_viewed, login_submitted, login_succeeded, login_failed, tab_view, tab_switch, app_foreground, app_background, chat_opened, chat_message_sent, chat_stream_started, chat_stream_completed, chat_stream_interrupted, chat_error, portfolio_view, discover_card_tap, discover_card_dismiss, morning_sentinel_expanded
+**Virtual Pageview Tracking**: Because the app uses state-based routing (activeTab/currentView, no React Router), `pageview()` in useAnalytics constructs virtual URLs like `/home`, `/wealth`, `/discover`, `/collective`, `/home/chat`, `/wealth/notifications`. Fires PostHog `$pageview` with `$current_url` and `$pathname` set to virtual paths. Also fires GA4 `screen_view`. Wired in App.tsx useEffect on [activeTab, currentView]. This populates PostHog Web Analytics (visitors, page views, sessions) and enables DAU/WAU Product Analytics insights.
+
+**Instrumented Events (P0)**: $pageview (virtual), login_viewed, login_submitted, login_succeeded, login_failed, tab_view, tab_switch, app_foreground, app_background, chat_opened, chat_message_sent, chat_stream_started, chat_stream_completed, chat_stream_interrupted, chat_error, portfolio_view, discover_card_tap, discover_card_dismiss, morning_sentinel_expanded
 
 **GA4 Enhanced Measurement**: Client-side SPA-aware implementation in `gtag.ts` via `initEnhancedMeasurement()`: scroll depth tracking (25/50/75/90% thresholds on scrollable containers), outbound click detection (PII-stripped URLs via `stripUrlPii`), and engagement time accumulation (visibility-aware, fires on beforeunload). Also sends explicit `screen_view` on tab navigation and uses `send_page_view: false` to prevent duplicate page views.
 

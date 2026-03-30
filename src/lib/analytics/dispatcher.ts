@@ -46,6 +46,21 @@ export function dispatchReset(posthog: PostHog | undefined): void {
   }
 }
 
+export function dispatchPageview(
+  props: Record<string, unknown>,
+  posthog: PostHog | undefined,
+): void {
+  if (isPostHogInitialized() && posthog) {
+    posthog.capture('$pageview', props);
+  }
+
+  if (isGA4Initialized()) {
+    resetScrollDepth();
+    const screenName = (props.screen_name as string) ?? 'unknown';
+    gtagScreenView(screenName);
+  }
+}
+
 export function dispatchScreenView(screenName: string): void {
   if (isGA4Initialized()) {
     resetScrollDepth();

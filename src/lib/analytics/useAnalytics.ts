@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { usePostHog } from '@posthog/react';
 import { sanitizeProperties } from './privacy';
-import { dispatchEvent, dispatchIdentify, dispatchReset, dispatchScreenView } from './dispatcher';
+import { dispatchEvent, dispatchIdentify, dispatchReset, dispatchScreenView, dispatchPageview } from './dispatcher';
 import type { EventName, UseAnalytics } from './types';
 
 let currentScreen = 'unknown';
@@ -45,7 +45,48 @@ export function useAnalytics(): UseAnalytics {
     dispatchScreenView(name);
   }, []);
 
+  const pageview = useCallback(
+    (
+      activeTab: string,
+      currentView: string,
+      extraProps?: Record<string, unknown>,
+    ) => {
+      const isOverlay = currentView !== activeTab
+        && currentView !== 'home-empty';
+
+      const virtualPath = isOverlay
+        ? `/${activeTab}/${currentView}`
+        : `/${currentView === 'home-empty' ? 'home' : currentView}`;
+
+      const screenName = isOverlay
+        ? `${activeTab}/${currentView}`
+        : (currentView === 'home-empty' ? 'home' : currentView);
+
+      currentScreen = screenName;
+
+      const origin = window.location.origin;
+      const props: Record<string, unknown> = {
+        ...sanitizeProperties(extraProps ?? {}),
+        $current_url: `${origin}${virtualPath}`,
+        $pathname: virtualPath,
+        ada_tab: activeTab,
+        ada_view: currentView,
+        screen_name: screenName,
+        is_overlay: isOverlay,
+        ada_session_id: sessionId,
+        ada_client_timestamp: new Date().toISOString(),
+        ada_app_version: import.meta.env.VITE_APP_VERSION ?? 'dev',
+        ada_environment: import.meta.env.DEV ? 'development' : 'demo',
+      };
+
+      dispatchPageview(props, posthog);
+
+      if (import.meta.env.DEV) console.debug('[Ada] $pageview', props);
+    },
+    [posthog],
+  );
+
   const getSessionId = useCallback(() => sessionId, []);
 
-  return { track, identify, reset, setScreen, getSessionId };
+  return { track, identify, reset, setScreen, pageview, getSessionId };
 }

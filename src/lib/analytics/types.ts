@@ -7,6 +7,7 @@ export interface UseAnalytics {
   identify: (distinctId: string, traits?: Record<string, unknown>) => void;
   reset: () => void;
   setScreen: (screenName: string) => void;
+  pageview: (activeTab: string, currentView: string, extraProps?: Record<string, unknown>) => void;
   getSessionId: () => string;
 }
 

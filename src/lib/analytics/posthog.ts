@@ -40,7 +40,7 @@ export function initPostHog(): void {
     persistence: 'localStorage+cookie',
     cross_subdomain_cookie: false,
     secure_cookie: location.protocol === 'https:',
-    property_denylist: ['$current_url', '$referrer', '$referring_domain'],
+    property_denylist: [],
 
     before_send: (event) => {
       if (!event || !event.properties) return event;
@@ -49,7 +49,7 @@ export function initPostHog(): void {
         delete event.properties[key];
       }
 
-      for (const prop of ['$current_url', '$pathname']) {
+      for (const prop of ['$current_url', '$pathname', '$referrer', '$referring_domain']) {
         if (typeof event.properties[prop] === 'string') {
           event.properties[prop] = event.properties[prop]
             .replace(PII_PATTERNS.UUID, '[id]')
