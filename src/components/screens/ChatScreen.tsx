@@ -3,6 +3,7 @@ import { ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon, Thinki
 import type { Message, ChatContext, ChatWidget } from '../../types';
 import { getStreamHeaders } from '../../hooks/api';
 import { useUser } from '../../contexts/UserContext';
+import { useAnalytics, AnalyticsEvents } from '../../lib/analytics';
 
 interface ThinkingStep {
   step: string;
@@ -163,8 +164,15 @@ export function ChatScreen({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const threadIdRef = useRef<string>(existingThreadId ?? `thread-${Date.now()}`);
   const { streamMessage } = useStreamingChat();
+  const { track, setScreen } = useAnalytics();
 
   const { userId: activeUserId } = useUser();
+  const streamStartTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    setScreen('chat');
+    track(AnalyticsEvents.CHAT_OPENED, { entry_point: initialMessage ? 'cta' : 'bottom_bar' });
+  }, [track, setScreen, initialMessage]);
 
   useEffect(() => {
     fetch('/api/me', { credentials: 'include' })
@@ -204,9 +212,12 @@ export function ChatScreen({
   const sendAndReceive = useCallback(async (userMessage: string, context?: ChatContext) => {
     setIsTyping(true);
     setThinkingSteps([]);
+    streamStartTimeRef.current = Date.now();
+    track(AnalyticsEvents.CHAT_STREAM_STARTED, { request_id: threadIdRef.current });
 
     const adaMsgId = (Date.now() + 1).toString();
     let currentText = '';
+    let hadError = false;
     const currentWidgets: ChatWidget[] = [];
 
     setMessages(prev => [...prev, {
@@ -251,12 +262,29 @@ export function ChatScreen({
         setThinkingSteps(prev => [...prev, step]);
       },
       () => {
+        if (!hadError) {
+          track(AnalyticsEvents.CHAT_STREAM_COMPLETED, {
+            response_time_ms: Date.now() - streamStartTimeRef.current,
+          });
+        }
         setMessages(prev => prev.map(m =>
           m.id === adaMsgId ? { ...m, isStreaming: false } : m
         ));
         setIsTyping(false);
       },
       (errorMsg) => {
+        hadError = true;
+        if (currentText) {
+          track(AnalyticsEvents.CHAT_STREAM_INTERRUPTED, {
+            error_type: 'stream_error',
+            response_time_ms: Date.now() - streamStartTimeRef.current,
+          });
+        } else {
+          track(AnalyticsEvents.CHAT_ERROR, {
+            error_type: 'connection_error',
+            recoverable: true,
+          });
+        }
         currentText = errorMsg;
         setMessages(prev => prev.map(m =>
           m.id === adaMsgId ? { ...m, message: errorMsg, isStreaming: false } : m
@@ -264,7 +292,7 @@ export function ChatScreen({
         setIsTyping(false);
       },
     );
-  }, [setMessages, streamMessage, verbose]);
+  }, [setMessages, streamMessage, verbose, track]);
 
   useEffect(() => {
     if (existingThreadId && messages.length === 0) {
@@ -320,6 +348,7 @@ export function ChatScreen({
 
   const handleSubmit = (value: string) => {
     if (!value.trim()) return;
+    track(AnalyticsEvents.CHAT_MESSAGE_SENT, { message_length: value.trim().length });
 
     const userMsg: Message = {
       id: Date.now().toString(),

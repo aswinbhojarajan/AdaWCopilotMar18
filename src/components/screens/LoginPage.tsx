@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLogin } from '../../hooks/useAuth';
+import { useAnalytics, AnalyticsEvents, DEMO_PERSONAS as ANALYTICS_PERSONAS } from '../../lib/analytics';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -160,6 +161,7 @@ function FloatingInput({ id, label, type, value, onChange, autoComplete, inputMo
 
 export function LoginPage({ onLogin }: LoginPageProps) {
   const loginMutation = useLogin();
+  const { track, identify, setScreen } = useAnalytics();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -167,15 +169,42 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingPersona, setLoadingPersona] = useState<string | null>(null);
   const emailRef = useRef<HTMLInputElement>(null);
+  const loginStartRef = useRef<number>(0);
+  const attemptCountRef = useRef(0);
+
+  useEffect(() => {
+    setScreen('login');
+    track(AnalyticsEvents.LOGIN_VIEWED, { screen_name: 'login' });
+  }, [track, setScreen]);
+
+  const identifyAfterLogin = (persona: string | null) => {
+    if (persona && ANALYTICS_PERSONAS[persona]) {
+      const p = ANALYTICS_PERSONAS[persona];
+      identify(p.distinctId, p.traits);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
+    loginStartRef.current = Date.now();
+    attemptCountRef.current += 1;
+    track(AnalyticsEvents.LOGIN_SUBMITTED, { auth_method: 'email' });
     try {
-      await loginMutation.mutateAsync({ email, password });
+      const user = await loginMutation.mutateAsync({ email, password });
+      track(AnalyticsEvents.LOGIN_SUCCEEDED, {
+        persona: user.persona,
+        segment: user.mockTier,
+        time_to_login_ms: Date.now() - loginStartRef.current,
+      });
+      identifyAfterLogin(user.persona);
       onLogin();
     } catch (err) {
+      track(AnalyticsEvents.LOGIN_FAILED, {
+        error_type: err instanceof Error ? err.message : 'unknown',
+        attempt_count: attemptCountRef.current,
+      });
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setIsLoading(false);
@@ -185,10 +214,23 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const handlePersonaLogin = async (persona: DemoPersona) => {
     setError(null);
     setLoadingPersona(persona.email);
+    loginStartRef.current = Date.now();
+    attemptCountRef.current += 1;
+    track(AnalyticsEvents.LOGIN_SUBMITTED, { auth_method: 'demo_persona' });
     try {
-      await loginMutation.mutateAsync({ email: persona.email, password: persona.password });
+      const user = await loginMutation.mutateAsync({ email: persona.email, password: persona.password });
+      track(AnalyticsEvents.LOGIN_SUCCEEDED, {
+        persona: user.persona,
+        segment: user.mockTier,
+        time_to_login_ms: Date.now() - loginStartRef.current,
+      });
+      identifyAfterLogin(user.persona);
       onLogin();
     } catch (err) {
+      track(AnalyticsEvents.LOGIN_FAILED, {
+        error_type: err instanceof Error ? err.message : 'unknown',
+        attempt_count: attemptCountRef.current,
+      });
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoadingPersona(null);

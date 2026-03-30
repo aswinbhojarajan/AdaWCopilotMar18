@@ -383,6 +383,92 @@ Migrate from Chat Completions API to OpenAI Responses API:
 - Structured output via response_format
 - Requires adapter layer for Anthropic fallback compatibility
 
+### BL-034: PostHog Full Event Taxonomy (P1/P2 Events)
+**Status:** Proposed
+**Priority:** Should Have
+**Depends on:** Project Task #17
+
+Instrument remaining ~30 events from the PostHog v2 spec (52 total, ~20 P0 events covered in Task #17):
+- **Home**: home_card_viewed (IntersectionObserver), home_cta_tapped, morning_sentinel_expanded
+- **Chat**: chat_action_invoked, chat_feedback, chat_history_opened, chat_source_opened
+- **Wealth**: holding_detail_view, allocation_chart_interact, performance_period_change, goal_opened, goal_created, life_event_sim_started, life_event_sim_completed, statement_download
+- **Discover**: discover_card_impression (IntersectionObserver, 1s threshold), discover_card_save, discover_card_share, discover_scroll_depth, article_read_progress, discover_feed_refresh, content_feedback_submitted
+- **Collective**: collective_viewed, poll_viewed, poll_voted, community_cta_tapped
+- **Compliance**: risk_profile_check, disclaimer_shown, disclaimer_acknowledged, kyc_gate_hit, suitability_mismatch
+- **UI**: cta_tap, search_executed, filter_applied, notification_received, notification_tapped, error_displayed, rm_contact_initiated
+- **Overlays**: overlay_opened, overlay_closed (with time_open_ms, close_method)
+- Reference: `attached_assets/RC_ada_analytics_posthog_v2_CLA_post_OAI_3003_3pm_1774871900301.docx`
+
+### BL-035: PostHog Server-Side Feature Flags
+**Status:** Proposed
+**Priority:** Should Have
+**Depends on:** Project Task #17
+
+Server-side PostHog integration for feature flag evaluation:
+- Install `posthog-node` SDK; add `POSTHOG_PROJECT_KEY` server-side env var
+- `gpt-5.4-canary` boolean flag (0% rollout) — controls `ada-reason` model alias resolution
+- `discover-ranking-strategy` multivariate flag (control/engagement/recency) for Discover feed A/B testing
+- Demo variant flags: `morning-sentinel-v2`, `prompt-starters-placement`, `discover-aggregation-card`
+- Integrate flag checks into LLM routing layer (`resolveModelAlias`) and Discover feed component
+
+### BL-036: PostHog Existing Telemetry Table Mapping
+**Status:** Proposed
+**Priority:** Should Have
+**Depends on:** Project Task #17
+
+Mirror existing DB telemetry to PostHog events (parallel stream, not replacement):
+- `user_content_interactions` → discover_card_impression, discover_card_tap, discover_card_dismiss, discover_card_save (add `track()` alongside existing DB writes)
+- `user_discover_visits` → tab_view (tab_name='discover'), discover_scroll_depth
+- `agent_traces` → chat_stream_started, chat_stream_completed, chat_stream_interrupted (mirror key metrics)
+- `moderation_events` → moderation_triggered event (fire PostHog event on trigger)
+- `provider_fallback_events` → chat_stream_completed (fallback_used: true), chat_error (captured as properties)
+
+### BL-037: Session Replay Readability (ph-no-mask)
+**Status:** Proposed
+**Priority:** Nice to Have
+**Depends on:** Project Task #17
+
+Add `ph-no-mask` CSS class to safe, non-sensitive UI elements to improve PostHog session replay readability:
+- Tab labels (HOME, WEALTH, DISCOVER, COLLECTIVE)
+- Section headers ("Your Goals", "Portfolio Health", etc.)
+- Button text (View Portfolio, Ask Ada, etc.)
+- CTA labels
+- Never unmask: financial figures, balances, names, emails, account numbers, chat content, LLM responses
+
+### BL-038: First-Party PostgreSQL Analytics Layer
+**Status:** Proposed
+**Priority:** Future
+
+Add `analytics_events` PostgreSQL table for first-party analytics alongside PostHog:
+- Create analytics schema and tables
+- Build `POST /api/analytics/events` Express endpoint
+- Add `layer` field to event registry (`fp_only`, `both`, `ph_only`)
+- Update `useAnalytics.track()` to check layer and dual-dispatch
+- Move PII-containing events to `fp_only`; keep behavioral events as `both`
+- Zero component code changes — everything already uses `track()` through the hook
+
+### BL-039: PostHog Production Identity Model (SHA-256 Hashing)
+**Status:** Proposed
+**Priority:** Future
+**Depends on:** BL-038
+
+Replace synthetic demo distinct_ids with SHA-256 hashed client_ids for production users:
+- `hashClientId()` function: `SHA-256(ada:{clientId}:{salt})`
+- Switch `identify()` from `DEMO_PERSONAS` lookup to hashed real IDs
+- HASH_SALT stored as server-side secret
+- Activate when real auth with real users is live
+
+### BL-040: PostHog Dashboards & Saved Replay Filters
+**Status:** Proposed
+**Priority:** Should Have
+**Depends on:** Project Task #17, BL-034
+
+Create PostHog dashboards and saved session replay filters (done in PostHog console, not code):
+- **Demo Engagement Dashboard**: active users, sessions by persona, tab distribution, session duration, chat adoption rate, content engagement rate
+- **Journey Funnel Dashboard**: login→home→chat→portfolio→discover funnel, wealth depth funnel, discover engagement funnel
+- **AI Operations Dashboard**: requests by model alias, response time P50/P95, fallback rate, stream interruption rate, token distribution
+- **Saved Replay Filters**: login issues, chat failures, high latency (>5s), wealth abandonment, discover drop-off
+
 ---
 
 ## Completed Items

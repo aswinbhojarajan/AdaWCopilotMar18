@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   WealthSnapshot,
   CompactAssetAllocation,
@@ -23,6 +23,7 @@ import { useAllocations } from '../../hooks/useAllocations';
 import { useGoals, useGoalHealthScore, useLifeGapPrompts, useDismissLifeGapPrompt, useLifeEventSuggestions, useCreateGoal } from '../../hooks/useGoals';
 import { useAccounts, useAddAccount } from '../../hooks/useAccounts';
 import type { ChatContext, AccountResponse, LifeEventType, LifeEventSuggestionResponse } from '../../types';
+import { useAnalytics, AnalyticsEvents } from '../../lib/analytics';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   Home: <Home className="size-[18px] text-[#555555]" strokeWidth={1.5} />,
@@ -46,8 +47,13 @@ export function WealthScreen({
   shouldAutoScrollToGoal,
   onScrollComplete,
 }: WealthScreenProps) {
+  const { track } = useAnalytics();
   const [showAddAccountModal, setShowAddAccountModal] = React.useState(false);
   const [showLifeEventModal, setShowLifeEventModal] = React.useState(false);
+
+  useEffect(() => {
+    track(AnalyticsEvents.PORTFOLIO_VIEW, { view_type: 'overview' });
+  }, [track]);
   const [lifeEventSuggestions, setLifeEventSuggestions] = React.useState<LifeEventSuggestionResponse[]>([]);
   const [goalsExpanded, setGoalsExpanded] = React.useState(false);
   const [shouldScrollToGoal, setShouldScrollToGoal] = React.useState(false);

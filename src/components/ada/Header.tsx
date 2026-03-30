@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import svgPaths from '../../imports/svg-npbkfwfylb';
 import { AdaLogo } from './AdaLogo';
 import { useSession, useLogout } from '../../hooks/useAuth';
+import { useAnalytics } from '../../lib/analytics';
 
 interface HeaderProps {
   onNotificationsClick?: () => void;
@@ -11,6 +12,7 @@ interface HeaderProps {
 export function Header({ onNotificationsClick }: HeaderProps = {}) {
   const { data: session } = useSession();
   const logoutMutation = useLogout();
+  const { reset: resetAnalytics } = useAnalytics();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -30,6 +32,7 @@ export function Header({ onNotificationsClick }: HeaderProps = {}) {
 
   const handleLogout = () => {
     setMenuOpen(false);
+    resetAnalytics();
     logoutMutation.mutate();
   };
 

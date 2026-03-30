@@ -4,6 +4,9 @@ import App from './App';
 import './index.css';
 import { UserProvider } from './contexts/UserContext';
 import { isApiError, setSessionExpiredHandler } from './lib/ApiError';
+import { initPostHog } from './lib/analytics';
+
+initPostHog();
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -60,9 +60,32 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **Policy engine tool profiles**: Defined in tenant config.
 - **Pipeline Interval Env Vars**: Configurable intervals for pipeline stages.
 
+## Analytics (PostHog)
+Ada uses PostHog as its third-party analytics platform for session replay, product funnels, retention analysis, and LLM analytics.
+
+**Module**: `src/lib/analytics/` (6 files)
+- `posthog.ts`: SDK initialization with banking-grade privacy config, `before_send` PII safety net
+- `privacy.ts`: PII denylist (PII_KEYS), regex patterns (UUID, IBAN, account numbers), sanitizeProperties(), DEMO_PERSONAS identity map
+- `events.ts`: Event name constants (typed enum)
+- `types.ts`: TypeScript interfaces for events and UseAnalytics hook
+- `useAnalytics.ts`: React hook — track(), identify(), reset(), setScreen(), getSessionId(). Enriches events with ada_session_id, ada_screen, ada_client_timestamp, ada_environment
+- `index.ts`: Barrel re-exports
+
+**Environment Variables** (Replit secrets):
+- `VITE_POSTHOG_KEY`: PostHog project API key
+- `VITE_POSTHOG_HOST`: PostHog host URL (e.g. `https://eu.i.posthog.com`)
+- App runs gracefully as no-op when these are not set
+
+**PII Safety**: Two layers — hook sanitizeProperties() for manual events + PostHog before_send for autocaptured events. All session replay text/inputs masked globally.
+
+**Identity**: Synthetic demo IDs mapped to personas (demo_aisha_01, demo_khalid_01, demo_raj_01, demo_admin_01). identify() called after login, reset() on logout.
+
+**Instrumented Events (P0)**: login_viewed, login_submitted, login_succeeded, login_failed, tab_view, tab_switch, app_foreground, app_background, chat_opened, chat_message_sent, chat_stream_started, chat_stream_completed, chat_stream_interrupted, chat_error, portfolio_view, discover_card_tap, discover_card_dismiss
+
 ## External Dependencies
 - **OpenAI**: AI capabilities via Replit AI Integrations.
 - **Anthropic**: Fallback AI provider via Replit AI Integrations.
+- **PostHog**: Third-party product analytics, session replay, and feature flags (posthog-js SDK).
 - **Finnhub**: Primary provider for live market data, company profiles, and news.
 - **Yahoo Finance**: Secondary provider for market data and news.
 - **FRED**: Federal Reserve Economic Data for macro indicators.

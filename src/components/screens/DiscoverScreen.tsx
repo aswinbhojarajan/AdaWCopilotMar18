@@ -3,6 +3,7 @@ import { Tag, ContentCard, PullToRefresh, ErrorBoundary } from '../ada';
 import { SkeletonList } from '../ada/Skeleton';
 import { ErrorBanner } from '../ada/ErrorBanner';
 import { useDiscoverContentPaginated } from '../../hooks/useContent';
+import { useAnalytics, AnalyticsEvents } from '../../lib/analytics';
 
 interface DiscoverScreenProps {
   onChatSubmit?: (message: string, context?: { category: string; categoryType: string; title: string; sourceScreen?: string; discoverCard?: { card_id?: string; card_type?: string; card_summary?: string; why_seen?: string; entities?: string[]; evidence_facts?: string[]; cta_family?: string } }) => void;
@@ -11,6 +12,7 @@ interface DiscoverScreenProps {
 export function DiscoverScreen({
   onChatSubmit,
 }: DiscoverScreenProps) {
+  const { track } = useAnalytics();
   const [activeFilter, setActiveFilter] = useState<'forYou' | 'whatsNew'>('forYou');
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const [dismissedCardIds, setDismissedCardIds] = useState<Set<string>>(new Set());
@@ -42,13 +44,14 @@ export function DiscoverScreen({
 
   const handleDismiss = useCallback((cardId: string) => {
     setDismissedCardIds(prev => new Set(prev).add(cardId));
+    track(AnalyticsEvents.DISCOVER_CARD_DISMISS, { card_id: cardId });
     fetch('/api/discover/interact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ cardId, action: 'dismiss' }),
     }).catch(() => {});
-  }, []);
+  }, [track]);
 
   const handleFeedback = useCallback((cardId: string, feedback: string) => {
     fetch('/api/discover/interact', {
@@ -60,13 +63,16 @@ export function DiscoverScreen({
   }, []);
 
   const handleInteract = useCallback((cardId: string, action: string, metadata?: Record<string, unknown>) => {
+    if (action === 'click' || action === 'cta_tap') {
+      track(AnalyticsEvents.DISCOVER_CARD_TAP, { card_id: cardId, action });
+    }
     fetch('/api/discover/interact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ cardId, action, metadata }),
     }).catch(() => {});
-  }, []);
+  }, [track]);
 
   useEffect(() => {
     const sentinel = scrollSentinelRef.current;

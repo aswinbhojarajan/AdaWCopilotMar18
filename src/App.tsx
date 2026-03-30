@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, Suspense, lazy, useTransition } from 'react';
+import React, { useState, useCallback, useEffect, useRef, Suspense, lazy, useTransition } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { HomeScreen } from './components/screens/HomeScreen';
 import { Header, Navigation, BottomBar } from './components/ada';
@@ -6,6 +6,7 @@ import type { TabType, ViewType, ChatContext, Message } from './types';
 import { useUser } from './contexts/UserContext';
 import { useSession } from './hooks/useAuth';
 import { getStreamHeaders } from './hooks/api';
+import { useAnalytics, AnalyticsEvents, DEMO_PERSONAS } from './lib/analytics';
 
 const HomeEmptyScreen = lazy(() => import('./components/screens/HomeEmptyScreen').then(m => ({ default: m.HomeEmptyScreen })));
 const DiscoverScreen = lazy(() => import('./components/screens/DiscoverScreen').then(m => ({ default: m.DiscoverScreen })));
@@ -33,6 +34,7 @@ const fadeVariants = {
 export default function App() {
   const { data: session, isLoading: authLoading } = useSession();
   const { userId } = useUser();
+  const { track, setScreen, identify } = useAnalytics();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [currentView, setCurrentView] = useState<ViewType>('home');
   const [chatMessage, setChatMessage] = useState<string>('');
@@ -50,6 +52,57 @@ export default function App() {
   const [pendingWealthScroll, setPendingWealthScroll] = useState(false);
 
   const [, startTransition] = useTransition();
+
+  const prevTabRef = useRef<TabType>('home');
+  const tabEnterTimeRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    if (!session) return undefined;
+    const prevTab = prevTabRef.current;
+    if (activeTab !== prevTab) {
+      const dwellMs = Date.now() - tabEnterTimeRef.current;
+      track(AnalyticsEvents.TAB_SWITCH, {
+        from_tab: prevTab,
+        to_tab: activeTab,
+        time_on_previous_ms: dwellMs,
+      });
+      prevTabRef.current = activeTab;
+      tabEnterTimeRef.current = Date.now();
+    }
+    setScreen(activeTab);
+    track(AnalyticsEvents.TAB_VIEW, {
+      tab_name: activeTab,
+      previous_tab: prevTab !== activeTab ? prevTab : undefined,
+    });
+    return undefined;
+  }, [activeTab, session, track, setScreen]);
+
+  useEffect(() => {
+    if (!session) return undefined;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        track(AnalyticsEvents.APP_BACKGROUND, {
+          active_tab: activeTab,
+          session_duration_ms: Date.now() - tabEnterTimeRef.current,
+        });
+      } else {
+        track(AnalyticsEvents.APP_FOREGROUND, {
+          resume_tab: activeTab,
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [session, activeTab, track]);
+
+  useEffect(() => {
+    if (session?.id) {
+      const persona = DEMO_PERSONAS[session.id];
+      if (persona) {
+        identify(persona.distinctId, persona.traits);
+      }
+    }
+  }, [session?.id, identify]);
 
   const prevUserRef = React.useRef(userId);
   useEffect(() => {
