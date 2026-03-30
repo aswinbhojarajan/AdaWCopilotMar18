@@ -72,7 +72,7 @@ Ada uses two parallel analytics platforms: **PostHog** (session replay, product 
 **Module**: `src/lib/analytics/` (8 files)
 - `posthog.ts`: PostHog SDK init with banking-grade privacy config, `before_send` PII safety net
 - `gtag.ts`: GA4 initialization, gtag config, custom event helper, user_id set/clear, screen_view tracking
-- `dispatcher.ts`: Unified dispatch layer routing events to both PostHog and GA4. Handles identify (PostHog identify + GA4 user_id), reset (PostHog reset + GA4 user_id clear), screen_view (GA4), pageview ($pageview to PostHog + screen_view to GA4), and event capture (both platforms)
+- `dispatcher.ts`: Unified dispatch layer routing events to both PostHog and GA4. Handles identify (PostHog identify + GA4 user_id), reset (PostHog reset + GA4 user_id clear), screen_view (GA4 only, via setScreen), pageview ($pageview to PostHog only — GA4 screen_view handled separately by setScreen/dispatchScreenView to avoid duplicates), and event capture (both platforms)
 - `privacy.ts`: PII denylist (PII_KEYS), regex patterns (UUID, IBAN, account numbers), sanitizeProperties(), DEMO_PERSONAS identity map
 - `events.ts`: Event name constants (typed enum)
 - `types.ts`: TypeScript interfaces for events and UseAnalytics hook
