@@ -1,3 +1,5 @@
+import { sanitizeProperties } from './privacy';
+
 declare global {
   interface Window {
     dataLayer: unknown[];
@@ -36,7 +38,7 @@ export function initGA4(): void {
   window.gtag('config', measurementId, {
     send_page_view: false,
     debug_mode: import.meta.env.DEV,
-    page_location: window.location.href,
+    page_location: stripUrlPii(window.location.href),
   });
 
   initialized = true;
@@ -55,7 +57,10 @@ export function gtagEvent(
   params?: Record<string, unknown>,
 ): void {
   if (!initialized) return;
-  window.gtag('event', eventName, params ?? {});
+  const sanitized = params
+    ? sanitizeProperties(params)
+    : {};
+  window.gtag('event', eventName, sanitized);
 }
 
 export function gtagScreenView(screenName: string): void {
@@ -71,6 +76,17 @@ export function gtagSetUserId(userId: string | null): void {
     user_id: userId,
     send_page_view: false,
   });
+}
+
+function stripUrlPii(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }
 
 function trackScrollDepth(): void {
@@ -114,8 +130,9 @@ function trackOutboundClicks(): void {
     try {
       const url = new URL(anchor.href, window.location.origin);
       if (url.hostname !== window.location.hostname) {
+        const sanitizedUrl = stripUrlPii(url.href);
         gtagEvent('outbound_click', {
-          link_url: url.href,
+          link_url: sanitizedUrl,
           link_domain: url.hostname,
           outbound: true,
         });
