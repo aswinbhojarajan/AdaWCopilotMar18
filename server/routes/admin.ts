@@ -13,11 +13,12 @@ function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => P
 
 router.use(requireAuth, requireRole('ops_admin'));
 
-router.get('/users', asyncHandler(async (_req, res) => {
+router.get('/users', asyncHandler(async (req, res) => {
   const result = await pool.query(
     `SELECT id, email, display_name, role, status, persona, avatar_url, mock_tier, mock_config, created_at, updated_at
      FROM auth.users ORDER BY created_at`
   );
+  logAuthEvent(req.user!.id, 'admin_list_users', req);
   res.json(result.rows);
 }));
 

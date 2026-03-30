@@ -168,7 +168,13 @@ export function ChatScreen({
 
   useEffect(() => {
     fetch('/api/me', { credentials: 'include' })
-      .then(r => r.json())
+      .then(r => {
+        if (r.status === 401) {
+          import('../../lib/ApiError').then(m => m.handleFetchResponse(r));
+          return null;
+        }
+        return r.json();
+      })
       .then(data => setVerboseModeAvailable(data?.capabilities?.verbose_mode === true))
       .catch(() => setVerboseModeAvailable(false));
   }, [activeUserId]);
@@ -264,7 +270,13 @@ export function ChatScreen({
     if (existingThreadId && messages.length === 0) {
       setIsLoadingThread(true);
       fetch(`/api/chat/${existingThreadId}/messages`, { headers: getStreamHeaders(), credentials: 'include' })
-        .then(res => res.json())
+        .then(res => {
+          if (res.status === 401) {
+            import('../../lib/ApiError').then(m => m.handleFetchResponse(res));
+            throw new Error('Session expired');
+          }
+          return res.json();
+        })
         .then((data: Array<{ id: string; sender: string; message: string; widgets?: ChatWidget[] }>) => {
           const loaded: Message[] = data.map(m => ({
             id: m.id,
