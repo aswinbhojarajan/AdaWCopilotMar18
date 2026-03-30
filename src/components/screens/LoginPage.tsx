@@ -168,16 +168,6 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (email && !email.includes('@')) {
-      setError('Please add "@" in the email address.');
-      return;
-    }
-    if (!email || !password) {
-      setError('Please enter both email and password.');
-      return;
-    }
-
     setIsLoading(true);
     try {
       await loginMutation.mutateAsync({ email, password });
@@ -220,7 +210,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       </div>
 
       <div className="relative flex flex-col items-center min-h-full px-[20px] pt-safe" style={{ paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom, 0px))' }}>
-        <div className="flex flex-col items-center mt-[100px] mb-[60px]">
+        <div className="flex flex-col items-center mt-[140px] mb-[60px]">
           <AdaLoginLogo />
         </div>
 
