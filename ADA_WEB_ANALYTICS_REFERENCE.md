@@ -251,14 +251,14 @@ All analytics code lives in `src/lib/analytics/` (8 files):
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `posthog.ts` | 79 | PostHog SDK initialization, `before_send` PII safety net, initialization guards |
-| `gtag.ts` | 175 | GA4 initialization, dynamic script load, event helpers, enhanced measurement (scroll/outbound/engagement) |
-| `dispatcher.ts` | 79 | Unified dispatch layer routing to both PostHog and GA4. Handles events, identity, reset, pageview (PostHog-only), screen_view (GA4-only) |
-| `useAnalytics.ts` | 96 | React hook — `track()`, `identify()`, `reset()`, `setScreen()`, `pageview()`, `getSessionId()`. Event enrichment. Virtual URL construction. |
-| `privacy.ts` | 73 | PII denylist (`PII_KEYS`), regex patterns (`UUID`, `ACCOUNT_NUMBER`, `IBAN`), `sanitizeProperties()`, `DEMO_PERSONAS` identity map |
-| `events.ts` | 26 | Event name constants (typed `as const` enum object) |
-| `types.ts` | 18 | TypeScript interfaces for events and UseAnalytics hook |
-| `index.ts` | 7 | Barrel re-exports for all public API |
+| `posthog.ts` | ~79 | PostHog SDK initialization, `before_send` PII safety net, initialization guards |
+| `gtag.ts` | ~175 | GA4 initialization, dynamic script load, event helpers, enhanced measurement (scroll/outbound/engagement) |
+| `dispatcher.ts` | ~79 | Unified dispatch layer routing to both PostHog and GA4. Handles events, identity, reset, pageview (PostHog-only), screen_view (GA4-only) |
+| `useAnalytics.ts` | ~96 | React hook — `track()`, `identify()`, `reset()`, `setScreen()`, `pageview()`, `getSessionId()`. Event enrichment. Virtual URL construction. |
+| `privacy.ts` | ~74 | PII denylist (`PII_KEYS`), regex patterns (`UUID`, `ACCOUNT_NUMBER`, `IBAN`), `sanitizeProperties()`, `DEMO_PERSONAS` identity map |
+| `events.ts` | ~26 | Event name constants (typed `as const` enum object) |
+| `types.ts` | ~18 | TypeScript interfaces for events and UseAnalytics hook |
+| `index.ts` | ~7 | Barrel re-exports for all public API |
 
 ### Exported Public API (`index.ts`)
 
@@ -277,12 +277,14 @@ export type { EventName, UseAnalytics, DemoPersonaIdentity } from './types';
 
 | Variable | Type | Required | Description |
 |----------|------|----------|-------------|
-| `VITE_POSTHOG_KEY` | Replit Secret | Yes (for PostHog) | PostHog project API key. Value: `phc_p6SAczQniJIkxgxXDax1LgpRGI6pxbEDAqt9Wyoo4DT` |
-| `VITE_POSTHOG_HOST` | Replit Secret | Yes (for PostHog) | PostHog API host URL. Value: `https://us.i.posthog.com` |
-| `VITE_GA4_MEASUREMENT_ID` | Replit Env Var | Yes (for GA4) | GA4 Measurement ID. Value: `G-V823WN3NG9` |
+| `VITE_POSTHOG_KEY` | Replit Env Var | Yes (for PostHog) | PostHog project API key (publishable client-side ingestion key, not a server secret). Value: `phc_p6SAczQniJIkxgxXDax1LgpRGI6pxbEDAqt9Wyoo4DT` |
+| `VITE_POSTHOG_HOST` | Replit Env Var | Yes (for PostHog) | PostHog API host URL. Value: `https://us.i.posthog.com` |
+| `VITE_GA4_MEASUREMENT_ID` | Replit Env Var | Yes (for GA4) | GA4 Measurement ID (publishable client-side key). Value: `G-V823WN3NG9` |
 | `VITE_APP_VERSION` | Replit Env Var | No | App version string attached to all events. Defaults to `'dev'` |
 
 **Naming Convention:** All analytics env vars use the `VITE_` prefix so they are accessible via `import.meta.env` in the Vite-built frontend. Without this prefix, Vite strips them from the client bundle.
+
+**Note on key sensitivity:** Both the PostHog project API key and GA4 Measurement ID are **publishable client-side ingestion keys** — they are designed to be included in frontend JavaScript bundles and are not server secrets. They are managed via environment variables for configuration hygiene and environment separation, not for secrecy.
 
 **Graceful Degradation:** Each platform initializes independently and runs in no-op mode when its keys are missing. This means:
 - PostHog missing → GA4 still works
@@ -345,12 +347,19 @@ The current synthetic IDs (`demo_aisha_01`, etc.) are for demo mode only. For pr
 
 ## 8. Event Taxonomy
 
-### P0 Events (Currently Instrumented — 19 events)
+### P0 Business Events (Currently Instrumented — 18 custom events + 2 platform navigation events)
+
+**Platform navigation events (not counted as P0 business events):**
 
 | Event Name | Platform | Source File | Trigger |
 |------------|----------|-------------|---------|
 | `$pageview` | PostHog only | `useAnalytics.ts` via `pageview()` | Tab or overlay view change |
 | `screen_view` | GA4 only | `gtag.ts` via `gtagScreenView()` | Tab navigation via `setScreen()` |
+
+**18 P0 business events (dual-dispatched to both platforms):**
+
+| Event Name | Platform | Source File | Trigger |
+|------------|----------|-------------|---------|
 | `login_viewed` | Both | `LoginPage.tsx` | Login page rendered |
 | `login_submitted` | Both | `LoginPage.tsx` | Login form submitted (email or demo persona) |
 | `login_succeeded` | Both | `LoginPage.tsx` | Successful authentication |
