@@ -83,14 +83,14 @@ const MANIFESTS: ToolManifest[] = [
       type: 'function',
       function: {
         name: 'getQuotes',
-        description: 'Get real-time market quotes for given symbols: last price, daily change %, volume, high/low. Call this when the user asks about stock prices or market data.',
+        description: 'Get real-time market quotes for given symbols: last price, daily change %, volume, high/low. Supports US equities and GCC exchanges (DFM, ADX, Tadawul). Call this when the user asks about stock prices or market data.',
         parameters: {
           type: 'object',
           properties: {
             symbols: {
               type: 'array',
               items: { type: 'string' },
-              description: 'Array of ticker symbols to get quotes for (e.g., ["AAPL", "NVDA", "BTC"])',
+              description: 'Array of ticker symbols to get quotes for (e.g., ["AAPL", "NVDA", "EMAAR", "FAB", "ARAMCO"])',
             },
           },
           required: ['symbols'],
@@ -155,7 +155,7 @@ const MANIFESTS: ToolManifest[] = [
         parameters: {
           type: 'object',
           properties: {
-            symbol: { type: 'string', description: 'The ticker symbol (e.g., "AAPL", "NVDA")' },
+            symbol: { type: 'string', description: 'The ticker symbol (e.g., "AAPL", "EMAAR", "ARAMCO")' },
             days: { type: 'number', description: 'Number of days of history to retrieve (e.g., 7, 30, 90, 365). Default 30.' },
           },
           required: ['symbol'],
@@ -187,7 +187,7 @@ const MANIFESTS: ToolManifest[] = [
         parameters: {
           type: 'object',
           properties: {
-            symbol: { type: 'string', description: 'The ticker symbol (e.g., "AAPL", "MSFT")' },
+            symbol: { type: 'string', description: 'The ticker symbol (e.g., "AAPL", "EMAAR", "FAB")' },
           },
           required: ['symbol'],
         },

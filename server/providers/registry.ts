@@ -14,6 +14,7 @@ import { openFigiIdentityProvider } from './openFigi';
 import { frankfurterFxProvider } from './frankfurter';
 import { cbuaeFxProvider } from './cbuae';
 import { yahooFinanceMarketProvider, yahooFinanceNewsProvider } from './yahooFinance';
+import { twelveDataMarketProvider } from './twelveData';
 import { isProviderHealthy } from './helpers';
 
 const _registryCache = new Map<string, ProviderRegistry>();
@@ -138,6 +139,8 @@ export function getProviderRegistry(providerConfig?: Record<string, string>): Pr
     fxLocalizedChain.push(mockFxProvider);
   }
 
+  console.info(`[registry] market chain: ${marketChain.map(p => p.name).join(' → ')}`);
+
   const registry: ProviderRegistry = {
     portfolio: withFallbackChain(portfolioChain, 'portfolio'),
     market: withFallbackChain(marketChain, 'market'),
@@ -170,6 +173,8 @@ function resolvePortfolioProvider(key: string): PortfolioProvider {
 
 function resolveMarketProvider(key: string): MarketProvider {
   switch (key) {
+    case 'twelve_data':
+      return twelveDataMarketProvider;
     case 'finnhub':
       return finnhubMarketProvider;
     case 'yahoo_finance':

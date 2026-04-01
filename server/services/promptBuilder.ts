@@ -160,9 +160,9 @@ function buildToolRulesBlock(toolNames: string[]): string {
 
   const toolGuide: string[] = [];
 
-  if (toolNames.includes('getQuotes')) toolGuide.push('• getQuotes — live stock/ETF prices from Finnhub (fallback: Yahoo Finance)');
-  if (toolNames.includes('getHistoricalPrices')) toolGuide.push('• getHistoricalPrices — price history/charts for a symbol over N days');
-  if (toolNames.includes('getCompanyProfile')) toolGuide.push('• getCompanyProfile — company info (industry, market cap, sector, exchange)');
+  if (toolNames.includes('getQuotes')) toolGuide.push('• getQuotes — live stock/ETF prices via Twelve Data (GCC: DFM, ADX, Tadawul), Finnhub, or Yahoo Finance. Prices may be delayed 15 min on non-realtime plans. Use bare tickers (EMAAR, FAB, ARAMCO) — symbol normalization handles exchange routing automatically.');
+  if (toolNames.includes('getHistoricalPrices')) toolGuide.push('• getHistoricalPrices — price history/charts for a symbol over N days. Supports GCC instruments (EMAAR, ADNOCDIST, ARAMCO, STC, FAB)');
+  if (toolNames.includes('getCompanyProfile')) toolGuide.push('• getCompanyProfile — company info (industry, market cap, sector, exchange). Supports GCC and global equities');
   if (toolNames.includes('getMacroIndicator')) toolGuide.push('• getMacroIndicator — macro data from FRED (CPI, GDP, yields, VIX, oil, gold). Use series IDs: FEDFUNDS, DGS10, DGS2, CPIAUCSL, UNRATE, GDP, T10Y2Y, VIXCLS, DCOILBRENTEU, GOLDAMGBD228NLBM, UMCSENT');
   if (toolNames.includes('getCompanyFilings')) toolGuide.push('• getCompanyFilings — SEC filings (10-K, 10-Q, 8-K) and XBRL financial facts from SEC EDGAR');
   if (toolNames.includes('lookupInstrument')) toolGuide.push('• lookupInstrument — resolve ticker/ISIN/CUSIP to standardized FIGI via OpenFIGI');
@@ -181,6 +181,8 @@ TOOL-USE RULES:
 • For macro questions (inflation, rates, GDP), call getMacroIndicator with the right FRED series IDs
 • For FX/currency questions, call getFxRate. Use AED pairs for UAE clients
 • For SEC filings, call getCompanyFilings with the company ticker
+• When market data includes is_delayed=true, mention "prices are delayed ~15 min" once per response
+• When quoting GCC instruments, always include the currency (AED or SAR) in your response
 • Available tools: ${toolNames.join(', ')}
 ${toolGuide.length > 0 ? '\nTOOL GUIDE:\n' + toolGuide.join('\n') : ''}`;
 }

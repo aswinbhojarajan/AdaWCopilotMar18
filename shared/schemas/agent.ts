@@ -182,6 +182,9 @@ export const MarketQuoteSchema = z.object({
   currency: z.string().default('USD'),
   source_provider: z.string(),
   as_of: z.string(),
+  display_symbol: z.string().optional(),
+  provider_symbol: z.string().optional(),
+  is_delayed: z.boolean().optional(),
 });
 export type MarketQuote = z.infer<typeof MarketQuoteSchema>;
 

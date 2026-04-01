@@ -210,12 +210,17 @@ function extractKeyPoints(text: string): string[] {
 function buildCitations(toolResults: ToolResult[]): Citation[] {
   return toolResults
     .filter(r => r.status === 'ok')
-    .map((r, i) => ({
-      source_type: mapSourceType(r.source_type),
-      source_name: r.source_name,
-      reference_id: `ref-${i + 1}`,
-      as_of: r.as_of,
-    }));
+    .map((r, i) => {
+      const displayName = r.source_name === 'twelve_data'
+        ? 'Twelve Data'
+        : r.source_name;
+      return {
+        source_type: mapSourceType(r.source_type),
+        source_name: displayName,
+        reference_id: `ref-${i + 1}`,
+        as_of: r.as_of,
+      };
+    });
 }
 
 function mapSourceType(sourceType: string): Citation['source_type'] {

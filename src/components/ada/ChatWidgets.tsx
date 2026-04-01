@@ -5,6 +5,19 @@ import { useGoals } from '../../hooks/useGoals';
 import { useWealthOverview } from '../../hooks/usePortfolio';
 import type { ChatWidget, AssetAllocation, Holding, GoalData } from '../../types';
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$',
+  AED: 'AED ',
+  SAR: 'SAR ',
+  EUR: '€',
+  GBP: '£',
+};
+
+function formatCurrency(value: number, currency?: string): string {
+  const sym = CURRENCY_SYMBOLS[currency?.toUpperCase() ?? 'AED'] ?? `${currency} `;
+  return `${sym}${value.toLocaleString()}`;
+}
+
 function AllocationChart() {
   const { data: allocations, isLoading } = useAllocations();
 
@@ -60,7 +73,7 @@ function HoldingsSummary() {
               <span className="text-[0.6875rem] text-[#888888] ml-[6px]">{h.name}</span>
             </div>
             <div className="text-right">
-              <span className="text-[0.75rem] text-[#1A1A1A] tabular-nums">${Number(h.value).toLocaleString()}</span>
+              <span className="text-[0.75rem] text-[#1A1A1A] tabular-nums">{formatCurrency(Number(h.value), (h as unknown as { currency?: string }).currency)}</span>
               <span className={`text-[0.6875rem] ml-[6px] tabular-nums ${Number(h.changePercent) >= 0 ? 'text-[#0F6F4E]' : 'text-[#C1464F]'}`}>
                 {Number(h.changePercent) >= 0 ? '+' : ''}{Number(h.changePercent).toFixed(1)}%
               </span>
@@ -101,8 +114,8 @@ function GoalProgress() {
                 />
               </div>
               <div className="flex justify-between">
-                <span className="text-[0.6875rem] text-[#888888] tabular-nums">${Number(g.currentAmount).toLocaleString()}</span>
-                <span className="text-[0.6875rem] text-[#888888] tabular-nums">${Number(g.targetAmount).toLocaleString()}</span>
+                <span className="text-[0.6875rem] text-[#888888] tabular-nums">{formatCurrency(Number(g.currentAmount), (g as unknown as { currency?: string }).currency)}</span>
+                <span className="text-[0.6875rem] text-[#888888] tabular-nums">{formatCurrency(Number(g.targetAmount), (g as unknown as { currency?: string }).currency)}</span>
               </div>
             </div>
           );
@@ -127,10 +140,10 @@ function PortfolioSummaryWidget() {
       <div className="flex justify-between items-end">
         <div>
           <p className="text-[1.25rem] text-[#1A1A1A] font-medium tabular-nums">
-            ${Number(overview.totalValue).toLocaleString()}
+            {formatCurrency(Number(overview.totalValue), (overview as unknown as { currency?: string }).currency)}
           </p>
           <p className={`text-[0.8125rem] tabular-nums ${isPositive ? 'text-[#0F6F4E]' : 'text-[#C1464F]'}`}>
-            {isPositive ? '+' : ''}${Number(overview.dailyChangeAmount).toLocaleString()} ({Number(overview.dailyChangePercent).toFixed(2)}%)
+            {isPositive ? '+' : ''}{formatCurrency(Number(overview.dailyChangeAmount), (overview as unknown as { currency?: string }).currency)} ({Number(overview.dailyChangePercent).toFixed(2)}%)
           </p>
         </div>
         <span className="text-[0.6875rem] text-[#888888]">Today</span>

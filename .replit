@@ -77,8 +77,8 @@ timeoutMs = 120000
 [userenv]
 
 [userenv.shared]
-MARKET_PROVIDER_PRIMARY = "finnhub"
-MARKET_PROVIDER_SECONDARY = "yahoo_finance"
+MARKET_PROVIDER_PRIMARY = "twelve_data"
+MARKET_PROVIDER_SECONDARY = "finnhub"
 NEWS_PROVIDER_PRIMARY = "finnhub"
 NEWS_PROVIDER_SECONDARY = "yahoo_finance"
 MACRO_PROVIDER_PRIMARY = "fred"
@@ -89,3 +89,6 @@ IDENTITY_PROVIDER_PRIMARY = "openfigi"
 VITE_DEMO_MODE = "false"
 VITE_POSTHOG_HOST = "https://us.i.posthog.com"
 VITE_GA4_MEASUREMENT_ID = "G-V823WN3NG9"
+TWELVE_DATA_RATE_LIMIT = "55"
+TWELVE_DATA_IS_REALTIME = "false"
+MARKET_PROVIDER_FALLBACK = "yahoo_finance"
