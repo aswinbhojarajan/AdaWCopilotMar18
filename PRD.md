@@ -456,11 +456,13 @@ The frontend `AdvisorHandoffWidget` renders differently for execution handoffs (
 
 ### External Data Providers
 
-Ada integrates with 6 external data source providers via a configurable provider chain pattern. Each data domain supports a `primary → secondary → fallback → mock` chain configured via environment variables:
+Ada integrates with 8 external data source providers via a configurable provider chain pattern. Each data domain supports a `primary → secondary → fallback → mock` chain configured via environment variables:
 
 | Domain | Provider | Data Provided |
 |---|---|---|
-| Market Data | Finnhub | Real-time quotes, company profiles, earnings calendars, company news |
+| Market Data (Primary) | Twelve Data | Batch quotes, historical prices, company profiles, earnings calendars. GCC exchange support (DFM, ADX, Tadawul) via symbol normalization. Currency-aware (AED/SAR). Delayed ~15 min on Grow plan. |
+| Market Data (Secondary) | Finnhub | Real-time quotes, company profiles, earnings calendars, company news |
+| Market Data (Fallback) | Yahoo Finance | Broad market data fallback for global tickers |
 | Macro/Economic | FRED (Federal Reserve) | GDP, CPI, unemployment, fed funds rate, treasury yields |
 | Regulatory | SEC EDGAR | Company submissions, XBRL financial facts, filing search |
 | Identity | OpenFIGI | Instrument resolution (ISIN/CUSIP/ticker → FIGI) with DB persistence |
@@ -1116,3 +1118,5 @@ main.tsx (QueryClient + prefetch)
 | 2026-03-26 | Docs Update | Updated PRD section 4.3 (full Discover rewrite), sections 11/12, CHANGELOG (Phase 1/2/3 entries), ISSUES (ISS-023/024), BACKLOG (Phase 1/2/3 completed + BL-026/027/028), replit.md (counts, Phase 2/3 tables). |
 | 2026-03-27 | Project Task #8: Configurable Model Registry | Named-config model registry (production/rollback) with `MODEL_CONFIG` env var. 5 provider aliases (ada-classifier, ada-fast, ada-content, ada-reason, ada-fallback). Replaced all 5 hardcoded `gpt-4o-mini` strings with `resolveModel('ada-content')`. Token instrumentation (prompt_tokens, completion_tokens, provider_alias in agent_traces). Fallback event persistence (provider_fallback_events table). XML prompt injection defense (`<system_instructions>` / `<user_context>` boundaries). Deleted `server/replit_integrations/` scaffold. |
 | 2026-03-29 | Project Task #10: GPT-5.4 Beta Config & Registry Upgrade | Named configs renamed `production`→`beta`, default config now `beta` with GPT-5.4 family (gpt-5.4-nano, gpt-5.4-mini, gpt-5.4). `rollback` retains GPT-4.1 family. Added `ada-embeddings` (text-embedding-3-small) and `ada-moderation` (omni-moderation-latest) aliases to both configs. 7 total provider aliases. Per-alias env var overrides extended with `ADA_MODEL_EMBEDDINGS` and `ADA_MODEL_MODERATION`. `moderationService.ts` updated to resolve model from registry via `resolveModel('ada-moderation')` instead of hardcoded constant. |
+| 2026-03-29 | Project Task #12: Switch Default Model Config to Rollback | Default config switched from `beta` to `rollback` (GPT-4.1 family). GPT-5.4 models don't exist on OpenAI API, causing all LLM calls to fail. `MODEL_CONFIG=beta` still available for future use. Active stack: gpt-4.1-nano/mini/4.1, text-embedding-3-small, omni-moderation-latest, claude-sonnet-4-6 fallback. |
+| 2026-04-01 | Project Task #1: Twelve Data GCC Provider Integration | Twelve Data integrated as primary market data provider for GCC exchanges (DFM, ADX, Tadawul). New `twelveData.ts` provider (batch quotes, historical prices, company profiles, earnings). New `symbolNormalizer.ts` (static GCC map + DB fallback, ticker overrides, 1h cache). MarketQuote schema extended (display_symbol, provider_symbol, is_delayed). Currency-aware ChatWidgets (formatCurrency with AED/SAR/USD). Provider chain configurable via env vars (MARKET_PROVIDER_PRIMARY/SECONDARY/FALLBACK). Twelve Data attribution in response disclosures. Delayed-price LLM guidance. GCC ticker examples in tool descriptions. ISS-026 and ISS-027 resolved. |

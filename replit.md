@@ -100,8 +100,9 @@ Ada uses two parallel analytics platforms: **PostHog** (session replay, product 
 - **Anthropic**: Fallback AI provider via Replit AI Integrations.
 - **PostHog**: Third-party product analytics, session replay, and feature flags (posthog-js SDK).
 - **Google Analytics 4**: Acquisition funnels, audience building, cross-platform attribution (gtag.js).
-- **Finnhub**: Primary provider for live market data, company profiles, and news.
-- **Yahoo Finance**: Secondary provider for market data and news.
+- **Twelve Data**: Primary market data provider for GCC exchanges (DFM, ADX, Tadawul) and global markets. Batch quotes, historical prices, company profiles, earnings. Symbol normalization via `symbolNormalizer.ts`. Delayed ~15 min on Grow plan.
+- **Finnhub**: Secondary provider for market data, company profiles, and news.
+- **Yahoo Finance**: Fallback provider for market data and news.
 - **FRED**: Federal Reserve Economic Data for macro indicators.
 - **SEC EDGAR**: For company filings and XBRL financial facts.
 - **OpenFIGI**: For instrument identifier resolution.

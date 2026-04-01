@@ -6,16 +6,22 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ## Project Task #1 — Twelve Data GCC Provider Integration
 **Date:** April 1, 2026
+**Status:** Merged
 
 ### Added
 - **Twelve Data market provider** (`server/providers/twelveData.ts`) — Full MarketProvider implementation covering `getQuotes` (batch), `getHistoricalPrices`, `getCompanyProfile`, and `getEarningsCalendar`. Uses batch `/quote` endpoint with colon notation for rate-limit efficiency.
 - **Symbol normalizer** (`server/providers/symbolNormalizer.ts`) — Two-tier resolution (static exchange map + DB fallback) translating Ada's bare tickers (EMAAR, FAB, ARAMCO) into Twelve Data's exchange-qualified format (EMAAR:DFM, FAB:ADX, 2222:TADAWUL). Includes ticker overrides (ARAMCO→2222), 1h cache TTL, and reverse denormalization for batch response parsing.
 - **MarketQuote schema extensions** — Added `display_symbol`, `provider_symbol`, and `is_delayed` optional fields to the shared MarketQuoteSchema for LLM narration and debugging.
 - **Registry integration** — `twelve_data` case added to `resolveMarketProvider()` in registry.ts; startup log shows market chain (e.g., `twelve_data → finnhub → yahoo_finance → mock`).
-- **Currency-aware ChatWidgets** — `formatCurrency()` helper supporting AED, SAR, USD, EUR, GBP replaces hardcoded `$` prefix in HoldingsSummary, GoalProgress, and PortfolioSummaryWidget.
-- **Twelve Data attribution** — Citations in responseBuilder display "Twelve Data" instead of raw `twelve_data` provider key.
+- **Currency-aware ChatWidgets** — `formatCurrency()` helper supporting AED, SAR, USD, EUR, GBP replaces hardcoded `$` prefix in HoldingsSummary, GoalProgress, and PortfolioSummaryWidget. Added `currency?` optional field to `Holding`, `GoalData`, and `WealthOverviewResponse` types.
+- **Twelve Data attribution** — Citations in responseBuilder display "Twelve Data" instead of raw `twelve_data` provider key. "Powered by Twelve Data" added to disclosures when market data is sourced from Twelve Data.
 - **Delayed-price LLM guidance** — Prompt builder instructs LLM to mention "prices are delayed ~15 min" when `is_delayed=true` and to always include currency (AED/SAR) for GCC instruments.
 - **GCC tool descriptions** — getQuotes, getHistoricalPrices, getCompanyProfile parameter descriptions updated with GCC ticker examples (EMAAR, FAB, ARAMCO, STC, ADNOCDIST).
+- **Provider health endpoint** — `/providers/status` includes `twelve_data` and shows configurable market fallback chain.
+
+### Issues Resolved
+- **ISS-026**: Hardcoded USD currency in ChatWidgets → `formatCurrency()` with AED/SAR/USD/EUR/GBP support
+- **ISS-027**: Market data limited to US exchanges → Twelve Data with GCC exchange support (DFM, ADX, Tadawul)
 
 ### Environment Variables
 - `TWELVE_DATA_API_KEY` — API key (secret, required)
@@ -24,6 +30,17 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 - `MARKET_PROVIDER_PRIMARY=twelve_data` — Twelve Data as primary market data source
 - `MARKET_PROVIDER_SECONDARY=finnhub` — Finnhub as secondary
 - `MARKET_PROVIDER_FALLBACK=yahoo_finance` — Yahoo Finance as fallback
+
+### Key Files
+- `server/providers/twelveData.ts` — Twelve Data provider adapter
+- `server/providers/symbolNormalizer.ts` — GCC symbol normalization module
+- `server/providers/registry.ts` — Provider chain with twelve_data case
+- `shared/schemas/agent.ts` — Extended MarketQuote schema
+- `src/types/index.ts` — Currency field additions
+- `src/components/ada/ChatWidgets.tsx` — Currency-aware formatting
+- `server/services/responseBuilder.ts` — Twelve Data attribution
+- `server/services/promptBuilder.ts` — GCC/delayed-price guidance
+- `server/services/toolRegistry.ts` — GCC ticker examples
 
 ### Validated
 - TypeScript compiles clean (`npm run typecheck` passes)
