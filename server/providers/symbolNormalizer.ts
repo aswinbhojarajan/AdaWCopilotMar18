@@ -60,7 +60,7 @@ export async function resolveSymbol(symbol: string): Promise<ResolvedSymbol> {
 
   let exchange: string | null = null;
   let displayName: string = upper;
-  let currency: string = 'USD';
+  let currency: string = '';
   let resolutionSource: string = 'passthrough';
 
   const staticEntry = STATIC_GCC_MAP[upper];
