@@ -295,18 +295,20 @@ Client
         → Output moderation (moderationService.ts)
         → Guardrail post-checks (guardrails.ts)
         → Response builder (responseBuilder.ts) extracts follow-ups + widgets
-        → SSE stream to client
+        → Yields StreamEvent objects from async generator
+  → api.ts (line 248) iterates generator, writes SSE frames:
+    id: <seqId>\ndata: <JSON event>\n\n
 ```
 
 ## SSE Streaming
 
-Implemented in `agentOrchestrator.ts` using `res.write()` with manual SSE formatting:
-- `event: text` — content chunks
-- `event: thinking` — reasoning steps
-- `event: widget` — structured UI components
-- `event: suggested_questions` — follow-up suggestions
-- `event: error` — error messages
-- `event: done` — stream completion
+`orchestrateStream()` in `agentOrchestrator.ts` (line 190) is an **async generator** (`async function*`) that `yield`s typed `StreamEvent` objects (`{ type: 'text', content }`, `{ type: 'thinking', step, detail }`, `{ type: 'widget', widget }`, `{ type: 'suggested_questions', suggestedQuestions }`, `{ type: 'done' }`).
+
+The **SSE HTTP framing** happens in `server/routes/api.ts` (line 248), which iterates the generator and writes each event as:
+```
+id: <seqId>\ndata: <JSON event>\n\n
+```
+The route handler sets `Content-Type: text/event-stream` (line 230) and sends a `:keepalive` comment every 15 seconds (line 243). Error handling wraps the generator loop and emits a `{ type: 'error' }` event followed by `{ type: 'done' }` (lines 262-264).
 
 ## Background Workers
 
@@ -558,9 +560,10 @@ The classifier uses the `ada-classifier` model (gpt-4.1-nano) with JSON mode. It
 
 ```typescript
 // server/services/modelRouter.ts
-Lane 0 (Deterministic): balance_query, allocation_breakdown
+Lane 0 (Deterministic): balance_query, allocation_breakdown, goal_progress
   → Uses ada-fast, no reasoning, fast response
-Lane 1 (Standard): portfolio_explain, goal_progress, market_context, news_explain, support, general
+  → Defined in DETERMINISTIC_INTENTS set (modelRouter.ts, line 78)
+Lane 1 (Standard): portfolio_explain, market_context, news_explain, support, general
   → Uses ada-fast (gpt-4.1-mini), tool calling enabled
 Lane 2 (Complex): scenario_analysis, recommendation_request, execution_request
   → Uses ada-reason (gpt-4.1), full reasoning + tool calling
@@ -685,46 +688,80 @@ The LLM receives the mock data and may respond with it, OR the LLM may recognize
 
 **Query:** *"What's the current price of Emaar stock in UAE?"*
 
+> **Note:** Steps 1-5 and 10-12 describe the deterministic code path verified from source. Steps 6-9 describe the *expected* LLM behavior based on the classifier prompt and tool definitions — actual LLM outputs may vary at runtime.
+
 ```
 Step 1: User types message in ChatScreen.tsx input
-Step 2: Frontend sends POST /api/chat/stream with { message: "What's the current price of Emaar stock in UAE?", threadId, userId }
-Step 3: Backend receives at server/routes/api.ts → calls orchestrateStream() in agentOrchestrator.ts
-Step 4: PII scan runs (piiDetector.ts) — no PII detected, message passes through
-Step 5: Input moderation runs (moderationService.ts) — not flagged
-Step 6: Intent classifier runs (intentClassifier.ts):
-   - Model: gpt-4.1-nano (ada-classifier)
-   - Prompt: "You are an intent classifier for a wealth management AI copilot serving GCC HNW investors..."
-   - Message analyzed: "What's the current price of Emaar stock in UAE?"
-   - Keywords detected: "price", "stock", "Emaar"
-   - Output: { intent: "market_context", confidence: 0.95, needs_live_data: true, needs_tooling: true, mentioned_entities: ["EMAAR"] }
-Step 7: Model router (modelRouter.ts) routes to Lane 1 (standard)
-   - Provider alias: ada-fast → gpt-4.1-mini
-   - Tool groups: ['financial_data', 'market_intel']
+  → Verified: ChatScreen uses useStreamingChat hook
+
+Step 2: Frontend sends POST /api/chat/stream
+  → Verified: server/routes/api.ts, line 230 — sets Content-Type: text/event-stream
+  → Payload: { message, threadId, userId }
+
+Step 3: Backend receives at server/routes/api.ts, line 248
+  → Calls orchestrateStream() — an async generator (agentOrchestrator.ts, line 190)
+  → api.ts iterates the generator: for await (const event of orchestrateStream(...))
+  → Each yielded event written as: id: <seqId>\ndata: <JSON>\n\n
+
+Step 4: PII scan runs (piiDetector.ts) — deterministic regex scan
+  → "Emaar stock in UAE" contains no PII patterns → passes through
+
+Step 5: Input moderation runs (moderationService.ts)
+  → Calls OpenAI omni-moderation-latest → expected: not flagged
+
+Step 6: Intent classifier runs (intentClassifier.ts, line 71):
+  → Model: gpt-4.1-nano via resolveModel('ada-classifier')
+  → Prompt: "You are an intent classifier for a wealth management AI copilot serving GCC HNW investors..."
+  → Message contains keywords: "price", "stock" → matches market_context rule (line 261)
+  → Expected output (hypothetical): { intent: "market_context", needs_live_data: true,
+    needs_tooling: true, mentioned_entities: ["EMAAR"] }
+  → Fallback classifier (line 261) also maps "stock price", "share price" → market_context
+
+Step 7: Model router (modelRouter.ts, routeRequest()):
+  → market_context is NOT in DETERMINISTIC_INTENTS (line 78) → not Lane 0
+  → market_context is not scenario_analysis/recommendation/execution → not Lane 2
+  → Falls to Lane 1 (line 176): ada-fast → gpt-4.1-mini
+  → Tool groups: ['financial_data', 'market_intel']
+
 Step 8: Prompt builder (promptBuilder.ts) constructs system prompt:
-   - Identity: "You are Ada, a wealth copilot..."
-   - Tool guide: "getQuotes — live stock/ETF prices from Finnhub (fallback: Yahoo Finance)"
-   - Grounding rules: "Market claims MUST come from tool data"
-Step 9: LLM streaming begins (openaiClient.ts):
-   - LLM decides to call getQuotes(["EMAAR"])
-   - Tool execution dispatches to registry.market.getQuotes(["EMAAR"])
-Step 10: Provider fallback chain executes (registry.ts):
-   a. Finnhub receives bare "EMAAR":
-      - GET https://finnhub.io/api/v1/quote?symbol=EMAAR&token=...
-      - Response: { c: 0, d: null, dp: null, h: 0, l: 0, o: 0, pc: 0 }
-      - Code: data.c === 0 → throw new Error('No quote data for EMAAR')
-      - console.warn: "[market] finnhub returned error, trying next provider in chain"
-   b. Yahoo Finance receives bare "EMAAR":
-      - yahoo-finance2 library call: yf.quote("EMAAR")
-      - Throws: symbol not found or maps to EMAAR.DU (Düsseldorf)
-      - console.warn: "[market] yahoo_finance threw: ..."
-   c. Mock provider receives "EMAAR":
-      - Queries market_quotes table WHERE symbol = 'EMAAR'
-      - Returns seed data: { price: 9.85, change: 0.12, change_percent: 1.23, source_provider: 'mock' }
-      - Returns toolOk with warnings: ["fallback_chain:finnhub->yahoo_finance->mock", "primary_skipped:finnhub"]
-Step 11: LLM receives tool result with mock data and fallback warnings
-   - LLM may respond with the mock price, or may say "I don't have live price data"
-   - The warning "primary_skipped:finnhub" signals to the LLM that real data wasn't available
-Step 12: Response streamed back via SSE (event: text, event: done)
+  → buildToolRulesBlock() includes (line 163):
+    "getQuotes — live stock/ETF prices from Finnhub (fallback: Yahoo Finance)"
+  → buildGroundingRules() (line 204):
+    "Market claims (prices, changes, trends) MUST come from tool data"
+
+Step 9: LLM streaming loop begins (openaiClient.ts):
+  → Expected: LLM calls getQuotes({"symbols": ["EMAAR"]}) based on tool definitions
+  → toolRegistry.ts execute (line 100): passes bare symbols to registry.market.getQuotes(symbols)
+  → No symbol normalization occurs — "EMAAR" sent as-is to provider chain
+
+Step 10: Provider fallback chain executes (registry.ts, withFallbackChain):
+  a. Finnhub receives bare "EMAAR":
+     → finnhubFetch('/quote', { symbol: 'EMAAR' }) (finnhub.ts, line 52)
+     → API: GET https://finnhub.io/api/v1/quote?symbol=EMAAR&token=...
+     → Finnhub returns: { c: 0 } (no data for GCC tickers)
+     → Code path: data.c === 0 → throw new Error('No quote data for EMAAR') (line 53-54)
+     → Fallback chain catches → console.warn "[market] finnhub returned error..." (registry.ts, line 60-61)
+
+  b. Yahoo Finance receives bare "EMAAR":
+     → yf.quote("EMAAR") (yahooFinance.ts, line 50)
+     → yahoo-finance2 library: symbol not found OR resolves to EMAAR.DU (Düsseldorf)
+     → Throws exception → caught by fallback chain (registry.ts, line 73-75)
+
+  c. Mock provider receives "EMAAR":
+     → Queries market_quotes table WHERE symbol = 'EMAAR' AND source_provider = 'mock'
+     → Returns seed data: { price: 9.85, change: 0.12, source_provider: 'mock' }
+     → Wrapped in toolOk with warnings array including:
+       "fallback_chain:finnhub->yahoo_finance->mock"
+       "primary_skipped:finnhub"
+
+Step 11: LLM receives tool result containing mock data + fallback warnings
+  → The LLM's response depends on how it interprets source_provider: 'mock'
+  → May return mock price, or may say "I don't have live price data"
+  → This is non-deterministic LLM behavior — not verifiable from code alone
+
+Step 12: Generator yields events → api.ts writes SSE frames
+  → res.write(`id: ${seqId}\ndata: ${JSON.stringify(event)}\n\n`) (api.ts, line 253)
+  → Final event: { type: 'done' }
 ```
 
 **Root cause summary:** Neither Finnhub nor Yahoo Finance supports GCC exchange tickers. The bare symbol `EMAAR` has no exchange context. Even if the LLM tried `EMAAR.DFM`, neither provider supports DFM exchange. The system falls through to mock data.
@@ -1238,22 +1275,31 @@ const tools = [
 ];
 ```
 
-### SSE Streaming Handler
+### Async Generator + SSE Framing
 
 ```typescript
-// server/services/agentOrchestrator.ts — SSE event emission pattern
-res.writeHead(200, {
-  'Content-Type': 'text/event-stream',
-  'Cache-Control': 'no-cache',
-  'Connection': 'keep-alive',
-});
+// server/services/agentOrchestrator.ts, line 190 — async generator
+export async function* orchestrateStream(
+  userId: string,
+  body: { message?: string; threadId?: string; /* ... */ }
+): AsyncGenerator<StreamEvent> {
+  // ... PII scan, moderation, classification, routing ...
+  yield { type: 'text', content: chunk };
+  yield { type: 'thinking', step: 'intent_classification', detail: '...' };
+  yield { type: 'widget', widget: { type: 'advisor_handoff' } };
+  yield { type: 'suggested_questions', suggestedQuestions: [...] };
+  yield { type: 'done' };
+}
 
-// During streaming:
-res.write(`event: text\ndata: ${JSON.stringify({ content: chunk })}\n\n`);
-res.write(`event: thinking\ndata: ${JSON.stringify({ step, detail })}\n\n`);
-res.write(`event: widget\ndata: ${JSON.stringify({ type, data })}\n\n`);
-res.write(`event: suggested_questions\ndata: ${JSON.stringify({ questions })}\n\n`);
-res.write(`event: done\ndata: {}\n\n`);
+// server/routes/api.ts, line 230-264 — SSE HTTP framing
+res.setHeader('Content-Type', 'text/event-stream');
+// ...
+const stream = orchestrateStream(userId, body);
+let seqId = 0;
+for await (const event of stream) {
+  seqId++;
+  res.write(`id: ${seqId}\ndata: ${JSON.stringify(event)}\n\n`);
+}
 ```
 
 ---
