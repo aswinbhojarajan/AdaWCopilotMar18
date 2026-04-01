@@ -4,6 +4,112 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Project Task #9 — Discover Card Sources & Article Viewer
+**Date:** April 1, 2026
+**Status:** Merged
+
+### Added
+- **Publisher logo registry** (`src/components/ada/publisherRegistry.ts`) — Maps 30+ known publishers (CNBC, Reuters, Bloomberg, Financial Times, Gulf News, The National, Arab News, etc.) to brand-accurate colors and short initials. Unknown publishers get deterministic color from name hash and first-letter initials. `getPublisherIdentity()` is null-safe, accepting `string | null | undefined`.
+- **`ArticleSourcesSheet` component** (`src/components/ada/ArticleSourcesSheet.tsx`) — Animated bottom-sheet overlay listing source articles. Each row shows publisher avatar circle, article title (2-line clamp), summary snippet (2-line clamp), relative timestamp, and "View" link to original URL. URL safety check only renders `<a href>` for `https?://` URLs. Backdrop dismiss + close button.
+
+### Changed
+- **`SourcesBadge` redesigned** — Replaced hardcoded Bloomberg/FT logos with up to 3 overlapping publisher avatar circles derived from actual `supportingArticles` data. Accurate source count. Tappable to open ArticleSourcesSheet.
+- **`ContentCard` sources interaction** — SourcesBadge tap opens ArticleSourcesSheet. Old collapsible text source list removed. Cards with no supporting articles hide the sources badge entirely.
+- **`synthesisWorker.ts`** — Now includes `url` and `summary` fields from `raw_articles` when building `supporting_articles` JSON in discover cards.
+- **`morningBriefingWorker.ts`** — Flattens real articles (publisher, title, published_at, url, summary) from source cards instead of storing card references.
+- **`adaViewWorker.ts`** — Flattens real articles from source cards instead of storing card references.
+- **`eventCalendarWorker.ts`** — Stores empty `[]` for supporting_articles with `source_count=0` (intentional — no articles for calendar events).
+- **Shared types** — Extended `supportingArticles` type with optional `url` and `summary` fields.
+- **`seed.sql`** — Backfilled existing active discover cards with enriched supporting_articles data containing real article shapes.
+
+### Key Files
+- `src/components/ada/publisherRegistry.ts` — Publisher brand registry (30+ publishers)
+- `src/components/ada/ArticleSourcesSheet.tsx` — Bottom-sheet article viewer
+- `src/components/ada/SourcesBadge.tsx` — Redesigned publisher avatars
+- `src/components/ada/ContentCard.tsx` — Sources interaction wiring
+- `server/services/discoverPipeline/synthesisWorker.ts` — URL/summary enrichment
+- `server/services/discoverPipeline/morningBriefingWorker.ts` — Real article flattening
+- `server/services/discoverPipeline/adaViewWorker.ts` — Real article flattening
+
+### Validated
+- TypeScript compiles clean (`npm run typecheck` passes)
+- Publisher avatars show accurate initials and brand colors
+- Article viewer displays title, snippet, timestamp, and view link
+
+---
+
+## Project Task #8 — Fix Wealth Gap Card Navigation
+**Date:** April 1, 2026
+**Status:** Merged
+
+### Changed
+- **Life Gap card actions** — `LifeGapPrompts` action buttons now route to chat with structured context (`category: "GOALS"`, `categoryType: "LIFE_GAP"`) instead of opening the unrelated LifeEventModal. Each prompt's `ctaText` becomes the chat message (e.g., "Build an emergency fund") and `title`/`key` provide context for the AI to tailor its response.
+- **"Log a life event" button unchanged** — Standalone life event button continues to open the LifeEventModal as before.
+
+### Key Files
+- `src/components/ada/wealth/LifeGapCards.tsx` — Updated action handler
+- `src/components/screens/WealthScreen.tsx` — CTA routing logic
+
+### Validated
+- TypeScript compiles clean (`npm run typecheck` passes)
+- Life Gap CTAs open chat with contextual message
+- "Log a life event" still opens LifeEventModal
+
+---
+
+## Project Task #7 — Chat UI & Disclaimer Cleanup
+**Date:** April 1, 2026
+**Status:** Merged
+
+### Changed
+- **Removed duplicate follow-up suggestions** — When structured envelope includes FollowUpChips, the plain-text suggested question buttons are suppressed to avoid duplication.
+- **Removed inline disclaimers from AI responses** — Guardrails system no longer appends "Past performance is not indicative..." or "Data sources: [mock_portfolio]" into the response body. The footer "Regulatory info" popup handles all disclosures.
+- **Cleaned DisclaimerFooter popup** — Removed "Emirates NBD is regulated by the Central Bank of the UAE" text and data sources display. Popup shows only generic legal/regulatory text.
+- **Removed all Emirates NBD references** — Stripped ENBD branding from bank selector modal, portfolio repository logo mapping, policy engine, and all other locations. Ada is now fully brand-neutral.
+
+### Key Files
+- `src/components/screens/ChatScreen.tsx` — Duplicate follow-up suppression
+- `server/services/guardrails.ts` — Removed inline disclaimer/data-source injection
+- `src/components/ada/DisclaimerFooter.tsx` — Cleaned popup content
+- `src/components/ada/wealth/AddAccountModal.tsx` — Removed ENBD from bank list
+- `server/repositories/portfolioRepository.ts` — Removed ENBD logo mapping
+- `server/services/policyEngine.ts` — Removed ENBD references
+
+### Validated
+- TypeScript compiles clean (`npm run typecheck` passes)
+- No ENBD references anywhere in the codebase
+- Only one set of follow-up suggestions appears per response
+
+---
+
+## Project Task #6 — Morning Sentinel Export Package
+**Date:** April 1, 2026
+**Status:** Merged
+
+### Added
+- **`exports/morning-sentinel/` export package** — Self-contained reference extraction of the Morning Sentinel feature with organized sub-directories:
+  - `frontend/components/` — MorningSentinelCard, StreamingSentinel, SparkIcon
+  - `frontend/hooks/` — useMorningSentinel hook with SSE stream consumption
+  - `frontend/types/` — All sentinel-related TypeScript types
+  - `backend/services/` — morningSentinelService.ts (metrics gathering, anomaly detection, LLM synthesis, SSE streaming)
+  - `backend/routes/` — Express route handler for GET /morning-sentinel and /morning-sentinel/stream
+  - `database/` — Schema SQL for required tables + representative seed data for one persona
+  - `docs/` — Comprehensive README covering architecture, data flow, API reference, component props, environment variables, and integration notes
+  - `assets/` — Reference screenshot for visual context
+- **Not independently runnable** — Package is a reference extraction for replication, not a standalone app (no package.json or build system).
+
+### Key Files
+- `exports/morning-sentinel/README.md` — Comprehensive integration guide
+- `exports/morning-sentinel/frontend/` — React components, hooks, and types
+- `exports/morning-sentinel/backend/` — Express service and route handler
+- `exports/morning-sentinel/database/` — Schema and seed SQL
+
+### Validated
+- All extracted files reference correct local paths within the export
+- README covers end-to-end data flow from metrics to UI
+
+---
+
 ## Project Task #5 — Chat Response Disclaimer to Footer Popup
 **Date:** April 1, 2026
 **Status:** Merged
@@ -1246,7 +1352,7 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 |--------|-------|
 | PostgreSQL tables | 33 |
 | API endpoints | 35 (including 2 SSE streams + providers/status) |
-| React components | 70+ |
+| React components | 75+ |
 | React hooks | 15+ |
 | Backend services | 18 (agent orchestrator, policy engine, model router, prompt builder, response builder, response protocol, trace logger, guardrails, wealth engine, financial tools, RM handoff, AI, chat, intent, RAG, memory, PII, goal, sentinel) |
 | Database repositories | 6 (user, portfolio, content, chat, poll, agent) |
@@ -1256,6 +1362,8 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 | SSE event types | 8 (token, tool_start, tool_result, thinking, structured_intent, disclosures, error, done) |
 | SSE streams | 2 (chat, morning sentinel) |
 | Block components | 6 (ChatResponseRenderer, HoldingsTable, AllocationCard, DisclaimerTray, SourcesTray, FollowUpChips) |
+| Publisher registry entries | 30+ (CNBC, Reuters, Bloomberg, Financial Times, Gulf News, The National, Arab News, etc.) |
 | Guardrail checks | 7 (blocked phrases, execution claims ×7 regex, hard post-check, education advisory, security naming, data freshness, disclosures) |
 | Execution enforcement layers | 3 (system prompt, guardrail regex, orchestrator fallback) |
+| Export packages | 1 (morning-sentinel) |
 | TypeScript errors fixed | 112 |

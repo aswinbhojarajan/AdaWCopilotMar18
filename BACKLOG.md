@@ -26,16 +26,16 @@
 ## Must Have — Production Launch
 
 ### BL-001: Authentication & Authorization
-**Status:** Proposed
+**Status:** Complete (2026-04-01)
 **Priority:** Must Have
 
-Add a proper authentication layer:
-- JWT or session-based auth for API endpoints
-- User login/registration flow
-- Role-based access control (investor vs advisor vs admin)
-- Remove hardcoded `DEFAULT_USER_ID`
-- Secure all API routes with auth middleware
-- Session management with token refresh
+~~Add a proper authentication layer:~~
+- ~~JWT or session-based auth for API endpoints~~ → Cookie-session auth with express-session + connect-pg-simple
+- ~~User login/registration flow~~ → Ada-branded login page with email/password form + dev persona picker
+- ~~Role-based access control (investor vs advisor vs admin)~~ → `requireRole()` middleware enforced on admin routes (`/api/admin` requires `ops_admin`). Per-user roles stored in `auth.users`.
+- ~~Remove hardcoded `DEFAULT_USER_ID`~~ → Session-based user identity
+- ~~Secure all API routes with auth middleware~~ → `requireAuth` middleware on all protected routes
+- ~~Session management with token refresh~~ → 12h rolling sessions with bcrypt password hashing
 
 ### BL-002: PII Data Protection
 **Status:** Proposed
@@ -465,6 +465,16 @@ Create PostHog dashboards and saved session replay filters (done in PostHog cons
 - **AI Operations Dashboard**: requests by model alias, response time P50/P95, fallback rate, stream interruption rate, token distribution
 - **Saved Replay Filters**: login issues, chat failures, high latency (>5s), wealth abandonment, discover drop-off
 
+### BL-041: Dedicated DB Migration Scripts for Data Backfills
+**Status:** Proposed
+**Priority:** Should Have
+
+Replace seed.sql-based data backfills with dedicated SQL migration scripts:
+- Move Task #9 discover card `supporting_articles` enrichment from seed.sql into a numbered migration file
+- Ensure migrations are idempotent (safe to re-run)
+- Add migration runner or integrate with existing schema migration pattern
+- Future data-shape changes to discover_cards should use migrations, not seed modifications
+
 ---
 
 ## Completed Items
@@ -509,3 +519,8 @@ Create PostHog dashboards and saved session replay filters (done in PostHog cons
 | — | Chat Response Protocol: Frontend Block Components (Project Task #4) | 2026-04-01 |
 | — | Chat Response Disclaimer to Footer Popup (Project Task #5) | 2026-04-01 |
 | BL-029 | Canary Validation & Moderation API (Project Task #9) | 2026-04-01 |
+| BL-001 | Authentication & Authorization — Cookie-session auth (partial; RBAC remaining) | 2026-04-01 |
+| — | Morning Sentinel Export Package (Project Task #6) | 2026-04-01 |
+| — | Chat UI & Disclaimer Cleanup — brand-neutral, no duplicate follow-ups (Project Task #7) | 2026-04-01 |
+| — | Wealth Gap Card Navigation Fix — Life Gap CTAs → chat (Project Task #8) | 2026-04-01 |
+| — | Discover Card Sources & Article Viewer — publisher registry, ArticleSourcesSheet (Project Task #9) | 2026-04-01 |

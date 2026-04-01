@@ -1,7 +1,7 @@
 # Ada — AI Wealth Copilot: Product Requirements Document
 
 > **Living document** — update this PRD before and after every build cycle.
-> Last updated: 2026-03-29
+> Last updated: 2026-04-01
 >
 > **Source of truth precedence**: When a mismatch exists between this document and the runtime code/schema, the code is authoritative. Update this PRD to reflect the code, not the other way around.
 >
@@ -175,8 +175,8 @@ Every tab screen follows the same layout:
 | Portfolio Health | `PortfolioHealthSummary` | Diversification score (82/100), risk level (low-medium), suggestions. CTA → chat. |
 | Holdings | `CompactHoldings` | Top 5 holdings by value with symbol, name, value, change %. |
 | Goals | `CompactGoals` | Expandable section. Each goal shows progress bar, health status badge (on-track/needs-attention/at-risk), AI insight, CTA button → chat. House deposit goal supports auto-scroll from notification. Goal Health Score gauge (0–100). |
-| Life Gap Analysis | `LifeGapPrompts` | AI-driven detection of missing financial goals (e.g., emergency fund, estate planning). Each prompt includes explanation and "Create Goal" CTA. Dismissible per-user. |
-| Life Event Simulation | `LifeEventModal` | Modal to simulate life events (New Baby, Home Purchase, Career Change, etc.) and receive AI-generated goal suggestions with reasoning. |
+| Life Gap Analysis | `LifeGapPrompts` | AI-driven detection of missing financial goals (e.g., emergency fund, estate planning). Each prompt includes explanation and action CTA → chat with structured context (`category: "GOALS"`, `categoryType: "LIFE_GAP"`). Dismissible per-user. |
+| Life Event Simulation | `LifeEventModal` | Modal to simulate life events (New Baby, Home Purchase, Career Change, etc.) and receive AI-generated goal suggestions with reasoning. Opened by standalone "Log a life event" button (not by Life Gap card CTAs). |
 | Connected Accounts | `CompactConnectedAccounts` | List of linked accounts with logo, balance, sync status. "Add account" button opens `AddAccountModal`. |
 | Advisor | `CollapsibleAdvisor` | Expandable advisor card showing Sarah Mitchell, availability, contact button. |
 
@@ -216,7 +216,7 @@ Every tab screen follows the same layout:
 | Section | Component | Behavior |
 |---|---|---|
 | Filter Tags | `Tag` (×2) | "For You" (default) and "What's New" toggle. Switching re-fetches content from API. |
-| Content Cards | `ContentCard` (×N) | Each card includes: category label, title, context title, description, real relative timestamp, primary + secondary CTA buttons, optional image, sources count from cluster data, expandable detail sections, "Why you're seeing this" tag, "NEW" badge for unseen cards, dismiss/feedback flow. Type-specific intent badge and topic label. |
+| Content Cards | `ContentCard` (×N) | Each card includes: category label, title, context title, description, real relative timestamp, primary + secondary CTA buttons, optional image, sources badge with publisher avatars, expandable detail sections, "Why you're seeing this" tag, "NEW" badge for unseen cards, dismiss/feedback flow. Type-specific intent badge and topic label. |
 
 **Card Types** (11 active):
 
@@ -249,6 +249,12 @@ Every tab screen follows the same layout:
 **Expiry Rules**: Per-card-type TTLs — market_pulse 24h, trend_brief 48h, portfolio_impact 72h, morning_briefing 16h, milestone 3d, event_calendar 14d, ada_view 7d, product_opportunity 30d, explainer/wealth_planning 30d. Runs every 4 hours.
 
 **Pipeline Timers** (defaults, configurable via env vars): Ingest 10min (`PIPELINE_INGEST_INTERVAL_MIN`), Cluster+Synth 15min (`PIPELINE_CLUSTER_INTERVAL_MIN`), Materialize 60min (`PIPELINE_MATERIALIZE_INTERVAL_MIN`), Editorial (Ada View + Event Calendar) 360min (`PIPELINE_EDITORIAL_INTERVAL_MIN`), Morning Briefing + Milestone 360min (`PIPELINE_MORNING_INTERVAL_MIN`), Expiry 240min (`PIPELINE_EXPIRY_INTERVAL_MIN`). All values in minutes. Startup log flags overridden intervals. Health endpoint includes `configuredIntervals` showing resolved values.
+
+**Source Attribution**:
+- **Publisher Registry** (`publisherRegistry.ts`): 30+ known publishers (CNBC, Reuters, Bloomberg, Financial Times, Gulf News, The National, Arab News, etc.) mapped to brand colors and initials. Unknown publishers get deterministic color from name hash. Null-safe `getPublisherIdentity()`.
+- **SourcesBadge**: Up to 3 overlapping publisher avatar circles from actual `supportingArticles`. Accurate count. Tappable to open ArticleSourcesSheet. Hidden when no supporting articles.
+- **ArticleSourcesSheet**: Animated bottom-sheet showing source articles with publisher avatar, title (2-line clamp), summary snippet (2-line clamp), relative timestamp, and "View" link to original URL. URL safety check (`/^https?:\/\//i`).
+- **Supporting Articles Data**: All pipeline workers (synthesis, morning briefing, ada view) store real `{ title, publisher, published_at, url?, summary? }` objects in `supporting_articles` JSONB. Event calendar stores `[]` (no articles for events).
 
 **Enriched Chat Context**: CTA taps pass `DiscoverCardContext` (card_id, card_type, card_summary, why_seen, entities, evidence_facts, cta_family) to chat. `promptBuilder` incorporates card context into system prompt.
 
@@ -418,7 +424,7 @@ User Message → PII Detection → Tenant Config Hydration → Input Moderation
     - Education-only advisory enforcement
     - Security naming compliance
     - Data freshness warnings
-    - Disclosure injection per policy profile
+    - Disclosures emitted as separate SSE event (not injected inline into response body). No inline "Past performance..." disclaimers or "Data sources" citations in chat text.
 
 12. **Response Builder** (`responseBuilder.ts`): Constructs structured `AdaAnswer` responses conforming to the Zod-validated schema, including headline, summary, citations, recommendations, actions, and render hints. Maps `AdaAnswer` to SSE stream events.
 
@@ -1016,7 +1022,7 @@ main.tsx (QueryClient + prefetch)
 | **Event-Driven Refresh** | Built | Portfolio-mutating endpoints trigger immediate per-user feed re-materialization. |
 | **Discover Tab** | Built | AI-curated feed with "For You" (personalized) and "What's New" (chronological) tabs, 11 card types, enriched chat context handoff |
 | **Collective Tab** | Built | Polls (vote + results), peer comparison chart, API-backed |
-| **AI Chat (LLM)** | Built | GPT-5-mini with intent routing, RAG, 3-tier memory, tool-calling, SSE streaming |
+| **AI Chat (LLM)** | Built | GPT-4.1 family (rollback config) with intent routing, RAG, 3-tier memory, tool-calling, SSE streaming |
 | **Chat Widgets** | Built | Inline allocation charts, holdings summaries, goal progress, portfolio summaries via tool-calling |
 | **Scenario Simulators** | Built | Retirement, investment, spending, tax simulators triggered by LLM `show_simulator` tool call |
 | **Chat History** | Built | DB-backed thread list, thread detail messages |
@@ -1049,14 +1055,18 @@ main.tsx (QueryClient + prefetch)
 | **User Switching** | Built | PersonaPicker bottom sheet, X-User-ID header, per-user query isolation, localStorage persistence |
 | **Multi-Model Routing** | Built | Lane-based control plane (Lane 0 deterministic, Lane 1 fast, Lane 2 reasoning) with request scorecards and provider aliases |
 | **LLM Intent Classification** | Built | LLM-first `classifyIntentAsync()` with 3s timeout and keyword fallback. `mapIntentForRag()` prevents double-classification. Lane 2 → Lane 1 fallback on streaming timeout. |
-| **Capability Registry** | Built | Configurable named-config model registry (`capabilityRegistry.ts`). 7 provider aliases (ada-classifier, ada-fast, ada-content, ada-reason, ada-embeddings, ada-moderation, ada-fallback). `MODEL_CONFIG` env var selects beta/rollback config (default: beta → GPT-5.4 family). Per-alias env var overrides (`ADA_MODEL_CLASSIFIER`, `ADA_MODEL_FAST`, `ADA_MODEL_REASON`, `ADA_MODEL_CONTENT`, `ADA_MODEL_EMBEDDINGS`, `ADA_MODEL_MODERATION`, `ADA_MODEL_FALLBACK`). Token instrumentation (prompt_tokens, completion_tokens, provider_alias in agent_traces). Fallback event persistence (provider_fallback_events table). |
+| **Capability Registry** | Built | Configurable named-config model registry (`capabilityRegistry.ts`). 7 provider aliases (ada-classifier, ada-fast, ada-content, ada-reason, ada-embeddings, ada-moderation, ada-fallback). `MODEL_CONFIG` env var selects beta/rollback config (default: rollback → GPT-4.1 family). Per-alias env var overrides (`ADA_MODEL_CLASSIFIER`, `ADA_MODEL_FAST`, `ADA_MODEL_REASON`, `ADA_MODEL_CONTENT`, `ADA_MODEL_EMBEDDINGS`, `ADA_MODEL_MODERATION`, `ADA_MODEL_FALLBACK`). Token instrumentation (prompt_tokens, completion_tokens, provider_alias in agent_traces). Fallback event persistence (provider_fallback_events table). |
 | **Anthropic Fallback** | Built | Automatic fallback to Claude (claude-sonnet-4-6) when OpenAI primary fails. Resilient completion helpers with timeout+retry+fallback for all LLM call sites. |
 | **XML Prompt Injection Defense** | Built | System prompt wrapped in XML boundary markers (`<system_instructions>`, `<user_context>`, `<user_message>`). Instruction hierarchy prevents user override of system instructions. |
 | **Verbose/Thinking Mode** | Built | Live `LiveThinkingBar` during streaming with progressive step reveal (120ms stagger). Post-stream `ThinkingPanel` summary (collapsible). "Think" toggle in chat header with localStorage persistence. Tenant-level `verbose_mode` feature flag. Server-side `setImmediate()` ticks + `flush()` for reliable thinking event delivery. |
 | **Full Persona Data Parity** | Built | 3 personas with positions, 365-day performance history, goals, alerts, chat threads; server-side computed wealth insights. Cost basis values match weighted transaction averages. Performance history uses bounded normalized formula. |
 | **ErrorBoundary** | Built | React class component error boundary wrapping WealthScreen and DiscoverScreen. Catches rendering crashes and displays user-friendly error message with retry button. |
 | **Context-Aware Follow-Ups** | Built | Intent classifier receives last 4 conversation turns from working memory. LLM prompt includes follow-up resolution rules. `isLikelyContinuation()` heuristic detects continuation phrases. Post-classification override when LLM returns "general" for a likely continuation. |
-| **Authentication** | Not built | No auth layer |
+| **Authentication** | Built | Cookie-session auth with express-session + connect-pg-simple, bcrypt password hashing, 12h rolling sessions, `requireAuth` middleware, 4 demo users. Ada-branded login page with dev quick-access persona picker. |
+| **Source Attribution** | Built | Publisher logo registry (30+ publishers), redesigned SourcesBadge with real publisher avatars, ArticleSourcesSheet bottom-sheet article viewer, pipeline workers store real article data with url/summary. |
+| **Chat UI Cleanup** | Built | Removed duplicate follow-up suggestions, removed inline disclaimers from responses, cleaned DisclaimerFooter popup, removed all Emirates NBD references (brand-neutral). |
+| **Life Gap Card Navigation** | Built | Life Gap card CTAs route to chat with structured GOALS/LIFE_GAP context instead of opening LifeEventModal. |
+| **Morning Sentinel Export** | Built | Self-contained reference extraction in `exports/morning-sentinel/` with frontend components, backend services, database artifacts, and comprehensive README. |
 | **Real Account Linking** | Not built | Mock flow only |
 | **Push Notifications** | Not built | — |
 | **Advisor Scheduling** | Not built | CTA is placeholder |
@@ -1124,3 +1134,7 @@ main.tsx (QueryClient + prefetch)
 | 2026-04-01 | Project Task #1: Twelve Data GCC Provider Integration | Twelve Data integrated as primary market data provider for GCC exchanges (DFM, ADX, Tadawul). New `twelveData.ts` provider (batch quotes, historical prices, company profiles, earnings). New `symbolNormalizer.ts` (static GCC map + DB fallback, ticker overrides, 1h cache). MarketQuote schema extended (display_symbol, provider_symbol, is_delayed). Currency-aware ChatWidgets (formatCurrency with AED/SAR/USD). Provider chain configurable via env vars (MARKET_PROVIDER_PRIMARY/SECONDARY/FALLBACK). Twelve Data attribution in response disclosures. Delayed-price LLM guidance. GCC ticker examples in tool descriptions. ISS-026 and ISS-027 resolved. |
 | 2026-04-01 | Project Task #4: Chat Response Protocol — Frontend Block Components | ChatResponseRenderer dispatches structured envelopes to block components via BLOCK_REGISTRY. New blocks: HoldingsTable (sortable, aria-sort), AllocationCard (donut with correct target total), DisclaimerTray, SourcesTray, FollowUpChips. `structured_intent` SSE event emitted before streaming. Zod-validated StructuredEnvelope (AdaResponseEnvelope). Response protocol service for server-side block assembly. |
 | 2026-04-01 | Project Task #5: Chat Response Disclaimer to Footer Popup | Disclaimer text removed from inline chat response body. Backend emits `disclosures` SSE event (string[] payload). New DisclaimerFooter component with persistent "Regulatory info" footer + CSS-transition bottom-sheet popup. BottomBar accepts disclosures prop. Message type extended with disclosures field. StreamEvent union extended with disclosures variant. UAE regulatory defaults when no server disclosures available. ISS-025 resolved (content moderation now live). |
+| 2026-04-01 | Project Task #6: Morning Sentinel Export Package | Self-contained reference extraction in `exports/morning-sentinel/` with frontend components (MorningSentinelCard, StreamingSentinel, SparkIcon, useMorningSentinel hook), backend service and route handler, database schema and seed SQL, and comprehensive README covering architecture, data flow, API reference, and integration notes. |
+| 2026-04-01 | Project Task #7: Chat UI & Disclaimer Cleanup | Removed duplicate follow-up suggestions (plain-text suppressed when FollowUpChips present). Removed inline "Past performance..." disclaimers and "Data sources" from AI responses. Cleaned DisclaimerFooter popup (removed ENBD text). Removed all Emirates NBD references from app — Ada is now brand-neutral. |
+| 2026-04-01 | Project Task #8: Fix Wealth Gap Card Navigation | Life Gap card actions (LifeGapPrompts) now route to chat with structured context (GOALS/LIFE_GAP category, ctaText as message) instead of opening LifeEventModal. "Log a life event" standalone button unchanged. |
+| 2026-04-01 | Project Task #9: Discover Card Sources & Article Viewer | Publisher logo registry (30+ publishers with brand colors and initials). Redesigned SourcesBadge with real publisher avatars. ArticleSourcesSheet bottom-sheet article viewer with title, snippet, timestamp, and view link. Pipeline workers (synthesis, morning briefing, ada view) now store real article data with url/summary. Seed data backfilled with enriched supporting_articles. |
