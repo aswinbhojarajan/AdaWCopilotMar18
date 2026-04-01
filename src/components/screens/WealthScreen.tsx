@@ -302,6 +302,7 @@ export function WealthScreen({
                     categoryType: 'LIFE_GAP',
                     title: prompt.title,
                     sourceScreen: 'wealth',
+                    promptKey: prompt.key,
                   });
                 }}
               />

@@ -28,6 +28,7 @@ export interface ChatContext {
   sourceScreen?: string;
   adaResponse?: string;
   discoverCard?: DiscoverCardContext;
+  promptKey?: string;
 }
 
 export interface SimulatorConfig {
