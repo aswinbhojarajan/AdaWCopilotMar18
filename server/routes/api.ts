@@ -438,7 +438,7 @@ router.post('/chat/:threadId/close', asyncHandler(async (req, res) => {
 }));
 
 router.get('/providers/status', asyncHandler(async (_req, res) => {
-  const providerNames = ['finnhub', 'yahoo_finance', 'fred', 'sec_edgar', 'openfigi', 'frankfurter', 'cbuae'];
+  const providerNames = ['twelve_data', 'finnhub', 'yahoo_finance', 'fred', 'sec_edgar', 'openfigi', 'frankfurter', 'cbuae'];
 
   const domains = {
     market: {

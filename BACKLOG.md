@@ -232,10 +232,10 @@ Localization for GCC market:
 Expand data coverage:
 - **Marketaux**: Alternative news API with sentiment scoring
 - **ECB**: Direct European Central Bank data feeds
-- **Twelve Data**: Technical indicators and forex data
+- ~~**Twelve Data**: Technical indicators and forex data~~ — **DONE** (Task #1: integrated as primary GCC market provider with symbol normalization, batch quotes, historical prices, company profiles, earnings calendar)
 - **Financial Modeling Prep (FMP)**: Financial statements, DCF models
 - **CoinGecko**: Comprehensive crypto data
-- **Yahoo Finance**: Broad market data fallback
+- **Yahoo Finance**: Broad market data fallback — already wired as fallback provider
 - Provider stubs are already wired into the registry
 
 ### BL-020: AI-Powered Portfolio Rebalancing
