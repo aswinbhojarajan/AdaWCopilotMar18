@@ -67,6 +67,9 @@ Morning Sentinel is an AI-generated daily portfolio briefing that surfaces on th
 ```
 exports/morning-sentinel/
 +-- README.md                                    <- this file
++-- docs/
+|   +-- architecture.md                          <- data flow, source origins, adapter pattern
+|   +-- environment-variables.md                 <- required env vars and configuration constants
 +-- frontend/
 |   +-- components/
 |   |   +-- MorningSentinelCard.tsx               <- main component (+ StreamingSentinel, SentinelSkeleton)
@@ -127,6 +130,16 @@ exports/morning-sentinel/
 ### Database
 
 PostgreSQL 14+ with the 6 tables defined in `database/schema.sql`.
+
+### Environment Variables
+
+| Variable | Layer | Description |
+|---|---|---|
+| `DATABASE_URL` or `PG*` vars | Backend | PostgreSQL connection for the pool |
+| `OPENAI_API_KEY` (or equivalent) | Backend | API key for your OpenAI-compatible LLM provider |
+| Model identifier | Backend | Set as `MODEL` constant (e.g., `gpt-4o-mini`) |
+
+See `docs/environment-variables.md` for full details including configurable constants.
 
 ---
 
