@@ -67,7 +67,7 @@ export function Section({ block }: SectionProps) {
           className="w-full flex items-center justify-between px-[14px] py-[10px] text-left"
         >
           <h4 className="font-['Crimson_Pro',serif] text-[#333] text-[0.9375rem] tracking-[-0.3px] font-medium">
-            {block.heading}
+            {expanded ? block.heading : (block.collapseLabel || block.heading)}
           </h4>
           <svg
             className={`w-[14px] h-[14px] text-[#999] transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
