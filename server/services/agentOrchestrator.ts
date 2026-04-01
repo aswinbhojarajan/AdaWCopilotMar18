@@ -486,8 +486,10 @@ export async function* orchestrateStream(
     semanticFacts,
     chatContext: req.context ? {
       category: req.context.category,
+      categoryType: req.context.categoryType,
       title: req.context.title,
       sourceScreen: req.context.sourceScreen,
+      promptKey: req.context.promptKey,
       discoverCard: req.context.discoverCard,
     } : undefined,
     toolNames: allowedToolNames,

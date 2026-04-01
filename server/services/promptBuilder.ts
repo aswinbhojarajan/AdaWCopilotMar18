@@ -14,8 +14,10 @@ interface PromptContext {
   semanticFacts?: string[];
   chatContext?: {
     category: string;
+    categoryType?: string;
     title: string;
     sourceScreen?: string;
+    promptKey?: string;
     discoverCard?: {
       card_id?: string;
       card_type?: string;
@@ -74,7 +76,7 @@ export function buildAgentPrompt(ctx: PromptContext): string {
   }
 
   if (ctx.chatContext) {
-    let navBlock = `\nNAVIGATION CONTEXT: User came from the ${ctx.chatContext.sourceScreen || 'app'} screen, looking at "${ctx.chatContext.title}" (${ctx.chatContext.category}). Tailor your response to this context.`;
+    let navBlock = `\nNAVIGATION CONTEXT: User came from the ${ctx.chatContext.sourceScreen || 'app'} screen, looking at "${ctx.chatContext.title}" (${ctx.chatContext.category}${ctx.chatContext.categoryType ? ` / ${ctx.chatContext.categoryType}` : ''}${ctx.chatContext.promptKey ? `, key: ${ctx.chatContext.promptKey}` : ''}). Tailor your response to this context.`;
     if (ctx.chatContext.discoverCard) {
       const dc = ctx.chatContext.discoverCard;
       const parts: string[] = [];
