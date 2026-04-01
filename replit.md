@@ -23,7 +23,7 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **Key Services**: Includes `policyEngine`, `modelRouter`, `promptBuilder`, `responseBuilder`, `traceLogger`, `guardrails`, `wealthEngine`, `toolRegistry`, `rmHandoffService`, `aiService`, `intentClassifier`, `ragService`, `memoryService`, `piiDetector`, `goalService`, and `morningSentinelService`.
 - **ErrorBoundary**: React class component for user-friendly error handling.
 - **Repositories**: Organized into 6 repositories: user, portfolio, content, chat, poll, agent.
-- **Provider Pattern**: Employs 7 external data providers (Stock/Market, News, Macro/Economic, Company Filings, Instrument Lookup, FX Rates, Regional FX) with a priority chain, in-memory cache, rate limiting, health tracking, and automatic failover.
+- **Provider Pattern**: Employs 8 external data providers (Stock/Market via Twelve Data + Finnhub + Yahoo Finance, News, Macro/Economic, Company Filings, Instrument Lookup, FX Rates, Regional FX) with a priority chain, in-memory cache, rate limiting, health tracking, and automatic failover. Twelve Data is the primary market provider for GCC exchanges (DFM, ADX, Tadawul) with symbol normalization (bare ticker → exchange-qualified format). Market provider chain is configurable via `MARKET_PROVIDER_PRIMARY`, `MARKET_PROVIDER_SECONDARY`, `MARKET_PROVIDER_FALLBACK` env vars.
 - **Capability Registry**: Configurable named-config model registry with 7 provider aliases.
 - **Content Moderation**: OpenAI Moderation API integrated as pre/post-LLM safety filter.
 - **LLM Resilience & Fallback**: Implements streaming timeout/retry, automatic model downgrades, and fallback to Anthropic Claude.

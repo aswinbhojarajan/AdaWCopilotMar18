@@ -14,7 +14,8 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 function formatCurrency(value: number, currency?: string): string {
-  const sym = CURRENCY_SYMBOLS[currency?.toUpperCase() ?? 'AED'] ?? `${currency} `;
+  const code = currency?.toUpperCase() ?? 'USD';
+  const sym = CURRENCY_SYMBOLS[code] ?? `${code} `;
   return `${sym}${value.toLocaleString()}`;
 }
 

@@ -29,6 +29,20 @@ const TICKER_OVERRIDES: Record<string, string> = {
   ARAMCO: '2222',
 };
 
+interface StaticGccEntry {
+  exchange: string;
+  currency: string;
+  display_name: string;
+}
+
+const STATIC_GCC_MAP: Record<string, StaticGccEntry> = {
+  EMAAR:      { exchange: 'DFM',     currency: 'AED', display_name: 'Emaar Properties' },
+  FAB:        { exchange: 'ADX',     currency: 'AED', display_name: 'First Abu Dhabi Bank' },
+  ADNOCDIST:  { exchange: 'ADX',     currency: 'AED', display_name: 'ADNOC Distribution' },
+  ARAMCO:     { exchange: 'TADAWUL', currency: 'SAR', display_name: 'Saudi Aramco' },
+  STC:        { exchange: 'TADAWUL', currency: 'SAR', display_name: 'Saudi Telecom' },
+};
+
 const NORM_CACHE_TTL = 3_600_000;
 const CACHE_PREFIX = 'sym_norm';
 
@@ -49,6 +63,14 @@ export async function resolveSymbol(symbol: string): Promise<ResolvedSymbol> {
   let currency: string = 'USD';
   let resolutionSource: string = 'passthrough';
 
+  const staticEntry = STATIC_GCC_MAP[upper];
+  if (staticEntry) {
+    exchange = staticEntry.exchange;
+    displayName = staticEntry.display_name;
+    currency = staticEntry.currency;
+    resolutionSource = hasOverride ? 'override' : 'static_map';
+  }
+
   try {
     const result = await pool.query(
       `SELECT exchange, name, currency
@@ -59,10 +81,12 @@ export async function resolveSymbol(symbol: string): Promise<ResolvedSymbol> {
     );
     if (result.rows.length > 0) {
       const row = result.rows[0];
-      exchange = row.exchange || null;
-      displayName = row.name || upper;
-      currency = row.currency || 'USD';
-      resolutionSource = hasOverride ? 'override' : 'db_lookup';
+      exchange = row.exchange || exchange;
+      displayName = row.name || displayName;
+      currency = row.currency || currency;
+      if (resolutionSource === 'passthrough') {
+        resolutionSource = hasOverride ? 'override' : 'db_lookup';
+      }
     }
   } catch (err) {
     console.warn(`[symbolNormalizer] DB lookup failed for ${upper}:`, err);
@@ -74,7 +98,6 @@ export async function resolveSymbol(symbol: string): Promise<ResolvedSymbol> {
   if (exchange && EXCHANGE_SUFFIX[exchange]) {
     qualified = `${providerTicker}${EXCHANGE_SUFFIX[exchange]}`;
     resolvedExchange = exchange;
-    if (resolutionSource === 'passthrough') resolutionSource = 'static_map';
   } else if (exchange && PASSTHROUGH_EXCHANGES.has(exchange)) {
     qualified = providerTicker;
     resolvedExchange = null;

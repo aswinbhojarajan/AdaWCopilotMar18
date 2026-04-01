@@ -184,7 +184,7 @@ export const twelveDataMarketProvider: MarketProvider = {
     try {
       const resolutions = await resolveSymbols(symbols);
 
-      const quotes: MarketQuote[] = [];
+      const orderedQuotes: (MarketQuote | null)[] = new Array(resolutions.length).fill(null);
       const uncached: { resolved: ResolvedSymbol; index: number }[] = [];
 
       for (let i = 0; i < resolutions.length; i++) {
@@ -192,11 +192,13 @@ export const twelveDataMarketProvider: MarketProvider = {
         const ck = cacheKey(PROVIDER_NAME, 'quote', r.qualified);
         const cached = cacheGet<MarketQuote>(ck);
         if (cached) {
-          quotes.push(cached.data);
+          orderedQuotes[i] = cached.data;
         } else {
           uncached.push({ resolved: r, index: i });
         }
       }
+
+      const warnings: string[] = [];
 
       if (uncached.length > 0) {
         const symbolParam = uncached.map((u) => u.resolved.qualified).join(',');
@@ -210,9 +212,7 @@ export const twelveDataMarketProvider: MarketProvider = {
             ? { [uncached[0].resolved.qualified]: data as TDQuote }
             : (data as Record<string, TDQuote>);
 
-        const warnings: string[] = [];
-
-        for (const { resolved } of uncached) {
+        for (const { resolved, index } of uncached) {
           const q = quoteMap[resolved.qualified];
           const quote = q ? buildMarketQuote(q, resolved) : null;
 
@@ -223,17 +223,19 @@ export const twelveDataMarketProvider: MarketProvider = {
 
           const ck = cacheKey(PROVIDER_NAME, 'quote', resolved.qualified);
           cacheSet(ck, quote, 'quote');
-          quotes.push(quote);
+          orderedQuotes[index] = quote;
         }
+      }
 
-        if (quotes.length === 0 && warnings.length > 0) {
-          recordProviderFailure(PROVIDER_NAME);
-          return toolError(PROVIDER_NAME, 'market_api', warnings.join('; '), start);
-        }
+      const quotes = orderedQuotes.filter((q): q is MarketQuote => q !== null);
 
-        if (warnings.length > 0) {
-          return toolOk(PROVIDER_NAME, 'market_api', quotes, start, warnings);
-        }
+      if (quotes.length === 0 && warnings.length > 0) {
+        recordProviderFailure(PROVIDER_NAME);
+        return toolError(PROVIDER_NAME, 'market_api', warnings.join('; '), start);
+      }
+
+      if (warnings.length > 0) {
+        return toolOk(PROVIDER_NAME, 'market_api', quotes, start, warnings);
       }
 
       return toolOk(PROVIDER_NAME, 'market_api', quotes, start);

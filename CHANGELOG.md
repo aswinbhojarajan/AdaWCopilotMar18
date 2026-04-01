@@ -4,6 +4,34 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Project Task #1 — Twelve Data GCC Provider Integration
+**Date:** April 1, 2026
+
+### Added
+- **Twelve Data market provider** (`server/providers/twelveData.ts`) — Full MarketProvider implementation covering `getQuotes` (batch), `getHistoricalPrices`, `getCompanyProfile`, and `getEarningsCalendar`. Uses batch `/quote` endpoint with colon notation for rate-limit efficiency.
+- **Symbol normalizer** (`server/providers/symbolNormalizer.ts`) — Two-tier resolution (static exchange map + DB fallback) translating Ada's bare tickers (EMAAR, FAB, ARAMCO) into Twelve Data's exchange-qualified format (EMAAR:DFM, FAB:ADX, 2222:TADAWUL). Includes ticker overrides (ARAMCO→2222), 1h cache TTL, and reverse denormalization for batch response parsing.
+- **MarketQuote schema extensions** — Added `display_symbol`, `provider_symbol`, and `is_delayed` optional fields to the shared MarketQuoteSchema for LLM narration and debugging.
+- **Registry integration** — `twelve_data` case added to `resolveMarketProvider()` in registry.ts; startup log shows market chain (e.g., `twelve_data → finnhub → yahoo_finance → mock`).
+- **Currency-aware ChatWidgets** — `formatCurrency()` helper supporting AED, SAR, USD, EUR, GBP replaces hardcoded `$` prefix in HoldingsSummary, GoalProgress, and PortfolioSummaryWidget.
+- **Twelve Data attribution** — Citations in responseBuilder display "Twelve Data" instead of raw `twelve_data` provider key.
+- **Delayed-price LLM guidance** — Prompt builder instructs LLM to mention "prices are delayed ~15 min" when `is_delayed=true` and to always include currency (AED/SAR) for GCC instruments.
+- **GCC tool descriptions** — getQuotes, getHistoricalPrices, getCompanyProfile parameter descriptions updated with GCC ticker examples (EMAAR, FAB, ARAMCO, STC, ADNOCDIST).
+
+### Environment Variables
+- `TWELVE_DATA_API_KEY` — API key (secret, required)
+- `TWELVE_DATA_RATE_LIMIT=55` — Credits/min for Grow plan
+- `TWELVE_DATA_IS_REALTIME=false` — Set `true` only on Pro plan
+- `MARKET_PROVIDER_PRIMARY=twelve_data` — Twelve Data as primary market data source
+- `MARKET_PROVIDER_SECONDARY=finnhub` — Finnhub as secondary
+- `MARKET_PROVIDER_FALLBACK=yahoo_finance` — Yahoo Finance as fallback
+
+### Validated
+- TypeScript compiles clean (`npm run typecheck` passes)
+- Application starts with market chain logged at startup
+- Fallback chain intact: if Twelve Data fails, Finnhub → Yahoo Finance → mock
+
+---
+
 ## Project Task #12 — Switch Default Model Config to Rollback (GPT-4.1 Family)
 **Date:** March 29, 2026
 
