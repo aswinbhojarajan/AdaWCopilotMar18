@@ -441,9 +441,11 @@ User Message → PII Detection → Tenant Config Hydration → Input Moderation
 
 14. **Trace Logging** (`traceLogger.ts`): Persists full agent execution traces to the `agent_traces` and `tool_runs` tables for observability and debugging. Each trace captures: session ID, intent, model used, tool calls with inputs/outputs, latency, token usage, and policy decisions.
 
-15. **Suggested Questions**: The LLM generates 3 contextual follow-up suggestions after each response. These are specific to the conversation context, not generic defaults.
+15. **Suggested Questions**: The LLM generates 3 contextual follow-up suggestions after each response. These are specific to the conversation context, not generic defaults. When the structured envelope includes `FollowUpChips` block components, the plain-text `suggested_questions` SSE event is suppressed to prevent duplicate follow-up UI.
 
 16. **Audit Logging** (`chat_audit_log` table): Every interaction is logged with: user ID, thread ID, classified intent, PII detection result, model used, token count (prompt + completion), and timestamp.
+
+17. **Brand Neutrality**: Ada is fully brand-neutral — no Emirates NBD (ENBD) or bank-specific references exist anywhere in the app. Removed from: bank selector modal (`AddAccountModal`), portfolio repository logo mapping, policy engine tenant config, and DisclaimerFooter popup content. The disclaimer popup shows only generic UAE regulatory text.
 
 ### Execution Guardrails & RM Handoff
 
