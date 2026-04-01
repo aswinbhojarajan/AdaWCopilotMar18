@@ -38,7 +38,7 @@ export function ChatMessage({
   onFollowUp,
 }: ChatMessageProps) {
   const isUser = sender === 'user';
-  const hasStructured = !isUser && structuredEnvelope && !isStreaming;
+  const hasStructured = !isUser && !!structuredEnvelope;
   const showSkeleton = !isUser && isStreaming && !structuredEnvelope && pendingExpectedBlocks && pendingExpectedBlocks.length > 0;
   const [blocksRevealed, setBlocksRevealed] = useState(false);
 
