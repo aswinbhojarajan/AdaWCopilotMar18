@@ -62,6 +62,7 @@ function useStreamingChat() {
             title: context.title,
             sourceScreen: context.sourceScreen,
             discoverCard: context.discoverCard,
+            promptKey: context.promptKey,
           } : undefined,
         }),
         signal: controller.signal,

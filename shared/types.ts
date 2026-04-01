@@ -294,6 +294,7 @@ export interface ChatMessageRequest {
     title: string;
     sourceScreen?: string;
     discoverCard?: DiscoverCardContext;
+    promptKey?: string;
   };
 }
 
