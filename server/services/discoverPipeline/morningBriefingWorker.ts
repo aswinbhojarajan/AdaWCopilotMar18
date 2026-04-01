@@ -29,9 +29,9 @@ Rules:
 - Be specific with numbers when available
 - Keep it scannable — this is a quick morning read`;
 
-async function fetchOvernightCards(): Promise<Array<{ id: string; title: string; summary: string; card_type: string; topic_label: string }>> {
+async function fetchOvernightCards(): Promise<Array<{ id: string; title: string; summary: string; card_type: string; topic_label: string; supporting_articles: Array<{ title: string; publisher: string; published_at: string; url?: string; summary?: string }> | null }>> {
   const { rows } = await pool.query(
-    `SELECT id, title, summary, card_type, topic_label
+    `SELECT id, title, summary, card_type, topic_label, supporting_articles
      FROM discover_cards
      WHERE card_type NOT IN ('ada_view', 'event_calendar', 'morning_briefing', 'milestone')
        AND is_active = TRUE
@@ -146,11 +146,22 @@ export async function runMorningBriefing(): Promise<number> {
       `UPDATE discover_cards SET is_active = FALSE WHERE card_type = 'morning_briefing' AND is_active = TRUE`,
     );
 
-    const sourceCardRefs = overnightCards.slice(0, 5).map(c => ({
-      card_id: c.id,
-      title: c.title,
-      card_type: c.card_type,
-    }));
+    const sourceArticles: Array<{ title: string; publisher: string; published_at: string; url?: string; summary?: string }> = [];
+    for (const card of overnightCards.slice(0, 5)) {
+      if (card.supporting_articles && Array.isArray(card.supporting_articles)) {
+        for (const article of card.supporting_articles) {
+          if (article.publisher && article.title && sourceArticles.length < 5) {
+            sourceArticles.push({
+              title: article.title,
+              publisher: article.publisher,
+              published_at: article.published_at || new Date().toISOString(),
+              url: article.url || undefined,
+              summary: article.summary || undefined,
+            });
+          }
+        }
+      }
+    }
 
     await pool.query(
       `INSERT INTO discover_cards (id, card_type, tab, title, summary, detail_sections, supporting_articles,
@@ -164,8 +175,8 @@ export async function runMorningBriefing(): Promise<number> {
         parsed.title,
         parsed.summary,
         JSON.stringify(parsed.detail_sections || []),
-        JSON.stringify(sourceCardRefs),
-        sourceCardRefs.length,
+        JSON.stringify(sourceArticles),
+        sourceArticles.length,
         themeSet.slice(0, 5),
         JSON.stringify({
           asset_classes: [],

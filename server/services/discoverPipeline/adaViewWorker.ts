@@ -25,9 +25,9 @@ Rules:
 - Frame through wealth preservation/growth lens
 - Avoid jargon; be direct and actionable`;
 
-async function fetchTopCardsForAdaView(): Promise<Array<{ id: string; title: string; summary: string; card_type: string; topic_label: string }>> {
+async function fetchTopCardsForAdaView(): Promise<Array<{ id: string; title: string; summary: string; card_type: string; topic_label: string; supporting_articles: Array<{ title: string; publisher: string; published_at: string; url?: string; summary?: string }> | null }>> {
   const { rows } = await pool.query(
-    `SELECT id, title, summary, card_type, topic_label
+    `SELECT id, title, summary, card_type, topic_label, supporting_articles
      FROM discover_cards
      WHERE card_type != 'ada_view' AND card_type != 'event_calendar'
        AND created_at > NOW() - INTERVAL '7 days'
@@ -113,11 +113,22 @@ export async function runAdaView(): Promise<number> {
       },
     }));
 
-    const sourceCardRefs = topCards.slice(0, 5).map(c => ({
-      card_id: c.id,
-      title: c.title,
-      card_type: c.card_type,
-    }));
+    const sourceArticles: Array<{ title: string; publisher: string; published_at: string; url?: string; summary?: string }> = [];
+    for (const card of topCards.slice(0, 5)) {
+      if (card.supporting_articles && Array.isArray(card.supporting_articles)) {
+        for (const article of card.supporting_articles) {
+          if (article.publisher && article.title && sourceArticles.length < 5) {
+            sourceArticles.push({
+              title: article.title,
+              publisher: article.publisher,
+              published_at: article.published_at || new Date().toISOString(),
+              url: article.url || undefined,
+              summary: article.summary || undefined,
+            });
+          }
+        }
+      }
+    }
 
     const themeSet = [...new Set(topCards.map(c => c.topic_label))];
 
@@ -133,8 +144,8 @@ export async function runAdaView(): Promise<number> {
         parsed.title,
         parsed.summary,
         JSON.stringify(parsed.detail_sections || []),
-        JSON.stringify(sourceCardRefs),
-        topCards.length,
+        JSON.stringify(sourceArticles),
+        sourceArticles.length,
         themeSet.slice(0, 5),
         JSON.stringify({
           asset_classes: [],

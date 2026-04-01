@@ -96,7 +96,7 @@ export function ArticleSourcesSheet({ articles, isOpen, onClose }: ArticleSource
         <div className="overflow-y-auto flex-1 px-[20px] py-[16px]">
           <div className="flex flex-col gap-[16px]">
             {articles.map((article, i) => {
-              const identity = getPublisherIdentity(article.publisher);
+              const identity = getPublisherIdentity(article.publisher || 'Unknown');
               const fontSize = identity.initials.length > 2 ? '0.375rem' : identity.initials.length === 2 ? '0.4375rem' : '0.5625rem';
               const timeLabel = formatRelativeTime(article.published_at);
 

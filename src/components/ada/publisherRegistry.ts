@@ -61,7 +61,8 @@ function getInitials(name: string): string {
   return words.slice(0, 2).map(w => w[0]).join('').toUpperCase();
 }
 
-export function getPublisherIdentity(publisher: string): PublisherIdentity {
+export function getPublisherIdentity(publisher: string | null | undefined): PublisherIdentity {
+  if (!publisher) return { initials: '?', color: '#999999' };
   const key = publisher.toLowerCase().trim();
   const known = KNOWN_PUBLISHERS[key];
   if (known) return known;
