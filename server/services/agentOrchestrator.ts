@@ -79,6 +79,66 @@ function mapIntentForRag(primaryIntent: IntentClassification['primary_intent']):
   return primaryIntent;
 }
 
+function extractHeadlineTokens(
+  buffer: string,
+  cursor: number,
+): { tokens: string; cursor: number; done: boolean } {
+  const LOOKING_FOR_KEY = 0;
+  const LOOKING_FOR_VALUE_START = 1;
+  const INSIDE_VALUE = 2;
+
+  let state = LOOKING_FOR_KEY;
+  let pos = cursor;
+
+  if (cursor > 0) {
+    const keyEnd = buffer.indexOf('"headline"');
+    if (keyEnd === -1) return { tokens: '', cursor: 0, done: false };
+    const colonAfterKey = buffer.indexOf(':', keyEnd + 10);
+    if (colonAfterKey === -1) return { tokens: '', cursor, done: false };
+    const quoteStart = buffer.indexOf('"', colonAfterKey + 1);
+    if (quoteStart === -1) return { tokens: '', cursor, done: false };
+    state = INSIDE_VALUE;
+    if (cursor <= quoteStart + 1) {
+      pos = quoteStart + 1;
+    }
+  }
+
+  if (state === LOOKING_FOR_KEY) {
+    const keyIdx = buffer.indexOf('"headline"');
+    if (keyIdx === -1) return { tokens: '', cursor: 0, done: false };
+    const colonIdx = buffer.indexOf(':', keyIdx + 10);
+    if (colonIdx === -1) return { tokens: '', cursor: keyIdx, done: false };
+    const quoteIdx = buffer.indexOf('"', colonIdx + 1);
+    if (quoteIdx === -1) return { tokens: '', cursor: colonIdx, done: false };
+    state = INSIDE_VALUE;
+    pos = quoteIdx + 1;
+  }
+
+  if (state === INSIDE_VALUE) {
+    let result = '';
+    let i = pos;
+    while (i < buffer.length) {
+      const ch = buffer[i];
+      if (ch === '\\' && i + 1 < buffer.length) {
+        const next = buffer[i + 1];
+        if (next === '"') { result += '"'; i += 2; }
+        else if (next === 'n') { result += '\n'; i += 2; }
+        else if (next === 't') { result += '\t'; i += 2; }
+        else if (next === '\\') { result += '\\'; i += 2; }
+        else { result += next; i += 2; }
+      } else if (ch === '"') {
+        return { tokens: result, cursor: i + 1, done: true };
+      } else {
+        result += ch;
+        i++;
+      }
+    }
+    return { tokens: result, cursor: i, done: false };
+  }
+
+  return { tokens: '', cursor: pos, done: false };
+}
+
 function extractReadableFromRawJson(raw: string): string {
   try {
     const parsed = JSON.parse(raw);
@@ -470,6 +530,7 @@ export async function* orchestrateStream(
     let isLastTurn = false;
     const moderationBufferEnabled = tenantConfig.moderation_enabled !== false;
     let structuredHeadlineEmitted = false;
+    let structuredHeadlineCursor = 0;
 
     while (turnCount < maxToolRounds + 1) {
       turnCount++;
@@ -543,10 +604,12 @@ export async function* orchestrateStream(
             yield { type: 'text', content: safeText };
           }
           if (useStructured && !structuredHeadlineEmitted) {
-            const headlineMatch = turnBuffer.match(/"headline"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-            if (headlineMatch) {
-              const headline = headlineMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
-              yield { type: 'text', content: headline };
+            const extracted = extractHeadlineTokens(turnBuffer, structuredHeadlineCursor);
+            if (extracted.tokens) {
+              yield { type: 'text', content: extracted.tokens };
+            }
+            structuredHeadlineCursor = extracted.cursor;
+            if (extracted.done) {
               structuredHeadlineEmitted = true;
             }
           }
