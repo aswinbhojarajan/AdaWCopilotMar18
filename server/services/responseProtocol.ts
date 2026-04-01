@@ -177,5 +177,12 @@ export function validateResponse(
     envelope.intent = expectedIntent;
   }
 
+  const expected = getExpectedBlocks(expectedIntent);
+  const presentTypes = new Set(envelope.blocks.map(b => b.type));
+  const missing = expected.filter(t => !presentTypes.has(t));
+  if (missing.length > 0) {
+    console.log(`[ResponseProtocol] Missing expected blocks for ${expectedIntent}: ${missing.join(', ')}. Accepting envelope as-is.`);
+  }
+
   return { ok: true, envelope };
 }

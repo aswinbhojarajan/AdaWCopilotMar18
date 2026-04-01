@@ -17,6 +17,7 @@ import { getProviderRegistry } from '../providers/registry';
 import { getProviderHealthStatus } from '../providers/helpers';
 import { getCacheStats } from '../providers/cache';
 import type { ChatMessageRequest, PollVoteRequest, LifeEventType } from '../../shared/types';
+import type { AdaResponseEnvelope } from '../../shared/schemas/agent';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
@@ -495,7 +496,7 @@ async function processMessageSync(
   let suggestedQuestions: string[] = [];
   const widgets: { type: string }[] = [];
   let simulator: { type: string; initialValues?: Record<string, number> } | undefined;
-  let structuredEnvelope: unknown = null;
+  let structuredEnvelope: AdaResponseEnvelope | null = null;
 
   for await (const event of orchestrateStream(userId, { ...req, threadId })) {
     if (event.type === 'text' && event.content) {
