@@ -1,3 +1,5 @@
+import type { AdaResponseEnvelope } from '../../shared/schemas/agent';
+
 export type TabType = 'home' | 'wealth' | 'discover' | 'collective';
 
 export type ViewType =
@@ -40,6 +42,15 @@ export interface ChatWidget {
   queueId?: number;
 }
 
+export type StructuredEnvelope = AdaResponseEnvelope;
+
+export interface StructuredError {
+  code: string;
+  message: string;
+  showRawFallback: boolean;
+  rawText?: string;
+}
+
 export interface Message {
   id: string;
   message: string;
@@ -47,6 +58,9 @@ export interface Message {
   simulator?: SimulatorConfig;
   widgets?: ChatWidget[];
   isStreaming?: boolean;
+  structuredEnvelope?: StructuredEnvelope;
+  structuredError?: StructuredError;
+  isSimplifiedView?: boolean;
 }
 
 export interface SparklinePoint {

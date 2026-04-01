@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon, ThinkingPanel, LiveThinkingBar } from '../ada';
-import type { Message, ChatContext, ChatWidget } from '../../types';
+import type { Message, ChatContext, ChatWidget, StructuredEnvelope, StructuredError } from '../../types';
 import { getStreamHeaders } from '../../hooks/api';
 import { useUser } from '../../contexts/UserContext';
 import { useAnalytics, AnalyticsEvents } from '../../lib/analytics';
@@ -35,6 +35,8 @@ function useStreamingChat() {
     onSimulator: (sim: { type: string; initialValues?: Record<string, number> }) => void,
     onSuggestions: (questions: string[]) => void,
     onThinking: (step: ThinkingStep) => void,
+    onStructured: (envelope: StructuredEnvelope) => void,
+    onStructuredError: (error: StructuredError) => void,
     onDone: () => void,
     onError: (error: string) => void,
   ) => {
@@ -109,6 +111,12 @@ function useStreamingChat() {
                 break;
               case 'thinking':
                 if (event.step) onThinking({ step: event.step, detail: event.detail || '', timestamp: Date.now() });
+                break;
+              case 'structured':
+                if (event.envelope) onStructured(event.envelope as StructuredEnvelope);
+                break;
+              case 'structured_error':
+                if (event.error) onStructuredError(event.error as StructuredError);
                 break;
               case 'error':
                 onError(event.content || 'Something went wrong.');
@@ -260,6 +268,16 @@ export function ChatScreen({
       },
       (step) => {
         setThinkingSteps(prev => [...prev, step]);
+      },
+      (envelope) => {
+        setMessages(prev => prev.map(m =>
+          m.id === adaMsgId ? { ...m, structuredEnvelope: envelope } : m
+        ));
+      },
+      (structuredErr) => {
+        setMessages(prev => prev.map(m =>
+          m.id === adaMsgId ? { ...m, structuredError: structuredErr, isSimplifiedView: true } : m
+        ));
       },
       () => {
         if (!hadError) {
@@ -456,6 +474,9 @@ export function ChatScreen({
                               simulator={msg.simulator}
                               widgets={msg.widgets}
                               isStreaming={msg.isStreaming}
+                              structuredEnvelope={msg.structuredEnvelope}
+                              isSimplifiedView={msg.isSimplifiedView}
+                              onFollowUp={handleSubmit}
                               contextPrefix={
                                 index === 0 && msg.sender === 'user' && chatContext
                                   ? chatContext.title

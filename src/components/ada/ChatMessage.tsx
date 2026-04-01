@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScenarioSimulator } from './ScenarioSimulator';
 import { SparkIcon } from './SparkIcon';
 import { ChatWidgetRenderer } from './ChatWidgets';
-import type { ChatWidget } from '../../types';
+import { ChatResponseRenderer } from './blocks/ChatResponseRenderer';
+import type { ChatWidget, StructuredEnvelope } from '../../types';
 
 interface ChatMessageProps {
   message: string;
@@ -15,6 +16,9 @@ interface ChatMessageProps {
   };
   widgets?: ChatWidget[];
   isStreaming?: boolean;
+  structuredEnvelope?: StructuredEnvelope;
+  isSimplifiedView?: boolean;
+  onFollowUp?: (prompt: string) => void;
 }
 
 export function ChatMessage({
@@ -25,8 +29,21 @@ export function ChatMessage({
   simulator,
   widgets,
   isStreaming,
+  structuredEnvelope,
+  isSimplifiedView,
+  onFollowUp,
 }: ChatMessageProps) {
   const isUser = sender === 'user';
+  const hasStructured = !isUser && structuredEnvelope && !isStreaming;
+  const [blocksRevealed, setBlocksRevealed] = useState(false);
+
+  useEffect(() => {
+    if (hasStructured && !blocksRevealed) {
+      const timer = setTimeout(() => setBlocksRevealed(true), 100);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [hasStructured, blocksRevealed]);
 
   const renderInlineFormatting = (text: string): React.ReactNode => {
     const parts: React.ReactNode[] = [];
@@ -117,10 +134,35 @@ export function ChatMessage({
     });
   };
 
+  if (hasStructured) {
+    return (
+      <div className="flex justify-start w-full">
+        <div className="flex gap-[10px] items-start w-full max-w-[95%]">
+          <div className="bg-[#441316] rounded-full size-[28px] shrink-0 flex items-center justify-center mt-[4px]">
+            <SparkIcon size={16} color="#d8d8d8" />
+          </div>
+
+          <div className="flex-1 min-w-0 flex flex-col gap-[8px]">
+            <div className="bg-[#f7f6f2] rounded-[16px] px-[16px] py-[12px]">
+              <p className="font-['Crimson_Pro',serif] text-[#333] text-[1rem] tracking-[-0.32px] font-medium leading-[1.4]">
+                {structuredEnvelope.headline}
+              </p>
+            </div>
+
+            <ChatResponseRenderer
+              envelope={structuredEnvelope}
+              onFollowUp={onFollowUp || (() => {})}
+              isRevealed={blocksRevealed}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} w-full`}>
       <div className="flex gap-[10px] items-start max-w-[85%]">
-        {/* AI Avatar - only show for assistant messages */}
         {!isUser && (
           <div className="bg-[#441316] rounded-full size-[28px] shrink-0 flex items-center justify-center mt-[4px]">
             <SparkIcon size={16} color="#d8d8d8" />
@@ -139,7 +181,6 @@ export function ChatMessage({
                 className={`font-['DM_Sans',sans-serif] font-light ${isUser ? 'text-white' : 'text-[#555555]'} text-[0.8125rem] leading-[20.8px]`}
                 style={{ fontVariationSettings: "'opsz' 14" }}
               >
-                {/* Context prefix inline with message for user messages */}
                 {contextPrefix && isUser && (
                   <span className="text-white/70 font-['DM_Sans',sans-serif] font-light text-[0.75rem] tracking-[-0.24px]">
                     {contextPrefix} ·
@@ -150,6 +191,15 @@ export function ChatMessage({
 
               {isStreaming && !isUser && (
                 <span className="inline-block w-[6px] h-[14px] bg-[#441316] animate-pulse ml-[2px] align-middle rounded-sm" />
+              )}
+
+              {isSimplifiedView && !isUser && (
+                <div className="mt-[6px] flex items-center gap-[4px]">
+                  <svg className="w-[10px] h-[10px] text-[#999]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-['DM_Sans',sans-serif] text-[#999] text-[0.5625rem]">Simplified view</span>
+                </div>
               )}
 
               {widgets && widgets.length > 0 && !isUser && (
