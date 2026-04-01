@@ -20,7 +20,7 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 **Backend (Express + TypeScript):**
 - **API**: Provides RESTful endpoints and SSE streams.
 - **Agent Orchestrator**: Manages the AI chat pipeline, handling PII detection, session hydration, intent classification, policy evaluation, multi-model routing, RAG, prompt assembly, memory, LLM interaction, multi-turn tool execution, wealth engine, guardrails, response building, SSE streaming, trace logging, and memory persistence.
-- **Key Services**: Includes `policyEngine`, `modelRouter`, `promptBuilder`, `responseBuilder`, `traceLogger`, `guardrails`, `wealthEngine`, `toolRegistry`, `rmHandoffService`, `aiService`, `intentClassifier`, `ragService`, `memoryService`, `piiDetector`, `goalService`, and `morningSentinelService`.
+- **Key Services**: Includes `policyEngine`, `modelRouter`, `promptBuilder`, `responseBuilder`, `responseProtocol`, `traceLogger`, `guardrails`, `wealthEngine`, `toolRegistry`, `rmHandoffService`, `aiService`, `intentClassifier`, `ragService`, `memoryService`, `piiDetector`, `goalService`, and `morningSentinelService`.
 - **ErrorBoundary**: React class component for user-friendly error handling.
 - **Repositories**: Organized into 6 repositories: user, portfolio, content, chat, poll, agent.
 - **Provider Pattern**: Employs 8 external data providers (Stock/Market via Twelve Data + Finnhub + Yahoo Finance, News, Macro/Economic, Company Filings, Instrument Lookup, FX Rates, Regional FX) with a priority chain, in-memory cache, rate limiting, health tracking, and automatic failover. Twelve Data is the primary market provider for GCC exchanges (DFM, ADX, Tadawul) with symbol normalization (bare ticker → exchange-qualified format). Market provider chain is configurable via `MARKET_PROVIDER_PRIMARY`, `MARKET_PROVIDER_SECONDARY`, `MARKET_PROVIDER_FALLBACK` env vars.
@@ -53,7 +53,8 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **Authentication**: Cookie-based sessions (express-session + connect-pg-simple), bcrypt password hashing, 12h rolling sessions, resolveSession/requireAuth/requireRole middleware. 4 demo users (Aisha, Khalid, Raj, Admin). Auth schema in `auth` Postgres schema.
 - **User identification**: Session cookie maps to `auth.users.persona` column (e.g., 'user-aisha') used as `userId` throughout the app.
 - **Default tenant**: `bank_demo_uae`.
-- **SSE event types**: `text`, `widget`, `simulator`, `suggested_questions`, `thinking`, `done`, `error`.
+- **SSE event types**: `text`, `widget`, `simulator`, `suggested_questions`, `thinking`, `meta`, `structured`, `structured_error`, `done`, `error`.
+- **Structured Response Protocol**: AdaResponseEnvelope v1.0 with 11 block types (MetricsRow, Section, HoldingsTable, AllocationCard, MiniChart, Comparison, RiskCard, OpportunityCard, AlertBanner, Scenario, AdvisorCta), FollowUpChip, SourceReference. Hybrid streaming: headline streamed as text, then full envelope via `structured` SSE event. MVP structured intents: portfolio_review, allocation_breakdown, general_query. Non-structured intents fall back to legacy text rendering. Intent mapping in `server/services/responseProtocol.ts`. Validation via Zod with graceful degradation on parse failure.
 - **Verbose/Thinking Mode**: User-toggleable feature to visualize the AI's reasoning pipeline.
 - **Execution routing**: Configurable per tenant.
 - **Provider config**: Configurable via environment variables or tenant database settings.

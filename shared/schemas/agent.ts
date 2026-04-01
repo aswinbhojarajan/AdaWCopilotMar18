@@ -247,3 +247,250 @@ export const InstrumentIdentitySchema = z.object({
   source_provider: z.string(),
 });
 export type InstrumentIdentity = z.infer<typeof InstrumentIdentitySchema>;
+
+export const AdaIntentSchema = z.enum([
+  'portfolio_review',
+  'allocation_breakdown',
+  'holding_deep_dive',
+  'gain_loss_explainer',
+  'risk_check',
+  'rebalance_analysis',
+  'product_opportunity',
+  'market_impact',
+  'comparison',
+  'educational',
+  'advisor_escalation',
+  'general_query',
+  'unsupported',
+]);
+export type AdaIntent = z.infer<typeof AdaIntentSchema>;
+
+export const MetricItemSchema = z.object({
+  label: z.string(),
+  value: z.string(),
+  delta: z.object({
+    value: z.string(),
+    direction: z.enum(['up', 'down', 'neutral']),
+  }).optional(),
+  unit: z.string().optional(),
+});
+export type MetricItem = z.infer<typeof MetricItemSchema>;
+
+export const MetricsRowBlockSchema = z.object({
+  type: z.literal('metrics_row'),
+  label: z.string().optional(),
+  metrics: z.array(MetricItemSchema),
+});
+export type MetricsRowBlock = z.infer<typeof MetricsRowBlockSchema>;
+
+export const SectionBlockSchema = z.object({
+  type: z.literal('section'),
+  label: z.string().optional(),
+  heading: z.string(),
+  body: z.string(),
+  collapsible: z.boolean().optional(),
+  collapseLabel: z.string().optional(),
+});
+export type SectionBlock = z.infer<typeof SectionBlockSchema>;
+
+export const TableColumnSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  align: z.enum(['left', 'right', 'center']).optional(),
+  format: z.enum(['currency', 'percent', 'number', 'text', 'delta']).optional(),
+});
+export type TableColumn = z.infer<typeof TableColumnSchema>;
+
+export const HoldingRowSchema = z.object({
+  ticker: z.string(),
+  name: z.string(),
+  values: z.record(z.string(), z.union([z.string(), z.number()])),
+});
+export type HoldingRow = z.infer<typeof HoldingRowSchema>;
+
+export const HoldingsTableBlockSchema = z.object({
+  type: z.literal('holdings_table'),
+  label: z.string().optional(),
+  columns: z.array(TableColumnSchema),
+  rows: z.array(HoldingRowSchema),
+  defaultSort: z.object({
+    column: z.string(),
+    direction: z.enum(['asc', 'desc']),
+  }).optional(),
+});
+export type HoldingsTableBlock = z.infer<typeof HoldingsTableBlockSchema>;
+
+export const AllocationSegmentSchema = z.object({
+  label: z.string(),
+  value: z.number(),
+  amount: z.number().optional(),
+  color: z.string().optional(),
+});
+export type AllocationSegment = z.infer<typeof AllocationSegmentSchema>;
+
+export const AllocationCardBlockSchema = z.object({
+  type: z.literal('allocation_card'),
+  label: z.string().optional(),
+  dimension: z.enum(['sector', 'geography', 'asset_class', 'currency']),
+  segments: z.array(AllocationSegmentSchema),
+  targetSegments: z.array(AllocationSegmentSchema).optional(),
+});
+export type AllocationCardBlock = z.infer<typeof AllocationCardBlockSchema>;
+
+export const ChartDataPointSchema = z.object({
+  label: z.string(),
+  value: z.number(),
+  color: z.string().optional(),
+});
+export type ChartDataPoint = z.infer<typeof ChartDataPointSchema>;
+
+export const MiniChartBlockSchema = z.object({
+  type: z.literal('mini_chart'),
+  label: z.string().optional(),
+  chartType: z.enum(['donut', 'bar', 'line', 'sparkline']),
+  title: z.string(),
+  data: z.array(ChartDataPointSchema),
+  compareSeries: z.array(ChartDataPointSchema).optional(),
+  compareLabel: z.string().optional(),
+});
+export type MiniChartBlock = z.infer<typeof MiniChartBlockSchema>;
+
+export const ComparisonItemSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  subtitle: z.string().optional(),
+});
+export type ComparisonItem = z.infer<typeof ComparisonItemSchema>;
+
+export const ComparisonDimensionSchema = z.object({
+  label: z.string(),
+  values: z.record(z.string(), z.union([z.string(), z.number()])),
+  highlight: z.string().optional(),
+});
+export type ComparisonDimension = z.infer<typeof ComparisonDimensionSchema>;
+
+export const ComparisonBlockSchema = z.object({
+  type: z.literal('comparison'),
+  label: z.string().optional(),
+  items: z.array(ComparisonItemSchema),
+  dimensions: z.array(ComparisonDimensionSchema),
+});
+export type ComparisonBlock = z.infer<typeof ComparisonBlockSchema>;
+
+export const RiskCardBlockSchema = z.object({
+  type: z.literal('risk_card'),
+  label: z.string().optional(),
+  riskType: z.enum(['concentration', 'volatility', 'diversification', 'liquidity', 'drawdown']),
+  severity: z.enum(['low', 'moderate', 'elevated', 'high']),
+  title: z.string(),
+  description: z.string(),
+  metric: MetricItemSchema.optional(),
+});
+export type RiskCardBlock = z.infer<typeof RiskCardBlockSchema>;
+
+export const OpportunityCardBlockSchema = z.object({
+  type: z.literal('opportunity_card'),
+  label: z.string().optional(),
+  category: z.enum(['bond', 'cash', 'thematic', 'rebalance', 'tax']),
+  title: z.string(),
+  description: z.string(),
+  terms: z.record(z.string(), z.string()).optional(),
+});
+export type OpportunityCardBlock = z.infer<typeof OpportunityCardBlockSchema>;
+
+export const AlertBannerBlockSchema = z.object({
+  type: z.literal('alert_banner'),
+  label: z.string().optional(),
+  severity: z.enum(['info', 'warning', 'critical']),
+  title: z.string(),
+  message: z.string(),
+  action: z.object({
+    label: z.string(),
+    chipText: z.string(),
+  }).optional(),
+});
+export type AlertBannerBlock = z.infer<typeof AlertBannerBlockSchema>;
+
+export const ScenarioBlockSchema = z.object({
+  type: z.literal('scenario'),
+  label: z.string().optional(),
+  title: z.string(),
+  description: z.string(),
+  before: z.array(MetricItemSchema),
+  after: z.array(MetricItemSchema),
+  impact: z.string(),
+});
+export type ScenarioBlock = z.infer<typeof ScenarioBlockSchema>;
+
+export const AdvisorActionSchema = z.object({
+  label: z.string(),
+  actionType: z.enum(['share_with_rm', 'book_review', 'save_watchlist', 'export_pdf']),
+  demoEnabled: z.boolean(),
+});
+export type AdvisorAction = z.infer<typeof AdvisorActionSchema>;
+
+export const AdvisorCtaBlockSchema = z.object({
+  type: z.literal('advisor_cta'),
+  label: z.string().optional(),
+  actions: z.array(AdvisorActionSchema),
+});
+export type AdvisorCtaBlock = z.infer<typeof AdvisorCtaBlockSchema>;
+
+export const AdaBlockSchema = z.discriminatedUnion('type', [
+  MetricsRowBlockSchema,
+  SectionBlockSchema,
+  HoldingsTableBlockSchema,
+  AllocationCardBlockSchema,
+  MiniChartBlockSchema,
+  ComparisonBlockSchema,
+  RiskCardBlockSchema,
+  OpportunityCardBlockSchema,
+  AlertBannerBlockSchema,
+  ScenarioBlockSchema,
+  AdvisorCtaBlockSchema,
+]);
+export type AdaBlock = z.infer<typeof AdaBlockSchema>;
+
+export const FollowUpChipSchema = z.object({
+  label: z.string(),
+  prompt: z.string(),
+  icon: z.enum(['chart', 'compare', 'risk', 'action', 'info', 'advisor']).optional(),
+});
+export type FollowUpChip = z.infer<typeof FollowUpChipSchema>;
+
+export const SourceReferenceSchema = z.object({
+  label: z.string(),
+  sourceType: z.enum(['portfolio', 'market_data', 'model_estimate', 'research', 'internal']),
+  freshness: z.string(),
+  href: z.string().optional(),
+});
+export type SourceReference = z.infer<typeof SourceReferenceSchema>;
+
+export const AdaResponseEnvelopeSchema = z.object({
+  version: z.literal('1.0'),
+  intent: AdaIntentSchema,
+  headline: z.string(),
+  blocks: z.array(AdaBlockSchema),
+  followUps: z.array(FollowUpChipSchema),
+  sources: z.array(SourceReferenceSchema),
+  disclaimer: z.string(),
+  generatedAt: z.string(),
+});
+export type AdaResponseEnvelope = z.infer<typeof AdaResponseEnvelopeSchema>;
+
+export const AdaErrorPayloadSchema = z.object({
+  code: z.enum(['MALFORMED_RESPONSE', 'TIMEOUT', 'RATE_LIMITED', 'DATA_UNAVAILABLE', 'INTERNAL']),
+  message: z.string(),
+  showRawFallback: z.boolean(),
+  rawText: z.string().optional(),
+});
+export type AdaErrorPayload = z.infer<typeof AdaErrorPayloadSchema>;
+
+export type AdaBlockType = AdaBlock['type'];
+
+export interface IntentTemplate {
+  intent: AdaIntent;
+  promptFragment: string;
+  expectedBlocks: AdaBlockType[];
+  estimatedTokens: number;
+}

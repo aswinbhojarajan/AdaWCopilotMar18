@@ -251,7 +251,7 @@ router.post('/chat/stream', asyncHandler(async (req, res) => {
       if (closed) break;
       seqId++;
       res.write(`id: ${seqId}\ndata: ${JSON.stringify(event)}\n\n`);
-      if (event.type === 'thinking' || event.type === 'meta') {
+      if (event.type === 'thinking' || event.type === 'meta' || event.type === 'structured' || event.type === 'structured_error') {
         const flushable = res as unknown as { flush?: () => void };
         if (typeof flushable.flush === 'function') flushable.flush();
       }
@@ -495,6 +495,7 @@ async function processMessageSync(
   let suggestedQuestions: string[] = [];
   const widgets: { type: string }[] = [];
   let simulator: { type: string; initialValues?: Record<string, number> } | undefined;
+  let structuredEnvelope: unknown = null;
 
   for await (const event of orchestrateStream(userId, { ...req, threadId })) {
     if (event.type === 'text' && event.content) {
@@ -505,6 +506,8 @@ async function processMessageSync(
       widgets.push(event.widget as { type: string });
     } else if (event.type === 'simulator' && event.simulator) {
       simulator = event.simulator;
+    } else if (event.type === 'structured') {
+      structuredEnvelope = event.envelope;
     }
   }
 
@@ -518,6 +521,7 @@ async function processMessageSync(
       timestamp: new Date().toISOString(),
       ...(widgets.length > 0 ? { widgets } : {}),
       ...(simulator ? { simulator } : {}),
+      ...(structuredEnvelope ? { structuredEnvelope } : {}),
     },
     suggestedQuestions,
   };

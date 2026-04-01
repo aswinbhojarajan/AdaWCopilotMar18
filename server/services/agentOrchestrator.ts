@@ -35,7 +35,8 @@ import {
   getAllToolNames as registryAllToolNames,
   inferSuggestedTools as registryInferSuggestedTools,
 } from './toolRegistry';
-import { buildAdaAnswer, extractInlineFollowUps, getDeterministicFollowUps, FollowUpStreamFilter } from './responseBuilder';
+import { buildAdaAnswer, extractInlineFollowUps, getDeterministicFollowUps, FollowUpStreamFilter, buildStructuredResponse, getDeterministicFollowUpChips } from './responseBuilder';
+import { mapClassifierToProtocolIntent, isStructuredIntent, validateResponse } from './responseProtocol';
 import { runPostChecks } from './guardrails';
 import { logAgentTrace, logToolRun, checkLatencyTargets } from './traceLogger';
 import type { StepTimings, TraceContext } from './traceLogger';
@@ -373,6 +374,16 @@ export async function* orchestrateStream(
     }
   }
 
+  const protocolIntent = mapClassifierToProtocolIntent(intent.primary_intent);
+  const useStructured = isStructuredIntent(protocolIntent);
+
+  if (useStructured) {
+    yield* thinkingEvent(verbose, 'response_protocol', `Structured response mode: ${protocolIntent} → block-based envelope`);
+    if (verbose) {
+      await new Promise(r => setImmediate(r));
+    }
+  }
+
   const systemPrompt = buildAgentPrompt({
     tenantConfig,
     policyDecision,
@@ -395,6 +406,7 @@ export async function* orchestrateStream(
     } : undefined,
     toolNames: allowedToolNames,
     providerAlias: route.provider_alias,
+    protocolIntent: useStructured ? protocolIntent : undefined,
   });
 
   const conversationHistory = await memoryService.getWorkingMemory(threadId);
@@ -501,7 +513,7 @@ export async function* orchestrateStream(
           }
           turnBuffer += delta.content;
           const safeText = streamFilter.push(delta.content);
-          if (safeText && !moderationBufferEnabled) {
+          if (safeText && !moderationBufferEnabled && !useStructured) {
             yield { type: 'text', content: safeText };
           }
         }
@@ -537,7 +549,7 @@ export async function* orchestrateStream(
 
       if (toolCalls.length === 0) {
         const flushed = streamFilter.flush();
-        if (flushed.remainingText && !moderationBufferEnabled) {
+        if (flushed.remainingText && !moderationBufferEnabled && !useStructured) {
           yield { type: 'text', content: flushed.remainingText };
         }
         const delimIdx = turnBuffer.indexOf('---FOLLOW_UP_QUESTIONS---');
@@ -552,7 +564,7 @@ export async function* orchestrateStream(
       }
 
       const flushedMidTurn = streamFilter.flush();
-      if (flushedMidTurn.remainingText && !moderationBufferEnabled) {
+      if (flushedMidTurn.remainingText && !moderationBufferEnabled && !useStructured) {
         yield { type: 'text', content: flushedMidTurn.remainingText };
       }
       fullResponse += turnBuffer;
@@ -727,11 +739,51 @@ export async function* orchestrateStream(
       }
     }
 
-    if (moderationBufferEnabled) {
-      if (outputModerationFlagged) {
-        yield { type: 'text', content: fullResponse };
-      } else {
-        yield { type: 'text', content: guardrailResult.sanitizedText };
+    let structuredEnvelope: import('../../shared/schemas/agent').AdaResponseEnvelope | null = null;
+
+    if (useStructured && !outputModerationFlagged) {
+      yield* thinkingEvent(verbose, 'structured_parse', 'Parsing structured response envelope...');
+      if (verbose) {
+        await new Promise(r => setImmediate(r));
+      }
+
+      const validationResult = validateResponse(fullResponse, protocolIntent);
+      if (validationResult.ok === true) {
+        structuredEnvelope = buildStructuredResponse({
+          intent,
+          policyDecision,
+          parsedEnvelope: validationResult.envelope,
+          toolResults,
+          tenantConfig,
+        });
+
+        yield* thinkingEvent(verbose, 'structured_validated', `Envelope valid: ${structuredEnvelope.blocks.length} blocks, ${structuredEnvelope.followUps.length} follow-ups`);
+        if (verbose) {
+          await new Promise(r => setImmediate(r));
+        }
+
+        if (moderationBufferEnabled) {
+          yield { type: 'text', content: structuredEnvelope.headline };
+        }
+
+        yield { type: 'structured', envelope: structuredEnvelope };
+      } else if (validationResult.ok === false) {
+        console.log('[Orchestrator] Structured response validation failed, falling back to text:', validationResult.error.message);
+        yield* thinkingEvent(verbose, 'structured_fallback', 'Structured parse failed — falling back to text rendering');
+
+        yield { type: 'structured_error', error: validationResult.error };
+
+        if (moderationBufferEnabled) {
+          yield { type: 'text', content: guardrailResult.sanitizedText };
+        }
+      }
+    } else {
+      if (moderationBufferEnabled) {
+        if (outputModerationFlagged) {
+          yield { type: 'text', content: fullResponse };
+        } else {
+          yield { type: 'text', content: guardrailResult.sanitizedText };
+        }
       }
     }
 
@@ -739,7 +791,7 @@ export async function* orchestrateStream(
       yield uiEvent;
     }
 
-    if (guardrailResult.appendedDisclosures.length > 0) {
+    if (guardrailResult.appendedDisclosures.length > 0 && !structuredEnvelope) {
       const disclosureText = '\n\n' + guardrailResult.appendedDisclosures.join(' ');
       fullResponse += disclosureText;
       yield { type: 'text', content: disclosureText };
@@ -785,19 +837,28 @@ export async function* orchestrateStream(
       escalationDecisions.push(`Latency target exceeded: ${latencyCheck.deviations.join('; ')}`);
     }
 
-    if (streamFollowUps.length === 0) {
-      const { cleanText, questions: inlineQuestions } = extractInlineFollowUps(fullResponse);
-      if (inlineQuestions.length > 0) {
-        streamFollowUps = inlineQuestions;
-        fullResponse = cleanText;
-      }
-    }
-    const suggestedQuestions = streamFollowUps.length > 0
-      ? streamFollowUps
-      : getDeterministicFollowUps(intent.primary_intent);
+    let suggestedQuestions: string[];
 
-    if (suggestedQuestions.length > 0) {
-      yield { type: 'suggested_questions', suggestedQuestions };
+    if (structuredEnvelope) {
+      suggestedQuestions = structuredEnvelope.followUps.map(f => f.label);
+      if (suggestedQuestions.length > 0) {
+        yield { type: 'suggested_questions', suggestedQuestions };
+      }
+    } else {
+      if (streamFollowUps.length === 0) {
+        const { cleanText, questions: inlineQuestions } = extractInlineFollowUps(fullResponse);
+        if (inlineQuestions.length > 0) {
+          streamFollowUps = inlineQuestions;
+          fullResponse = cleanText;
+        }
+      }
+      suggestedQuestions = streamFollowUps.length > 0
+        ? streamFollowUps
+        : getDeterministicFollowUps(intent.primary_intent);
+
+      if (suggestedQuestions.length > 0) {
+        yield { type: 'suggested_questions', suggestedQuestions };
+      }
     }
 
     const traceCtx: TraceContext = {
@@ -810,7 +871,7 @@ export async function* orchestrateStream(
     const adaAnswer = buildAdaAnswer({
       intent,
       policyDecision,
-      llmText: fullResponse,
+      llmText: structuredEnvelope ? structuredEnvelope.headline : fullResponse,
       toolResults,
       tenantConfig,
       guardrailInterventions,

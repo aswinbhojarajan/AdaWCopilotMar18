@@ -1,5 +1,9 @@
-import type { AdaAnswer, ToolResult, PolicyDecision, IntentClassification, Citation, TenantConfig } from '../../shared/schemas/agent';
+import type {
+  AdaAnswer, ToolResult, PolicyDecision, IntentClassification, Citation, TenantConfig,
+  AdaResponseEnvelope, AdaIntent, FollowUpChip, SourceReference,
+} from '../../shared/schemas/agent';
 import { getDisclosures } from './policyEngine';
+import { mapClassifierToProtocolIntent } from './responseProtocol';
 
 const FOLLOW_UP_DELIMITER = '---FOLLOW_UP_QUESTIONS---';
 
@@ -316,3 +320,105 @@ function buildRenderHints(toolResults: ToolResult[], intent: IntentClassificatio
   };
 }
 
+const DETERMINISTIC_FOLLOW_UP_CHIPS: Record<string, FollowUpChip[]> = {
+  portfolio_review: [
+    { label: 'Check risk exposure', prompt: 'What are my portfolio risk factors?', icon: 'risk' },
+    { label: 'See allocation', prompt: 'Show me my allocation breakdown', icon: 'chart' },
+    { label: 'Recent performance', prompt: 'How has my portfolio performed this month?', icon: 'chart' },
+  ],
+  allocation_breakdown: [
+    { label: 'Rebalance options', prompt: 'Should I rebalance my portfolio?', icon: 'action' },
+    { label: 'Compare to target', prompt: 'How does my allocation compare to my risk profile target?', icon: 'compare' },
+    { label: 'Sector breakdown', prompt: 'Show me my sector allocation', icon: 'chart' },
+  ],
+  general_query: [
+    { label: 'Portfolio overview', prompt: 'Show me my portfolio overview', icon: 'chart' },
+    { label: 'Market update', prompt: "What's happening in the markets today?", icon: 'info' },
+    { label: 'Talk to advisor', prompt: "I'd like to speak with my advisor", icon: 'advisor' },
+  ],
+};
+
+export function getDeterministicFollowUpChips(protocolIntent: AdaIntent): FollowUpChip[] {
+  return DETERMINISTIC_FOLLOW_UP_CHIPS[protocolIntent] ?? DETERMINISTIC_FOLLOW_UP_CHIPS.general_query;
+}
+
+export function buildSourceReferences(toolResults: ToolResult[]): SourceReference[] {
+  const sources: SourceReference[] = [];
+  const seen = new Set<string>();
+
+  for (const r of toolResults) {
+    if (r.status !== 'ok') continue;
+    const key = `${r.source_name}:${r.source_type}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const displayName = r.source_name === 'twelve_data' ? 'Twelve Data' : r.source_name;
+    const sourceType = mapSourceTypeToProtocol(r.source_type);
+
+    sources.push({
+      label: displayName,
+      sourceType,
+      freshness: r.as_of,
+    });
+  }
+
+  return sources;
+}
+
+function mapSourceTypeToProtocol(sourceType: string): SourceReference['sourceType'] {
+  const map: Record<string, SourceReference['sourceType']> = {
+    portfolio_api: 'portfolio',
+    market_api: 'market_data',
+    news_api: 'market_data',
+    wealth_engine: 'internal',
+    policy_engine: 'internal',
+    macro_api: 'market_data',
+    fx_api: 'market_data',
+    research_api: 'research',
+    identity_api: 'internal',
+  };
+  return map[sourceType] ?? 'internal';
+}
+
+export function buildStructuredResponse(params: {
+  intent: IntentClassification;
+  policyDecision: PolicyDecision;
+  parsedEnvelope: AdaResponseEnvelope;
+  toolResults: ToolResult[];
+  tenantConfig: TenantConfig;
+}): AdaResponseEnvelope {
+  const { intent, policyDecision, parsedEnvelope, toolResults, tenantConfig } = params;
+  const protocolIntent = mapClassifierToProtocolIntent(intent.primary_intent);
+
+  const disclosures = getDisclosures(tenantConfig, policyDecision);
+  const hasTwelveData = toolResults.some(
+    r => r.status === 'ok' && r.source_name === 'twelve_data' && r.source_type === 'market_api'
+  );
+  if (hasTwelveData) {
+    disclosures.push('Market data powered by Twelve Data. Prices may be delayed.');
+  }
+
+  const policyDisclaimer = disclosures.join(' ');
+  const disclaimer = policyDisclaimer
+    ? (parsedEnvelope.disclaimer ? `${policyDisclaimer} ${parsedEnvelope.disclaimer}` : policyDisclaimer)
+    : (parsedEnvelope.disclaimer || '');
+
+  const followUps = parsedEnvelope.followUps && parsedEnvelope.followUps.length > 0
+    ? parsedEnvelope.followUps
+    : getDeterministicFollowUpChips(protocolIntent);
+
+  const sources = parsedEnvelope.sources && parsedEnvelope.sources.length > 0
+    ? parsedEnvelope.sources
+    : buildSourceReferences(toolResults);
+
+  return {
+    version: '1.0',
+    intent: protocolIntent,
+    headline: parsedEnvelope.headline,
+    blocks: parsedEnvelope.blocks,
+    followUps,
+    sources,
+    disclaimer,
+    generatedAt: new Date().toISOString(),
+  };
+}

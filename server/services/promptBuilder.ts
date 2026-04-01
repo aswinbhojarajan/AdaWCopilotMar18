@@ -1,6 +1,7 @@
-import type { TenantConfig, PolicyDecision, IntentClassification } from '../../shared/schemas/agent';
+import type { TenantConfig, PolicyDecision, IntentClassification, AdaIntent, AdaBlockType } from '../../shared/schemas/agent';
 import type { RiskProfile } from '../../shared/types';
 import { getModelCapabilities } from './capabilityRegistry';
+import { isStructuredIntent, getExpectedBlocks } from './responseProtocol';
 
 interface PromptContext {
   tenantConfig: TenantConfig;
@@ -27,6 +28,7 @@ interface PromptContext {
   };
   toolNames?: string[];
   providerAlias?: string;
+  protocolIntent?: AdaIntent;
 }
 
 export function buildAgentPrompt(ctx: PromptContext): string {
@@ -44,7 +46,12 @@ export function buildAgentPrompt(ctx: PromptContext): string {
   blocks.push(buildToolRulesBlock(ctx.toolNames ?? []));
   blocks.push(buildExecutionBoundaryBlock());
   blocks.push(buildGroundingRules());
-  blocks.push(buildAnswerContractBlock());
+
+  if (ctx.protocolIntent && isStructuredIntent(ctx.protocolIntent)) {
+    blocks.push(buildStructuredAnswerContract(ctx.protocolIntent));
+  } else {
+    blocks.push(buildAnswerContractBlock());
+  }
 
   blocks.push('</system_instructions>');
 
@@ -243,4 +250,185 @@ function buildUserProfileBlock(userName?: string, riskProfile?: RiskProfile): st
     block += `\nCalibrate all investment language and risk framing to this ${riskProfile.level} risk profile.`;
   }
   return block;
+}
+
+const STRUCTURED_PROMPT_FRAGMENTS: Record<string, string> = {
+  portfolio_review: `You MUST return your response as a single valid JSON object following the AdaResponseEnvelope schema below. Do NOT include any text before or after the JSON. Do NOT use markdown code fences.
+
+IMPORTANT: First, generate a one-sentence headline that directly answers the user's question. This headline will be streamed to the user immediately, so make it informative and complete.
+
+After the headline, construct the full JSON envelope:
+
+{
+  "version": "1.0",
+  "intent": "portfolio_review",
+  "headline": "<your one-sentence headline>",
+  "blocks": [
+    {
+      "type": "metrics_row",
+      "metrics": [
+        { "label": "Total Value", "value": "$X,XXX,XXX", "delta": { "value": "+X.X%", "direction": "up" }, "unit": "$" },
+        { "label": "Daily Change", "value": "+$X,XXX", "delta": { "value": "+X.X%", "direction": "up" }, "unit": "$" },
+        { "label": "Cash Available", "value": "$XX,XXX", "unit": "$" }
+      ]
+    },
+    {
+      "type": "holdings_table",
+      "label": "Your Holdings",
+      "columns": [
+        { "key": "ticker", "label": "Ticker", "format": "text" },
+        { "key": "weight", "label": "Weight", "align": "right", "format": "percent" },
+        { "key": "value", "label": "Value", "align": "right", "format": "currency" },
+        { "key": "change", "label": "Change", "align": "right", "format": "delta" }
+      ],
+      "rows": [
+        { "ticker": "AAPL", "name": "Apple Inc.", "values": { "ticker": "AAPL", "weight": 15.2, "value": 45000, "change": 2.3 } }
+      ],
+      "defaultSort": { "column": "weight", "direction": "desc" }
+    },
+    {
+      "type": "allocation_card",
+      "dimension": "asset_class",
+      "segments": [
+        { "label": "US Equities", "value": 45.2, "amount": 135000 },
+        { "label": "GCC Equities", "value": 20.1, "amount": 60300 }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "Portfolio Summary",
+      "body": "Your portfolio analysis details here..."
+    },
+    {
+      "type": "advisor_cta",
+      "actions": [
+        { "label": "Share with RM", "actionType": "share_with_rm", "demoEnabled": true },
+        { "label": "Export PDF", "actionType": "export_pdf", "demoEnabled": true }
+      ]
+    }
+  ],
+  "followUps": [
+    { "label": "Check risk exposure", "prompt": "What are my portfolio risk factors?", "icon": "risk" },
+    { "label": "See allocation", "prompt": "Show me my allocation breakdown", "icon": "chart" },
+    { "label": "Recent performance", "prompt": "How has my portfolio performed this month?", "icon": "chart" }
+  ],
+  "sources": [
+    { "label": "Portfolio API", "sourceType": "portfolio", "freshness": "Real-time" }
+  ],
+  "disclaimer": "This is for informational purposes only and does not constitute investment advice. Past performance does not guarantee future results.",
+  "generatedAt": "<ISO-8601 timestamp>"
+}
+
+BLOCK RULES:
+• metrics_row: Include 2-5 key metrics. Use actual values from tool data. delta.direction must be "up", "down", or "neutral"
+• holdings_table: Include all holdings from tool data with accurate weights and values. Use the EXACT changePercent and changeAmount from tool data
+• allocation_card: dimension must be one of: sector, geography, asset_class, currency. Segments must sum to ~100%
+• section: Use for narrative analysis. heading is required. body supports bullet points
+• advisor_cta: Always include Share with RM. Set demoEnabled to true for all actions
+• risk_card: Only include if tool data reveals concentration or risk concerns. severity: low/moderate/elevated/high
+• Follow-up chips: Generate 3-4 context-specific follow-ups. Each needs label (short, <30 chars), prompt (full question), and icon hint`,
+
+  allocation_breakdown: `You MUST return your response as a single valid JSON object following the AdaResponseEnvelope schema below. Do NOT include any text before or after the JSON. Do NOT use markdown code fences.
+
+IMPORTANT: First, generate a one-sentence headline that directly answers the user's question about their allocation. This headline will be streamed to the user immediately.
+
+{
+  "version": "1.0",
+  "intent": "allocation_breakdown",
+  "headline": "<your one-sentence headline>",
+  "blocks": [
+    {
+      "type": "metrics_row",
+      "metrics": [
+        { "label": "Total Invested", "value": "$X,XXX,XXX", "unit": "$" },
+        { "label": "Cash %", "value": "X.X%", "unit": "%" },
+        { "label": "Positions", "value": "XX" }
+      ]
+    },
+    {
+      "type": "allocation_card",
+      "dimension": "asset_class",
+      "segments": [
+        { "label": "Equities", "value": 60.0, "amount": 180000 },
+        { "label": "Fixed Income", "value": 25.0, "amount": 75000 },
+        { "label": "Cash", "value": 15.0, "amount": 45000 }
+      ]
+    },
+    {
+      "type": "section",
+      "heading": "Allocation Analysis",
+      "body": "Your allocation analysis..."
+    }
+  ],
+  "followUps": [
+    { "label": "Rebalance options", "prompt": "Should I rebalance my portfolio?", "icon": "action" },
+    { "label": "Compare to target", "prompt": "How does my allocation compare to my risk profile target?", "icon": "compare" },
+    { "label": "Sector breakdown", "prompt": "Show me my sector allocation", "icon": "chart" }
+  ],
+  "sources": [
+    { "label": "Portfolio API", "sourceType": "portfolio", "freshness": "Real-time" }
+  ],
+  "disclaimer": "This is for informational purposes only and does not constitute investment advice.",
+  "generatedAt": "<ISO-8601 timestamp>"
+}
+
+BLOCK RULES:
+• metrics_row: 2-4 key allocation metrics from tool data
+• allocation_card: Primary allocation view. dimension should match what the user asked about (asset_class, sector, geography, or currency). Segments must use actual portfolio data and sum to ~100%
+• section: Narrative analysis of the allocation — diversification notes, concentration risks, comparison to typical allocation for the user's risk profile
+• Follow-up chips: 3-4 context-specific. Each needs label (<30 chars), prompt, icon hint`,
+
+  general_query: `You MUST return your response as a single valid JSON object following the AdaResponseEnvelope schema below. Do NOT include any text before or after the JSON. Do NOT use markdown code fences.
+
+IMPORTANT: First, generate a one-sentence headline that directly answers the user's question. This headline will be streamed to the user immediately.
+
+{
+  "version": "1.0",
+  "intent": "general_query",
+  "headline": "<your one-sentence headline>",
+  "blocks": [
+    {
+      "type": "section",
+      "heading": "Response",
+      "body": "Your detailed response here using bullet points and clear formatting..."
+    }
+  ],
+  "followUps": [
+    { "label": "Portfolio overview", "prompt": "Show me my portfolio overview", "icon": "chart" },
+    { "label": "Market update", "prompt": "What's happening in the markets today?", "icon": "info" },
+    { "label": "Talk to advisor", "prompt": "I'd like to speak with my advisor", "icon": "advisor" }
+  ],
+  "sources": [],
+  "disclaimer": "This is for informational purposes only and does not constitute investment advice.",
+  "generatedAt": "<ISO-8601 timestamp>"
+}
+
+BLOCK RULES:
+• section: Use for all narrative content. Multiple sections allowed for complex topics. heading is required
+• If the query involves financial data, include a metrics_row with key figures from tool data
+• Follow-up chips: 3-4 context-specific. Each needs label (<30 chars), prompt, icon hint`,
+};
+
+function buildStructuredAnswerContract(protocolIntent: AdaIntent): string {
+  const fragment = STRUCTURED_PROMPT_FRAGMENTS[protocolIntent];
+  if (!fragment) {
+    return buildAnswerContractBlock();
+  }
+
+  const expectedBlocks = getExpectedBlocks(protocolIntent);
+
+  return `
+STRUCTURED RESPONSE FORMAT (CRITICAL — YOU MUST FOLLOW THIS EXACTLY):
+${fragment}
+
+EXPECTED BLOCK TYPES FOR THIS INTENT: ${expectedBlocks.join(', ')}
+
+CRITICAL RULES:
+• Your ENTIRE response must be a single valid JSON object — no text before, no text after, no markdown fences
+• The "headline" field is the most important — it will be shown to the user first while the rest loads
+• All numeric values in blocks MUST come from tool data — NEVER invent numbers
+• The "generatedAt" field must be the current ISO-8601 timestamp
+• The "version" field must be exactly "1.0"
+• Follow-up chips must have label (display text, <30 chars), prompt (full question text), and icon hint
+• If you cannot produce structured data for a block type, omit that block rather than using placeholder data`;
 }
