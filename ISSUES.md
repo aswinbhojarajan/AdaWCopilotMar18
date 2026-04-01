@@ -97,8 +97,8 @@
 | — | 7 cost_basis mismatches | Reconciled all 24 position cost_basis values with weighted transaction averages | 2026-03-22 |
 | — | Portfolio health field mismatch | Fixed diversificationScore and riskLevel field mappings in portfolioRepository.ts | 2026-03-21 |
 | ISS-022 | LLM streaming timeout with no lane fallback | Added Lane 2 → Lane 1 automatic downgrade when both streaming attempts timeout | 2026-03-23 |
-| — | Hardcoded USD currency in ChatWidgets | Replaced `$` prefix with `formatCurrency()` supporting AED/SAR/USD/EUR/GBP based on data currency field (Project Task #1) | 2026-04-01 |
-| — | Market data limited to US exchanges | Added Twelve Data provider with GCC exchange support (DFM, ADX, Tadawul) and symbol normalization (Project Task #1) | 2026-04-01 |
+| ISS-026 | Hardcoded USD currency in ChatWidgets | Replaced `$` prefix with `formatCurrency()` supporting AED/SAR/USD/EUR/GBP based on data currency field. Added `currency?` to Holding, GoalData, WealthOverviewResponse types. (Project Task #1) | 2026-04-01 |
+| ISS-027 | Market data limited to US exchanges | Added Twelve Data provider with GCC exchange support (DFM, ADX, Tadawul) and symbol normalization. Static GCC map ensures resolution even when DB is unavailable. (Project Task #1) | 2026-04-01 |
 | — | Thinking events coalesced with content in SSE | Server-side `setImmediate()` ticks + `flush()` after thinking events ensure separate chunk delivery (Task #17) | 2026-03-23 |
 | — | No font loading — all fonts fell back to browser default | Added Google Fonts (Crimson Pro, DM Sans) and TypeKit (RL Limo) to index.html. Fixed ~50 component files with invalid Figma-style font references (Task #3) | 2026-03-24 |
 | — | Fake mobile status bar (TopBar) cluttering UI | Deleted TopBar component and removed from all screens. Added proper top padding (Task #4) | 2026-03-24 |

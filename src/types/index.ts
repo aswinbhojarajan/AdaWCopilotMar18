@@ -65,6 +65,7 @@ export interface Holding {
   value: number;
   changePercent: number;
   changeAmount: number;
+  currency?: string;
 }
 
 export interface AssetAllocation {
@@ -86,6 +87,7 @@ export interface GoalData {
   aiInsight: string;
   ctaText: string;
   chatContext: ChatContext;
+  currency?: string;
 }
 
 export interface ConnectedAccountData {
@@ -206,6 +208,7 @@ export interface WealthOverviewResponse {
   dailyChangePercent: number;
   performanceData: Record<string, PerformanceDataPoint[]>;
   insights: WealthInsights;
+  currency?: string;
 }
 
 export interface AccountResponse {
