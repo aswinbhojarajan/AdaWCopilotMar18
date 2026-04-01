@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Info, X } from 'lucide-react';
 
 const DEFAULT_DISCLOSURES = [
@@ -14,7 +14,6 @@ interface DisclaimerFooterProps {
 export function DisclaimerFooter({ disclosures }: DisclaimerFooterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   const items = disclosures && disclosures.length > 0 ? disclosures : DEFAULT_DISCLOSURES;
 
@@ -73,7 +72,6 @@ export function DisclaimerFooter({ disclosures }: DisclaimerFooterProps) {
         />
 
         <div
-          ref={sheetRef}
           className="relative bg-[#faf9f6] rounded-t-[24px] w-full max-w-[430px] max-h-[60vh] overflow-hidden flex flex-col transition-transform duration-250 ease-out"
           style={{ transform: isVisible ? 'translateY(0)' : 'translateY(100%)' }}
         >

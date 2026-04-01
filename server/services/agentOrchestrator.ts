@@ -891,7 +891,7 @@ export async function* orchestrateStream(
       yield uiEvent;
     }
 
-    if (guardrailResult.appendedDisclosures.length > 0 && !structuredEnvelope) {
+    if (guardrailResult.appendedDisclosures.length > 0) {
       yield { type: 'disclosures', disclosures: guardrailResult.appendedDisclosures };
     }
 
