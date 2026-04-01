@@ -3,7 +3,9 @@ import { ScenarioSimulator } from './ScenarioSimulator';
 import { SparkIcon } from './SparkIcon';
 import { ChatWidgetRenderer } from './ChatWidgets';
 import { ChatResponseRenderer } from './blocks/ChatResponseRenderer';
+import { StructuredSkeleton } from './blocks/StructuredSkeleton';
 import type { ChatWidget, StructuredEnvelope } from '../../types';
+import type { AdaBlockType } from '../../../shared/schemas/agent';
 
 interface ChatMessageProps {
   message: string;
@@ -18,6 +20,7 @@ interface ChatMessageProps {
   isStreaming?: boolean;
   structuredEnvelope?: StructuredEnvelope;
   isSimplifiedView?: boolean;
+  pendingExpectedBlocks?: string[];
   onFollowUp?: (prompt: string) => void;
 }
 
@@ -31,10 +34,12 @@ export function ChatMessage({
   isStreaming,
   structuredEnvelope,
   isSimplifiedView,
+  pendingExpectedBlocks,
   onFollowUp,
 }: ChatMessageProps) {
   const isUser = sender === 'user';
   const hasStructured = !isUser && structuredEnvelope && !isStreaming;
+  const showSkeleton = !isUser && isStreaming && !structuredEnvelope && pendingExpectedBlocks && pendingExpectedBlocks.length > 0;
   const [blocksRevealed, setBlocksRevealed] = useState(false);
 
   useEffect(() => {
@@ -133,6 +138,30 @@ export function ChatMessage({
       }
     });
   };
+
+  if (showSkeleton) {
+    return (
+      <div className="flex justify-start w-full">
+        <div className="flex gap-[10px] items-start w-full max-w-[95%]">
+          <div className="bg-[#441316] rounded-full size-[28px] shrink-0 flex items-center justify-center mt-[4px]">
+            <SparkIcon size={16} color="#d8d8d8" />
+          </div>
+
+          <div className="flex-1 min-w-0 flex flex-col gap-[8px]">
+            {message && (
+              <div className="bg-[#f7f6f2] rounded-[16px] px-[16px] py-[12px]">
+                <p className="font-['Crimson_Pro',serif] text-[#333] text-[1rem] tracking-[-0.32px] font-medium leading-[1.4]">
+                  {message}
+                  <span className="inline-block w-[6px] h-[14px] bg-[#441316] animate-pulse ml-[2px] align-middle rounded-sm" />
+                </p>
+              </div>
+            )}
+            <StructuredSkeleton expectedBlocks={pendingExpectedBlocks as AdaBlockType[]} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (hasStructured) {
     return (

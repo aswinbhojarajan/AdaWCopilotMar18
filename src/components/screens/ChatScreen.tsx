@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon, ThinkingPanel, LiveThinkingBar } from '../ada';
 import type { Message, ChatContext, ChatWidget, StructuredEnvelope, StructuredError } from '../../types';
+import { AdaResponseEnvelopeSchema } from '../../../shared/schemas/agent';
 import { getStreamHeaders } from '../../hooks/api';
 import { useUser } from '../../contexts/UserContext';
 import { useAnalytics, AnalyticsEvents } from '../../lib/analytics';
@@ -35,6 +36,7 @@ function useStreamingChat() {
     onSimulator: (sim: { type: string; initialValues?: Record<string, number> }) => void,
     onSuggestions: (questions: string[]) => void,
     onThinking: (step: ThinkingStep) => void,
+    onStructuredIntent: (intent: string, expectedBlocks: string[]) => void,
     onStructured: (envelope: StructuredEnvelope) => void,
     onStructuredError: (error: StructuredError) => void,
     onDone: () => void,
@@ -112,8 +114,25 @@ function useStreamingChat() {
               case 'thinking':
                 if (event.step) onThinking({ step: event.step, detail: event.detail || '', timestamp: Date.now() });
                 break;
+              case 'structured_intent':
+                if (event.intent && event.expectedBlocks) {
+                  onStructuredIntent(event.intent, event.expectedBlocks);
+                }
+                break;
               case 'structured':
-                if (event.envelope) onStructured(event.envelope as StructuredEnvelope);
+                if (event.envelope) {
+                  const parseResult = AdaResponseEnvelopeSchema.safeParse(event.envelope);
+                  if (parseResult.success) {
+                    onStructured(parseResult.data as StructuredEnvelope);
+                  } else {
+                    console.warn('[ChatScreen] Structured envelope validation failed:', parseResult.error.message);
+                    onStructuredError({
+                      code: 'MALFORMED_RESPONSE',
+                      message: 'Response format validation failed',
+                      showRawFallback: true,
+                    });
+                  }
+                }
                 break;
               case 'structured_error':
                 if (event.error) onStructuredError(event.error as StructuredError);
@@ -269,9 +288,14 @@ export function ChatScreen({
       (step) => {
         setThinkingSteps(prev => [...prev, step]);
       },
+      (intent, expectedBlocks) => {
+        setMessages(prev => prev.map(m =>
+          m.id === adaMsgId ? { ...m, pendingStructuredIntent: intent, pendingExpectedBlocks: expectedBlocks } : m
+        ));
+      },
       (envelope) => {
         setMessages(prev => prev.map(m =>
-          m.id === adaMsgId ? { ...m, structuredEnvelope: envelope } : m
+          m.id === adaMsgId ? { ...m, structuredEnvelope: envelope, pendingStructuredIntent: undefined, pendingExpectedBlocks: undefined } : m
         ));
       },
       (structuredErr) => {
@@ -476,6 +500,7 @@ export function ChatScreen({
                               isStreaming={msg.isStreaming}
                               structuredEnvelope={msg.structuredEnvelope}
                               isSimplifiedView={msg.isSimplifiedView}
+                              pendingExpectedBlocks={msg.pendingExpectedBlocks}
                               onFollowUp={handleSubmit}
                               contextPrefix={
                                 index === 0 && msg.sender === 'user' && chatContext

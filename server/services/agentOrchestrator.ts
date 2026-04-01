@@ -36,7 +36,7 @@ import {
   inferSuggestedTools as registryInferSuggestedTools,
 } from './toolRegistry';
 import { buildAdaAnswer, extractInlineFollowUps, getDeterministicFollowUps, FollowUpStreamFilter, buildStructuredResponse, getDeterministicFollowUpChips } from './responseBuilder';
-import { mapClassifierToProtocolIntent, isStructuredIntent, validateResponse } from './responseProtocol';
+import { mapClassifierToProtocolIntent, isStructuredIntent, validateResponse, getExpectedBlocks } from './responseProtocol';
 import { runPostChecks } from './guardrails';
 import { logAgentTrace, logToolRun, checkLatencyTargets } from './traceLogger';
 import type { StepTimings, TraceContext } from './traceLogger';
@@ -463,6 +463,7 @@ export async function* orchestrateStream(
   const useStructured = isStructuredIntent(protocolIntent);
 
   if (useStructured) {
+    yield { type: 'structured_intent', intent: protocolIntent, expectedBlocks: getExpectedBlocks(protocolIntent) };
     yield* thinkingEvent(verbose, 'response_protocol', `Structured response mode: ${protocolIntent} → block-based envelope`);
     if (verbose) {
       await new Promise(r => setImmediate(r));

@@ -1,4 +1,4 @@
-import type { AdaResponseEnvelope, AdaErrorPayload } from '../../shared/schemas/agent';
+import type { AdaResponseEnvelope, AdaErrorPayload, AdaBlockType } from '../../shared/schemas/agent';
 
 export type StreamEvent =
   | { type: 'text'; content: string }
@@ -7,6 +7,7 @@ export type StreamEvent =
   | { type: 'suggested_questions'; suggestedQuestions: string[] }
   | { type: 'thinking'; step: string; detail: string }
   | { type: 'meta'; lane: string; intent: string; traceId: string; model: string }
+  | { type: 'structured_intent'; intent: string; expectedBlocks: AdaBlockType[] }
   | { type: 'structured'; envelope: AdaResponseEnvelope }
   | { type: 'structured_error'; error: AdaErrorPayload }
   | { type: 'done' }

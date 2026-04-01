@@ -61,6 +61,8 @@ export interface Message {
   structuredEnvelope?: StructuredEnvelope;
   structuredError?: StructuredError;
   isSimplifiedView?: boolean;
+  pendingStructuredIntent?: string;
+  pendingExpectedBlocks?: string[];
 }
 
 export interface SparklinePoint {
