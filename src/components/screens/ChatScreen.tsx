@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ChatHeader, ChatMessage, SuggestedQuestion, BottomBar, AtomIcon, ThinkingPanel, LiveThinkingBar } from '../ada';
 import type { Message, ChatContext, ChatWidget, StructuredEnvelope, StructuredError } from '../../types';
 import { AdaResponseEnvelopeSchema } from '../../../shared/schemas/agent';
@@ -39,6 +39,7 @@ function useStreamingChat() {
     onStructuredIntent: (intent: string, expectedBlocks: string[]) => void,
     onStructured: (envelope: StructuredEnvelope) => void,
     onStructuredError: (error: StructuredError) => void,
+    onDisclosures: (disclosures: string[]) => void,
     onDone: () => void,
     onError: (error: string) => void,
   ) => {
@@ -137,6 +138,9 @@ function useStreamingChat() {
               case 'structured_error':
                 if (event.error) onStructuredError(event.error as StructuredError);
                 break;
+              case 'disclosures':
+                if (event.disclosures) onDisclosures(event.disclosures);
+                break;
               case 'error':
                 onError(event.content || 'Something went wrong.');
                 break;
@@ -228,6 +232,15 @@ export function ChatScreen({
     }
   }, [onThreadIdChange]);
 
+  const latestDisclosures = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].sender === 'assistant' && messages[i].disclosures?.length) {
+        return messages[i].disclosures;
+      }
+    }
+    return undefined;
+  }, [messages]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -301,6 +314,11 @@ export function ChatScreen({
       (structuredErr) => {
         setMessages(prev => prev.map(m =>
           m.id === adaMsgId ? { ...m, structuredError: structuredErr, isSimplifiedView: true } : m
+        ));
+      },
+      (disclosureItems) => {
+        setMessages(prev => prev.map(m =>
+          m.id === adaMsgId ? { ...m, disclosures: disclosureItems } : m
         ));
       },
       () => {
@@ -595,6 +613,7 @@ export function ChatScreen({
           onChatHistoryClick={onChatHistoryClick || (() => {})}
           isOnChatScreen={true}
           hasActiveChatToday={messages.length > 0}
+          disclosures={latestDisclosures}
         />
       </div>
     </div>

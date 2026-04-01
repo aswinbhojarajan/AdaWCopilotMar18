@@ -252,7 +252,7 @@ router.post('/chat/stream', asyncHandler(async (req, res) => {
       if (closed) break;
       seqId++;
       res.write(`id: ${seqId}\ndata: ${JSON.stringify(event)}\n\n`);
-      if (event.type === 'thinking' || event.type === 'meta' || event.type === 'structured' || event.type === 'structured_error') {
+      if (event.type === 'thinking' || event.type === 'meta' || event.type === 'structured' || event.type === 'structured_error' || event.type === 'disclosures') {
         const flushable = res as unknown as { flush?: () => void };
         if (typeof flushable.flush === 'function') flushable.flush();
       }

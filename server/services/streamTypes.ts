@@ -10,5 +10,6 @@ export type StreamEvent =
   | { type: 'structured_intent'; intent: string; expectedBlocks: AdaBlockType[] }
   | { type: 'structured'; envelope: AdaResponseEnvelope }
   | { type: 'structured_error'; error: AdaErrorPayload }
+  | { type: 'disclosures'; disclosures: string[] }
   | { type: 'done' }
   | { type: 'error'; content: string };

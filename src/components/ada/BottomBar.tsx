@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowUp, Mic, ChevronRight } from 'lucide-react';
 import svgPaths from '../../imports/svg-npbkfwfylb';
+import { DisclaimerFooter } from './DisclaimerFooter';
 
 interface BottomBarProps {
   onSubmit?: (value: string) => void;
@@ -9,6 +10,7 @@ interface BottomBarProps {
   onResumeChat?: () => void;
   onOpenChat?: () => void;
   isOnChatScreen?: boolean;
+  disclosures?: string[];
 }
 
 export function BottomBar({
@@ -18,6 +20,7 @@ export function BottomBar({
   onResumeChat,
   onOpenChat,
   isOnChatScreen = false,
+  disclosures,
 }: BottomBarProps) {
   const [inputValue, setInputValue] = React.useState('');
   const [isRecording, setIsRecording] = React.useState(false);
@@ -164,7 +167,8 @@ export function BottomBar({
         </div>
       </div>
 
-      {/* Home Indicator — safe-area-inset-bottom provides clearance for the home bar on notched iPhones */}
+      <DisclaimerFooter disclosures={disclosures} />
+
       <div className="relative shrink-0 w-full pb-safe">
         <div className="absolute bg-[#555555] bottom-[9px] h-[5px] left-[calc(50%+0.5px)] rounded-[100px] translate-x-[-50%] w-[134px]" />
       </div>

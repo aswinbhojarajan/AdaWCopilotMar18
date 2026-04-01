@@ -63,6 +63,7 @@ export interface Message {
   isSimplifiedView?: boolean;
   pendingStructuredIntent?: string;
   pendingExpectedBlocks?: string[];
+  disclosures?: string[];
 }
 
 export interface SparklinePoint {

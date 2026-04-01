@@ -892,9 +892,7 @@ export async function* orchestrateStream(
     }
 
     if (guardrailResult.appendedDisclosures.length > 0 && !structuredEnvelope) {
-      const disclosureText = '\n\n' + guardrailResult.appendedDisclosures.join(' ');
-      fullResponse += disclosureText;
-      yield { type: 'text', content: disclosureText };
+      yield { type: 'disclosures', disclosures: guardrailResult.appendedDisclosures };
     }
 
     const alreadyHasAdvisorWidget = widgets.some(w => w.type === 'advisor_handoff');
