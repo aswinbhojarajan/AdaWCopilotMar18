@@ -472,8 +472,8 @@ export const AdaResponseEnvelopeSchema = z.object({
   headline: z.string(),
   blocks: z.array(AdaBlockSchema),
   followUps: z.array(FollowUpChipSchema),
-  sources: z.array(SourceReferenceSchema),
-  disclaimer: z.string(),
+  sources: z.array(SourceReferenceSchema).optional().default([]),
+  disclaimer: z.string().optional().default(''),
   generatedAt: z.string(),
 });
 export type AdaResponseEnvelope = z.infer<typeof AdaResponseEnvelopeSchema>;
