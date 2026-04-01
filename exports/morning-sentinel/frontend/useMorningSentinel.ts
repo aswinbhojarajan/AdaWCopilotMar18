@@ -1,0 +1,179 @@
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { MorningSentinelResponse } from './types';
+
+/**
+ * EXTERNAL DEPENDENCIES (consumer must provide):
+ *
+ * 1. apiFetch<T>(path: string): Promise<T>
+ *    - Authenticated fetch wrapper that calls your API and returns parsed JSON.
+ *    - Must handle auth headers/cookies and throw on non-200 responses.
+ *
+ * 2. getStreamHeaders(): Record<string, string>
+ *    - Returns headers for SSE streaming requests (e.g., Authorization token).
+ *
+ * 3. useUser(): { userId: string }
+ *    - React hook that provides the current authenticated user's ID.
+ *
+ * Replace the placeholder imports below with your actual implementations.
+ */
+
+// --- REPLACE THESE WITH YOUR IMPLEMENTATIONS ---
+import { apiFetch, getStreamHeaders } from './api';       // your authenticated fetch helpers
+import { useUser } from '../contexts/UserContext';         // your user context hook
+// ------------------------------------------------
+
+const CACHE_TTL = 4 * 60 * 60 * 1000;
+const STREAM_FALLBACK_DELAY_MS = 500;
+
+interface StreamingState {
+  isStreaming: boolean;
+  metrics: Partial<MorningSentinelResponse> | null;
+  rawText: string;
+}
+
+async function consumeSentinelStream(
+  url: string,
+  onMetrics: (m: Partial<MorningSentinelResponse>) => void,
+  onText: (chunk: string) => void,
+  onComplete: (data: MorningSentinelResponse) => void,
+  abortSignal?: AbortSignal,
+) {
+  const res = await fetch(url, { signal: abortSignal, headers: getStreamHeaders(), credentials: 'include' });
+  if (!res.ok || !res.body) {
+    if (res.status === 401) {
+      // Consumer should handle 401 (e.g., redirect to login or refresh token).
+      // In the original Ada codebase, this calls handleFetchResponse(res) from ApiError.
+    }
+    throw new Error(`HTTP ${res.status}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      try {
+        const event = JSON.parse(line.slice(6));
+        if (event.type === 'metrics') onMetrics(event.data);
+        else if (event.type === 'text') onText(event.data);
+        else if (event.type === 'complete') onComplete(event.data);
+      } catch {}
+    }
+  }
+}
+
+export function useMorningSentinel() {
+  const queryClient = useQueryClient();
+  const { userId } = useUser();
+  const sentinelKey = useMemo(() => ['morning-sentinel', userId], [userId]);
+  const abortRef = useRef<AbortController | null>(null);
+  const streamStartedRef = useRef(false);
+
+  const [streaming, setStreaming] = useState<StreamingState>({
+    isStreaming: false,
+    metrics: null,
+    rawText: '',
+  });
+
+  useEffect(() => {
+    abortRef.current?.abort();
+    streamStartedRef.current = false;
+    setStreaming({ isStreaming: false, metrics: null, rawText: '' });
+  }, [userId]);
+
+  const query = useQuery({
+    queryKey: sentinelKey,
+    queryFn: () => apiFetch<MorningSentinelResponse>('/api/morning-sentinel'),
+    staleTime: CACHE_TTL,
+    gcTime: CACHE_TTL,
+    refetchOnWindowFocus: false,
+    enabled: !streamStartedRef.current,
+  });
+
+  const startStream = useCallback((refresh = false) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    streamStartedRef.current = true;
+
+    setStreaming({ isStreaming: true, metrics: null, rawText: '' });
+
+    const url = refresh ? '/api/morning-sentinel/stream?refresh=true' : '/api/morning-sentinel/stream';
+
+    consumeSentinelStream(
+      url,
+      (metrics) => setStreaming(s => ({ ...s, metrics })),
+      (chunk) => setStreaming(s => ({ ...s, rawText: s.rawText + chunk })),
+      (completedData) => {
+        setStreaming({ isStreaming: false, metrics: null, rawText: '' });
+        queryClient.setQueryData(sentinelKey, completedData);
+      },
+      controller.signal,
+    ).catch((err) => {
+      if (err.name !== 'AbortError') {
+        console.error('Sentinel stream error:', err);
+        setStreaming(s => ({ ...s, isStreaming: false }));
+      }
+    });
+  }, [queryClient, sentinelKey]);
+
+  useEffect(() => {
+    if (query.data || streaming.isStreaming || streamStartedRef.current) return undefined;
+
+    const queryState = queryClient.getQueryState(sentinelKey);
+    const isPrefetching = queryState?.fetchStatus === 'fetching';
+
+    if (!isPrefetching) {
+      startStream();
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      if (queryClient.getQueryData(sentinelKey)) return;
+      startStream();
+    }, STREAM_FALLBACK_DELAY_MS);
+
+    return () => clearTimeout(timer);
+  }, [query.data, query.fetchStatus, streaming.isStreaming, queryClient, startStream, sentinelKey]);
+
+  useEffect(() => {
+    if (query.data && streaming.isStreaming) {
+      abortRef.current?.abort();
+      setStreaming({ isStreaming: false, metrics: null, rawText: '' });
+    }
+    return undefined;
+  }, [query.data, streaming.isStreaming]);
+
+  const forceRefresh = useCallback(async () => {
+    queryClient.removeQueries({ queryKey: sentinelKey });
+    startStream(true);
+  }, [queryClient, startStream, sentinelKey]);
+
+  const refetch = useCallback(() => {
+    startStream();
+  }, [startStream]);
+
+  const data = query.data ?? null;
+
+  return {
+    data,
+    isLoading: !data && !streaming.isStreaming && query.isLoading,
+    isError: query.isError && !data && !streaming.isStreaming,
+    isStreaming: streaming.isStreaming && !data,
+    streamingMetrics: streaming.metrics,
+    streamingText: streaming.rawText,
+    refetch,
+    forceRefresh,
+    hasData: !!data,
+  };
+}
