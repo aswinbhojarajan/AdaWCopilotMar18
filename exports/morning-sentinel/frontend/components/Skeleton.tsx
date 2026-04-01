@@ -1,3 +1,7 @@
+/**
+ * Skeleton Loading Component
+ * Original source: src/components/ada/Skeleton.tsx
+ */
 interface SkeletonProps {
   className?: string;
 }

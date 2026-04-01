@@ -1,36 +1,12 @@
 /**
  * Morning Sentinel Backend Service
+ * Original source: server/services/morningSentinelService.ts
  *
- * EXTERNAL DEPENDENCIES (consumer must provide):
- *
- * 1. pool (PostgreSQL connection pool)
- *    - A `pg.Pool` instance connected to your database.
- *    - Import from your own db pool module.
- *
- * 2. MODEL (string)
- *    - The model identifier for LLM completions (e.g., 'gpt-4o-mini').
- *    - Import from your model router or define as a constant.
- *
- * 3. resilientCompletion(params, options): Promise<ChatCompletion>
- *    - Non-streaming OpenAI-compatible completion call with retry/fallback logic.
- *    - params: { model, messages, max_completion_tokens }
- *    - options: { timeoutMs, retries?, providerAlias? }
- *
- * 4. resilientStreamCompletion(params, options): Promise<AsyncIterable<ChatCompletionChunk>>
- *    - Streaming OpenAI-compatible completion call with retry/fallback logic.
- *    - params: { model, messages, max_completion_tokens, stream: true, stream_options }
- *    - options: { timeoutMs, providerAlias? }
- *
- * Replace the placeholder imports below with your actual implementations.
+ * Consumer dependencies are imported from ./deps.ts — replace those
+ * stub declarations with your own implementations before using.
  */
-
-// --- REPLACE THESE WITH YOUR IMPLEMENTATIONS ---
-import pool from '../db/pool';
-import { MODEL } from './modelRouter';
-import { resilientCompletion, resilientStreamCompletion } from './openaiClient';
-// ------------------------------------------------
-
-import type { MorningSentinelResponse, MorningSentinelRisk } from './types';
+import { pool, MODEL, resilientCompletion, resilientStreamCompletion } from './deps';
+import type { MorningSentinelResponse, MorningSentinelRisk } from '../types';
 
 interface PortfolioMetrics {
   totalValue: number;

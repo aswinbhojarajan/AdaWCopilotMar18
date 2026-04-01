@@ -1,3 +1,8 @@
+/**
+ * Morning Sentinel Shared Types
+ * Original source: shared/types.ts (MorningSentinel* interfaces)
+ *                  src/types/index.ts (ChatContext interface)
+ */
 export interface MorningSentinelRisk {
   severity: 'high' | 'medium' | 'low';
   title: string;

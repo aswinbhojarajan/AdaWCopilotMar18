@@ -1,27 +1,14 @@
+/**
+ * useMorningSentinel Hook
+ * Original source: src/hooks/useMorningSentinel.ts
+ *
+ * Consumer dependencies are imported from ./deps.ts — replace those
+ * stub implementations with your own before using.
+ */
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { MorningSentinelResponse } from './types';
-
-/**
- * EXTERNAL DEPENDENCIES (consumer must provide):
- *
- * 1. apiFetch<T>(path: string): Promise<T>
- *    - Authenticated fetch wrapper that calls your API and returns parsed JSON.
- *    - Must handle auth headers/cookies and throw on non-200 responses.
- *
- * 2. getStreamHeaders(): Record<string, string>
- *    - Returns headers for SSE streaming requests (e.g., Authorization token).
- *
- * 3. useUser(): { userId: string }
- *    - React hook that provides the current authenticated user's ID.
- *
- * Replace the placeholder imports below with your actual implementations.
- */
-
-// --- REPLACE THESE WITH YOUR IMPLEMENTATIONS ---
-import { apiFetch, getStreamHeaders } from './api';       // your authenticated fetch helpers
-import { useUser } from '../contexts/UserContext';         // your user context hook
-// ------------------------------------------------
+import type { MorningSentinelResponse } from '../types';
+import { apiFetch, getStreamHeaders, useUser, handleAuthError } from './deps';
 
 const CACHE_TTL = 4 * 60 * 60 * 1000;
 const STREAM_FALLBACK_DELAY_MS = 500;
@@ -42,8 +29,7 @@ async function consumeSentinelStream(
   const res = await fetch(url, { signal: abortSignal, headers: getStreamHeaders(), credentials: 'include' });
   if (!res.ok || !res.body) {
     if (res.status === 401) {
-      // Consumer should handle 401 (e.g., redirect to login or refresh token).
-      // In the original Ada codebase, this calls handleFetchResponse(res) from ApiError.
+      handleAuthError(res);
     }
     throw new Error(`HTTP ${res.status}`);
   }

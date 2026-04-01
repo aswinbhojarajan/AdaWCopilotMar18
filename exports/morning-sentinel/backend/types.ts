@@ -1,3 +1,7 @@
+/**
+ * Morning Sentinel Shared Types (Backend)
+ * Original source: shared/types.ts (MorningSentinel* interfaces)
+ */
 export interface MorningSentinelRisk {
   severity: 'high' | 'medium' | 'low';
   title: string;

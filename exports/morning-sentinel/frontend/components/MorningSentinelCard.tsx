@@ -1,3 +1,10 @@
+/**
+ * MorningSentinelCard Component
+ * Original source: src/components/ada/MorningSentinelCard.tsx
+ *
+ * Includes sub-components: StreamingSentinel, SentinelSkeleton,
+ * SeverityDot, KeyMoverRow, RiskRow, ActionRow
+ */
 import React from 'react';
 import { SparkIcon } from './SparkIcon';
 import { Skeleton } from './Skeleton';
@@ -7,7 +14,7 @@ import type {
   MorningSentinelAction,
   MorningSentinelKeyMover,
   ChatContext,
-} from './types';
+} from '../types';
 
 interface MorningSentinelCardProps {
   data: MorningSentinelResponse | undefined;

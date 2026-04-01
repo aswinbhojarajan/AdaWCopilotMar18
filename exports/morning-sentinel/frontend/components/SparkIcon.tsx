@@ -1,3 +1,8 @@
+/**
+ * SparkIcon Component
+ * Original source: src/components/ada/SparkIcon.tsx
+ * SVG path data inlined from: src/imports/svg-htxx3p4b7c.ts
+ */
 import React from 'react';
 
 const svgPaths = {

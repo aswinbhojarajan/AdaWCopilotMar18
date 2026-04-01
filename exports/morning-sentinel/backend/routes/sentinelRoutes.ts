@@ -1,24 +1,16 @@
 /**
  * Morning Sentinel Express Route Handlers
+ * Original source: server/routes/api.ts (sentinel route handlers only)
  *
- * EXTERNAL DEPENDENCIES (consumer must provide):
- *
- * 1. getUserId(req: Request): string
- *    - Extracts the authenticated user ID from the Express request.
- *    - In Ada, this reads `req.user.persona` set by auth middleware.
- *
- * 2. asyncHandler(fn): RequestHandler
- *    - Wraps async route handlers to forward errors to Express error middleware.
- *    - Example: (fn) => (req, res, next) => fn(req, res, next).catch(next)
- *
- * 3. Auth middleware
- *    - Your auth middleware should run before these routes.
- *
- * Mount these routes on your Express router (e.g., router.use('/api', sentinelRoutes)).
+ * Auth middleware should run before these routes are mounted.
+ * Adjust getUserId to match your auth middleware's request shape.
  */
-
 import { Router, type Request, type Response, type NextFunction } from 'express';
-import * as morningSentinelService from './morningSentinelService';
+import * as morningSentinelService from '../services/morningSentinelService';
+
+interface AuthenticatedRequest extends Request {
+  user?: { persona?: string };
+}
 
 const router = Router();
 
@@ -28,8 +20,8 @@ function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => P
   };
 }
 
-function getUserId(req: Request): string {
-  const persona = (req as any).user?.persona;
+function getUserId(req: AuthenticatedRequest): string {
+  const persona = req.user?.persona;
   if (!persona) {
     throw new Error('No persona assigned to this account');
   }
