@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Clock, AlertTriangle, Lightbulb, Newspaper, ChevronDown, ChevronUp, Info, X } from 'lucide-react';
+import { Clock, AlertTriangle, Lightbulb, Newspaper, Info, X } from 'lucide-react';
 import { SparkIcon } from './SparkIcon';
 import { SourcesBadge } from './SourcesBadge';
+import { ArticleSourcesSheet } from './ArticleSourcesSheet';
+import type { SupportingArticle } from '../../../shared/types';
 
 export type CategoryType =
   | 'PORTFOLIO RISK ALERT'
@@ -43,7 +45,7 @@ interface ContentCardProps {
   stackButtons?: boolean;
   forceSecondaryButtonStyle?: boolean;
   whyYouAreSeeingThis?: string | null;
-  supportingArticles?: Array<{ title: string; publisher: string; published_at: string }>;
+  supportingArticles?: SupportingArticle[];
   cardType?: string;
   isNew?: boolean;
   personalizedOverlay?: string | null;
@@ -52,23 +54,6 @@ interface ContentCardProps {
   onInteract?: (cardId: string, action: string, metadata?: Record<string, unknown>) => void;
   ctaEntities?: string[];
   ctaEvidenceFacts?: string[];
-}
-
-function formatArticleTime(dateStr: string): string {
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return '';
-    const now = Date.now();
-    const diffMin = Math.floor((now - date.getTime()) / 60000);
-    if (diffMin < 1) return 'just now';
-    if (diffMin < 60) return `${diffMin}m`;
-    const diffHours = Math.floor(diffMin / 60);
-    if (diffHours < 24) return `${diffHours}h`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}d`;
-  } catch {
-    return '';
-  }
 }
 
 const cardTypeConfig: Record<string, {
@@ -182,7 +167,7 @@ export function ContentCard({
   ctaEntities,
   ctaEvidenceFacts,
 }: ContentCardProps) {
-  const [showSources, setShowSources] = useState(false);
+  const [showSourcesSheet, setShowSourcesSheet] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
@@ -368,7 +353,12 @@ export function ContentCard({
                   {title}
                 </p>
 
-                {sourcesCount && <SourcesBadge sourcesCount={sourcesCount} />}
+                {supportingArticles && supportingArticles.length > 0 && (
+                  <SourcesBadge
+                    articles={supportingArticles}
+                    onClick={() => setShowSourcesSheet(true)}
+                  />
+                )}
               </div>
 
               {image && (
@@ -482,31 +472,11 @@ export function ContentCard({
             </div>
 
             {supportingArticles && supportingArticles.length > 0 && (
-              <div className="w-full">
-                <button
-                  onClick={() => setShowSources(!showSources)}
-                  className="flex items-center gap-[4px] text-[#992929] font-['DM_Sans',sans-serif] text-[0.6875rem] font-medium"
-                >
-                  <Newspaper className="size-[12px]" strokeWidth={1.5} />
-                  <span>{supportingArticles.length} source{supportingArticles.length > 1 ? 's' : ''}</span>
-                  {showSources ? <ChevronUp className="size-[12px]" /> : <ChevronDown className="size-[12px]" />}
-                </button>
-                {showSources && (
-                  <div className="mt-[6px] flex flex-col gap-[4px] pl-[16px] border-l-[2px] border-[#f0e8e8]">
-                    {supportingArticles.map((article, i) => (
-                      <div key={i} className="font-['DM_Sans',sans-serif] text-[0.6875rem] text-[#777777] leading-[1.3]">
-                        <span className="text-[#555555]">{article.title}</span>
-                        <span className="text-[#999999]"> — {article.publisher}</span>
-                        {article.published_at && (
-                          <span className="text-[#bbbbbb] ml-[4px]">
-                            {formatArticleTime(article.published_at)}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ArticleSourcesSheet
+                articles={supportingArticles}
+                isOpen={showSourcesSheet}
+                onClose={() => setShowSourcesSheet(false)}
+              />
             )}
 
             {whyYouAreSeeingThis && (

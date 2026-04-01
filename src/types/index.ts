@@ -287,7 +287,7 @@ export interface DiscoverContentItem extends ContentItem {
   intentBadge?: string | null;
   topicLabel?: string;
   whyYouAreSeeingThis?: string | null;
-  supportingArticles?: Array<{ title: string; publisher: string; published_at: string }>;
+  supportingArticles?: Array<{ title: string; publisher: string; published_at: string; url?: string; summary?: string }>;
   freshnessLabel?: string;
   confidence?: string;
   createdAt?: string;

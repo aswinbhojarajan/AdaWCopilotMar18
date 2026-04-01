@@ -19,6 +19,7 @@ interface ArticleForSynthesis {
   summary: string;
   publisher: string;
   published_at: Date;
+  url?: string;
 }
 
 function mapCardType(theme: string, importance: number): string {
@@ -83,7 +84,7 @@ Rules:
 async function fetchArticlesForCluster(articleIds: number[]): Promise<ArticleForSynthesis[]> {
   if (articleIds.length === 0) return [];
   const { rows } = await pool.query(
-    `SELECT title, summary, publisher, published_at FROM raw_articles WHERE id = ANY($1) ORDER BY published_at DESC`,
+    `SELECT title, summary, publisher, published_at, url FROM raw_articles WHERE id = ANY($1) ORDER BY published_at DESC`,
     [articleIds],
   );
   return rows.map((r: Record<string, unknown>) => ({
@@ -91,6 +92,7 @@ async function fetchArticlesForCluster(articleIds: number[]): Promise<ArticleFor
     summary: r.summary as string,
     publisher: r.publisher as string,
     published_at: new Date(r.published_at as string),
+    url: (r.url as string) || undefined,
   }));
 }
 
@@ -169,6 +171,8 @@ export async function runSynthesis(): Promise<number> {
           title: a.title,
           publisher: a.publisher,
           published_at: a.published_at.toISOString(),
+          url: a.url || undefined,
+          summary: a.summary || undefined,
         }));
 
         await pool.query(
@@ -285,7 +289,7 @@ async function polishStandaloneArticle(title: string, summary: string, publisher
 async function synthesizeStandaloneArticles(): Promise<number> {
   try {
     const { rows } = await pool.query(
-      `SELECT ra.id, ra.title, ra.summary, ra.publisher, ra.published_at, ra.tickers, ra.regions,
+      `SELECT ra.id, ra.title, ra.summary, ra.publisher, ra.published_at, ra.url, ra.tickers, ra.regions,
               ae.taxonomy_tags, ae.importance_score, ae.sentiment_score
        FROM raw_articles ra
        JOIN article_enrichment ae ON ae.article_id = ra.id
@@ -327,10 +331,11 @@ async function synthesizeStandaloneArticles(): Promise<number> {
       }));
 
       const supportingArticles = [{
-        article_id: row.id,
         title: row.title,
         publisher: row.publisher || 'Unknown',
         published_at: new Date(row.published_at).toISOString(),
+        url: row.url || undefined,
+        summary: row.summary || undefined,
       }];
 
       await pool.query(

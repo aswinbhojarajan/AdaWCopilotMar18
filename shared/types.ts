@@ -113,6 +113,14 @@ export interface Alert {
   category: 'alerts' | 'opportunities' | 'updates';
 }
 
+export interface SupportingArticle {
+  title: string;
+  publisher: string;
+  published_at: string;
+  url?: string;
+  summary?: string;
+}
+
 export interface ContentItem {
   id: string;
   category: string;

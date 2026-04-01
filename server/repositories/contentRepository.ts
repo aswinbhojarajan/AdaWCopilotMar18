@@ -1,5 +1,5 @@
 import pool from '../db/pool';
-import type { ContentItem, Alert, ChatThread, ChatMessage, PeerComparison } from '../../shared/types';
+import type { ContentItem, Alert, ChatThread, ChatMessage, PeerComparison, SupportingArticle } from '../../shared/types';
 import { getUserProfileForScoring, computeCardScore } from '../services/discoverPipeline/feedMaterializer';
 import type { UserProfileForScoring, CardRow } from '../services/discoverPipeline/feedMaterializer';
 
@@ -12,7 +12,7 @@ export interface DiscoverContentItem extends ContentItem {
   intentBadge?: string | null;
   topicLabel?: string;
   whyYouAreSeeingThis?: string | null;
-  supportingArticles?: Array<{ title: string; publisher: string; published_at: string }>;
+  supportingArticles?: SupportingArticle[];
   freshnessLabel?: string;
   confidence?: string;
   isNew?: boolean;

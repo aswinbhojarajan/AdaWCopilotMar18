@@ -39,6 +39,7 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **Ada View**: Weekly editorial synthesis from top discover cards.
 - **Event Calendar**: Fetches Finnhub earnings calendar, filters for user holdings.
 - **Materialize**: Deactivates expired and low-confidence cards, maintains feed health, and adds per-user feed materialization with weighted scoring and LLM personalized overlays.
+- **Source Attribution**: Real publisher identity system with `publisherRegistry.ts` (30+ known publishers with brand colors/initials, hash-based fallback for unknown). `SourcesBadge` shows publisher avatar circles; tapping opens `ArticleSourcesSheet` bottom sheet with article titles, summaries, relative timestamps, and "View article" links. URL protocol whitelisting for XSS safety. `SupportingArticle` type in `shared/types.ts` with optional `url`/`summary` fields.
 - **Personalization**: User segments, scoring engine with diversity guardrails, LLM personalized overlays, pre-computed feeds, interaction tracking, card dismissal with feedback, "New" badge, and CTA personalization.
 - **Engagement & Premium Features**: Product opportunity cards, engagement re-ranking based on user interactions, daily LLM-synthesized morning briefing cards, milestone cards for portfolio events, and event-driven refresh for immediate feed updates.
 - **Expiry Enforcement**: Per-card-type maximum age rules, archiving old articles and clusters, and compacting interaction logs.
