@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ExternalLink } from 'lucide-react';
 import { getPublisherIdentity } from './publisherRegistry';
 import type { SupportingArticle } from '../../../shared/types';
@@ -62,7 +63,7 @@ export function ArticleSourcesSheet({ articles, isOpen, onClose }: ArticleSource
     }
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[9999] flex items-end justify-center"
       onClick={handleBackdropClick}
@@ -157,6 +158,7 @@ export function ArticleSourcesSheet({ articles, isOpen, onClose }: ArticleSource
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
