@@ -168,6 +168,12 @@ export function buildAdaAnswer(params: {
   const summary = lines.slice(1, 4).join(' ').trim() || llmText.slice(0, 200);
   const keyPoints = extractKeyPoints(llmText);
   const disclosures = getDisclosures(tenantConfig, policyDecision);
+  const hasTwelveData = toolResults.some(
+    r => r.status === 'ok' && r.source_name === 'twelve_data' && r.source_type === 'market_api'
+  );
+  if (hasTwelveData) {
+    disclosures.push('Market data powered by Twelve Data. Prices may be delayed.');
+  }
   const citations = buildCitations(toolResults);
 
   const portfolioInsights = buildPortfolioInsights(toolResults);

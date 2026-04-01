@@ -478,13 +478,13 @@ All providers default to mock. Real providers activate only via explicit env var
 | Phase | Scope | Providers Activated | Tool Mappings |
 |---|---|---|---|
 | Phase 1 (Demo) | Mock-only, seeded data | All providers default to mock | `get_market_data` → mock quotes, `get_macro_data` → mock indicators, `lookup_instrument` → mock FIGI |
-| Phase 2 (Pilot) | Live market data, mock others | Finnhub (market primary), Frankfurter (FX primary), CBUAE (FX secondary) | `get_market_data` → Finnhub live, `get_fx_rate` → Frankfurter → CBUAE failover, others remain mock |
-| Phase 3 (Production) | Full live stack | All 6 providers with full failover chains | All tools map to live providers with automatic failover. FRED for macro, SEC EDGAR for filings, OpenFIGI for instrument resolution |
+| Phase 2 (Pilot) | Live market data, mock others | Twelve Data (market primary, GCC exchanges), Finnhub (secondary), Yahoo Finance (fallback), Frankfurter (FX primary), CBUAE (FX secondary) | `get_market_data` → Twelve Data live (DFM, ADX, Tadawul + global), `get_fx_rate` → Frankfurter → CBUAE failover, others remain mock |
+| Phase 3 (Production) | Full live stack | All providers with full failover chains | All tools map to live providers with automatic failover. FRED for macro, SEC EDGAR for filings, OpenFIGI for instrument resolution |
 
 Phase recommendations:
-- **Phase 1**: Current state. All providers return mock data. Suitable for demos and development.
-- **Phase 2**: Activate Finnhub (free tier: 60 calls/min) and Frankfurter (no key required) for real-time market data and FX. Add `MARKET_PROVIDER_PRIMARY=finnhub` and `FX_PROVIDER_PRIMARY=frankfurter` env vars.
-- **Phase 3**: Add API keys for FRED, SEC EDGAR, OpenFIGI, CBUAE. Enable full failover chains. Requires rate limit tuning per provider SLA.
+- **Phase 1**: Mock data only. All providers return seeded data. Suitable for demos and development.
+- **Phase 2 (Current)**: Twelve Data as primary market provider with GCC exchange coverage (DFM, ADX, Tadawul) via symbol normalization. Finnhub as secondary, Yahoo Finance as fallback. Add `MARKET_PROVIDER_PRIMARY=twelve_data`, `MARKET_PROVIDER_SECONDARY=finnhub`, `MARKET_PROVIDER_FALLBACK=yahoo_finance`, and `TWELVE_DATA_API_KEY` env vars. Frankfurter and CBUAE active for FX.
+- **Phase 3**: Add API keys for FRED, SEC EDGAR, OpenFIGI, CBUAE. Enable full failover chains. Requires rate limit tuning per provider SLA. Consider upgrading Twelve Data to Pro plan for real-time prices (`TWELVE_DATA_IS_REALTIME=true`).
 
 ### Multi-Tenant Configuration
 

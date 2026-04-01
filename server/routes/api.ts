@@ -444,7 +444,7 @@ router.get('/providers/status', asyncHandler(async (_req, res) => {
     market: {
       primary: process.env.MARKET_PROVIDER_PRIMARY ?? 'mock',
       secondary: process.env.MARKET_PROVIDER_SECONDARY ?? undefined,
-      fallback: 'mock',
+      fallback: process.env.MARKET_PROVIDER_FALLBACK ?? 'mock',
     },
     news: {
       primary: process.env.NEWS_PROVIDER_PRIMARY ?? 'mock',
