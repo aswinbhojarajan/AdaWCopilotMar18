@@ -1346,4 +1346,40 @@ This ensures the LLM knows GCC tickers are valid and will call `getQuotes` for E
 
 ---
 
+## Appendix: Evidence Classification
+
+This audit distinguishes between code-verified facts and runtime/provider assumptions.
+
+### Code-Verified (from source inspection)
+
+| Claim | Evidence |
+|-------|----------|
+| `orchestrateStream` is async generator | `async function*` at `agentOrchestrator.ts:190` |
+| SSE framing in api.ts, not orchestrator | `res.write(\`id: ...\`)` at `api.ts:253` |
+| `goal_progress` is Lane 0 (deterministic) | `DETERMINISTIC_INTENTS` set at `modelRouter.ts:78-81` |
+| No symbol normalization exists | Grep for `.DFM`, `:DFM`, `exchange_suffix`, `MIC` returns zero results |
+| GCC instruments have exchange column | `seed.sql:315`: `('EMAAR', ..., 'DFM')` |
+| Finnhub rejects zero-price responses | `data.c === 0` check at `finnhub.ts:53` |
+| Fallback chain auto-continues on error | `result.status === 'error'` check at `registry.ts:59` |
+| Cache TTL for quotes is 120s | `DEFAULT_TTLS.quote: 120_000` at `cache.ts:10` |
+| Default model config is rollback | `resolveConfigName()` returns `'rollback'` in `capabilityRegistry.ts` |
+| Tool descriptions use US-only examples | `"AAPL", "NVDA", "BTC"` at `toolRegistry.ts:93` |
+
+### Inferred / Assumption (requires runtime verification)
+
+| Claim | Basis | Confidence |
+|-------|-------|------------|
+| Finnhub returns `{c:0}` for `EMAAR` | Finnhub free tier is documented as US-only; `c:0` is the standard empty response | High |
+| Yahoo Finance throws for bare `EMAAR` | yahoo-finance2 library behavior for unknown tickers; `.DU` mapping is from Yahoo Finance suffix conventions | High |
+| LLM classifies "Emaar stock price" as `market_context` | Classifier prompt + fallback keyword rules both map "stock price" → `market_context` | High |
+| LLM calls `getQuotes(["EMAAR"])` | Tool description says "call this when the user asks about stock prices"; LLM behavior is non-deterministic | Medium |
+| Twelve Data rate limit is 8 req/min on free tier | From Twelve Data public documentation, not verified with an API key | Medium |
+| Twelve Data symbol format is `EMAAR:DFM` | From Twelve Data API docs; actual format should be verified with a test API call before integration | Medium |
+
+### Proposed Changes (labeled as recommendations, not audit facts)
+
+Sections 13, 14, and "Next Best Actions" contain forward-looking recommendations for the Twelve Data integration. These are labeled as proposed changes and should be evaluated during implementation planning.
+
+---
+
 *End of Audit*
