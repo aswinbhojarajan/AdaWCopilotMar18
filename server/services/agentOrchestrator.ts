@@ -79,6 +79,31 @@ function mapIntentForRag(primaryIntent: IntentClassification['primary_intent']):
   return primaryIntent;
 }
 
+function extractReadableFromRawJson(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      const headline = parsed.headline || '';
+      const blocks = Array.isArray(parsed.blocks) ? parsed.blocks : [];
+      const sections = blocks
+        .filter((b: { type?: string; heading?: string; body?: string }) => b.type === 'section')
+        .map((b: { heading?: string; body?: string }) => {
+          const parts: string[] = [];
+          if (b.heading) parts.push(b.heading);
+          if (b.body) parts.push(b.body);
+          return parts.join(': ');
+        });
+      const readableParts = [headline, ...sections].filter(Boolean);
+      if (readableParts.length > 0) {
+        return readableParts.join('\n\n');
+      }
+    }
+  } catch {
+    // not JSON, return as-is
+  }
+  return raw;
+}
+
 function extractSymbols(message: string): string[] {
   const matches = message.match(/\b[A-Z]{2,5}\b/g) ?? [];
   const commonWords = new Set(['THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HER', 'WAS', 'ONE', 'OUR', 'OUT', 'HOW', 'HAS']);
@@ -762,20 +787,20 @@ export async function* orchestrateStream(
           await new Promise(r => setImmediate(r));
         }
 
-        if (moderationBufferEnabled) {
-          yield { type: 'text', content: structuredEnvelope.headline };
-        }
+        yield { type: 'text', content: structuredEnvelope.headline };
 
         yield { type: 'structured', envelope: structuredEnvelope };
+
+        fullResponse = structuredEnvelope.headline;
       } else if (validationResult.ok === false) {
         console.log('[Orchestrator] Structured response validation failed, falling back to text:', validationResult.error.message);
         yield* thinkingEvent(verbose, 'structured_fallback', 'Structured parse failed — falling back to text rendering');
 
         yield { type: 'structured_error', error: validationResult.error };
 
-        if (moderationBufferEnabled) {
-          yield { type: 'text', content: guardrailResult.sanitizedText };
-        }
+        const fallbackText = extractReadableFromRawJson(fullResponse);
+        yield { type: 'text', content: fallbackText };
+        fullResponse = fallbackText;
       }
     } else {
       if (moderationBufferEnabled) {
