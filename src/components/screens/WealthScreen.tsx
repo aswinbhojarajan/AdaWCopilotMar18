@@ -296,8 +296,13 @@ export function WealthScreen({
               <LifeGapCards
                 prompts={lifeGapQuery.data ?? []}
                 onDismiss={(key) => dismissLifeGapMutation.mutate(key)}
-                onAction={() => {
-                  setShowLifeEventModal(true);
+                onAction={(prompt) => {
+                  onChatSubmit?.(prompt.ctaText, {
+                    category: 'GOALS',
+                    categoryType: 'LIFE_GAP',
+                    title: prompt.title,
+                    sourceScreen: 'wealth',
+                  });
                 }}
               />
             )}
