@@ -590,23 +590,28 @@ export function ChatScreen({
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 z-10">
-        {!isTyping && (
-          <div className="content-stretch flex flex-col items-center w-full bg-[#efede6] pb-[8px]">
-            <div className="relative shrink-0 w-full">
-              <div className="flex flex-row items-center size-full">
-                <div className="content-stretch flex gap-[10px] items-center pb-[8px] pt-0 px-[16px] relative w-full overflow-x-auto scrollbar-hide">
-                  {getSuggestedQuestions().map((question, index) => (
-                    <SuggestedQuestion
-                      key={index}
-                      question={question}
-                      onClick={() => handleSuggestedQuestion(question)}
-                    />
-                  ))}
+        {!isTyping && (() => {
+          const lastAssistant = [...messages].reverse().find(m => m.sender === 'assistant');
+          const hasStructuredFollowUps = lastAssistant?.structuredEnvelope?.followUps?.length;
+          if (hasStructuredFollowUps) return null;
+          return (
+            <div className="content-stretch flex flex-col items-center w-full bg-[#efede6] pb-[8px]">
+              <div className="relative shrink-0 w-full">
+                <div className="flex flex-row items-center size-full">
+                  <div className="content-stretch flex gap-[10px] items-center pb-[8px] pt-0 px-[16px] relative w-full overflow-x-auto scrollbar-hide">
+                    {getSuggestedQuestions().map((question, index) => (
+                      <SuggestedQuestion
+                        key={index}
+                        question={question}
+                        onClick={() => handleSuggestedQuestion(question)}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         <BottomBar
           onSubmit={handleSubmit}

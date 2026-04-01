@@ -94,36 +94,11 @@ export function runPostChecks(
     }
   }
 
-  if (policyDecision.require_disclosures) {
-    const hasDisclosureLike = /past performance|not .* financial advice|consult .* advisor/i.test(sanitized);
-    if (!hasDisclosureLike) {
-      appendedDisclosures.push('Past performance is not indicative of future results. This information does not constitute financial advice.');
-    }
-  }
-
   if (toolResults && toolResults.length > 0) {
     const okTools = toolResults.filter(r => r.status === 'ok');
     const hasCurrencyMention = /\$[\d,.]+/.test(sanitized);
     if (hasCurrencyMention && okTools.length === 0) {
       interventions.push('Response contains financial figures without successful tool data backing');
-    }
-
-    if (okTools.length > 0) {
-      const sourceNames = okTools.map(t => t.source_name.toLowerCase());
-      const citationPattern = /(?:source|via|from|according to)[:\s]+(\w[\w\s]*?)(?:\.|,|\n|$)/gi;
-      const mentionedSources: string[] = [];
-      let citMatch;
-      while ((citMatch = citationPattern.exec(sanitized)) !== null) {
-        mentionedSources.push(citMatch[1].trim().toLowerCase());
-      }
-      const uncitedSources = sourceNames.filter(sn =>
-        !mentionedSources.some(ms => ms.includes(sn) || sn.includes(ms))
-      );
-      if (uncitedSources.length > 0 && hasCurrencyMention) {
-        interventions.push(`Data-backed claims may lack citations for: ${uncitedSources.join(', ')}`);
-        const citationBlock = uncitedSources.map(s => `[${s}]`).join(', ');
-        appendedDisclosures.push(`Data sources: ${citationBlock}.`);
-      }
     }
   }
 

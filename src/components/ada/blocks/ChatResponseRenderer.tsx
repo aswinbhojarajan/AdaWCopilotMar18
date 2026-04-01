@@ -8,8 +8,6 @@ import { RiskCard } from './RiskCard';
 import { AlertBanner } from './AlertBanner';
 import { AdvisorCta } from './AdvisorCta';
 import { FollowUpChips } from './FollowUpChips';
-import { SourcesTray } from './SourcesTray';
-import { DisclaimerTray } from './DisclaimerTray';
 
 interface ChatResponseRendererProps {
   envelope: AdaResponseEnvelope;
@@ -76,27 +74,6 @@ export function ChatResponseRenderer({ envelope, onFollowUp, isRevealed = true }
         </div>
       )}
 
-      {envelope.sources.length > 0 && (
-        <div
-          className={`transition-all duration-300 ${
-            isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-[8px]'
-          }`}
-          style={{ transitionDelay: isRevealed ? `${(envelope.blocks.length + 2) * 50}ms` : '0ms' }}
-        >
-          <SourcesTray sources={envelope.sources} />
-        </div>
-      )}
-
-      {envelope.disclaimer && (
-        <div
-          className={`transition-all duration-300 ${
-            isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-[8px]'
-          }`}
-          style={{ transitionDelay: isRevealed ? `${(envelope.blocks.length + 3) * 50}ms` : '0ms' }}
-        >
-          <DisclaimerTray disclaimer={envelope.disclaimer} />
-        </div>
-      )}
     </div>
   );
 }

@@ -312,10 +312,6 @@ After the headline, construct the full JSON envelope:
     { "label": "See allocation", "prompt": "Show me my allocation breakdown", "icon": "chart" },
     { "label": "Recent performance", "prompt": "How has my portfolio performed this month?", "icon": "chart" }
   ],
-  "sources": [
-    { "label": "Portfolio API", "sourceType": "portfolio", "freshness": "Real-time" }
-  ],
-  "disclaimer": "This is for informational purposes only and does not constitute investment advice. Past performance does not guarantee future results.",
   "generatedAt": "<ISO-8601 timestamp>"
 }
 
@@ -365,10 +361,6 @@ IMPORTANT: First, generate a one-sentence headline that directly answers the use
     { "label": "Compare to target", "prompt": "How does my allocation compare to my risk profile target?", "icon": "compare" },
     { "label": "Sector breakdown", "prompt": "Show me my sector allocation", "icon": "chart" }
   ],
-  "sources": [
-    { "label": "Portfolio API", "sourceType": "portfolio", "freshness": "Real-time" }
-  ],
-  "disclaimer": "This is for informational purposes only and does not constitute investment advice.",
   "generatedAt": "<ISO-8601 timestamp>"
 }
 
@@ -398,8 +390,6 @@ IMPORTANT: First, generate a one-sentence headline that directly answers the use
     { "label": "Market update", "prompt": "What's happening in the markets today?", "icon": "info" },
     { "label": "Talk to advisor", "prompt": "I'd like to speak with my advisor", "icon": "advisor" }
   ],
-  "sources": [],
-  "disclaimer": "This is for informational purposes only and does not constitute investment advice.",
   "generatedAt": "<ISO-8601 timestamp>"
 }
 

@@ -277,7 +277,6 @@ export async function getLatestSnapshot(userId: string): Promise<PortfolioSnapsh
 }
 
 const INSTITUTION_META: Record<string, { logoColor: string; logoText: string }> = {
-  'Emirates NBD': { logoColor: '#D32027', logoText: 'ENBD' },
   'ADCB': { logoColor: '#0066B2', logoText: 'ADCB' },
   'Mashreq Bank': { logoColor: '#E20714', logoText: 'M' },
   'FAB': { logoColor: '#00558C', logoText: 'FAB' },

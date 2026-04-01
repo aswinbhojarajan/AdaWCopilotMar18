@@ -29,20 +29,6 @@ interface AddAccountModalProps {
 
 const institutions: FinancialInstitution[] = [
   {
-    id: 'emirates-nbd',
-    name: 'Emirates NBD',
-    type: 'bank',
-    logo: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <rect width="24" height="24" rx="4" fill="#D32027" />
-        <text x="12" y="16" textAnchor="middle" fill="white" fontSize="7" fontWeight="bold">
-          ENBD
-        </text>
-      </svg>
-    ),
-    popular: true,
-  },
-  {
     id: 'adcb',
     name: 'ADCB',
     type: 'bank',

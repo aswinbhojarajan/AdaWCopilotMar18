@@ -104,12 +104,6 @@ export function DisclaimerFooter({ disclosures }: DisclaimerFooterProps) {
             ))}
           </div>
 
-          <div className="px-[20px] pb-[20px] pt-[4px]">
-            <p className="font-['DM_Sans',sans-serif] text-[0.6875rem] text-[#999] leading-[1.4] text-center">
-              Emirates NBD is regulated by the Central Bank of the UAE and the Securities and Commodities Authority.
-            </p>
-          </div>
-
           <div className="w-full pb-safe" />
         </div>
       </div>
