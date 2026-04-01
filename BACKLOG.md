@@ -334,15 +334,11 @@ Replace `setInterval` timer with timezone-aware cron scheduling for morning brie
 - Relates to ISS-023
 
 ### BL-029: Canary Validation & Moderation API
-**Status:** Scoped (Project Task #9)
+**Status:** Complete
 **Priority:** Should Have
 
-Per-alias model overrides and content moderation:
-- Per-alias env var overrides (`ADA_MODEL_<ALIAS>`) for canary testing individual aliases
-- `moderationService.ts` wrapping OpenAI `omni-moderation-latest` model
-- Orchestrator integration: pre-LLM input moderation + post-LLM output moderation
-- `moderation_events` table for flagged content persistence
-- Moderation bypass for deterministic Lane 0 requests
+~~Per-alias model overrides and content moderation:~~
+Per-alias env var overrides (`ADA_MODEL_<ALIAS>`) and content moderation fully implemented. `moderationService.ts` wraps OpenAI `omni-moderation-latest`. Pre-LLM input moderation + post-LLM output moderation integrated into orchestrator. `moderation_events` table for flagged content persistence. Moderation bypass for deterministic Lane 0 requests. See Project Task #9, ISS-025 resolved.
 
 ### BL-030: LLM Cost Dashboard
 **Status:** Proposed
@@ -509,3 +505,7 @@ Create PostHog dashboards and saved session replay filters (done in PostHog cons
 | — | Discover Tab Uplift Phase 2: Personalization, Interactions & Ada View (Project Task #4) | 2026-03-25 |
 | — | Discover Tab Phase 3: Scale, Engagement & Premium Features (Project Task #5) | 2026-03-26 |
 | — | Configurable Model Registry & GPT-5.4 Migration (Project Task #8) | 2026-03-27 |
+| — | Twelve Data GCC Provider Integration (Project Task #1) | 2026-04-01 |
+| — | Chat Response Protocol: Frontend Block Components (Project Task #4) | 2026-04-01 |
+| — | Chat Response Disclaimer to Footer Popup (Project Task #5) | 2026-04-01 |
+| BL-029 | Canary Validation & Moderation API (Project Task #9) | 2026-04-01 |

@@ -69,7 +69,7 @@
 | ISS-021 | Console.log statements in providers | Some provider implementations have debug `console.log` calls that should be replaced with structured logging. See BL-031 for pino migration plan. | `server/providers/` | 2026-03-21 |
 | ISS-023 | Morning briefing uses interval scheduling not 8 AM cron | `morningBriefingWorker` runs on a 6-hour `setInterval` timer with a 14-hour recency guard, not at a timezone-aware 8 AM local time. Users in GCC (UTC+3/+4) may receive briefings at suboptimal times. Proper cron scheduling (e.g., `node-cron`) needed for production. | `server/services/discoverPipeline/index.ts`, `morningBriefingWorker.ts` | 2026-03-26 |
 | ISS-024 | No trade/deposit simulation endpoints for event-driven refresh | `triggerEventDrivenRefresh(userId)` is wired to goal creation and account creation endpoints, but there are no simulation endpoints for trades or deposits. In a real system, these portfolio-mutating events would also trigger feed refresh. | `server/services/discoverPipeline/index.ts`, `server/routes/api.ts` | 2026-03-26 |
-| ISS-025 | No content moderation on LLM inputs/outputs | User messages and LLM responses are not checked against OpenAI moderation API before/after processing. Potential for harmful content injection or generation. See BL-029 (Project Task #9). | `server/services/agentOrchestrator.ts` | 2026-03-27 |
+| ~~ISS-025~~ | ~~No content moderation on LLM inputs/outputs~~ | Resolved — `moderationService.ts` integrated into orchestrator with pre-LLM input moderation and post-LLM output moderation using OpenAI `omni-moderation-latest`. Moderation events persisted. Bypass for deterministic Lane 0 requests. See BL-029 (Project Task #9). | `server/services/moderationService.ts`, `server/services/agentOrchestrator.ts` | 2026-03-27 |
 
 ---
 
@@ -99,6 +99,7 @@
 | ISS-022 | LLM streaming timeout with no lane fallback | Added Lane 2 → Lane 1 automatic downgrade when both streaming attempts timeout | 2026-03-23 |
 | ISS-026 | Hardcoded USD currency in ChatWidgets | Replaced `$` prefix with `formatCurrency()` supporting AED/SAR/USD/EUR/GBP based on data currency field. Added `currency?` to Holding, GoalData, WealthOverviewResponse types. (Project Task #1) | 2026-04-01 |
 | ISS-027 | Market data limited to US exchanges | Added Twelve Data provider with GCC exchange support (DFM, ADX, Tadawul) and symbol normalization. Static GCC map ensures resolution even when DB is unavailable. (Project Task #1) | 2026-04-01 |
+| ISS-025 | Content moderation on LLM inputs/outputs | Implemented pre-LLM input + post-LLM output moderation via moderationService.ts (omni-moderation-latest). Moderation events persisted. Bypass for Lane 0. (Project Task #9) | 2026-04-01 |
 | — | Thinking events coalesced with content in SSE | Server-side `setImmediate()` ticks + `flush()` after thinking events ensure separate chunk delivery (Task #17) | 2026-03-23 |
 | — | No font loading — all fonts fell back to browser default | Added Google Fonts (Crimson Pro, DM Sans) and TypeKit (RL Limo) to index.html. Fixed ~50 component files with invalid Figma-style font references (Task #3) | 2026-03-24 |
 | — | Fake mobile status bar (TopBar) cluttering UI | Deleted TopBar component and removed from all screens. Added proper top padding (Task #4) | 2026-03-24 |

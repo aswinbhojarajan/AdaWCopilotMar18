@@ -4,6 +4,72 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 
 ---
 
+## Project Task #5 — Chat Response Disclaimer to Footer Popup
+**Date:** April 1, 2026
+**Status:** Merged
+
+### Changed
+- **Disclaimer removed from chat response body** — Backend `agentOrchestrator.ts` no longer appends inline disclaimer text to the streamed response. Disclosures are emitted as a dedicated `disclosures` SSE event after the response completes.
+- **`StreamEvent` union extended** — New `disclosures` variant added to `server/services/streamTypes.ts` carrying `string[]` payload.
+- **`Message` type extended** — Added optional `disclosures?: string[]` field to `src/types/index.ts` `Message` interface.
+- **`BottomBar` updated** — Accepts optional `disclosures?: string[]` prop; renders `DisclaimerFooter` below the chat input when disclosures are available.
+- **`ChatScreen` SSE handler** — Listens for `disclosures` event, stores disclosures on the assistant message, and computes `latestDisclosures` via `useMemo` for the persistent footer.
+
+### Added
+- **`DisclaimerFooter` component** (`src/components/ada/DisclaimerFooter.tsx`) — Persistent "Regulatory info" footer rendered below the chat input bar. Tapping opens a CSS-transition bottom-sheet popup listing all disclosures. Dismissible via backdrop tap or X button. Falls back to UAE regulatory defaults when no server-side disclosures are available.
+
+### Key Files
+- `src/components/ada/DisclaimerFooter.tsx` — New disclaimer footer + bottom-sheet popup
+- `src/components/ada/BottomBar.tsx` — Updated with disclosures prop + DisclaimerFooter
+- `src/components/screens/ChatScreen.tsx` — SSE disclosures handling, latestDisclosures memo
+- `server/services/agentOrchestrator.ts` — Emits disclosures SSE event (not inline text)
+- `server/services/streamTypes.ts` — StreamEvent union with disclosures variant
+- `src/types/index.ts` — Message type extended with disclosures field
+
+### Validated
+- TypeScript compiles clean (`npm run typecheck` passes)
+- Disclosures appear as persistent footer, not inline in chat body
+
+---
+
+## Project Task #4 — Chat Response Protocol: Frontend Block Components
+**Date:** April 1, 2026
+**Status:** Merged
+
+### Added
+- **`ChatResponseRenderer`** (`src/components/ada/blocks/ChatResponseRenderer.tsx`) — Top-level renderer that receives a `StructuredEnvelope` (aliased to `AdaResponseEnvelope`) and iterates over blocks, dispatching each to the correct block component via `BLOCK_REGISTRY` discriminated union.
+- **`HoldingsTable`** (`src/components/ada/blocks/HoldingsTable.tsx`) — Sortable holdings table with `<button>` + `aria-sort` for accessible column header sorting. Displays name, value, weight, and change columns.
+- **`AllocationCard`** (`src/components/ada/blocks/AllocationCard.tsx`) — Donut-style asset allocation card with correct target total denominator for percentage calculations.
+- **`DisclaimerTray`** (`src/components/ada/blocks/DisclaimerTray.tsx`) — Collapsible disclaimer block rendered within structured responses.
+- **`SourcesTray`** (`src/components/ada/blocks/SourcesTray.tsx`) — Expandable sources/citations block with provider attribution.
+- **`FollowUpChips`** (`src/components/ada/blocks/FollowUpChips.tsx`) — Follow-up suggestion chips rendered below the response body.
+- **`structured_intent` SSE event** — Backend emits `structured_intent` event before streaming, carrying expected block types and intent metadata. Frontend stores `pendingStructuredIntent` and `pendingExpectedBlocks` state.
+- **Zod validation** — `StructuredEnvelope` / `AdaResponseEnvelope` validated via Zod schemas in `shared/schemas/agent.ts` for runtime type safety on structured responses.
+- **Response protocol service** (`server/services/responseProtocol.ts`) — Server-side structured response assembly and block emission logic.
+
+### Changed
+- **`ChatMessage`** — Updated to detect structured envelopes and delegate rendering to `ChatResponseRenderer` instead of raw markdown.
+- **`ChatScreen`** — Handles `structured_intent` SSE event, stores pending intent and expected blocks for structured rendering flow.
+- **`agentOrchestrator.ts`** — Emits `structured_intent` event and builds structured envelope when intent matches structured routes.
+- **`promptBuilder.ts`** — Structured response instructions added to system prompt for qualifying intents.
+
+### Key Files
+- `src/components/ada/blocks/ChatResponseRenderer.tsx` — Block dispatcher
+- `src/components/ada/blocks/HoldingsTable.tsx` — Sortable holdings block
+- `src/components/ada/blocks/AllocationCard.tsx` — Allocation donut block
+- `src/components/ada/blocks/DisclaimerTray.tsx` — Inline disclaimer block
+- `src/components/ada/blocks/SourcesTray.tsx` — Sources/citations block
+- `src/components/ada/blocks/FollowUpChips.tsx` — Follow-up chips block
+- `server/services/responseProtocol.ts` — Structured response protocol
+- `server/services/streamTypes.ts` — StreamEvent with structured_intent variant
+- `shared/schemas/agent.ts` — StructuredEnvelope Zod schema
+
+### Validated
+- TypeScript compiles clean (`npm run typecheck` passes)
+- Structured responses render via block components instead of raw markdown
+
+---
+
 ## Project Task #1 — Twelve Data GCC Provider Integration
 **Date:** April 1, 2026
 **Status:** Merged
@@ -1180,14 +1246,16 @@ All notable changes to the Ada AI Wealth Copilot project are documented below, o
 |--------|-------|
 | PostgreSQL tables | 33 |
 | API endpoints | 35 (including 2 SSE streams + providers/status) |
-| React components | 65+ |
+| React components | 70+ |
 | React hooks | 15+ |
-| Backend services | 17 (agent orchestrator, policy engine, model router, prompt builder, response builder, trace logger, guardrails, wealth engine, financial tools, RM handoff, AI, chat, intent, RAG, memory, PII, goal, sentinel) |
+| Backend services | 18 (agent orchestrator, policy engine, model router, prompt builder, response builder, response protocol, trace logger, guardrails, wealth engine, financial tools, RM handoff, AI, chat, intent, RAG, memory, PII, goal, sentinel) |
 | Database repositories | 6 (user, portfolio, content, chat, poll, agent) |
-| External data providers | 7 (Finnhub, Yahoo Finance, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE) |
+| External data providers | 8 (Twelve Data, Finnhub, Yahoo Finance, FRED, SEC EDGAR, OpenFIGI, Frankfurter, CBUAE) |
 | AI tools | 15 (portfolio snapshot, holdings detail, market quotes, historical prices, company profile, macro indicator, company filings, instrument lookup, FX rate, news summary, wealth metric, route to advisor, simulator, widget, fact extraction) |
 | Memory tiers | 3 (working, episodic, semantic) |
+| SSE event types | 8 (token, tool_start, tool_result, thinking, structured_intent, disclosures, error, done) |
 | SSE streams | 2 (chat, morning sentinel) |
+| Block components | 6 (ChatResponseRenderer, HoldingsTable, AllocationCard, DisclaimerTray, SourcesTray, FollowUpChips) |
 | Guardrail checks | 7 (blocked phrases, execution claims ×7 regex, hard post-check, education advisory, security naming, data freshness, disclosures) |
 | Execution enforcement layers | 3 (system prompt, guardrail regex, orchestrator fallback) |
 | TypeScript errors fixed | 112 |
