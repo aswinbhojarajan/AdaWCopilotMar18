@@ -146,19 +146,26 @@ export async function runMorningBriefing(): Promise<number> {
       `UPDATE discover_cards SET is_active = FALSE WHERE card_type = 'morning_briefing' AND is_active = TRUE`,
     );
 
+    const sourceCardRefs = overnightCards.slice(0, 5).map(c => ({
+      card_id: c.id,
+      title: c.title,
+      card_type: c.card_type,
+    }));
+
     await pool.query(
       `INSERT INTO discover_cards (id, card_type, tab, title, summary, detail_sections, supporting_articles,
         source_count, intent_badge, topic_label, relevance_tags, confidence, taxonomy_tags, ctas,
         why_you_are_seeing_this, is_active, is_editorial, priority_score, feed_position, expires_at)
-       VALUES ($1, 'morning_briefing', 'forYou', $2, $3, $4, '[]', $5, 'analysis', 'Morning Brief', $6, 'high',
-         $7, $8, $9, TRUE, TRUE, 95, 1, $10)
+       VALUES ($1, 'morning_briefing', 'forYou', $2, $3, $4, $5, $6, 'analysis', 'Morning Brief', $7, 'high',
+         $8, $9, $10, TRUE, TRUE, 95, 1, $11)
        ON CONFLICT (id) DO NOTHING`,
       [
         cardId,
         parsed.title,
         parsed.summary,
         JSON.stringify(parsed.detail_sections || []),
-        overnightCards.length,
+        JSON.stringify(sourceCardRefs),
+        sourceCardRefs.length,
         themeSet.slice(0, 5),
         JSON.stringify({
           asset_classes: [],

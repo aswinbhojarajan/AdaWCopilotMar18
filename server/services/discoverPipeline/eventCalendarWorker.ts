@@ -144,15 +144,14 @@ export async function runEventCalendar(): Promise<number> {
         `INSERT INTO discover_cards (id, card_type, tab, title, summary, detail_sections, supporting_articles,
           source_count, intent_badge, topic_label, relevance_tags, confidence, taxonomy_tags, ctas,
           why_you_are_seeing_this, is_active, is_editorial, priority_score, expires_at)
-         VALUES ($1, 'event_calendar', 'both', $2, $3, $4, '[]', $5, 'action', 'Earnings Calendar', $6, 'high',
-           $7, $8, $9, TRUE, TRUE, 75, $10)
+         VALUES ($1, 'event_calendar', 'both', $2, $3, $4, '[]', 0, 'action', 'Earnings Calendar', $5, 'high',
+           $6, $7, $8, TRUE, TRUE, 75, $9)
          ON CONFLICT (id) DO NOTHING`,
         [
           cardId,
           title,
           summary,
           JSON.stringify(detailSections),
-          topEvents.length,
           symbols,
           JSON.stringify({
             asset_classes: ['equities'],

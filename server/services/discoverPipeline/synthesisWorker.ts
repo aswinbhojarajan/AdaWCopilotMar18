@@ -206,7 +206,7 @@ export async function runSynthesis(): Promise<number> {
             parsed.summary,
             JSON.stringify(parsed.detail_sections || []),
             JSON.stringify(supportingArticles),
-            row.article_count,
+            supportingArticles.length,
             intentBadge,
             topicLabel,
             row.primary_themes,

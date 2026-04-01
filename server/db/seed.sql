@@ -850,3 +850,41 @@ UPDATE user_profiles SET segment_id = 'seg-balanced-gcc' WHERE user_id = 'user-a
 UPDATE user_profiles SET segment_id = 'seg-conservative-gcc' WHERE user_id = 'user-khalid' AND (segment_id IS NULL OR segment_id != 'seg-conservative-gcc');
 UPDATE user_profiles SET segment_id = 'seg-aggressive-global' WHERE user_id = 'user-raj' AND (segment_id IS NULL OR segment_id != 'seg-aggressive-global');
 
+-- ============================================================
+-- Backfill: Enrich supporting_articles for cluster-based cards
+-- ============================================================
+UPDATE discover_cards dc
+SET supporting_articles = sub.enriched,
+    source_count = sub.cnt,
+    updated_at = NOW()
+FROM (
+  SELECT dc2.id AS card_id,
+    (SELECT jsonb_agg(article_row ORDER BY article_row->>'importance' DESC NULLS LAST)
+     FROM (
+       SELECT jsonb_build_object(
+         'title', ra.title,
+         'publisher', COALESCE(ra.publisher, 'Unknown'),
+         'published_at', ra.published_at,
+         'url', ra.url,
+         'summary', ra.summary
+       ) AS article_row,
+       ae.importance_score AS importance
+       FROM unnest(ac.article_ids) AS aid
+       JOIN raw_articles ra ON ra.id = aid
+       LEFT JOIN article_enrichment ae ON ae.article_id = ra.id
+       ORDER BY ae.importance_score DESC NULLS LAST
+       LIMIT 3
+     ) ranked
+    ) AS enriched,
+    LEAST(array_length(ac.article_ids, 1), 3) AS cnt
+  FROM discover_cards dc2
+  JOIN article_clusters ac ON ac.id = dc2.cluster_id
+  WHERE dc2.is_active = TRUE
+    AND dc2.cluster_id IS NOT NULL
+    AND (dc2.supporting_articles IS NULL
+         OR dc2.supporting_articles::text = '[]'
+         OR NOT dc2.supporting_articles::text LIKE '%url%')
+) sub
+WHERE dc.id = sub.card_id
+  AND sub.enriched IS NOT NULL;
+
