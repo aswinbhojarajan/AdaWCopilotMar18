@@ -829,6 +829,44 @@ ON CONFLICT (id) DO UPDATE SET
   updated_at = NOW();
 
 -- ============================================================
+-- Fix Ada View cards: enrich supporting_articles with publisher/summary from source cards
+-- ============================================================
+UPDATE discover_cards av
+SET supporting_articles = (
+  SELECT jsonb_agg(
+    CASE
+      WHEN src.supporting_articles IS NOT NULL AND jsonb_array_length(src.supporting_articles) > 0
+      THEN jsonb_build_object(
+        'title', elem->>'title',
+        'card_id', elem->>'card_id',
+        'card_type', elem->>'card_type',
+        'publisher', (src.supporting_articles->0)->>'publisher',
+        'published_at', COALESCE((src.supporting_articles->0)->>'published_at', '2026-03-30T12:00:00Z'),
+        'url', null,
+        'summary', COALESCE((src.supporting_articles->0)->>'summary', elem->>'title')
+      )
+      ELSE jsonb_build_object(
+        'title', elem->>'title',
+        'card_id', elem->>'card_id',
+        'card_type', elem->>'card_type',
+        'publisher', null,
+        'published_at', '2026-03-30T12:00:00Z',
+        'url', null,
+        'summary', elem->>'title'
+      )
+    END
+  )
+  FROM jsonb_array_elements(av.supporting_articles) elem
+  LEFT JOIN discover_cards src ON src.id = elem->>'card_id'
+),
+updated_at = NOW()
+WHERE av.card_type = 'ada_view'
+  AND EXISTS (
+    SELECT 1 FROM jsonb_array_elements(av.supporting_articles) e
+    WHERE (e->>'publisher') IS NULL OR (e->>'publisher') = ''
+  );
+
+-- ============================================================
 -- User Segments (Phase 2: Personalization)
 -- ============================================================
 INSERT INTO user_segments (id, label, description, scoring_weights) VALUES
