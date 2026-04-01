@@ -469,6 +469,7 @@ export async function* orchestrateStream(
     let turnCount = 0;
     let isLastTurn = false;
     const moderationBufferEnabled = tenantConfig.moderation_enabled !== false;
+    let structuredHeadlineEmitted = false;
 
     while (turnCount < maxToolRounds + 1) {
       turnCount++;
@@ -540,6 +541,14 @@ export async function* orchestrateStream(
           const safeText = streamFilter.push(delta.content);
           if (safeText && !moderationBufferEnabled && !useStructured) {
             yield { type: 'text', content: safeText };
+          }
+          if (useStructured && !structuredHeadlineEmitted) {
+            const headlineMatch = turnBuffer.match(/"headline"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+            if (headlineMatch) {
+              const headline = headlineMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
+              yield { type: 'text', content: headline };
+              structuredHeadlineEmitted = true;
+            }
           }
         }
 
@@ -787,7 +796,9 @@ export async function* orchestrateStream(
           await new Promise(r => setImmediate(r));
         }
 
-        yield { type: 'text', content: structuredEnvelope.headline };
+        if (!structuredHeadlineEmitted) {
+          yield { type: 'text', content: structuredEnvelope.headline };
+        }
 
         yield { type: 'structured', envelope: structuredEnvelope };
 
