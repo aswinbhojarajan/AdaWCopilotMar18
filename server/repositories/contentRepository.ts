@@ -41,13 +41,42 @@ async function getHomePipelineCards(userId: string): Promise<ContentItem[]> {
     if (!hasCards) return [];
 
     const { rows } = await pool.query(
+      `SELECT dc.id, dc.card_type, dc.tab, dc.title, dc.summary, dc.image_url,
+              dc.source_count, dc.intent_badge, dc.topic_label, dc.relevance_tags,
+              dc.confidence, dc.taxonomy_tags, dc.ctas, dc.is_editorial, dc.created_at
+       FROM user_discover_feed udf
+       JOIN discover_cards dc ON dc.id = udf.card_id
+       WHERE udf.user_id = $1
+         AND udf.tab = 'forYou'
+         AND udf.is_dismissed = FALSE
+         AND udf.expires_at > NOW()
+         AND dc.is_active = TRUE
+       ORDER BY udf.position ASC, udf.score DESC
+       LIMIT 3`,
+      [userId],
+    );
+
+    if (rows.length === 0) {
+      return await getHomeFallbackPipelineCards(userId);
+    }
+
+    return rows.map((r: Record<string, unknown>) => mapPipelineCardToContentItem(r));
+  } catch (err) {
+    console.warn('[ContentRepo] Failed to load pipeline cards for home:', (err as Error).message);
+    return [];
+  }
+}
+
+async function getHomeFallbackPipelineCards(userId: string): Promise<ContentItem[]> {
+  try {
+    const { rows } = await pool.query(
       `SELECT id, card_type, tab, title, summary, image_url, source_count,
               intent_badge, topic_label, relevance_tags, confidence,
               taxonomy_tags, ctas, is_editorial, created_at
        FROM discover_cards
-       WHERE is_active = TRUE
+       WHERE is_active = TRUE AND (tab = 'forYou' OR tab = 'both')
        ORDER BY priority_score DESC, created_at DESC
-       LIMIT 20`,
+       LIMIT 10`,
     );
 
     if (rows.length === 0) return [];
@@ -70,34 +99,33 @@ async function getHomePipelineCards(userId: string): Promise<ContentItem[]> {
     });
     scored.sort((a, b) => b.score - a.score);
 
-    const topCards = scored.slice(0, 3);
-
-    return topCards.map(({ row: r }) => {
-      const ctas = parseJson(r.ctas) as Array<{ text: string; family: string }> | null;
-      const primaryCta = ctas?.[0];
-      const secondaryCta = ctas?.[1];
-      const cardType = r.card_type as string;
-      const createdAt = new Date(r.created_at as string);
-
-      return {
-        id: r.id as string,
-        category: (r.topic_label as string) || 'News',
-        categoryType: mapCardTypeToCategoryType(cardType),
-        title: r.title as string,
-        contextTitle: r.title as string,
-        description: r.summary as string,
-        timestamp: computeFreshnessLabel(createdAt),
-        buttonText: primaryCta?.text || 'Tell me more',
-        secondaryButtonText: secondaryCta?.text || undefined,
-        image: (r.image_url as string) || undefined,
-        sourcesCount: Number(r.source_count) || undefined,
-        topicLabelColor: mapCardTypeToColor(cardType),
-      };
-    });
-  } catch (err) {
-    console.warn('[ContentRepo] Failed to load pipeline cards for home:', (err as Error).message);
+    return scored.slice(0, 3).map(({ row: r }) => mapPipelineCardToContentItem(r));
+  } catch {
     return [];
   }
+}
+
+function mapPipelineCardToContentItem(r: Record<string, unknown>): ContentItem {
+  const ctas = parseJson(r.ctas) as Array<{ text: string; family: string }> | null;
+  const primaryCta = ctas?.[0];
+  const secondaryCta = ctas?.[1];
+  const cardType = r.card_type as string;
+  const createdAt = new Date(r.created_at as string);
+
+  return {
+    id: r.id as string,
+    category: (r.topic_label as string) || 'News',
+    categoryType: mapCardTypeToCategoryType(cardType),
+    title: r.title as string,
+    contextTitle: r.title as string,
+    description: r.summary as string,
+    timestamp: computeFreshnessLabel(createdAt),
+    buttonText: primaryCta?.text || 'Tell me more',
+    secondaryButtonText: secondaryCta?.text || undefined,
+    image: (r.image_url as string) || undefined,
+    sourcesCount: Number(r.source_count) || undefined,
+    topicLabelColor: mapCardTypeToColor(cardType),
+  };
 }
 
 const MIN_CARDS_FOR_YOU = 5;
