@@ -293,7 +293,7 @@ export async function runEditorialContent(): Promise<number> {
           }
 
           const ctas = await fetchCTAs(editorial.card_type);
-          const segSlug = segment.segment_id.replace('seg-', '').slice(0, 8);
+          const segSlug = (segment.segment_id || 'unknown-seg').replace('seg-', '').slice(0, 8);
           const cardId = `disc-ed-${editorial.card_type.charAt(0)}${editorial.id}-${segSlug}-${Date.now().toString(36)}`;
           const tab = mapTab(editorial.card_type);
           const intentBadge = mapIntentBadge(editorial.card_type);
