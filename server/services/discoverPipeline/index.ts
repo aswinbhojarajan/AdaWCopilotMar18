@@ -7,6 +7,7 @@ import { runAdaView } from './adaViewWorker';
 import { runEventCalendar } from './eventCalendarWorker';
 import { runMorningBriefing } from './morningBriefingWorker';
 import { runMilestoneDetection } from './milestoneWorker';
+import { runEditorialContent } from './editorialContentWorker';
 import { runExpiryEnforcement } from './expiryWorker';
 import { runFeedMaterializer, runFeedMaterializerForUser } from './feedMaterializer';
 import { computeUserProfileGaps } from './userProfileEnricher';
@@ -79,6 +80,7 @@ let lastRunTimes: Record<string, Date | null> = {
   synthesis: null,
   materialization: null,
   ada_view: null,
+  editorial_content: null,
   event_calendar: null,
   morning_briefing: null,
   milestone: null,
@@ -110,6 +112,9 @@ async function runFullPipeline(): Promise<void> {
 
     await runEventCalendar();
     lastRunTimes.event_calendar = new Date();
+
+    await runEditorialContent();
+    lastRunTimes.editorial_content = new Date();
 
     await runMorningBriefing();
     lastRunTimes.morning_briefing = new Date();
@@ -156,6 +161,7 @@ export async function initDiscoverPipeline(): Promise<void> {
       } else {
         console.log(`[DiscoverPipeline] ${rows[0]?.cnt} live cards already exist, skipping initial pipeline run`);
         try { await runAdaView(); lastRunTimes.ada_view = new Date(); } catch (e) { console.warn('[DiscoverPipeline] Ada View error:', (e as Error).message); }
+        try { await runEditorialContent(); lastRunTimes.editorial_content = new Date(); } catch (e) { console.warn('[DiscoverPipeline] Editorial Content error:', (e as Error).message); }
         try { await runEventCalendar(); lastRunTimes.event_calendar = new Date(); } catch (e) { console.warn('[DiscoverPipeline] Event Calendar error:', (e as Error).message); }
         try { await runMorningBriefing(); lastRunTimes.morning_briefing = new Date(); } catch (e) { console.warn('[DiscoverPipeline] Morning Briefing error:', (e as Error).message); }
         try { await runMilestoneDetection(); lastRunTimes.milestone = new Date(); } catch (e) { console.warn('[DiscoverPipeline] Milestone error:', (e as Error).message); }
@@ -211,6 +217,8 @@ export async function initDiscoverPipeline(): Promise<void> {
     try {
       await runAdaView();
       lastRunTimes.ada_view = new Date();
+      await runEditorialContent();
+      lastRunTimes.editorial_content = new Date();
       await runEventCalendar();
       lastRunTimes.event_calendar = new Date();
     } catch (err) {

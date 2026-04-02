@@ -127,12 +127,7 @@ INSERT INTO content_items (id, category, category_type, title, context_title, de
    'Your current 15% fixed income allocation could benefit from higher-yielding sovereign debt in stable economies.',
    '5 hours ago', 'Compare to my current fixed income', 'Show me top-rated EM bonds',
    'https://images.unsplash.com/photo-1760971439988-b236b4207d47?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080', 63, 'discover', 'forYou',
-   '[{"title":"Why you are seeing this:","content":["Fixed income allocation: 8% (below 20% target)","Current yield on holdings: 4.2%","Credit ratings improving across EM sovereigns"]},{"title":"Opportunity details:","content":"Allocate 5-7% to EM bonds to boost income generation while maintaining diversification across geographies and credit quality."}]'),
-  ('disc-fy-4', 'WEALTH PLANNING', 'WEALTH PLANNING', 'Multi-generational wealth transfer: Structuring for tax efficiency', 'Estate tax efficiency',
-   'New regulations create opportunities to reduce estate tax burden by up to 35% through strategic trust structures.',
-   '3 days ago', 'Model my estate tax scenarios', 'Compare trust structures for me',
-   'https://images.unsplash.com/photo-1554224155-6726b3ff858f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080', 28, 'discover', 'forYou',
-   '[{"title":"Regulatory changes:","content":["Estate tax reduction up to 35%","Strategic trust structures","Multi-generational wealth planning"]},{"title":"Implementation approach:","content":"Work with a financial advisor to model different scenarios and choose the most tax-efficient structure."}]')
+   '[{"title":"Why you are seeing this:","content":["Fixed income allocation: 8% (below 20% target)","Current yield on holdings: 4.2%","Credit ratings improving across EM sovereigns"]},{"title":"Opportunity details:","content":"Allocate 5-7% to EM bonds to boost income generation while maintaining diversification across geographies and credit quality."}]')
 ON CONFLICT (id) DO NOTHING;
 
 -- Content Items (Discover - What's Happening)
@@ -705,128 +700,113 @@ INSERT INTO cta_templates (card_type, cta_family, template_text, is_primary, int
   ('milestone', 'advisor', 'Share with my advisor', FALSE, 'advisor');
 
 -- ============================================================
--- Editorial Discover Cards (seed content for Phase 1)
+-- Deactivate old seed editorial cards (replaced by editorial_content pipeline)
 -- ============================================================
-INSERT INTO discover_cards (id, card_type, tab, title, summary, detail_sections, image_url, source_count,
-  intent_badge, topic_label, relevance_tags, confidence, taxonomy_tags, ctas,
-  why_you_are_seeing_this, supporting_articles, is_active, is_editorial, expires_at) VALUES
-  ('disc-ed-1', 'wealth_planning', 'forYou',
-   'Multi-generational wealth transfer: Structuring for tax efficiency',
-   'New regulations create opportunities to reduce estate tax burden by up to 35% through strategic trust structures.',
-   '[{"title":"Regulatory changes","type":"bullets","content":["Estate tax reduction up to 35%","Strategic trust structures","Multi-generational wealth planning"]},{"title":"Implementation approach","type":"paragraph","content":["Work with a financial advisor to model different scenarios and choose the most tax-efficient structure."]}]',
-   'https://images.unsplash.com/photo-1554224155-6726b3ff858f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
-   3, 'action', 'Planning', ARRAY['estate_planning', 'tax_efficiency'], 'high',
-   '{"asset_classes":["Fixed Income"],"sectors":[],"geographies":["UAE","GCC"],"themes":["estate_planning","tax_optimization"],"wealth_topics":["succession","trusts"]}',
-   '[{"text":"Model my estate tax scenarios","family":"plan","context":{"card_summary":"Estate tax reduction opportunities","entities":[],"evidence_facts":["Up to 35% tax reduction"]}},{"text":"Compare trust structures for me","family":"simulate","context":{"card_summary":"Trust structure comparison","entities":[],"evidence_facts":[]}}]',
-   'Relevant to wealth planning',
-   '[{"title":"GCC economic outlook 2026: Trade diversification and fiscal discipline","publisher":"Arabian Business","published_at":"2026-03-28T09:00:00Z","url":"https://www.arabianbusiness.com/politics-economics/gcc-economic-outlook-2026-trade-diversification-ai-deployment-and-fiscal-discipline-take-centre-stage","summary":"New GCC-wide economic policies and fiscal reforms promise to reshape wealth planning for HNW families."},{"title":"How trusts can cut your estate tax bill by a third","publisher":"Financial Times","published_at":"2026-03-27T14:30:00Z","url":null,"summary":"Tax advisors outline strategies using trust structures to reduce estate tax liabilities by up to 35%."},{"title":"How rich are Gulf countries? Region''s wealth funds have $3 trillion to spend","publisher":"Bloomberg","published_at":"2026-03-26T11:00:00Z","url":"https://www.bloomberg.com/graphics/2023-middle-east-wealth-funds-with-more-money-than-uk-gdp-become-world-bankers/","summary":"Gulf families and sovereign funds are increasingly using sophisticated structures to preserve wealth across generations."}]',
-   TRUE, TRUE, NOW() + INTERVAL '30 days'),
+UPDATE discover_cards SET is_active = FALSE, updated_at = NOW()
+WHERE id IN ('disc-ed-1', 'disc-ed-2', 'disc-ed-3', 'disc-ed-4', 'disc-ed-5', 'disc-ed-6', 'disc-prod-1', 'disc-prod-2')
+  AND is_editorial = TRUE;
 
-  ('disc-ed-2', 'allocation_gap', 'forYou',
-   'Alternative investments show 23% lower correlation to public markets',
-   'Your alternatives allocation is below the recommended range for portfolios seeking true diversification.',
-   '[{"title":"Why alternatives matter","type":"bullets","content":["Hedged risk during market downturns","Access to unique return streams","Portfolio protection in high-inflation environments"]},{"title":"Available opportunities","type":"paragraph","content":["Private equity and private credit are available options beyond your current holdings."]}]',
-   'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
-   3, 'opportunity', 'Opportunity', ARRAY['underweight_alternatives', 'diversification'], 'high',
-   '{"asset_classes":["Alternatives","Private Equity","Private Credit"],"sectors":[],"geographies":["Global"],"themes":["diversification","alternative_investments"],"wealth_topics":["asset_allocation"]}',
-   '[{"text":"Show me alternatives that fit my portfolio","family":"screen","context":{"card_summary":"Alternatives allocation gap","entities":[],"evidence_facts":["23% lower correlation"]}},{"text":"How would this change my risk?","family":"impact","context":{"card_summary":"Risk impact of alternatives","entities":[],"evidence_facts":[]}}]',
-   'Low alternatives allocation',
-   '[{"title":"What the retail boom in alternative assets means for risk, liquidity and portfolios","publisher":"CNBC","published_at":"2026-03-29T16:00:00Z","url":"https://www.cnbc.com/2025/12/04/retail-boom-in-alternative-assets-risk-liquidity-and-portfolios.html","summary":"Alternatives showed 23% lower correlation to public markets during recent volatility."},{"title":"Hassana, Brookfield ink deal for GCC-focused private equity fund","publisher":"Gulf News","published_at":"2026-03-28T08:00:00Z","url":"https://gulfnews.com/business/markets/hassana-brookfield-ink-deal-for-gcc-focused-private-equity-fund-1.1730364078094","summary":"GCC high-net-worth investors are increasing allocations to private equity and credit."},{"title":"The case for diversification beyond stocks and bonds","publisher":"Reuters","published_at":"2026-03-27T12:00:00Z","url":null,"summary":"Research shows alternative assets reduce portfolio drawdowns significantly during stress periods."}]',
-   TRUE, TRUE, NOW() + INTERVAL '7 days'),
-
-  ('disc-ed-3', 'portfolio_impact', 'forYou',
-   'Your tech allocation outperformed by 12% this quarter',
-   'AI and semiconductor holdings drove strong gains. Consider rebalancing to lock in profits while maintaining growth exposure.',
-   '[{"title":"Performance breakdown","type":"bullets","content":["Tech holdings: +12.3% vs +8.1% sector average","AI infrastructure stocks: +18.2%","Semiconductor positions: +15.7%"]},{"title":"Advisor recommendation","type":"paragraph","content":["Consider taking 20% profits from strongest performers to maintain your risk target while preserving upside potential."]}]',
-   'https://images.unsplash.com/photo-1518186285589-2f7649de83e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
-   2, 'opportunity', 'Portfolio Impact', ARRAY['tech_holdings', 'outperformance'], 'high',
-   '{"asset_classes":["Equities"],"sectors":["Technology","Semiconductors"],"geographies":["US"],"themes":["ai_infrastructure","tech_earnings"],"wealth_topics":["rebalancing"]}',
-   '[{"text":"Should I rebalance now?","family":"plan","context":{"card_summary":"Tech outperformance rebalancing","entities":["AAPL","MSFT","NVDA"],"evidence_facts":["+12.3% vs +8.1% sector avg"]}},{"text":"Show optimal profit-taking strategy","family":"simulate","context":{"card_summary":"Profit-taking analysis","entities":["AAPL","MSFT","NVDA"],"evidence_facts":[]}}]',
-   'Based on your tech holdings',
-   '[{"title":"Chip stocks rally to start 2026 after third-straight winning year","publisher":"CNBC","published_at":"2026-03-30T18:00:00Z","url":"https://www.cnbc.com/2026/01/02/chipmakers-2026-ai-trade.html","summary":"AI infrastructure and semiconductor stocks led the market higher with double-digit gains this quarter."},{"title":"Infineon forecasts growing sales from AI data center demand","publisher":"Bloomberg","published_at":"2026-03-29T10:00:00Z","url":"https://www.bloomberg.com/news/articles/2026-02-04/infineon-forecasts-growing-revenue-from-ai-data-center-demand","summary":"Chip makers report record orders driven by AI data center expansion worldwide."}]',
-   TRUE, TRUE, NOW() + INTERVAL '1 day'),
-
-  ('disc-ed-4', 'explainer', 'whatsNew',
-   'How private credit differs from public bonds',
+-- ============================================================
+-- Editorial Content Corpus (source material for editorialContentWorker)
+-- ============================================================
+DELETE FROM editorial_content;
+INSERT INTO editorial_content (card_type, title, summary, detail_sections, asset_classes, themes, regions, eligibility, rotation_days) VALUES
+  ('explainer', 'How private credit differs from public bonds',
    'Private credit offers higher yields with less liquidity. Understanding the trade-offs is key for portfolio construction.',
-   '[{"title":"What it is","type":"paragraph","content":["Private credit involves direct lending to companies outside public bond markets, offering higher yields in exchange for less liquidity and longer lock-up periods."]},{"title":"Key data points","type":"bullets","content":["Average yield: 8-12% vs 4-6% for investment-grade bonds","Typical lock-up: 3-7 years","Default rate: 2.1% (lower than high-yield bonds at 3.8%)"]},{"title":"Considerations","type":"bullets","content":["Minimum investment typically $100K-$500K","Limited secondary market","Due diligence complexity","Manager selection is critical"]}]',
-   'https://images.unsplash.com/photo-1554224155-6726b3ff858f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
-   2, NULL, 'Explainer', ARRAY['private_credit', 'fixed_income'], 'high',
-   '{"asset_classes":["Fixed Income","Private Credit"],"sectors":[],"geographies":["Global"],"themes":["private_credit","yield_enhancement"],"wealth_topics":["education","asset_allocation"]}',
-   '[{"text":"Tell me more about private credit","family":"explain","context":{"card_summary":"Private credit education","entities":[],"evidence_facts":["8-12% yield vs 4-6% bonds"]}},{"text":"How does this compare to my current bonds?","family":"compare","context":{"card_summary":"Private credit vs public bonds","entities":[],"evidence_facts":[]}}]',
-   NULL,
-   '[{"title":"Private credit funds attract record inflows in 2026","publisher":"Financial Times","published_at":"2026-03-28T07:00:00Z","url":null,"summary":"Private credit assets under management surpass $2 trillion as investors seek higher yields."},{"title":"High-yield bonds have outshone private debt, says Dimensional","publisher":"Bloomberg","published_at":"2026-03-27T15:00:00Z","url":"https://www.bloomberg.com/news/articles/2025-05-30/high-yield-bonds-have-outshone-private-debt-says-dimensional","summary":"Direct lending offers 8-12% yields with lower default rates than high-yield bonds."}]',
-   TRUE, TRUE, NOW() + INTERVAL '30 days'),
+   '[{"title":"What it is","type":"paragraph","content":["Private credit involves direct lending to companies outside public bond markets, offering higher yields in exchange for less liquidity and longer lock-up periods."]},{"title":"Key data points","type":"bullets","content":["Average yield: 8-12% vs 4-6% for investment-grade bonds","Typical lock-up: 3-7 years","Default rate: 2.1% (lower than high-yield bonds at 3.8%)"]}]',
+   '{"Fixed Income","Private Credit"}', '{"private_credit","yield_enhancement"}', '{"Global"}',
+   '{"risk_levels":["moderate","aggressive"],"aum_tiers":["all"]}', 30),
 
-  ('disc-ed-5', 'explainer', 'whatsNew',
-   'GCC real estate yields outpace global averages by 3.2%',
+  ('explainer', 'GCC real estate yields outpace global averages',
    'Dubai and Riyadh property markets deliver 7-9% rental yields, supported by population growth and economic diversification.',
-   '[{"title":"Market overview","type":"paragraph","content":["GCC real estate has emerged as a compelling income-generating asset class, with rental yields in prime locations significantly exceeding global averages."]},{"title":"Key metrics","type":"bullets","content":["Dubai prime residential yield: 7.2%","Riyadh commercial yield: 8.5%","Global average comparable yield: 4.1%","Capital appreciation: 12-18% annually in prime segments"]},{"title":"Access options","type":"bullets","content":["Direct property investment","REIT exposure through listed vehicles","Private real estate funds with quarterly liquidity"]}]',
-   'https://images.unsplash.com/photo-1764675107575-7a33cbdb7905?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
-   3, NULL, 'Explainer', ARRAY['gcc_real_estate', 'income'], 'high',
-   '{"asset_classes":["Real Estate"],"sectors":["Property"],"geographies":["UAE","Saudi Arabia","GCC"],"themes":["gcc_property","rental_yield"],"wealth_topics":["education","income_generation"]}',
-   '[{"text":"Tell me more about GCC property yields","family":"explain","context":{"card_summary":"GCC real estate yields","entities":[],"evidence_facts":["7-9% rental yields"]}},{"text":"Should I increase property allocation?","family":"impact","context":{"card_summary":"Property allocation analysis","entities":[],"evidence_facts":[]}}]',
-   NULL,
-   '[{"title":"Dubai real estate: Property rentals set to surge 18% in 2025","publisher":"Arabian Business","published_at":"2026-03-29T10:00:00Z","url":"https://www.arabianbusiness.com/industries/real-estate/dubai-real-estate-property-rentals-set-to-surge-18-in-2025-driven-by-investor-demand","summary":"Strong population growth drives rental yields in Dubai prime residential to 7.2%."},{"title":"Saudi Arabia''s Vision 2030 projects reach $1.3 trillion in value","publisher":"Gulf News","published_at":"2026-03-28T06:00:00Z","url":"https://gulfnews.com/business/property/saudi-arabias-vision-2030-projects-reach-13-trillion-in-value-1.104058333","summary":"Saudi Vision 2030 projects fuel commercial real estate demand in Riyadh."},{"title":"Global investors flock to GCC property markets","publisher":"Reuters","published_at":"2026-03-27T09:00:00Z","url":null,"summary":"International investors increase GCC real estate allocations citing yield premium over developed markets."}]',
-   TRUE, TRUE, NOW() + INTERVAL '30 days'),
+   '[{"title":"Market overview","type":"paragraph","content":["GCC real estate has emerged as a compelling income-generating asset class, with rental yields in prime locations significantly exceeding global averages."]},{"title":"Key metrics","type":"bullets","content":["Dubai prime residential yield: 7.2%","Riyadh commercial yield: 8.5%","Global average comparable yield: 4.1%"]}]',
+   '{"Real Estate"}', '{"gcc_property","rental_yield"}', '{"UAE","Saudi Arabia","GCC"}',
+   '{"risk_levels":["moderate","aggressive"],"aum_tiers":["all"]}', 30),
 
-  ('disc-ed-6', 'explainer', 'whatsNew',
-   'Sustainable investing delivers competitive returns with lower risk',
+  ('explainer', 'Sustainable investing: Competitive returns with lower risk',
    'ESG-screened portfolios matched market returns with 18% less volatility over the past 5 years.',
-   '[{"title":"Performance insights","type":"bullets","content":["ESG leaders: +9.8% annualized vs +9.6% for broad market","Sharpe ratio: 0.82 vs 0.69 for conventional portfolios","Downside capture: 82% vs market average of 95%"]},{"title":"Implementation","type":"paragraph","content":["Multiple ESG integration approaches exist, from negative screening to impact investing. The key is aligning your values with your return objectives."]}]',
-   'https://images.unsplash.com/photo-1743352476730-056502fba10b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080',
-   2, NULL, 'Explainer', ARRAY['esg', 'sustainable_investing'], 'high',
-   '{"asset_classes":["Equities","Fixed Income"],"sectors":[],"geographies":["Global"],"themes":["esg","sustainable_investing"],"wealth_topics":["education","values_alignment"]}',
-   '[{"text":"Analyze my portfolio ESG score","family":"impact","context":{"card_summary":"ESG portfolio analysis","entities":[],"evidence_facts":["18% less volatility"]}},{"text":"Show ESG alternatives for my holdings","family":"screen","context":{"card_summary":"ESG alternatives screening","entities":[],"evidence_facts":[]}}]',
-   NULL,
-   '[{"title":"ESG funds match conventional returns with lower volatility","publisher":"Financial Times","published_at":"2026-03-30T11:00:00Z","url":null,"summary":"Five-year study shows ESG-screened portfolios delivered competitive returns with 18% less volatility."},{"title":"Saudi Arabia overtakes UAE as MENA sustainable finance tops $35bn","publisher":"Arabian Business","published_at":"2026-03-28T14:00:00Z","url":"https://www.arabianbusiness.com/industries/banking-finance/saudi-arabia-overtakes-uae-as-mena-sustainable-finance-tops-35bn","summary":"New regulations encourage sustainable investing practices among financial institutions."}]',
-   TRUE, TRUE, NOW() + INTERVAL '30 days')
-ON CONFLICT (id) DO UPDATE SET
-  title = EXCLUDED.title,
-  summary = EXCLUDED.summary,
-  detail_sections = EXCLUDED.detail_sections,
-  ctas = EXCLUDED.ctas,
-  taxonomy_tags = EXCLUDED.taxonomy_tags,
-  supporting_articles = EXCLUDED.supporting_articles,
-  source_count = EXCLUDED.source_count,
-  updated_at = NOW();
+   '[{"title":"Performance insights","type":"bullets","content":["ESG leaders: +9.8% annualized vs +9.6% for broad market","Sharpe ratio: 0.82 vs 0.69 for conventional portfolios","Downside capture: 82% vs market average of 95%"]},{"title":"Implementation","type":"paragraph","content":["Multiple ESG integration approaches exist, from negative screening to impact investing."]}]',
+   '{"Equities","Fixed Income"}', '{"esg","sustainable_investing"}', '{"Global"}',
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 30),
 
--- ============================================================
--- Product Opportunity Cards (Phase 3)
--- ============================================================
-INSERT INTO discover_cards (id, card_type, tab, title, summary, detail_sections, image_url, source_count,
-  intent_badge, topic_label, relevance_tags, confidence, taxonomy_tags, ctas,
-  why_you_are_seeing_this, supporting_articles, is_active, is_editorial, expires_at) VALUES
-  ('disc-prod-1', 'product_opportunity', 'forYou',
-   'Sukuk yields climb to 5.8%: A fixed-income opportunity for conservative portfolios',
+  ('explainer', 'What are structured products and who are they for?',
+   'Structured products combine derivatives with fixed-income instruments to create custom risk-return profiles for specific investor needs.',
+   '[{"title":"How they work","type":"paragraph","content":["Structured products are pre-packaged investments that combine bonds and derivatives. They offer tailored payoff profiles including capital protection, enhanced yield, or leveraged upside."]},{"title":"Key considerations","type":"bullets","content":["Capital protection levels: typically 80-100%","Maturity: 1-5 years","Counterparty risk is a key factor","Minimum investment: usually $50K-$250K"]}]',
+   '{"Fixed Income","Alternatives"}', '{"structured_products","capital_protection"}', '{"Global","GCC"}',
+   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 30),
+
+  ('explainer', 'Understanding correlation: Why diversification actually works',
+   'Low-correlation assets reduce portfolio risk without proportionally reducing returns. The math behind modern portfolio theory explained.',
+   '[{"title":"The core concept","type":"paragraph","content":["When assets move independently, combining them reduces overall portfolio volatility. A portfolio of uncorrelated assets with 10% individual risk can achieve 4-5% portfolio risk."]},{"title":"Practical examples","type":"bullets","content":["Gold vs equities correlation: 0.05 (near zero)","Private real estate vs stocks: 0.15","International bonds vs domestic equity: 0.25"]}]',
+   '{"Equities","Fixed Income","Alternatives"}', '{"diversification","portfolio_theory"}', '{"Global"}',
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 30),
+
+  ('explainer', 'Dollar-cost averaging vs lump-sum investing',
+   'Both strategies have merits. Historical data shows lump-sum investing wins 68% of the time, but DCA reduces regret and volatility exposure.',
+   '[{"title":"The evidence","type":"bullets","content":["Lump-sum outperforms DCA 68% of the time historically","DCA reduces maximum drawdown by 20-30%","DCA is psychologically easier for large investments"]},{"title":"When each works best","type":"paragraph","content":["Use lump-sum when confident in long-term outlook. Use DCA when deploying large cash positions or during high-volatility periods."]}]',
+   '{"Equities","Fixed Income"}', '{"investment_strategy","dca"}', '{"Global"}',
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 30),
+
+  ('wealth_planning', 'Multi-generational wealth transfer: Tax-efficient structures',
+   'Strategic trust structures can reduce estate tax burden by up to 35%. New regulations create opportunities for GCC families.',
+   '[{"title":"Regulatory changes","type":"bullets","content":["Estate tax reduction up to 35%","Strategic trust structures available in DIFC and ADGM","Multi-generational wealth planning frameworks"]},{"title":"Implementation approach","type":"paragraph","content":["Work with a financial advisor to model different scenarios and choose the most tax-efficient structure for your family."]}]',
+   '{"Fixed Income"}', '{"estate_planning","tax_optimization"}', '{"UAE","GCC"}',
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["affluent","hnw","uhnw"]}', 14),
+
+  ('wealth_planning', 'Liquidity planning: How much cash is too much?',
+   'Cash allocations above 25% may signal opportunity cost. A structured liquidity ladder ensures access while optimizing returns.',
+   '[{"title":"The liquidity framework","type":"bullets","content":["Tier 1: 3-6 months expenses in savings (immediate access)","Tier 2: 6-12 months in money market/short bonds (1-3 day access)","Tier 3: Remaining investable assets deployed for growth"]},{"title":"Optimization opportunity","type":"paragraph","content":["For portfolios above $500K, excess cash above 20% typically costs 3-5% in annual opportunity cost."]}]',
+   '{"Cash","Fixed Income"}', '{"liquidity_planning","cash_optimization"}', '{"Global","GCC"}',
+   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 14),
+
+  ('wealth_planning', 'Retirement planning for GCC expatriates',
+   'Expatriates in the GCC face unique retirement planning challenges including lack of pension systems, gratuity considerations, and multi-jurisdiction tax planning.',
+   '[{"title":"Key considerations","type":"bullets","content":["No state pension in most GCC countries","End-of-service gratuity calculations","Multi-currency retirement income planning","Tax residency implications on repatriation"]},{"title":"Action steps","type":"paragraph","content":["Start with a gap analysis between projected retirement needs and current savings trajectory. Consider both GCC-based and home-country investment vehicles."]}]',
+   '{"Equities","Fixed Income","Cash"}', '{"retirement_planning","expatriate_finance"}', '{"UAE","GCC"}',
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 14),
+
+  ('wealth_planning', 'Insurance as a wealth planning tool',
+   'Beyond protection, life insurance structures offer tax-efficient wealth transfer and estate planning benefits for HNW families.',
+   '[{"title":"Strategic uses","type":"bullets","content":["Estate equalization between heirs","Tax-efficient wealth transfer","Liquidity provision for estate taxes","Business succession funding"]},{"title":"Structures to consider","type":"paragraph","content":["Universal life policies in DIFC-regulated structures can provide both protection and tax-efficient growth for HNW families."]}]',
+   '{"Alternatives"}', '{"insurance","estate_planning"}', '{"UAE","GCC"}',
+   '{"risk_levels":["conservative","moderate"],"aum_tiers":["hnw","uhnw"]}', 21),
+
+  ('product_opportunity', 'Sukuk yields: Shariah-compliant fixed income',
    'Investment-grade sukuk offering attractive yields with Shariah compliance. Suitable for conservative to moderate risk profiles.',
-   '[{"title":"Opportunity overview","type":"bullets","content":["Investment-grade sukuk yielding 5.8% annualized","Shariah-compliant fixed income","3-5 year maturities available","Minimum investment: $50,000"]},{"title":"Suitability","type":"paragraph","content":["Best suited for conservative to moderate investors seeking income with capital preservation. Complements existing fixed income allocation."]}]',
-   NULL, 2, 'opportunity', 'Product', ARRAY['sukuk', 'fixed_income', 'shariah'], 'high',
-   '{"asset_classes":["Fixed Income"],"sectors":[],"geographies":["GCC","UAE"],"themes":["sukuk","islamic_finance","yield"],"wealth_topics":["income_generation"]}',
-   '[{"text":"Show me suitable sukuk options","family":"screen","context":{"card_summary":"Sukuk fixed-income opportunity","entities":[],"evidence_facts":["5.8% yield","Investment-grade"]}},{"text":"Connect me with my advisor","family":"advisor","context":{"card_summary":"Sukuk investment discussion","entities":[],"evidence_facts":[]}}]',
-   'Matches your fixed-income allocation gap',
-   '[{"title":"Sukuk issuance hits record as Gulf borrowers tap Islamic markets","publisher":"Reuters","published_at":"2026-03-29T13:00:00Z","url":null,"summary":"Investment-grade sukuk yields reach 5.8% as GCC issuers attract global demand for Shariah-compliant debt."},{"title":"Islamic finance grows as yields attract conventional investors","publisher":"Financial Times","published_at":"2026-03-28T08:30:00Z","url":null,"summary":"Sukuk markets expand with competitive yields drawing interest from both Islamic and conventional investors."}]',
-   TRUE, TRUE, NOW() + INTERVAL '14 days'),
+   '[{"title":"Opportunity overview","type":"bullets","content":["Investment-grade sukuk yielding 5-6% annualized","Shariah-compliant fixed income","3-5 year maturities available","Minimum investment: $50,000"]},{"title":"Suitability","type":"paragraph","content":["Best suited for conservative to moderate investors seeking income with capital preservation."]}]',
+   '{"Fixed Income"}', '{"sukuk","islamic_finance","yield"}', '{"GCC","UAE"}',
+   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 14),
 
-  ('disc-prod-2', 'product_opportunity', 'forYou',
-   'Private equity co-investment: Access pre-IPO tech at institutional pricing',
-   'Exclusive co-investment opportunity in late-stage technology companies approaching IPO. Limited allocation available.',
+  ('product_opportunity', 'Private equity co-investment: Pre-IPO tech access',
+   'Co-investment opportunity in late-stage technology companies approaching IPO. Institutional pricing with limited allocation.',
    '[{"title":"Opportunity details","type":"bullets","content":["Late-stage technology co-investment","Pre-IPO pricing with 2-3 year horizon","Minimum ticket: $100,000","Historical IRR: 22-28% for similar vintage"]},{"title":"Risk considerations","type":"bullets","content":["Illiquid investment with 2-3 year lock-up","Concentrated single-company exposure","Suitable for aggressive risk profiles only"]}]',
-   NULL, 2, 'opportunity', 'Product', ARRAY['private_equity', 'tech', 'pre_ipo'], 'high',
-   '{"asset_classes":["Alternatives","Private Equity"],"sectors":["Technology"],"geographies":["Global","US"],"themes":["private_equity","pre_ipo","tech_investing"],"wealth_topics":["growth","alternatives"]}',
-   '[{"text":"Show me the investment details","family":"screen","context":{"card_summary":"Pre-IPO tech co-investment","entities":[],"evidence_facts":["22-28% historical IRR"]}},{"text":"Connect me with my advisor","family":"advisor","context":{"card_summary":"PE co-investment discussion","entities":[],"evidence_facts":[]}}]',
-   'Matches your interest in alternatives and technology',
-   '[{"title":"Robinhood''s $1 billion fund pitches pre-IPO stock as next craze","publisher":"Bloomberg","published_at":"2026-03-30T14:00:00Z","url":"https://www.bloomberg.com/news/articles/2026-02-17/robinhood-s-1-billion-fund-pitches-pre-ipo-stock-as-next-craze","summary":"Late-stage co-investments in technology companies approaching IPO deliver strong historical returns."},{"title":"How investment firms of the ultra-rich partner with PE funds to find top deals","publisher":"CNBC","published_at":"2026-03-28T16:00:00Z","url":"https://www.cnbc.com/2026/01/29/family-offices-private-equity.html","summary":"More institutional-quality deals open to qualified investors at lower minimum tickets."}]',
-   TRUE, TRUE, NOW() + INTERVAL '14 days')
-ON CONFLICT (id) DO UPDATE SET
-  title = EXCLUDED.title,
-  summary = EXCLUDED.summary,
-  detail_sections = EXCLUDED.detail_sections,
-  ctas = EXCLUDED.ctas,
-  taxonomy_tags = EXCLUDED.taxonomy_tags,
-  supporting_articles = EXCLUDED.supporting_articles,
-  source_count = EXCLUDED.source_count,
-  updated_at = NOW();
+   '{"Alternatives","Private Equity"}', '{"private_equity","pre_ipo","tech_investing"}', '{"Global","US"}',
+   '{"risk_levels":["aggressive"],"aum_tiers":["hnw","uhnw"]}', 14),
+
+  ('product_opportunity', 'GCC infrastructure bonds: Government-backed yields',
+   'Government-backed infrastructure bonds in Saudi Arabia and UAE offering 4.5-5.5% yields with sovereign credit quality.',
+   '[{"title":"Opportunity overview","type":"bullets","content":["Government-backed credit quality","4.5-5.5% yield to maturity","5-10 year maturities","Supporting Vision 2030 and UAE development projects"]},{"title":"Why now","type":"paragraph","content":["Massive infrastructure spending across the GCC creates a steady pipeline of high-quality bond issuance."]}]',
+   '{"Fixed Income"}', '{"infrastructure","gcc_bonds","sovereign"}', '{"UAE","Saudi Arabia","GCC"}',
+   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 14),
+
+  ('product_opportunity', 'Gold-backed ETFs: Portfolio hedge opportunity',
+   'Gold has delivered 12% annualized returns over 5 years. ETF structures offer liquid, cost-efficient access to the asset class.',
+   '[{"title":"Key metrics","type":"bullets","content":["5-year annualized return: 12.1%","Correlation to S&P 500: 0.05","Expense ratio: 0.25-0.40%","No storage or insurance costs"]},{"title":"Portfolio role","type":"paragraph","content":["A 5-10% gold allocation can reduce portfolio volatility by 8-12% while maintaining return expectations."]}]',
+   '{"Commodities"}', '{"gold","portfolio_hedge","etf"}', '{"Global"}',
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 21),
+
+  ('explainer', 'How central bank policy affects your bond portfolio',
+   'Interest rate decisions directly impact bond prices. Understanding the mechanics helps you position your fixed-income allocation ahead of policy shifts.',
+   '[{"title":"The relationship","type":"paragraph","content":["When central banks raise rates, existing bond prices fall. When they cut rates, bond prices rise. The magnitude depends on duration: longer bonds move more."]},{"title":"Current positioning","type":"bullets","content":["Fed funds rate: holding steady through 2026","Duration risk: longer bonds more sensitive to rate changes","Opportunity: shorter-duration bonds offer yield with less rate risk"]}]',
+   '{"Fixed Income"}', '{"central_bank","interest_rates","bonds"}', '{"Global","US"}',
+   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 30),
+
+  ('explainer', 'Currency risk: What GCC investors need to know',
+   'With the dirham pegged to USD, GCC investors face hidden currency risks in non-dollar investments. Understanding FX exposure is critical.',
+   '[{"title":"The peg advantage","type":"paragraph","content":["The AED-USD peg eliminates currency risk for USD-denominated investments, but exposure to EUR, GBP, or JPY assets introduces FX volatility that can add 5-10% annual return variation."]},{"title":"Hedging strategies","type":"bullets","content":["Natural hedging through USD-denominated assets","Currency-hedged ETFs for international exposure","Forward contracts for large specific exposures"]}]',
+   '{"Equities","Fixed Income"}', '{"currency_risk","fx_hedging"}', '{"UAE","GCC","Global"}',
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 30)
+ON CONFLICT DO NOTHING;
 
 -- ============================================================
 -- Fix Ada View cards: non-destructively enrich supporting_articles entries

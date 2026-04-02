@@ -753,6 +753,25 @@ CREATE TABLE IF NOT EXISTS provider_fallback_events (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS editorial_content (
+  id SERIAL PRIMARY KEY,
+  card_type TEXT NOT NULL CHECK (card_type IN ('explainer', 'wealth_planning', 'product_opportunity')),
+  title TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  detail_sections JSONB NOT NULL DEFAULT '[]',
+  asset_classes TEXT[] NOT NULL DEFAULT '{}',
+  themes TEXT[] NOT NULL DEFAULT '{}',
+  regions TEXT[] NOT NULL DEFAULT '{}',
+  eligibility JSONB NOT NULL DEFAULT '{}',
+  rotation_days INTEGER NOT NULL DEFAULT 30,
+  last_used_at TIMESTAMPTZ,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_editorial_content_type ON editorial_content(card_type, is_active);
+
 CREATE TABLE IF NOT EXISTS moderation_events (
   id SERIAL PRIMARY KEY,
   user_id TEXT REFERENCES users(id),
