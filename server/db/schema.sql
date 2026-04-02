@@ -574,7 +574,7 @@ CREATE TABLE IF NOT EXISTS discover_cards (
   ctas JSONB NOT NULL DEFAULT '[]',
   why_you_are_seeing_this TEXT,
   personalized_overlay TEXT,
-  cluster_id INTEGER REFERENCES article_clusters(id),
+  cluster_id INTEGER REFERENCES article_clusters(id) ON DELETE SET NULL,
   priority_score INTEGER NOT NULL DEFAULT 0,
   feed_position INTEGER,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -590,6 +590,25 @@ DO $$ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='discover_cards' AND column_name='feed_position') THEN
     ALTER TABLE discover_cards ADD COLUMN feed_position INTEGER;
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    JOIN information_schema.referential_constraints rc ON tc.constraint_name = rc.constraint_name
+    WHERE tc.table_name = 'discover_cards'
+      AND tc.constraint_type = 'FOREIGN KEY'
+      AND rc.unique_constraint_name IN (
+        SELECT constraint_name FROM information_schema.table_constraints
+        WHERE table_name = 'article_clusters' AND constraint_type = 'PRIMARY KEY'
+      )
+      AND rc.delete_rule = 'NO ACTION'
+  ) THEN
+    ALTER TABLE discover_cards DROP CONSTRAINT IF EXISTS discover_cards_cluster_id_fkey;
+    ALTER TABLE discover_cards
+      ADD CONSTRAINT discover_cards_cluster_id_fkey
+      FOREIGN KEY (cluster_id) REFERENCES article_clusters(id) ON DELETE SET NULL;
   END IF;
 END $$;
 
@@ -629,7 +648,7 @@ END $$;
 CREATE TABLE IF NOT EXISTS user_discover_feed (
   id SERIAL PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id),
-  card_id TEXT NOT NULL REFERENCES discover_cards(id),
+  card_id TEXT NOT NULL REFERENCES discover_cards(id) ON DELETE CASCADE,
   personalized_overlay TEXT,
   personalized_why TEXT,
   personalized_ctas JSONB,
@@ -648,7 +667,7 @@ CREATE INDEX IF NOT EXISTS idx_user_discover_feed_card ON user_discover_feed(car
 CREATE TABLE IF NOT EXISTS user_content_interactions (
   id SERIAL PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id),
-  card_id TEXT NOT NULL REFERENCES discover_cards(id),
+  card_id TEXT NOT NULL REFERENCES discover_cards(id) ON DELETE CASCADE,
   action TEXT NOT NULL CHECK (action IN ('impression', 'view', 'click', 'cta_tap', 'expand', 'dismiss', 'feedback', 'share')),
   metadata JSONB NOT NULL DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -662,6 +681,38 @@ DO $$ BEGIN
     ALTER TABLE user_content_interactions DROP CONSTRAINT user_content_interactions_action_check;
     ALTER TABLE user_content_interactions ADD CONSTRAINT user_content_interactions_action_check
       CHECK (action IN ('impression', 'view', 'click', 'cta_tap', 'expand', 'dismiss', 'feedback', 'share'));
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    JOIN information_schema.referential_constraints rc ON tc.constraint_name = rc.constraint_name
+    WHERE tc.table_name = 'user_discover_feed'
+      AND tc.constraint_type = 'FOREIGN KEY'
+      AND rc.delete_rule = 'NO ACTION'
+      AND tc.constraint_name LIKE '%card_id%'
+  ) THEN
+    ALTER TABLE user_discover_feed DROP CONSTRAINT IF EXISTS user_discover_feed_card_id_fkey;
+    ALTER TABLE user_discover_feed
+      ADD CONSTRAINT user_discover_feed_card_id_fkey
+      FOREIGN KEY (card_id) REFERENCES discover_cards(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.table_constraints tc
+    JOIN information_schema.referential_constraints rc ON tc.constraint_name = rc.constraint_name
+    WHERE tc.table_name = 'user_content_interactions'
+      AND tc.constraint_type = 'FOREIGN KEY'
+      AND rc.delete_rule = 'NO ACTION'
+      AND tc.constraint_name LIKE '%card_id%'
+  ) THEN
+    ALTER TABLE user_content_interactions DROP CONSTRAINT IF EXISTS user_content_interactions_card_id_fkey;
+    ALTER TABLE user_content_interactions
+      ADD CONSTRAINT user_content_interactions_card_id_fkey
+      FOREIGN KEY (card_id) REFERENCES discover_cards(id) ON DELETE CASCADE;
   END IF;
 END $$;
 

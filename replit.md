@@ -22,7 +22,8 @@ Ada is built on a full-stack architecture comprising a React frontend, an Expres
 - **LLM Resilience & Fallback**: Implements streaming timeout/retry, automatic model downgrades, and fallback to Anthropic Claude.
 - **Execution Guardrails & RM Handoff**: Ada cannot execute trades; execution requests are routed to RM via `advisor_action_queue`, webhook, or rejected based on tenant configuration.
 - **Structured Response Protocol**: AdaResponseEnvelope v1.0 with 11 block types, FollowUpChip, SourceReference. Hybrid streaming: headline streamed as text, then full envelope via `structured` SSE event.
-- **Discover Pipeline**: Automated 7-stage pipeline (Ingest → Enrich → Cluster → Synthesize → Ada View → Event Calendar → Materialize) for content generation and personalization.
+- **Discover Pipeline**: Automated 7-stage pipeline (Ingest → Enrich → Cluster → Synthesize → Ada View → Event Calendar → Materialize) for content generation and personalization. FK constraints use ON DELETE SET NULL (article_clusters→discover_cards) and ON DELETE CASCADE (discover_cards→user_discover_feed, user_content_interactions) to prevent constraint violations during cluster cleanup.
+- **Home Screen Content**: Home screen content cards are sourced from the discover pipeline (top 3 scored cards personalized per user), with automatic fallback to static content_items if no pipeline cards exist.
 - **Personalization**: User segments, scoring engine with diversity guardrails, LLM personalized overlays, pre-computed feeds, interaction tracking, card dismissal with feedback, "New" badge, and CTA personalization.
 
 **Database (PostgreSQL):**

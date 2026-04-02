@@ -19,7 +19,12 @@ export interface DiscoverContentItem extends ContentItem {
   personalizedOverlay?: string | null;
 }
 
-export async function getHomeContent(_userId: string): Promise<ContentItem[]> {
+export async function getHomeContent(userId: string): Promise<ContentItem[]> {
+  const pipelineCards = await getHomePipelineCards(userId);
+  if (pipelineCards.length > 0) {
+    return pipelineCards;
+  }
+
   const { rows } = await pool.query(
     `SELECT id, category, category_type, title, context_title, description,
             timestamp, button_text, secondary_button_text, image, sources_count,
@@ -28,6 +33,71 @@ export async function getHomeContent(_userId: string): Promise<ContentItem[]> {
      ORDER BY id`,
   );
   return rows.map(mapRowToContentItem);
+}
+
+async function getHomePipelineCards(userId: string): Promise<ContentItem[]> {
+  try {
+    const hasCards = await checkDiscoverCardsExist();
+    if (!hasCards) return [];
+
+    const { rows } = await pool.query(
+      `SELECT id, card_type, tab, title, summary, image_url, source_count,
+              intent_badge, topic_label, relevance_tags, confidence,
+              taxonomy_tags, ctas, is_editorial, created_at
+       FROM discover_cards
+       WHERE is_active = TRUE
+       ORDER BY priority_score DESC, created_at DESC
+       LIMIT 20`,
+    );
+
+    if (rows.length === 0) return [];
+
+    const profile = await getUserProfileForScoring(userId);
+
+    const scored = rows.map((r: Record<string, unknown>) => {
+      const cardForScoring: CardRow = {
+        id: r.id as string,
+        card_type: r.card_type as string,
+        tab: r.tab as string,
+        confidence: r.confidence as string,
+        source_count: Number(r.source_count) || 0,
+        relevance_tags: r.relevance_tags as string[] || [],
+        taxonomy_tags: (typeof r.taxonomy_tags === 'string' ? JSON.parse(r.taxonomy_tags as string) : r.taxonomy_tags || {}) as Record<string, unknown>,
+        is_editorial: r.is_editorial as boolean,
+        created_at: new Date(r.created_at as string),
+      };
+      return { row: r, score: computeCardScore(cardForScoring, profile) };
+    });
+    scored.sort((a, b) => b.score - a.score);
+
+    const topCards = scored.slice(0, 3);
+
+    return topCards.map(({ row: r }) => {
+      const ctas = parseJson(r.ctas) as Array<{ text: string; family: string }> | null;
+      const primaryCta = ctas?.[0];
+      const secondaryCta = ctas?.[1];
+      const cardType = r.card_type as string;
+      const createdAt = new Date(r.created_at as string);
+
+      return {
+        id: r.id as string,
+        category: (r.topic_label as string) || 'News',
+        categoryType: mapCardTypeToCategoryType(cardType),
+        title: r.title as string,
+        contextTitle: r.title as string,
+        description: r.summary as string,
+        timestamp: computeFreshnessLabel(createdAt),
+        buttonText: primaryCta?.text || 'Tell me more',
+        secondaryButtonText: secondaryCta?.text || undefined,
+        image: (r.image_url as string) || undefined,
+        sourcesCount: Number(r.source_count) || undefined,
+        topicLabelColor: mapCardTypeToColor(cardType),
+      };
+    });
+  } catch (err) {
+    console.warn('[ContentRepo] Failed to load pipeline cards for home:', (err as Error).message);
+    return [];
+  }
 }
 
 const MIN_CARDS_FOR_YOU = 5;
