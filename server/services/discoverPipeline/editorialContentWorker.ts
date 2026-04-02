@@ -97,32 +97,65 @@ function mapTopicLabel(cardType: string): string {
   }
 }
 
-async function fetchEligibleEditorial(): Promise<EditorialRow[]> {
-  const { rows } = await pool.query(
-    `SELECT id, card_type, title, summary, detail_sections, asset_classes, themes, regions,
+const TYPE_FRESHNESS_HOURS: Record<string, number> = {
+  explainer: 7 * 24,
+  wealth_planning: 7 * 24,
+  product_opportunity: 24,
+};
+
+async function fetchEligibleEditorial(userRiskLevels?: string[]): Promise<EditorialRow[]> {
+  let query = `SELECT id, card_type, title, summary, detail_sections, asset_classes, themes, regions,
             eligibility, rotation_days
      FROM editorial_content
      WHERE is_active = TRUE
-       AND (last_used_at IS NULL OR last_used_at < NOW() - (rotation_days || ' days')::INTERVAL)
-     ORDER BY last_used_at ASC NULLS FIRST, id ASC`,
-  );
+       AND (last_used_at IS NULL OR last_used_at < NOW() - (rotation_days || ' days')::INTERVAL)`;
+
+  const params: unknown[] = [];
+
+  if (userRiskLevels && userRiskLevels.length > 0) {
+    params.push(JSON.stringify(userRiskLevels));
+    query += ` AND (
+      eligibility->'risk_levels' IS NULL
+      OR EXISTS (
+        SELECT 1 FROM jsonb_array_elements_text(eligibility->'risk_levels') AS rl
+        WHERE rl = ANY(SELECT jsonb_array_elements_text($${params.length}::JSONB))
+      )
+    )`;
+  }
+
+  query += ` ORDER BY last_used_at ASC NULLS FIRST, id ASC`;
+
+  const { rows } = await pool.query(query, params);
   return rows as EditorialRow[];
 }
 
 async function countRecentEditorialCards(cardType: string): Promise<number> {
+  const freshnessHours = TYPE_FRESHNESS_HOURS[cardType] || 48;
   const { rows } = await pool.query(
     `SELECT COUNT(*) as cnt FROM discover_cards
      WHERE card_type = $1 AND is_active = TRUE AND is_editorial = TRUE
-       AND created_at > NOW() - INTERVAL '2 days'`,
-    [cardType],
+       AND created_at > NOW() - ($2 || ' hours')::INTERVAL`,
+    [cardType, freshnessHours],
   );
   return Number(rows[0]?.cnt) || 0;
+}
+
+async function fetchDistinctRiskLevels(): Promise<string[]> {
+  try {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT level FROM risk_profiles`,
+    );
+    return rows.map((r: { level: string }) => r.level);
+  } catch {
+    return ['moderate'];
+  }
 }
 
 export async function runEditorialContent(): Promise<number> {
   console.log('[EditorialContentWorker] Checking for editorial content to generate...');
   try {
-    const eligible = await fetchEligibleEditorial();
+    const riskLevels = await fetchDistinctRiskLevels();
+    const eligible = await fetchEligibleEditorial(riskLevels);
     if (eligible.length === 0) {
       console.log('[EditorialContentWorker] No eligible editorial content found');
       return 0;
