@@ -851,8 +851,9 @@ SET supporting_articles = (
               )
       ELSE elem
     END
+    ORDER BY ord
   )
-  FROM jsonb_array_elements(av.supporting_articles) elem
+  FROM jsonb_array_elements(av.supporting_articles) WITH ORDINALITY AS t(elem, ord)
   LEFT JOIN discover_cards src ON src.id = elem->>'card_id'
 ),
 updated_at = NOW()
