@@ -16,7 +16,7 @@ const INTERVAL_DEFAULTS: Record<string, number> = {
   ingest: 10,
   cluster: 15,
   materialize: 60,
-  editorial: 360,
+  editorial: 1440,
   expiry: 240,
   morning: 360,
 };
