@@ -764,11 +764,16 @@ CREATE TABLE IF NOT EXISTS editorial_content (
   regions TEXT[] NOT NULL DEFAULT '{}',
   eligibility JSONB NOT NULL DEFAULT '{}',
   rotation_days INTEGER NOT NULL DEFAULT 30,
+  source_url TEXT,
+  source_publisher TEXT,
   last_used_at TIMESTAMPTZ,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE editorial_content ADD COLUMN IF NOT EXISTS source_url TEXT;
+ALTER TABLE editorial_content ADD COLUMN IF NOT EXISTS source_publisher TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_editorial_content_type ON editorial_content(card_type, is_active);
 

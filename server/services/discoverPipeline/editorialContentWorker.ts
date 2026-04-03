@@ -13,6 +13,8 @@ interface EditorialRow {
   regions: string[];
   eligibility: { risk_levels?: string[]; aum_tiers?: string[] };
   rotation_days: number;
+  source_url: string | null;
+  source_publisher: string | null;
 }
 
 interface UserSegment {
@@ -172,7 +174,7 @@ async function fetchSegments(): Promise<UserSegment[]> {
 async function fetchEligibleEditorial(segment: UserSegment): Promise<EditorialRow[]> {
   const { rows } = await pool.query(
     `SELECT id, card_type, title, summary, detail_sections, asset_classes, themes, regions,
-            eligibility, rotation_days
+            eligibility, rotation_days, source_url, source_publisher
      FROM editorial_content
      WHERE is_active = TRUE
        AND (last_used_at IS NULL OR last_used_at < NOW() - (rotation_days || ' days')::INTERVAL)
@@ -311,12 +313,20 @@ export async function runEditorialContent(): Promise<number> {
 
           const expiryDays = editorial.card_type === 'explainer' ? 14 : 7;
 
+          const supportingArticles = editorial.source_url ? [{
+            title: editorial.title,
+            publisher: editorial.source_publisher || 'Ada Research',
+            published_at: new Date().toISOString(),
+            url: editorial.source_url,
+            summary: editorial.summary,
+          }] : [];
+
           await pool.query(
             `INSERT INTO discover_cards (id, card_type, tab, title, summary, detail_sections, supporting_articles,
               source_count, intent_badge, topic_label, relevance_tags, confidence, taxonomy_tags, ctas,
               why_you_are_seeing_this, is_active, is_editorial, priority_score, expires_at)
-             VALUES ($1, $2, $3, $4, $5, $6, '[]', 0, $7, $8, $9, 'high',
-               $10, $11, $12, TRUE, TRUE, $13, $14)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'high',
+               $12, $13, $14, TRUE, TRUE, $15, $16)
              ON CONFLICT (id) DO NOTHING`,
             [
               cardId,
@@ -325,6 +335,8 @@ export async function runEditorialContent(): Promise<number> {
               parsed.title,
               parsed.summary,
               JSON.stringify(parsed.detail_sections || []),
+              JSON.stringify(supportingArticles),
+              supportingArticles.length,
               intentBadge,
               topicLabel,
               editorial.themes.slice(0, 5),

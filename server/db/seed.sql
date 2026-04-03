@@ -710,103 +710,149 @@ WHERE id IN ('disc-ed-1', 'disc-ed-2', 'disc-ed-3', 'disc-ed-4', 'disc-ed-5', 'd
 -- Editorial Content Corpus (source material for editorialContentWorker)
 -- ============================================================
 DELETE FROM editorial_content;
-INSERT INTO editorial_content (card_type, title, summary, detail_sections, asset_classes, themes, regions, eligibility, rotation_days) VALUES
+INSERT INTO editorial_content (card_type, title, summary, detail_sections, asset_classes, themes, regions, eligibility, rotation_days, source_url, source_publisher) VALUES
   ('explainer', 'How private credit differs from public bonds',
    'Private credit offers higher yields with less liquidity. Understanding the trade-offs is key for portfolio construction.',
    '[{"title":"What it is","type":"paragraph","content":["Private credit involves direct lending to companies outside public bond markets, offering higher yields in exchange for less liquidity and longer lock-up periods."]},{"title":"Key data points","type":"bullets","content":["Average yield: 8-12% vs 4-6% for investment-grade bonds","Typical lock-up: 3-7 years","Default rate: 2.1% (lower than high-yield bonds at 3.8%)"]}]',
    '{"Fixed Income","Private Credit"}', '{"private_credit","yield_enhancement"}', '{"Global"}',
-   '{"risk_levels":["moderate","aggressive"],"aum_tiers":["all"]}', 7),
+   '{"risk_levels":["moderate","aggressive"],"aum_tiers":["all"]}', 7,
+   'https://www.bloomberg.com/markets/fixed-income', 'Bloomberg'),
 
   ('explainer', 'GCC real estate yields outpace global averages',
    'Dubai and Riyadh property markets deliver 7-9% rental yields, supported by population growth and economic diversification.',
    '[{"title":"Market overview","type":"paragraph","content":["GCC real estate has emerged as a compelling income-generating asset class, with rental yields in prime locations significantly exceeding global averages."]},{"title":"Key metrics","type":"bullets","content":["Dubai prime residential yield: 7.2%","Riyadh commercial yield: 8.5%","Global average comparable yield: 4.1%"]}]',
    '{"Real Estate"}', '{"gcc_property","rental_yield"}', '{"UAE","Saudi Arabia","GCC"}',
-   '{"risk_levels":["moderate","aggressive"],"aum_tiers":["all"]}', 7),
+   '{"risk_levels":["moderate","aggressive"],"aum_tiers":["all"]}', 7,
+   'https://www.zawya.com/en/business/real-estate', 'Zawya'),
 
   ('explainer', 'Sustainable investing: Competitive returns with lower risk',
    'ESG-screened portfolios matched market returns with 18% less volatility over the past 5 years.',
    '[{"title":"Performance insights","type":"bullets","content":["ESG leaders: +9.8% annualized vs +9.6% for broad market","Sharpe ratio: 0.82 vs 0.69 for conventional portfolios","Downside capture: 82% vs market average of 95%"]},{"title":"Implementation","type":"paragraph","content":["Multiple ESG integration approaches exist, from negative screening to impact investing."]}]',
    '{"Equities","Fixed Income"}', '{"esg","sustainable_investing"}', '{"Global"}',
-   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 7),
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 7,
+   'https://www.ft.com/sustainable-investing', 'Financial Times'),
 
   ('explainer', 'What are structured products and who are they for?',
    'Structured products combine derivatives with fixed-income instruments to create custom risk-return profiles for specific investor needs.',
    '[{"title":"How they work","type":"paragraph","content":["Structured products are pre-packaged investments that combine bonds and derivatives. They offer tailored payoff profiles including capital protection, enhanced yield, or leveraged upside."]},{"title":"Key considerations","type":"bullets","content":["Capital protection levels: typically 80-100%","Maturity: 1-5 years","Counterparty risk is a key factor","Minimum investment: usually $50K-$250K"]}]',
    '{"Fixed Income","Alternatives"}', '{"structured_products","capital_protection"}', '{"Global","GCC"}',
-   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 7),
+   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 7,
+   'https://www.reuters.com/markets/wealth', 'Reuters'),
 
   ('explainer', 'Understanding correlation: Why diversification actually works',
    'Low-correlation assets reduce portfolio risk without proportionally reducing returns. The math behind modern portfolio theory explained.',
    '[{"title":"The core concept","type":"paragraph","content":["When assets move independently, combining them reduces overall portfolio volatility. A portfolio of uncorrelated assets with 10% individual risk can achieve 4-5% portfolio risk."]},{"title":"Practical examples","type":"bullets","content":["Gold vs equities correlation: 0.05 (near zero)","Private real estate vs stocks: 0.15","International bonds vs domestic equity: 0.25"]}]',
    '{"Equities","Fixed Income","Alternatives"}', '{"diversification","portfolio_theory"}', '{"Global"}',
-   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 7),
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 7,
+   'https://www.morningstar.com/portfolios', 'Morningstar'),
 
   ('explainer', 'Dollar-cost averaging vs lump-sum investing',
    'Both strategies have merits. Historical data shows lump-sum investing wins 68% of the time, but DCA reduces regret and volatility exposure.',
    '[{"title":"The evidence","type":"bullets","content":["Lump-sum outperforms DCA 68% of the time historically","DCA reduces maximum drawdown by 20-30%","DCA is psychologically easier for large investments"]},{"title":"When each works best","type":"paragraph","content":["Use lump-sum when confident in long-term outlook. Use DCA when deploying large cash positions or during high-volatility periods."]}]',
    '{"Equities","Fixed Income"}', '{"investment_strategy","dca"}', '{"Global"}',
-   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 7),
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 7,
+   'https://www.vanguard.com/research', 'Vanguard Research'),
 
   ('wealth_planning', 'Multi-generational wealth transfer: Tax-efficient structures',
    'Strategic trust structures can reduce estate tax burden by up to 35%. New regulations create opportunities for GCC families.',
    '[{"title":"Regulatory changes","type":"bullets","content":["Estate tax reduction up to 35%","Strategic trust structures available in DIFC and ADGM","Multi-generational wealth planning frameworks"]},{"title":"Implementation approach","type":"paragraph","content":["Work with a financial advisor to model different scenarios and choose the most tax-efficient structure for your family."]}]',
    '{"Fixed Income"}', '{"estate_planning","tax_optimization"}', '{"UAE","GCC"}',
-   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["affluent","hnw","uhnw"]}', 7),
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["affluent","hnw","uhnw"]}', 7,
+   'https://www.gulfnews.com/business/banking', 'Gulf News'),
 
   ('wealth_planning', 'Liquidity planning: How much cash is too much?',
    'Cash allocations above 25% may signal opportunity cost. A structured liquidity ladder ensures access while optimizing returns.',
    '[{"title":"The liquidity framework","type":"bullets","content":["Tier 1: 3-6 months expenses in savings (immediate access)","Tier 2: 6-12 months in money market/short bonds (1-3 day access)","Tier 3: Remaining investable assets deployed for growth"]},{"title":"Optimization opportunity","type":"paragraph","content":["For portfolios above $500K, excess cash above 20% typically costs 3-5% in annual opportunity cost."]}]',
    '{"Cash","Fixed Income"}', '{"liquidity_planning","cash_optimization"}', '{"Global","GCC"}',
-   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 7),
+   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 7,
+   'https://www.bloomberg.com/wealth', 'Bloomberg'),
 
   ('wealth_planning', 'Retirement planning for GCC expatriates',
    'Expatriates in the GCC face unique retirement planning challenges including lack of pension systems, gratuity considerations, and multi-jurisdiction tax planning.',
    '[{"title":"Key considerations","type":"bullets","content":["No state pension in most GCC countries","End-of-service gratuity calculations","Multi-currency retirement income planning","Tax residency implications on repatriation"]},{"title":"Action steps","type":"paragraph","content":["Start with a gap analysis between projected retirement needs and current savings trajectory. Consider both GCC-based and home-country investment vehicles."]}]',
    '{"Equities","Fixed Income","Cash"}', '{"retirement_planning","expatriate_finance"}', '{"UAE","GCC"}',
-   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 7),
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 7,
+   'https://www.arabianbusiness.com/money/wealth', 'Arabian Business'),
 
   ('wealth_planning', 'Insurance as a wealth planning tool',
    'Beyond protection, life insurance structures offer tax-efficient wealth transfer and estate planning benefits for HNW families.',
    '[{"title":"Strategic uses","type":"bullets","content":["Estate equalization between heirs","Tax-efficient wealth transfer","Liquidity provision for estate taxes","Business succession funding"]},{"title":"Structures to consider","type":"paragraph","content":["Universal life policies in DIFC-regulated structures can provide both protection and tax-efficient growth for HNW families."]}]',
    '{"Alternatives"}', '{"insurance","estate_planning"}', '{"UAE","GCC"}',
-   '{"risk_levels":["conservative","moderate"],"aum_tiers":["hnw","uhnw"]}', 7),
+   '{"risk_levels":["conservative","moderate"],"aum_tiers":["hnw","uhnw"]}', 7,
+   'https://www.ft.com/wealth-management', 'Financial Times'),
 
   ('product_opportunity', 'Sukuk yields: Shariah-compliant fixed income',
    'Investment-grade sukuk offering attractive yields with Shariah compliance. Suitable for conservative to moderate risk profiles.',
    '[{"title":"Opportunity overview","type":"bullets","content":["Investment-grade sukuk yielding 5-6% annualized","Shariah-compliant fixed income","3-5 year maturities available","Minimum investment: $50,000"]},{"title":"Suitability","type":"paragraph","content":["Best suited for conservative to moderate investors seeking income with capital preservation."]}]',
    '{"Fixed Income"}', '{"sukuk","islamic_finance","yield"}', '{"GCC","UAE"}',
-   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 1),
+   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 1,
+   'https://www.zawya.com/en/business/banking/sukuk', 'Zawya'),
 
   ('product_opportunity', 'Private equity co-investment: Pre-IPO tech access',
    'Co-investment opportunity in late-stage technology companies approaching IPO. Institutional pricing with limited allocation.',
    '[{"title":"Opportunity details","type":"bullets","content":["Late-stage technology co-investment","Pre-IPO pricing with 2-3 year horizon","Minimum ticket: $100,000","Historical IRR: 22-28% for similar vintage"]},{"title":"Risk considerations","type":"bullets","content":["Illiquid investment with 2-3 year lock-up","Concentrated single-company exposure","Suitable for aggressive risk profiles only"]}]',
    '{"Alternatives","Private Equity"}', '{"private_equity","pre_ipo","tech_investing"}', '{"Global","US"}',
-   '{"risk_levels":["aggressive"],"aum_tiers":["hnw","uhnw"]}', 1),
+   '{"risk_levels":["aggressive"],"aum_tiers":["hnw","uhnw"]}', 1,
+   'https://www.bloomberg.com/markets/private-equity', 'Bloomberg'),
 
   ('product_opportunity', 'GCC infrastructure bonds: Government-backed yields',
    'Government-backed infrastructure bonds in Saudi Arabia and UAE offering 4.5-5.5% yields with sovereign credit quality.',
    '[{"title":"Opportunity overview","type":"bullets","content":["Government-backed credit quality","4.5-5.5% yield to maturity","5-10 year maturities","Supporting Vision 2030 and UAE development projects"]},{"title":"Why now","type":"paragraph","content":["Massive infrastructure spending across the GCC creates a steady pipeline of high-quality bond issuance."]}]',
    '{"Fixed Income"}', '{"infrastructure","gcc_bonds","sovereign"}', '{"UAE","Saudi Arabia","GCC"}',
-   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 1),
+   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 1,
+   'https://www.reuters.com/markets/emerging', 'Reuters'),
 
   ('product_opportunity', 'Gold-backed ETFs: Portfolio hedge opportunity',
    'Gold has delivered 12% annualized returns over 5 years. ETF structures offer liquid, cost-efficient access to the asset class.',
    '[{"title":"Key metrics","type":"bullets","content":["5-year annualized return: 12.1%","Correlation to S&P 500: 0.05","Expense ratio: 0.25-0.40%","No storage or insurance costs"]},{"title":"Portfolio role","type":"paragraph","content":["A 5-10% gold allocation can reduce portfolio volatility by 8-12% while maintaining return expectations."]}]',
    '{"Commodities"}', '{"gold","portfolio_hedge","etf"}', '{"Global"}',
-   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 1),
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 1,
+   'https://www.reuters.com/markets/commodities/gold', 'Reuters'),
 
   ('explainer', 'How central bank policy affects your bond portfolio',
    'Interest rate decisions directly impact bond prices. Understanding the mechanics helps you position your fixed-income allocation ahead of policy shifts.',
    '[{"title":"The relationship","type":"paragraph","content":["When central banks raise rates, existing bond prices fall. When they cut rates, bond prices rise. The magnitude depends on duration: longer bonds move more."]},{"title":"Current positioning","type":"bullets","content":["Fed funds rate: holding steady through 2026","Duration risk: longer bonds more sensitive to rate changes","Opportunity: shorter-duration bonds offer yield with less rate risk"]}]',
    '{"Fixed Income"}', '{"central_bank","interest_rates","bonds"}', '{"Global","US"}',
-   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 7),
+   '{"risk_levels":["conservative","moderate"],"aum_tiers":["all"]}', 7,
+   'https://www.ft.com/central-banks', 'Financial Times'),
 
   ('explainer', 'Currency risk: What GCC investors need to know',
    'With the dirham pegged to USD, GCC investors face hidden currency risks in non-dollar investments. Understanding FX exposure is critical.',
    '[{"title":"The peg advantage","type":"paragraph","content":["The AED-USD peg eliminates currency risk for USD-denominated investments, but exposure to EUR, GBP, or JPY assets introduces FX volatility that can add 5-10% annual return variation."]},{"title":"Hedging strategies","type":"bullets","content":["Natural hedging through USD-denominated assets","Currency-hedged ETFs for international exposure","Forward contracts for large specific exposures"]}]',
    '{"Equities","Fixed Income"}', '{"currency_risk","fx_hedging"}', '{"UAE","GCC","Global"}',
-   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 7)
+   '{"risk_levels":["conservative","moderate","aggressive"],"aum_tiers":["all"]}', 7,
+   'https://www.gulfnews.com/business/markets', 'Gulf News')
 ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- Backfill: Add supporting_articles to existing editorial discover_cards
+-- that currently have empty supporting_articles, using corpus source data
+-- ============================================================
+UPDATE discover_cards dc
+SET supporting_articles = jsonb_build_array(
+      jsonb_build_object(
+        'title', ec.title,
+        'publisher', COALESCE(ec.source_publisher, 'Ada Research'),
+        'published_at', dc.created_at,
+        'url', ec.source_url,
+        'summary', ec.summary
+      )
+    ),
+    source_count = 1,
+    updated_at = NOW()
+FROM (
+  SELECT DISTINCT ON (card_type) card_type, title, source_publisher, source_url, summary
+  FROM editorial_content
+  WHERE source_url IS NOT NULL
+  ORDER BY card_type, id
+) ec
+WHERE dc.card_type = ec.card_type
+  AND dc.is_active = TRUE
+  AND dc.is_editorial = TRUE
+  AND dc.id LIKE 'disc-ed-%'
+  AND (dc.supporting_articles IS NULL
+       OR dc.supporting_articles::text = '[]'
+       OR dc.supporting_articles::text = 'null');
 
 -- ============================================================
 -- Fix Ada View cards: non-destructively enrich supporting_articles entries
