@@ -1,0 +1,607 @@
+You are auditing the current ADA codebase and runtime so we can design a robust, reusable way to populate persona + portfolio data for Omar, and later refresh/add new users using the same method.
+
+Context:
+- I am attaching:
+  1) Omar persona RAG markdown file
+  2) Omar Excel workbook used for DB/data load
+- There may already be other users populated in the app/database. That is acceptable for now, but the audit must identify whether it is simpler/safer to:
+  - remove all other demo users and keep only Omar, or
+  - support multiple demo users cleanly
+- The end goal is NOT just data insertion.
+- The end goal is to design:
+  1) a reliable Omar population/load approach,
+  2) a repeatable refresh/add-new-user method,
+  3) the correct persona/profile/portfolio wiring across ADA UI,
+  4) the correct use of persona RAG inside chat AI orchestration, tools, and response personalization,
+  5) a market-data back population mechanism so market-linked asset values are refreshed from external market data rather than trusted from Excel.
+
+Do NOT implement changes yet.
+This is an audit + design-input pass only.
+
+==================================================
+PRIMARY OBJECTIVE
+==================================================
+
+Produce a comprehensive markdown document that gives enough grounded detail for a follow-on technical design covering:
+
+1. How Omar’s persona, profile, portfolio, goals, accounts, holdings, transactions, and advisor context should be loaded into ADA
+2. Where each of those data domains is currently used in the UI
+3. Where each is used in backend services/APIs
+4. How the chat AI layer currently works end-to-end:
+   - orchestration
+   - model routing
+   - tools
+   - chaining
+   - memory/context assembly
+   - RAG usage
+   - prompt construction
+   - streaming
+5. Where the right parts of Omar’s persona RAG should be injected for personalization
+6. How to keep durable persona context separate from live structured facts
+7. How to make future user refreshes/additions much easier and less manual
+8. How to back-populate market-linked prices and values for holdings + transactions using a market data source such as Yahoo Finance or Finnhub, with deterministic recomputation rules
+
+==================================================
+CRITICAL BUSINESS RULES FOR MARKET-LINKED ASSETS
+==================================================
+
+These rules are mandatory and must be reflected in the audit and recommended design.
+
+For market-linked assets, Excel should NOT be treated as the authoritative source for:
+- current market price
+- current market value
+- historical transaction price where quantity is specified
+- holding-level average cost basis if we choose to recompute/enrich it from market history
+
+Instead, the load design should support a back-population/enrichment step from a market data provider such as Yahoo Finance or Finnhub.
+
+There are 2 key tabs/areas affected:
+
+1) Holdings tab
+For all market-linked assets except cash:
+- Avg cost basis = last 1 year average market price (or audit whether this should instead remain transaction-derived and flag the design tradeoff)
+- Current price = latest available market price
+- Holding value = Quantity × Current price
+
+Cash and cash-equivalent balances should not be repriced using market data.
+
+2) Transactions tab
+For all rows where a quantity/units field is specified:
+- Price = market price on the transaction date
+- Amount = Price × Units
+
+If a transaction row has no quantity, audit how it should be treated:
+- leave as workbook/manual amount?
+- infer from amount/price?
+- exclude from market backfill?
+Document the rule options and current-system implications.
+
+The audit must determine:
+- how to identify “market-linked” vs “cash/non-market-linked”
+- how symbols/tickers are currently represented
+- where symbol normalization/mapping is needed
+- how to handle ETFs, equities, crypto, funds, mutual funds, bonds, and non-priced/private assets
+- how to handle missing symbols, delisted symbols, weekends/holidays, FX conversion, and stale prices
+- whether “avg cost basis = trailing 1Y average market price” is acceptable for demo purposes vs true accounting cost basis
+
+==================================================
+OUTPUT FILE
+==================================================
+
+Create a markdown document named:
+
+data-personalization-audit-omar-<timestamp>.md
+
+Also create any optional appendices if useful, but the main markdown must stand on its own.
+
+==================================================
+IMPORTANT AUDIT PRINCIPLES
+==================================================
+
+1. Be evidence-based.
+   - Every important finding must reference concrete file paths, functions, components, endpoints, DB tables, migrations, scripts, or config.
+   - Do not give generic architecture commentary.
+
+2. Prefer actual current-state truth over assumptions.
+   - Inspect the codebase, schema, seeds, migrations, API handlers, front-end data fetching, and chat pipeline.
+
+3. Be explicit about uncertainty.
+   - If something cannot be verified, say so clearly and explain what is missing.
+
+4. Separate:
+   - current state
+   - observed gaps/issues
+   - recommended design direction
+
+5. Focus specifically on Omar as the immediate use case, but make sure the audit supports a repeatable multi-user method later.
+
+6. Treat Excel as:
+   - authoritative for persona-linked structured facts that originate from the workbook
+   - potentially non-authoritative for market-priced fields that should be recomputed from external market data
+
+==================================================
+SCOPE OF INVESTIGATION
+==================================================
+
+You must inspect and document at least the following.
+
+--------------------------------------------------
+A. SYSTEM / REPO OVERVIEW
+--------------------------------------------------
+
+Provide a concise but concrete view of:
+- repo structure relevant to this problem
+- front-end architecture relevant to data display
+- backend architecture relevant to user/profile/portfolio retrieval and chat
+- database/storage architecture
+- where mock/demo data currently comes from
+- where environment/config toggles influence data source behavior
+
+Include:
+- major folders/files
+- relevant services/modules
+- any data access layer / ORM / SQL helpers
+- any capability registry / orchestration registry / tool registry
+
+--------------------------------------------------
+B. CURRENT DATA MODEL INVENTORY
+--------------------------------------------------
+
+Audit all current data structures relevant to persona/profile/portfolio and chat personalization.
+
+Document:
+- DB tables relevant to:
+  - users/auth identities
+  - customer/profile
+  - portfolios
+  - holdings
+  - transactions
+  - goals
+  - connected accounts
+  - advisors / RM
+  - notifications / insights / recommendations if relevant
+  - any chat memory / summaries / personalization stores
+  - any market price, valuation, quote-cache, symbol master, or security master tables if they exist
+- ORM models / TS interfaces / zod schemas / DTOs / API contracts
+- primary keys and foreign keys
+- join logic
+- canonical user identifier(s)
+- whether email, customer_id, user_id, portfolio_id etc. are used consistently
+- any mismatch between DB schema and front-end assumptions
+
+For each relevant entity/table, capture:
+- purpose
+- key fields
+- required vs optional fields
+- relationships
+- where it is read
+- where it is written
+- any seed/import path already available
+
+--------------------------------------------------
+C. OMAR EXCEL WORKBOOK TO CURRENT SYSTEM MAPPING
+--------------------------------------------------
+
+Using the attached Omar Excel workbook, map every sheet/section/field into ADA’s current system.
+
+Create a mapping table with columns like:
+- Excel sheet
+- Excel column/field
+- Intended meaning
+- Current ADA table/model/field
+- Transformation needed
+- Required IDs/lookups
+- Can load directly? (yes/no)
+- Should market-backfill override this? (yes/no)
+- Gaps/issues
+- Notes
+
+Identify:
+- fields in the workbook that have no destination yet
+- ADA fields that the UI/chat expects but are not supplied by the workbook
+- derived fields that ADA computes rather than stores
+- fields that need normalization, enrichment, or defaulting
+- where manual intervention is currently required
+
+Specifically classify workbook fields into:
+1. Load as-is
+2. Load then derive
+3. Ignore because external market backfill should replace
+4. Manual review required
+
+Also flag if the workbook appears to support only one user cleanly or can support multi-user refreshes with a small structural extension.
+
+--------------------------------------------------
+D. MARKET DATA BACKFILL / ENRICHMENT AUDIT
+--------------------------------------------------
+
+This is a critical section.
+
+Audit what would be required to support a market-data back population script after the base Omar load.
+
+You must inspect current support for:
+- security identifiers
+- tickers/symbols
+- exchange codes
+- asset class/type classification
+- quote currency
+- portfolio base currency
+- transaction dates / settlement dates
+- holdings quantity and units
+- existing pricing caches or quote services
+- API/service patterns already used for external integrations
+
+Document:
+- whether current holdings records can be reliably matched to market symbols
+- whether transaction rows can be repriced from transaction date
+- whether current tables can store:
+  - latest price
+  - price date / as-of timestamp
+  - historical transaction price
+  - derived holding value
+  - derived avg cost basis / demo proxy cost basis
+- whether a separate enrichment table or script output layer is needed
+
+Produce a design-oriented audit for a backfill script that would:
+1. Load workbook base data
+2. Normalize symbols
+3. Fetch external market data
+4. Update/recompute holdings pricing fields
+5. Update/recompute transaction pricing fields
+6. Reconcile totals
+7. Log misses/exceptions
+
+Also determine:
+- which provider abstraction would fit best in current code structure
+- whether provider-specific adapters should be introduced
+- where rate limiting, retries, batching, and caching would belong
+- whether backfill should happen as:
+  - a CLI/import script
+  - a server-side admin job
+  - a DB migration/seeding step
+  - an on-demand recompute endpoint
+
+--------------------------------------------------
+E. CURRENT DATA POPULATION / SEED / IMPORT PATHS
+--------------------------------------------------
+
+Find all current mechanisms that populate or mutate demo/user data, such as:
+- SQL seed files
+- scripts
+- migrations
+- admin scripts
+- fixtures
+- JSON/TS mock data
+- API write endpoints
+- loaders/importers
+- hardcoded in-memory demo payloads
+- fallback demo generators
+
+Document:
+- what each path does
+- whether it is safe for repeatable refreshes
+- whether it is idempotent
+- whether it supports per-user refresh
+- whether it risks stale or mixed demo users
+- what the best candidate is for a future “persona load pipeline”
+- what the best candidate is for a second-stage market-backfill pipeline
+
+Specifically answer:
+- Is it easier to purge all other demo users and keep only Omar?
+- Or does the current design already support multiple demo users reasonably well?
+- What constraints make one option safer?
+
+--------------------------------------------------
+F. UI DATA USAGE MAP
+--------------------------------------------------
+
+This is a critical section.
+
+Map where persona/profile/portfolio-related data is used across the UI.
+
+Cover:
+- login / identity resolution
+- home tab
+- wealth tab
+- holdings tab
+- transactions tab
+- discover tab
+- collective tab
+- chat surfaces
+- alerts/notifications
+- profile/settings
+- advisor/RM surfaces
+- any widgets/cards/modals/overlays
+
+For each screen/component/widget, document:
+- component/file path
+- data source(s)
+- fields used
+- whether data is live API, mock JSON, derived client-side, or hardcoded
+- whether it is Omar-specific, generic, or user-aware
+- whether current UI supports user switching
+- any broken/missing wiring
+- any places where profile/persona should influence wording but currently does not
+- any places where holdings/transactions pricing depends on stale workbook values today
+
+Provide this as both:
+1. a narrative walkthrough by tab/feature
+2. a matrix/table for quick reference
+
+--------------------------------------------------
+G. END-TO-END CHAT / AI ORCHESTRATION AUDIT
+--------------------------------------------------
+
+This is also critical.
+
+Trace the full path for ADA chat and AI features.
+
+Document:
+- request entrypoints
+- backend chat endpoints
+- orchestration services
+- lane routing / classifier logic
+- model/provider routing
+- prompt builders
+- memory retrieval
+- tool calling
+- RAG retrieval
+- system prompts / hidden instructions
+- streaming/SSE/WebSocket response path
+- fallback logic
+- error handling
+- where user profile/context enters today, if anywhere
+- whether portfolio facts used by chat are fetched live or come from stale precomputed values
+
+Be very concrete:
+- file paths
+- function names
+- service classes
+- prompt templates
+- capability registry aliases
+- tool definitions
+- retrieval logic
+- chain order / execution sequence
+
+Produce:
+1. a written step-by-step flow
+2. a simple sequence diagram (Mermaid is fine)
+
+Also answer:
+- What user/persona/profile context is already passed into chat?
+- What portfolio/account/goal data is already passed into chat?
+- What is fetched on-demand vs preloaded?
+- What is hardcoded vs dynamic?
+- Where is there risk of hallucinating user facts?
+- Where would Omar personalization be best injected without overloading prompts?
+- Where should recalculated market-linked facts be sourced from so chat uses the corrected enriched values?
+
+--------------------------------------------------
+H. PERSONA RAG USAGE AUDIT
+--------------------------------------------------
+
+Using the attached Omar RAG file as the reference pattern, determine how persona RAG should be handled in ADA.
+
+You must distinguish clearly between:
+- durable persona context
+- live structured financial facts
+- session/chat memory
+- CRM/advisor notes if any
+- derived insight summaries if any
+
+Audit current state:
+- is there any RAG now?
+- is there text-based retrieval now?
+- where is it stored?
+- how is it retrieved?
+- what chunks/tags/metadata are used?
+- is anything persona-like already embedded in prompts or code?
+
+Then recommend current-state insertion points for Omar’s RAG:
+- pre-chat context assembly?
+- retrieval layer?
+- system prompt?
+- user profile summarizer?
+- memory service?
+- tool output post-processing?
+- insight generation layer?
+- explainers only?
+- alert generation?
+- morning summary / daily briefing?
+
+For each candidate insertion point, specify:
+- why it fits
+- what subset of RAG should be used there
+- what should NOT be passed there
+- token/cost implications
+- risk of stale or conflicting facts
+- guardrails needed when live DB data conflicts with persona RAG
+
+--------------------------------------------------
+I. PERSONALIZATION USAGE MATRIX
+--------------------------------------------------
+
+Create a matrix that answers:
+
+For each ADA feature / surface:
+- What structured user data should be used?
+- What persona RAG traits should be used?
+- Should the feature use goals?
+- Should it use risk profile?
+- Should it use communication style?
+- Should it use household/family context?
+- Should it use current holdings/exposures?
+- Should it use connected accounts?
+- Should it use recent transactions?
+- Should it use advisor relationship context?
+- Should it use live market/news mapping to holdings?
+- What should be excluded?
+
+This section should make it obvious how to personalize:
+- home summaries
+- portfolio explainers
+- alerts
+- recommendations
+- discover feed ranking/explanations
+- collective widgets
+- chat responses
+- RM handoff / advisor prompts
+
+--------------------------------------------------
+J. GAPS, RISKS, AND DATA INTEGRITY ISSUES
+--------------------------------------------------
+
+Identify issues such as:
+- user identity mismatches
+- duplicate user sources
+- mixed hardcoded/demo/live data
+- front-end assuming fields not in DB
+- workbook fields not represented
+- no clean user refresh path
+- no clean market backfill path
+- missing joins
+- hardcoded portfolio values
+- missing APIs
+- poor symbol normalization
+- missing quote currency / FX handling
+- poor separation between persona narrative and financial facts
+- prompt/context leakage risk
+- stale cache/state problems
+- poor support for future additional personas
+- lack of deterministic import pipeline
+
+Rank issues by severity:
+- Blocker
+- High
+- Medium
+- Low
+
+--------------------------------------------------
+K. RECOMMENDED TARGET DESIGN DIRECTION
+--------------------------------------------------
+
+Do NOT implement, but propose a grounded direction for the next step.
+
+Cover:
+1. recommended source-of-truth separation
+   - workbook / structured DB load
+   - persona RAG markdown/text
+   - live derived insights
+   - chat memory/session state
+   - market data enrichment / price source layer
+
+2. recommended ingestion/refresh approach
+   - one-time Omar load
+   - repeat refresh for Omar
+   - add future users/personas
+   - purge/replace strategy
+   - idempotency approach
+   - validation checks
+
+3. recommended market data enrichment approach
+   - provider abstraction
+   - symbol master / mapping strategy
+   - historical pricing lookup rules
+   - latest pricing lookup rules
+   - caching and retry strategy
+   - failure handling and fallback rules
+   - reconciliation approach
+   - what fields should be stored vs derived at read time
+
+4. recommended chat personalization architecture
+   - what should be loaded always
+   - what should be retrieved on demand
+   - what should be summarized
+   - how to avoid prompt bloat
+   - conflict-resolution rules between RAG and DB/live facts
+
+5. recommended UI wiring priorities
+   - quick wins
+   - structural fixes
+   - later enhancements
+
+6. recommended implementation phasing
+   - Phase 1: make Omar load reliably
+   - Phase 2: enrich holdings/transactions with market data backfill
+   - Phase 3: make refresh repeatable
+   - Phase 4: support multiple personas/users cleanly
+   - Phase 5: richer personalization and RM/advisor intelligence
+
+--------------------------------------------------
+L. ACTIONABLE NEXT-STEP CHECKLIST
+--------------------------------------------------
+
+End with a practical checklist for the next implementation pass.
+
+Include:
+- files likely to change
+- scripts/endpoints to build or refactor
+- validation tasks
+- test scenarios
+- sample acceptance criteria for “Omar is correctly loaded and personalized”
+- sample acceptance criteria for “market-linked asset pricing is correctly back-populated”
+- what additional information, if any, would still be needed
+
+==================================================
+REQUIRED DELIVERABLE STRUCTURE
+==================================================
+
+Your markdown must contain these sections in order:
+
+1. Executive Summary
+2. Current Architecture Relevant to Persona/Profile/Portfolio
+3. Current Data Model Inventory
+4. Omar Workbook → ADA Mapping
+5. Market Data Backfill / Enrichment Audit
+6. Current Data Population / Refresh Paths
+7. UI Usage Map
+8. Chat / AI Orchestration Deep Dive
+9. Persona RAG Usage Audit
+10. Personalization Usage Matrix
+11. Gaps / Risks / Integrity Issues
+12. Recommended Target Design Direction
+13. Phased Next Steps
+14. Appendices
+
+==================================================
+SPECIAL ANALYSIS QUESTIONS TO ANSWER EXPLICITLY
+==================================================
+
+The document must explicitly answer these questions:
+
+1. Can ADA currently support a clean two-stage pipeline of:
+   - base workbook import
+   - market data enrichment backfill
+   without major architectural changes?
+
+2. What is the safest canonical identifier strategy for:
+   - user
+   - portfolio
+   - holding
+   - transaction
+   - security / instrument / symbol
+
+3. For holdings, is “avg cost basis = trailing 1-year average market price” feasible and sensible for demo purposes, or would a transaction-derived cost basis be more internally consistent with the existing model?
+
+4. For transactions, how should the system treat:
+   - weekends / market holidays
+   - missing historical prices
+   - FX-denominated securities
+   - crypto that trades 24/7
+   - assets with no reliable public ticker
+
+5. Which UI surfaces and chat features would visibly break or become misleading if workbook market values are loaded without external backfill?
+
+==================================================
+NON-GOALS
+==================================================
+
+Do not:
+- implement fixes
+- modify DB data
+- import Omar yet
+- rewrite prompts yet
+- regenerate the workbook
+- redesign the UI
+
+This pass is strictly to produce the audit/documentation needed so the next design/implementation prompt can be precise and low-risk.
